@@ -68,8 +68,8 @@ MonoBehaviour:
       data:
         ruleId: memory:forgiving
         priority: 0
-        eventId: social:sincere-apology
-        relationshipDelta: 3
+        eventId: betrayal-or-assault
+        relationshipDelta: -3
         dailyDecay: 1.5
         apologyCanClear: 1
         restitutionRequired: 0

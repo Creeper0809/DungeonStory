@@ -1,6 +1,11 @@
 using System.Linq;
 using UnityEngine;
 
+[System.AttributeUsage(System.AttributeTargets.Field)]
+public sealed class RegisteredSortingLayerAttribute : PropertyAttribute
+{
+}
+
 [CreateAssetMenu(menuName = "DungeonStory/Buildings/Ability Settings/Lighting", order = 0)]
 public sealed class BuildingLightingSettingsSO : ScriptableObject
 {
@@ -20,5 +25,6 @@ public sealed class BuildingLightingSettingsSO : ScriptableObject
     [Range(0.05f, 0.95f)] public float innerRadiusRatio = DefaultInnerRadiusRatio;
     [Range(0f, 1f)] public float falloffIntensity = DefaultFalloffIntensity;
     public Color color = DefaultColor;
+    [RegisteredSortingLayer]
     public string[] targetSortingLayers = DefaultTargetSortingLayers.ToArray();
 }

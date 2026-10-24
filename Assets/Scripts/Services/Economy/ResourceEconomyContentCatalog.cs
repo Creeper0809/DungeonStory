@@ -50,7 +50,9 @@ public sealed class ResourceEconomyContentCatalog : IResourceEconomyContentCatal
         foreach (ProductionRecipeSO recipe in recipes)
         {
             massExplanationRegistry.ValidateRegistered(recipe.MassExplanation);
-            outputCostAllocationRegistry.ValidateRegistered(recipe.OutputCostAllocation);
+            outputCostAllocationRegistry.ValidateForOutputs(
+                recipe.OutputCostAllocation,
+                recipe.Outputs);
         }
         crops = Normalize(
             cropDefinitions,

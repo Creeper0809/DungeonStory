@@ -124,7 +124,10 @@ public sealed class CharacterCarryPresentation : MonoBehaviour
             definition != null ? definition.StockCategory : StockCategory.General,
             inventory.GetLoadRatio());
         CharacterPropAttachmentProfile profile =
-            catalog.ResolvePropProfile(actor != null ? actor.SpeciesTag : "default", kind);
+            catalog.ResolvePropProfile(
+                actor != null ? actor.SpeciesTag : string.Empty,
+                actor?.profile?.GetAnatomyProfileId(),
+                kind);
         EnsureRenderers();
 
         SpriteRenderer characterRenderer = visual.VisualRenderer;

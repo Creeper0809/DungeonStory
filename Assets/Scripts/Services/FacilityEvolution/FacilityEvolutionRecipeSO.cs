@@ -14,6 +14,7 @@ public class FacilityEvolutionRecipeSO : DataScriptableObject
     [Header("Lineage")]
     public BuildingSO resultBuilding;
     public BuildingSO[] fromFacilities = Array.Empty<BuildingSO>();
+    [ContentReference(ContentReferenceKind.FacilityLineageTag)]
     public string[] fromLineageTags = Array.Empty<string>();
     [Min(1)] public int requiredStarGrade = 1;
     [Min(1)] public int resultStarGrade = 2;
@@ -27,12 +28,14 @@ public class FacilityEvolutionRecipeSO : DataScriptableObject
     public bool requireUsableRoom = true;
     public FacilityEvolutionMetricRequirement[] requiredRoomScores = Array.Empty<FacilityEvolutionMetricRequirement>();
     public FacilityEvolutionMetricRequirement[] requiredRoomMetrics = Array.Empty<FacilityEvolutionMetricRequirement>();
+    [ContentReference(ContentReferenceKind.RoomTag)]
     public string[] requiredRoomTags = Array.Empty<string>();
     public BuildingSO[] requiredUniqueFixtures = Array.Empty<BuildingSO>();
 
     [Header("Records and Resources")]
     public FacilityEvolutionTokenRequirement[] requiredRecordTokens = Array.Empty<FacilityEvolutionTokenRequirement>();
     public FacilityEvolutionMaterialRequirement[] requiredMaterials = Array.Empty<FacilityEvolutionMaterialRequirement>();
+    [ContentReference(ContentReferenceKind.FacilityMutationTag)]
     public string[] allowedMutationTags = Array.Empty<string>();
     public bool consumeRecordTokens;
 

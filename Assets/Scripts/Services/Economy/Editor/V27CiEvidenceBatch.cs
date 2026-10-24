@@ -112,6 +112,13 @@ public static class V27CiEvidenceBatch
         R19ProductionRegistryDebugScenarios.RunAll();
         R19CropCatalystDebugScenarios.RunAll();
         R19ContentSelectionDebugScenarios.RunAll();
+        R20ProductionOutputCostDebugScenarios.RunAll();
+        R20IdentityProtocolDebugScenarios.RunAll();
+        R20RelationGuardDebugScenarios.RunAll();
+        R20FacilityRelationshipDebugScenarios.RunAll();
+        R20ReverseMembershipDebugScenarios.RunAll();
+        R20PublishedProviderDebugScenarios.RunAll();
+        R20PresentationDebugScenarios.RunAll();
     }));
     public static void RunSoRuntimeContracts() => RunImpact("so-runtime", () =>
     {
@@ -128,6 +135,10 @@ public static class V27CiEvidenceBatch
         OffenseRewardDebugScenarios.RunPersistentBattleSnapshotRestoreRegression();
         R19ProgressionDebugScenarios.RunAll();
         ServiceSessionOutcomeDebugScenarios.RunR19ProcessFeatureContracts();
+        R20SleepingCapacityDebugScenarios.RunAll();
+        R20CareerScopeDebugScenarios.RunAll();
+        R20TraitRuntimeDebugScenarios.RunAll();
+        V20ContentResolutionRecoveryDebugScenarios.RunR20ProficiencyRewardContracts();
     });
     public static void RunSoInspectorContracts() => RunImpact("so-inspector", () =>
         ContentReferenceSelectionDebugScenarios.RunWithUndoIsolation(() =>
@@ -138,6 +149,7 @@ public static class V27CiEvidenceBatch
             R18ContentReferenceDebugScenarios.VerifyInspectorGUI();
             R18MedicalPolicyReferenceDebugScenarios.VerifyInspectorGUI();
             R19InspectorDebugScenarios.VerifyInspectorGUI();
+            R20InspectorDebugScenarios.VerifyInspectorGUI();
         }));
     public static void CaptureContentPublication() => RunImpact("content-publication", () =>
     {

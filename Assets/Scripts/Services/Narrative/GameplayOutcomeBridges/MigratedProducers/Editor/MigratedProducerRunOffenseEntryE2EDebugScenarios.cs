@@ -1653,11 +1653,9 @@ public static partial class MigratedProducerRunOffenseEntryE2EDebugScenarios
                 2,
                 () =>
                 {
-                    careers.AssignPosition(
-                        StudentId,
-                        CareerPositionKind.Mentor,
-                        AcademyId.Value,
-                        2);
+                    careers.AssignMentorship(
+                        MentorId, StudentId, AcademyId,
+                        new CharacterProficiencyId("proficiency:migrated-e2e"));
                     return true;
                 },
                 out _);

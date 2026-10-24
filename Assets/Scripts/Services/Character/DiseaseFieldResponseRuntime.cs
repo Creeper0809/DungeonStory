@@ -67,6 +67,18 @@ public sealed class DiseaseFieldResponseRuntime :
         };
 
     private readonly IDiseaseDefinitionCatalog diseases;
+    public static IReadOnlyList<string> AvailableResponseIds(string diseaseId, bool vaccineAllowed)
+    {
+        var ids = new List<string>(Rules.Keys);
+        if (!string.IsNullOrWhiteSpace(diseaseId))
+        {
+            ids.Add("response:isolate:" + diseaseId);
+            ids.Add("response:environment:" + diseaseId);
+            if (vaccineAllowed) ids.Add("response:vaccine:" + diseaseId);
+        }
+        ids.Sort(StringComparer.Ordinal);
+        return ids.AsReadOnly();
+    }
     private readonly IPopulationHealthQuery health;
     private readonly IPopulationHealthPersistence persistence;
     private readonly IFacilityCapabilityQuery facilities;

@@ -191,7 +191,8 @@ public enum V20ContentEffectKind
     DiseaseExposure,
     AmbitionProgress,
     MilestonePressure,
-    RetirementSchedule
+    RetirementSchedule,
+    ProficiencyExperience
 }
 
 [Serializable]
@@ -203,6 +204,9 @@ public sealed class V20ContentEffect
     [Min(0)] public int durationDays;
 
     public bool IsValid => kind != V20ContentEffectKind.None
+        && (kind != V20ContentEffectKind.ProficiencyExperience
+            || !string.IsNullOrWhiteSpace(targetId) && amount > 0f
+                && !float.IsNaN(amount) && !float.IsInfinity(amount))
         && (kind != V20ContentEffectKind.WorldFlag
             || !string.IsNullOrWhiteSpace(targetId))
         && (kind != V20ContentEffectKind.RetirementSchedule

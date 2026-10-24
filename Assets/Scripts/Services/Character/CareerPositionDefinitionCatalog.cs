@@ -17,6 +17,8 @@ public sealed class CareerPositionDefinitionCatalog :
             .ToArray();
         if (all.Count != 6
             || all.Any(value => value.position == CareerPositionKind.None
+                || !Enum.IsDefined(typeof(CareerPositionKind), value.position)
+                || !Enum.IsDefined(typeof(CareerPositionScopeKind), value.scope)
                 || string.IsNullOrWhiteSpace(value.StableId)
                 || string.IsNullOrWhiteSpace(value.displayName)
                 || value.maximumOccupants != 1

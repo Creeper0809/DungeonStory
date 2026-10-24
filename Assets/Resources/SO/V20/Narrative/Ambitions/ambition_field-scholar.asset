@@ -45,7 +45,7 @@ MonoBehaviour:
     requiredFlags: []
     excludedFlags: []
   completionRewards:
-  - kind: 3
+  - kind: 19
     targetId: proficiency:scholarship
     amount: 100
     durationDays: 0

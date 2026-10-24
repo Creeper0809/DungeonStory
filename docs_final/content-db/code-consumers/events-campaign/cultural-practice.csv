@@ -6,5 +6,5 @@ CulturalPracticeDefinitionSO,content-type,,type-reference; save-restore-referenc
 CulturalPracticeDefinitionSO,content-type,,type-reference,services:items,content-loading,structural-type-consumer,Assets/Scripts/Services/Items/GameContentCatalog.cs
 CulturalPracticeDefinitionSO,content-type,,type-reference,services:narrative,runtime,structural-type-consumer,Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/SocialLife/CampaignPresentationObserver.cs
 CulturalPracticeDefinitionSO,content-type,,type-reference,services:run,runtime,structural-type-consumer,Assets/Scripts/Services/Run/V20ContentResolutionRequestPlanner.cs
-CulturalPracticeDefinitionSO,content-type,,type-reference,services:run,runtime,structural-type-consumer,Assets/Scripts/Services/Run/V20ContentTypedEffectRuntime.cs
+CulturalPracticeDefinitionSO,content-type,,type-reference; save-restore-reference,services:run,runtime,structural-type-consumer,Assets/Scripts/Services/Run/V20ContentTypedEffectRuntime.cs
 CulturalPracticeDefinitionSO,content-type,,type-reference,services:run,content-loading,structural-type-consumer,Assets/Scripts/Services/Run/V20StoryContentCatalog.cs

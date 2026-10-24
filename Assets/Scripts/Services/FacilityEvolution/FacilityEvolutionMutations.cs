@@ -28,6 +28,21 @@ public interface IFacilityEvolutionMutationResolver
 public sealed class DefaultFacilityEvolutionMutationResolver : IFacilityEvolutionMutationResolver
 {
     private const int MaxMutationTagsPerEvolution = 2;
+    private static readonly IReadOnlyList<string> explicitEvidenceTags =
+        Array.AsReadOnly(new[]
+        {
+            FacilityEvolutionTerms.Combat,
+            FacilityEvolutionTerms.Brutal,
+            FacilityEvolutionTerms.Luxury,
+            FacilityEvolutionTerms.Noble,
+            FacilityEvolutionTerms.Security,
+            FacilityEvolutionTerms.Outlaw,
+            FacilityEvolutionTerms.Service,
+            FacilityEvolutionTerms.Crowd
+        });
+
+    public static IReadOnlyList<string> ExplicitEvidenceTags =>
+        explicitEvidenceTags;
 
     public FacilityEvolutionMutationResult Resolve(
         FacilityEvolutionContext context,
@@ -119,6 +134,10 @@ public sealed class DefaultFacilityEvolutionMutationResolver : IFacilityEvolutio
         float score = Mathf.Clamp01(profile.GetScore(tag) / 40f);
         float token = profile.GetToken(tag) > 0 ? 0.6f : 0f;
         float generic = Mathf.Max(pressure, score, token);
+        if (!explicitEvidenceTags.Contains(tag, StringComparer.Ordinal))
+        {
+            return generic;
+        }
 
         if (string.Equals(tag, FacilityEvolutionTerms.Combat, StringComparison.Ordinal))
         {

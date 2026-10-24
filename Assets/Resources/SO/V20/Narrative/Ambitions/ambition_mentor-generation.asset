@@ -45,7 +45,7 @@ MonoBehaviour:
     requiredFlags: []
     excludedFlags: []
   completionRewards:
-  - kind: 3
+  - kind: 19
     targetId: proficiency:social
     amount: 100
     durationDays: 0

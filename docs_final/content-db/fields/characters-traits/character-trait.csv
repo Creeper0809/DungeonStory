@@ -1787,7 +1787,7 @@ CharacterTraitSO|trait:218,trait:218,references.RefIds.0.type.ns,,,,explicit-ser
 CharacterTraitSO|trait:218,trait:218,references.RefIds.0.type.asm,DungeonStory.Foundation,,,explicit-serialized
 CharacterTraitSO|trait:218,trait:218,references.RefIds.0.data.ruleId,memory:grudge,,,explicit-serialized
 CharacterTraitSO|trait:218,trait:218,references.RefIds.0.data.priority,0,,,explicit-serialized
-CharacterTraitSO|trait:218,trait:218,references.RefIds.0.data.eventId,social:betrayal-or-assault,,,explicit-serialized
+CharacterTraitSO|trait:218,trait:218,references.RefIds.0.data.eventId,betrayal-or-assault,,,explicit-serialized
 CharacterTraitSO|trait:218,trait:218,references.RefIds.0.data.relationshipDelta,-5,,,explicit-serialized
 CharacterTraitSO|trait:218,trait:218,references.RefIds.0.data.dailyDecay,0.25,,,explicit-serialized
 CharacterTraitSO|trait:218,trait:218,references.RefIds.0.data.apologyCanClear,1,,,explicit-serialized
@@ -1835,8 +1835,8 @@ CharacterTraitSO|trait:219,trait:219,references.RefIds.0.type.ns,,,,explicit-ser
 CharacterTraitSO|trait:219,trait:219,references.RefIds.0.type.asm,DungeonStory.Foundation,,,explicit-serialized
 CharacterTraitSO|trait:219,trait:219,references.RefIds.0.data.ruleId,memory:forgiving,,,explicit-serialized
 CharacterTraitSO|trait:219,trait:219,references.RefIds.0.data.priority,0,,,explicit-serialized
-CharacterTraitSO|trait:219,trait:219,references.RefIds.0.data.eventId,social:sincere-apology,,,explicit-serialized
-CharacterTraitSO|trait:219,trait:219,references.RefIds.0.data.relationshipDelta,3,,,explicit-serialized
+CharacterTraitSO|trait:219,trait:219,references.RefIds.0.data.eventId,betrayal-or-assault,,,explicit-serialized
+CharacterTraitSO|trait:219,trait:219,references.RefIds.0.data.relationshipDelta,-3,,,explicit-serialized
 CharacterTraitSO|trait:219,trait:219,references.RefIds.0.data.dailyDecay,1.5,,,explicit-serialized
 CharacterTraitSO|trait:219,trait:219,references.RefIds.0.data.apologyCanClear,1,,,explicit-serialized
 CharacterTraitSO|trait:219,trait:219,references.RefIds.0.data.restitutionRequired,0,,,explicit-serialized

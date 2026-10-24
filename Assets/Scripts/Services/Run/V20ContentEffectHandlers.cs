@@ -47,6 +47,24 @@ internal static class V20ContentEffectHandlers
                 foreach (CharacterActor actor in c.Participants)
                     actor.Progression?.AddExperience(Math.Max(0, Mathf.RoundToInt(c.Effect.amount)));
             });
+        yield return new(Kind.ProficiencyExperience, "proficiency command / characters.narrative", "proficiency-experience", Stage.Typed,
+            o => FormatFloat(ProficiencyExperience(o.Snapshot, o.TargetId, o.Effect.targetId)),
+            (b, a) => ProficiencyExperience(a.Snapshot, a.TargetId, a.Effect.targetId)
+                - ProficiencyExperience(b.Snapshot, b.TargetId, b.Effect.targetId),
+            minimumParticipants: 1, participantTargeted: true, forwardRecovery: true,
+            persistenceOwners: Owners.Narrative,
+            preflight: (r, c) => r.narrative is ICharacterProficiencyCommand && r.calendar != null
+                && r.narrativeCatalog != null && r.narrativeQuery != null
+                && r.narrativeCatalog.Proficiencies.Any(value => value.StableId == c.Effect.targetId)
+                && c.Participants.All(actor => r.narrativeQuery.TryGet(actor.Identity.TypedPersistentId, out _))
+                ? DomainFailure.None : new DomainFailure(FailureCode.ServiceFeatureMissing, "content-proficiency-experience-authority"),
+            apply: (r, c) =>
+            {
+                foreach (CharacterActor actor in c.Participants)
+                    ((ICharacterProficiencyCommand)r.narrative).AddDirectExperience(
+                        actor.Identity.TypedPersistentId, new CharacterProficiencyId(c.Effect.targetId),
+                        c.Effect.amount, c.AbsoluteHour, applyLearningMultiplier: false);
+            });
         yield return new(Kind.Health, "body-health command / characters.health", "health-change-not-pressure", Stage.Typed,
             o => FormatFloat(HealthValue(o.Snapshot, o.TargetId)),
             (b, a) => HealthValue(a.Snapshot, a.TargetId) - HealthValue(b.Snapshot, b.TargetId),

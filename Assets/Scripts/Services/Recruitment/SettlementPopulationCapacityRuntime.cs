@@ -210,14 +210,6 @@ public static class SettlementPopulationAcceptanceRules
 public sealed class SettlementPopulationCapacityRuntime :
     ISettlementPopulationCapacityQuery
 {
-    private static readonly HashSet<string> SleepingFacilityCodes =
-        new HashSet<string>(StringComparer.Ordinal)
-        {
-            "R01",
-            "R02",
-            "R03"
-        };
-
     private readonly ICharacterWorldQuery characters;
     private readonly IBuildingWorldQuery buildings;
     private readonly ISurvivalFoodQuery survival;
@@ -298,10 +290,15 @@ public sealed class SettlementPopulationCapacityRuntime :
         for (int index = 0; index < current.Count; index++)
         {
             BuildableObject building = current[index];
-            if (building == null
-                || building.isDestroy
-                || !SleepingFacilityCodes.Contains(
-                    building.BuildingData.GetFacilityCode()))
+            if (building == null || building.isDestroy)
+            {
+                continue;
+            }
+
+            BuildingServiceHubAbility hub = building.GetServiceHubAbility();
+            if (hub == null
+                || !Enum.IsDefined(typeof(ServiceCategory), hub.serviceCategory)
+                || hub.serviceCategory != ServiceCategory.Lodging)
             {
                 continue;
             }

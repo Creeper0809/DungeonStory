@@ -85,6 +85,15 @@ namespace DungeonStory.Balance
                     $"Unknown output-cost allocation capability '{key}'.");
         }
 
+        public void ValidateForOutputs(
+            ProductionOutputCostAllocationAuthoringSnapshot authoring,
+            IReadOnlyList<ProductionOutputDefinition> outputs)
+        {
+            if (authoring.IsEmpty)
+                return;
+            _ = ResolveWeights(authoring, outputs);
+        }
+
         private static string Key(string id, int version) =>
             string.Concat(id ?? string.Empty, "@", version.ToString(CultureInfo.InvariantCulture));
     }
@@ -110,7 +119,9 @@ namespace DungeonStory.Balance
             if (authoring.CapabilityId != Id || authoring.ContractVersion != Version)
                 throw new InvalidOperationException("Weighted output-share contract mismatch.");
             ProductionOutputDefinition[] physical = CapturePhysicalOutputs(outputs);
-            Dictionary<string, long> parsed = ParsePayload(authoring.CanonicalPayload);
+            Dictionary<string, long> parsed = DecodePayload(authoring.CanonicalPayload)
+                .ToDictionary(value => value.OutputLineId, value => value.Weight,
+                    StringComparer.Ordinal);
             if (parsed.Count != physical.Length)
                 throw new InvalidOperationException(
                     "Output-cost allocation must name every physical output exactly once.");
@@ -153,12 +164,99 @@ namespace DungeonStory.Balance
             if (physical.Count(value => value.Role == ProductionOutputRole.Main) != 1)
                 throw new InvalidOperationException(
                     "Weighted output-share authoring requires exactly one Main output.");
-            return string.Join(";", physical.Select(output => string.Concat(
-                output.OutputLineId,
+            return EncodePayload(physical.Select(output =>
+                new ProductionOutputCostAllocationWeight(
+                    output.OutputLineId,
+                    output.Role == ProductionOutputRole.ReturnedPackaging
+                        ? 0L
+                        : output.Amount)));
+        }
+
+        public static IReadOnlyList<ProductionOutputCostAllocationWeight> DecodePayload(
+            string payload)
+        {
+            if (string.IsNullOrWhiteSpace(payload)
+                || !string.Equals(payload, payload.Trim(), StringComparison.Ordinal))
+                throw new InvalidOperationException("Output-cost payload is noncanonical.");
+
+            string[] tokens = payload.Split(';');
+            var result = new ProductionOutputCostAllocationWeight[tokens.Length];
+            string previous = null;
+            for (int index = 0; index < tokens.Length; index++)
+            {
+                string token = tokens[index];
+                int separator = token.LastIndexOf('=');
+                if (separator <= 0 || separator == token.Length - 1)
+                    throw new InvalidOperationException(
+                        $"Output-cost payload token {index} is malformed.");
+                string lineId = token.Substring(0, separator);
+                string weightToken = token.Substring(separator + 1);
+                if (!ProductionOutputDefinition.IsCanonicalOutputLineId(lineId))
+                    throw new InvalidOperationException(
+                        $"Output-cost payload output line ID '{lineId}' is noncanonical.");
+                if (previous != null
+                    && StringComparer.Ordinal.Compare(previous, lineId) >= 0)
+                    throw new InvalidOperationException(
+                        "Output-cost payload is not strictly ordinal sorted.");
+                if (!long.TryParse(weightToken, NumberStyles.None,
+                        CultureInfo.InvariantCulture, out long weight)
+                    || weight < 0L
+                    || weight > int.MaxValue
+                    || !string.Equals(
+                        weightToken,
+                        weight.ToString(CultureInfo.InvariantCulture),
+                        StringComparison.Ordinal))
+                {
+                    throw new InvalidOperationException(
+                        $"Output-cost payload weight '{weightToken}' for '{lineId}' is invalid.");
+                }
+
+                result[index] = new ProductionOutputCostAllocationWeight(lineId, weight);
+                previous = lineId;
+            }
+            return Array.AsReadOnly(result);
+        }
+
+        public static string EncodePayload(
+            IEnumerable<ProductionOutputCostAllocationWeight> weights)
+        {
+            ProductionOutputCostAllocationWeight[] ordered =
+                (weights ?? throw new ArgumentNullException(nameof(weights)))
+                .OrderBy(value => value.OutputLineId, StringComparer.Ordinal)
+                .ToArray();
+            if (ordered.Length == 0)
+                throw new InvalidOperationException(
+                    "Output-cost payload requires at least one output weight.");
+
+            string previous = null;
+            for (int index = 0; index < ordered.Length; index++)
+            {
+                ProductionOutputCostAllocationWeight weight = ordered[index];
+                if (!ProductionOutputDefinition.IsCanonicalOutputLineId(
+                        weight.OutputLineId))
+                {
+                    throw new InvalidOperationException(
+                        $"Output-cost output line ID '{weight.OutputLineId}' is noncanonical.");
+                }
+                if (previous != null
+                    && string.Equals(previous, weight.OutputLineId,
+                        StringComparison.Ordinal))
+                {
+                    throw new InvalidOperationException(
+                        $"Duplicate output-cost output line ID '{weight.OutputLineId}'.");
+                }
+                if (weight.Weight < 0L || weight.Weight > int.MaxValue)
+                {
+                    throw new InvalidOperationException(
+                        $"Output-cost weight for '{weight.OutputLineId}' is invalid.");
+                }
+                previous = weight.OutputLineId;
+            }
+
+            return string.Join(";", ordered.Select(weight => string.Concat(
+                weight.OutputLineId,
                 "=",
-                (output.Role == ProductionOutputRole.ReturnedPackaging
-                    ? 0L
-                    : (long)output.Amount).ToString(CultureInfo.InvariantCulture))));
+                weight.Weight.ToString(CultureInfo.InvariantCulture))));
         }
 
         private static ProductionOutputDefinition[] CapturePhysicalOutputs(
@@ -170,32 +268,5 @@ namespace DungeonStory.Balance
             .OrderBy(value => value.OutputLineId, StringComparer.Ordinal)
             .ToArray();
 
-        private static Dictionary<string, long> ParsePayload(string payload)
-        {
-            if (string.IsNullOrWhiteSpace(payload)
-                || !string.Equals(payload, payload.Trim(), StringComparison.Ordinal))
-                throw new InvalidOperationException("Output-cost payload is noncanonical.");
-            var result = new Dictionary<string, long>(StringComparer.Ordinal);
-            string previous = null;
-            foreach (string token in payload.Split(';'))
-            {
-                int separator = token.LastIndexOf('=');
-                if (separator <= 0 || separator == token.Length - 1)
-                    throw new InvalidOperationException("Output-cost payload token is malformed.");
-                string lineId = token.Substring(0, separator);
-                string weightToken = token.Substring(separator + 1);
-                if (previous != null
-                    && StringComparer.Ordinal.Compare(previous, lineId) >= 0)
-                    throw new InvalidOperationException("Output-cost payload is not ordinal sorted.");
-                if (!long.TryParse(weightToken, NumberStyles.None,
-                        CultureInfo.InvariantCulture, out long weight)
-                    || weight < 0L
-                    || weight > int.MaxValue
-                    || !result.TryAdd(lineId, weight))
-                    throw new InvalidOperationException("Output-cost payload weight is invalid.");
-                previous = lineId;
-            }
-            return result;
-        }
     }
 }

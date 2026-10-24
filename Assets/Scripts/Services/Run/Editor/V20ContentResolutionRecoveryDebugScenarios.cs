@@ -1553,6 +1553,162 @@ public static class V20ContentResolutionRecoveryDebugScenarios
         Debug.Log("CONTENT_REFERENCE_RUNTIME=PASS; authored ambition3/practice7; legacy string/int IDs; fresh JSON owners; exact duplicate retry");
     }
 
+    public static void RunR20ProficiencyRewardContracts()
+    {
+        Require((int)V20ContentEffectKind.SkillExperience == 3
+            && (int)V20ContentEffectKind.RetirementSchedule == 18
+            && (int)V20ContentEffectKind.ProficiencyExperience == 19,
+            "R20 changed an existing saved effect number.");
+        var actorId = new CharacterId(ActorId);
+        foreach (string ambitionId in new[] { "ambition:field-scholar", "ambition:master-healer",
+                     "ambition:master-smith", "ambition:mentor-generation" })
+        {
+            using var content = new FixtureContent();
+            CharacterAmbitionDefinitionSO ambition = content.NarrativeCatalog.Ambitions.Single(value => value.StableId == ambitionId);
+            V20ContentEffect reward = ambition.completionRewards.Single();
+            Require(reward.kind == V20ContentEffectKind.ProficiencyExperience && reward.amount == 100f,
+                "Authored ambition still grants generic experience: " + ambitionId);
+            RecoverySaveBundle saved, completed;
+            ContentResolutionRequest request;
+            using (var fixture = new Fixture(content, new SharedGrantState { FailNextCommit = false }))
+            {
+                fixture.Narrative.StartAmbition(actorId, new CharacterAmbitionId(ambitionId), AbsoluteDay);
+                fixture.Narrative.AddAmbitionProgress(actorId, ambition.targetProgress - 50, AbsoluteDay);
+                var definition = content.StoryCatalog.LifeEvents.Single(value => value.StableId == "life-event:masterpiece-commission");
+                string instance = "society-event:r20:" + ambitionId;
+                var society = fixture.Campaign.CaptureSociety();
+                society.activeEvents.Add(new V20ActiveEventSaveData
+                {
+                    instanceId = instance, definitionId = definition.StableId, startedAbsoluteDay = AbsoluteDay,
+                    deadlineAbsoluteDay = AbsoluteDay + 3, generation = 1, deterministicRoll = 405u,
+                    contextFactionId = content.StoryCatalog.Arcs.Last().factionId,
+                    participantCharacterIds = new List<string> { ActorId },
+                    riskTier = definition.riskTier, riskReason = definition.riskReason
+                });
+                fixture.Campaign.PublishSociety(fixture.Campaign.PrepareSociety(society));
+                request = new ContentResolutionRequest
+                {
+                    ActionId = V21ContentAlertActionIds.Society(instance, "first"), InstanceId = instance, ChoiceId = "first",
+                    Kind = ContentResolutionRequestKind.SocietyChoice, AbsoluteDay = AbsoluteDay,
+                    Requirements = new RunMilestoneEvaluationSnapshot { AbsoluteDay = AbsoluteDay }
+                };
+                saved = fixture.CaptureRoundTrip();
+            }
+            using (var restored = new Fixture(content, new SharedGrantState { FailNextCommit = false }, saved))
+            {
+                Require(restored.Service.TryExecute(request, out var result, out var failure),
+                    "R20 ambition execution failed: " + ambitionId + " " + failure);
+                var resolution = result.Resolutions.Single(value => value.DefinitionId == "ambition-reward:" + ambitionId);
+                Require(resolution.Applications.Single().appliedAmount == 100f,
+                    "R20 proficiency evidence did not observe the actual award.");
+                completed = restored.CaptureRoundTrip();
+                Require(ProficiencyXp(completed, reward.targetId) - ProficiencyXp(saved, reward.targetId) == 100000L,
+                    "R20 proficiency reward changed the wrong authority or amount.");
+            }
+            using (var restored = new Fixture(content, new SharedGrantState { FailNextCommit = false }, completed))
+            {
+                string before = JsonUtility.ToJson(restored.CaptureRoundTrip());
+                _ = restored.Service.TryExecute(request, out _, out _);
+                Require(before == JsonUtility.ToJson(restored.CaptureRoundTrip()), "R20 restored ambition reward duplicated.");
+            }
+        }
+
+        using (var legacy = new FixtureContent(configureEffects: effects =>
+        {
+            effects.Clear();
+            effects.Add(new V20ContentEffect { kind = (V20ContentEffectKind)3,
+                targetId = "proficiency:crafting", amount = 5f });
+        }, includeFixtureEffects: false))
+        {
+            RecoverySaveBundle completed;
+            using (var fixture = new Fixture(legacy, new SharedGrantState { FailNextCommit = false }))
+            {
+                CharacterProgressionSnapshot progression = fixture.Actor.Progression.CapturePersistentState();
+                long proficiencyBefore = ProficiencyXp(fixture.CaptureRoundTrip(), "proficiency:crafting");
+                Require(fixture.Service.TryExecute(CreateRequest(), out _, out var failure), "Legacy effect failed: " + failure);
+                completed = fixture.CaptureRoundTrip();
+                CharacterProgressionSnapshot actual = fixture.Actor.Progression.CapturePersistentState();
+                Require((progression.Level != actual.Level || progression.CurrentExperience != actual.CurrentExperience)
+                    && ProficiencyXp(completed, "proficiency:crafting") == proficiencyBefore,
+                    "Old wire kind3 was reinterpreted as a proficiency reward.");
+            }
+            using (var restored = new Fixture(legacy, new SharedGrantState { FailNextCommit = false }, completed))
+            {
+                string before = JsonUtility.ToJson(restored.CaptureRoundTrip());
+                _ = restored.Service.TryExecute(CreateRequest(), out _, out _);
+                Require(before == JsonUtility.ToJson(restored.CaptureRoundTrip()), "Legacy restored effect duplicated.");
+            }
+        }
+        var defaults = V21ContentEffectExecutionRegistry.Default;
+        V20ContentEffectHandler handler = defaults.Require(V20ContentEffectKind.ProficiencyExperience);
+        bool fail = true;
+        var injected = new V20ContentEffectHandler(handler.Kind, handler.Owner, handler.Semantic,
+            handler.Stage, handler.Observe, handler.AppliedAmount,
+            minimumParticipants: handler.MinimumParticipants, participantTargeted: handler.ParticipantTargeted,
+            forwardRecovery: handler.RequiresForwardRecovery, persistenceOwners: handler.PersistenceOwners,
+            preflight: handler.Preflight, apply: (runtime, invocation) =>
+            {
+                handler.Apply(runtime, invocation);
+                if (fail) { fail = false; throw new InvalidOperationException("r20-after-proficiency-award"); }
+            });
+        var registry = new V21ContentEffectExecutionRegistry(defaults.Handlers.Where(value => value.Kind != handler.Kind).Append(injected));
+        using (var content = new FixtureContent(configureEffects: effects => effects.Add(new V20ContentEffect
+        { kind = V20ContentEffectKind.ProficiencyExperience, targetId = "proficiency:crafting", amount = 100f })))
+        {
+            var grants = new SharedGrantState { FailNextCommit = false };
+            RecoverySaveBundle pending;
+            long proficiencyBefore;
+            using (var fixture = new Fixture(content, grants, effectHandlers: registry, useSessionCalendar: true))
+            {
+                var proficiencyId = new CharacterProficiencyId("proficiency:crafting");
+                fixture.Calendar.SetDateTime(AbsoluteDay, 8);
+                long hour = fixture.Calendar.AbsoluteHour;
+                Require(fixture.Narrative.TryGetProficiency(actorId, proficiencyId, hour, out var initial),
+                    "R20 crafting authority is missing.");
+                int nextRank = new[] { 100, 400, 1200, 3000 }.First(value => value > initial.CurrentExperience);
+                fixture.Narrative.AddDirectExperience(actorId, proficiencyId,
+                    nextRank - 1 - initial.CurrentExperience, hour, applyLearningMultiplier: false);
+                proficiencyBefore = ProficiencyXp(fixture.CaptureRoundTrip(), proficiencyId.Value);
+                string before = JsonUtility.ToJson(fixture.Narrative.Capture());
+                bool surfaced = false;
+                try { fixture.Service.TryExecute(CreateRequest(), out _, out _); }
+                catch (InvalidOperationException error) { surfaced = error.Message.Contains("r20-after-proficiency-award"); }
+                Require(surfaced && before == JsonUtility.ToJson(fixture.Narrative.Capture()),
+                    "R20 failed proficiency command left partial narrative state.");
+                pending = fixture.CaptureRoundTrip();
+                var recovery = pending.milestones.pendingContentResolutions.Single();
+                Require(recovery.proficiencyAwardClockVersion == 1
+                    && recovery.proficiencyAwardAbsoluteHour == hour,
+                    "R20 pending reward did not retain its original award time.");
+            }
+            foreach (bool missing in new[] { true, false })
+            {
+                var damaged = RoundTrip(pending).milestones.pendingContentResolutions;
+                damaged.Single().proficiencyAwardClockVersion = missing ? 0 : 1;
+                damaged.Single().proficiencyAwardAbsoluteHour = missing ? 0L : -1L;
+                bool rejected = false;
+                try { V20ContentRecoveryEvidence.ValidateMetadata(damaged); }
+                catch (InvalidOperationException) { rejected = true; }
+                Require(rejected, "R20 accepted missing or negative proficiency award time.");
+            }
+            using (var restored = new Fixture(content, grants, pending, effectHandlers: registry, useSessionCalendar: true))
+            {
+                restored.Calendar.SetDateTime(AbsoluteDay + 1, 9);
+                Require(restored.Service.TryExecute(CreateRequest(), out _, out var failure), "R20 pending reward did not recover: " + failure);
+                Require(ProficiencyXp(restored.CaptureRoundTrip(), "proficiency:crafting") == proficiencyBefore + 100000L
+                    && restored.Probe.CommitCount(MigratedProducerOutcomeKind.CharacterProficiencyAwardCommitReceipt) == 1,
+                    "R20 retry after game-time advance did not grant proficiency and promotion exactly once.");
+                _ = MigratedProducerOutcomeE2EAssertions.RequireExact(restored.Outcomes,
+                    MigratedProducerOutcomeKind.CharacterProficiencyAwardCommitReceipt, restored.Probe);
+            }
+        }
+        Debug.Log("R20_PROFICIENCY_REWARDS=PASS; authored4; effect wire compatibility; fresh JSON restore; failed mutation rollback; frozen award time; next-day pending retry; invalid clock rejection; no duplicate");
+    }
+
+    private static long ProficiencyXp(RecoverySaveBundle save, string proficiencyId) => save.narrative.characters
+        .Single(value => value.characterId == ActorId).skillExperience
+        .FirstOrDefault(value => value.proficiencyId == proficiencyId)?.lifetimeMilliExperience ?? 0L;
+
     private sealed class Fixture : IDisposable
     {
         private readonly CharacterSO actorData;
@@ -1567,7 +1723,8 @@ public static class V20ContentResolutionRecoveryDebugScenarios
                 MigratedProducerOutcomeFaultMode.None,
             V21ContentEffectExecutionRegistry effectHandlers = null,
             bool failConsumption = false,
-            Action<IGameMoneyAccount> consumptionProbe = null)
+            Action<IGameMoneyAccount> consumptionProbe = null,
+            bool useSessionCalendar = false)
         {
             Content = content ?? throw new ArgumentNullException(nameof(content));
             Root = new DungeonRuntimeAggregateRootStore();
@@ -1668,7 +1825,8 @@ public static class V20ContentResolutionRecoveryDebugScenarios
             Narrative = new CharacterNarrativeRuntime(
                 Root,
                 content.NarrativeCatalog,
-                content: content.Source);
+                content: content.Source,
+                domainFacts: Outcomes.CreateProficiencyAwardFacts(Probe));
             Careers = new CareerRuntime(Root);
             Grief = new GriefTraumaRuntime(Root);
             Diseases = new ResourceDiseaseDefinitionCatalog(content.Base);
@@ -1723,6 +1881,9 @@ public static class V20ContentResolutionRecoveryDebugScenarios
                 Restore(restore);
             }
 
+            Calendar = useSessionCalendar
+                ? new GameCalendarRuntime(Session, new GameEventBus(), CharacterAiEditorTestDependencies.GameClock)
+                : CharacterAiEditorTestDependencies.GameCalendar;
             Service = new V20ContentResolutionService(
                 Campaign,
                 content.StoryCatalog,
@@ -1746,7 +1907,8 @@ public static class V20ContentResolutionRecoveryDebugScenarios
                 PopulationHealth,
                 Diseases,
                 Grief,
-                effectHandlers);
+                effectHandlers,
+                Calendar);
         }
 
         internal FixtureContent Content { get; }
@@ -1759,6 +1921,7 @@ public static class V20ContentResolutionRecoveryDebugScenarios
         internal CharacterActor Actor { get; }
         internal FixtureCharacterWorld Characters { get; }
         internal RestorableSessionProvider Session { get; }
+        internal IGameCalendar Calendar { get; }
         internal TreasuryEconomyAggregateStateStore EconomyStore { get; }
         internal EconomyTransactionLedgerRuntime Economy { get; }
         internal GameMoneyAccount Money { get; }
@@ -1791,6 +1954,8 @@ public static class V20ContentResolutionRecoveryDebugScenarios
                 economy = RoundTrip(Economy.Capture()),
                 physicalItems = RoundTrip(Items.Capture()),
                 bodyHealth = RoundTrip(Health.Capture()),
+                actorLevel = Actor.Progression.Level,
+                actorExperience = Actor.Progression.CurrentExperience,
                 narrative = RoundTrip(Narrative.Capture()),
                 careers = RoundTrip(Careers.Capture()),
                 psychosocial = RoundTrip(Grief.Capture()),
@@ -1857,6 +2022,8 @@ public static class V20ContentResolutionRecoveryDebugScenarios
             Outcomes.Ledger.CompleteRestoreCandidate();
             Journal.Restore(save.observations);
             Actor.SocialMemory.RestoreSnapshot(save.actorSocial);
+            Actor.Progression.RestorePersistentState(save.actorLevel, save.actorExperience,
+                Array.Empty<string>(), Array.Empty<string>());
             if (Partner != null) Partner.SocialMemory.RestoreSnapshot(save.partnerSocial);
         }
 
@@ -2275,6 +2442,8 @@ public static class V20ContentResolutionRecoveryDebugScenarios
         public DungeonMigratedProducerOutcomeSaveData migratedProducerOutcomes;
         public SocialRitualFactSaveData observations;
         public CharacterSocialMemorySnapshot actorSocial;
+        public int actorLevel;
+        public int actorExperience;
         public CharacterSocialMemorySnapshot partnerSocial;
     }
 

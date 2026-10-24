@@ -89,6 +89,8 @@ public sealed class V20ContentResolutionRecoverySaveData
     public int grantDropoffX;
     public int grantDropoffY;
     public int childCommitEvidenceVersion;
+    public int proficiencyAwardClockVersion;
+    public long proficiencyAwardAbsoluteHour;
     public string moneyTransactionId = string.Empty;
     public string itemConsumptionOperationId = string.Empty;
     public string itemGrantBatchCommitId = string.Empty;

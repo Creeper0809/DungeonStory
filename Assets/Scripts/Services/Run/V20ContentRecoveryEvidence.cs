@@ -96,6 +96,12 @@ public static class V20ContentRecoveryEvidence
                 .SelectMany(value => value.effects)
                 .Where(value => value != null && value.IsValid)
                 .ToArray();
+            bool hasProficiencyAward = effects.Any(value =>
+                value.kind == V20ContentEffectKind.ProficiencyExperience);
+            if (row.proficiencyAwardClockVersion != (hasProficiencyAward ? 1 : 0)
+                || row.proficiencyAwardAbsoluteHour < 0L
+                || !hasProficiencyAward && row.proficiencyAwardAbsoluteHour != 0L)
+                throw new InvalidOperationException("Pending proficiency award time is missing or invalid.");
             int moneyDelta = effects
                 .Where(value => value.kind == V20ContentEffectKind.Money)
                 .Sum(value => (int)Math.Round(value.amount));

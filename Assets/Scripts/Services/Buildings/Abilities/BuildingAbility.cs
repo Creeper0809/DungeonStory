@@ -130,10 +130,28 @@ public sealed class BuildingLightingAbility : BuildingAbility,
             && settings.targetSortingLayers.Length > 0
                 ? settings.targetSortingLayers
                 : BuildingLightingSettingsSO.DefaultTargetSortingLayers;
-        return layerNames
-            .Select(SortingLayer.NameToID)
-            .Where(SortingLayer.IsValid)
-            .ToArray();
+        SortingLayer[] registeredLayers = SortingLayer.layers;
+        int[] layerIds = new int[layerNames.Length];
+        for (int index = 0; index < layerNames.Length; index++)
+        {
+            string layerName = layerNames[index];
+            int registeredIndex = Array.FindIndex(
+                registeredLayers,
+                layer => string.Equals(
+                    layer.name,
+                    layerName,
+                    StringComparison.Ordinal));
+            if (registeredIndex < 0)
+            {
+                throw new InvalidOperationException(
+                    $"Building lighting target sorting layer "
+                    + $"'{layerName ?? "<null>"}' is not registered.");
+            }
+
+            layerIds[index] = registeredLayers[registeredIndex].id;
+        }
+
+        return layerIds;
     }
 }
 

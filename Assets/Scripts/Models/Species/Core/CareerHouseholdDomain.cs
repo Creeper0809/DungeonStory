@@ -655,20 +655,19 @@ public sealed class CharacterCareerAggregate
         string scopeId,
         int absoluteDay)
     {
+        if (!Enum.IsDefined(typeof(CareerPositionKind), position))
+            throw new InvalidOperationException("Career position is unsupported.");
         string normalizedScope = scopeId?.Trim() ?? string.Empty;
         if (position == CareerPositionKind.None) normalizedScope = string.Empty;
-        if (position is CareerPositionKind.Foreman or CareerPositionKind.Mentor
-            && normalizedScope.Length == 0)
-            throw new InvalidOperationException("Scoped career positions require a facility or academy id.");
-        bool global = position is CareerPositionKind.Steward
-            or CareerPositionKind.ChiefResearcher
-            or CareerPositionKind.ChiefPhysician
-            or CareerPositionKind.GuardCaptain;
-        if (careers.Values.Any(value => value.position == position
+        bool global = normalizedScope.Length == 0;
+        if (position != CareerPositionKind.None && careers.Values.Any(value => value.position == position
             && (global || string.Equals(value.positionScopeId, normalizedScope, StringComparison.Ordinal))
             && !string.Equals(value.characterId, characterId.Value, StringComparison.Ordinal)))
             throw new InvalidOperationException("That unique career position is already occupied.");
         CharacterCareerSaveData state = Require(characterId);
+        if (state.position == position
+            && string.Equals(state.positionScopeId, normalizedScope, StringComparison.Ordinal))
+            return;
         state.position = position;
         state.positionScopeId = normalizedScope;
         AddHistory(state, CareerHistoryEventKind.PositionChanged, absoluteDay, position.ToString());
@@ -799,6 +798,7 @@ public sealed class CharacterCareerAggregate
         {
             CharacterId id = new(source?.characterId);
             if (source == null || !id.IsValid || result.careers.ContainsKey(id)
+                || !Enum.IsDefined(typeof(CareerPositionKind), source.position)
                 || source.summarizedHistoryCount < 0
                 || source.retiredWorkAbsoluteDay < 0
                 || source.retiredWorkSeconds < 0f
@@ -816,15 +816,9 @@ public sealed class CharacterCareerAggregate
         foreach (IGrouping<(CareerPositionKind Position, string Scope), CharacterCareerSaveData> duplicate in
                  result.careers.Values
                      .Where(value => value.position != CareerPositionKind.None)
-                     .GroupBy(value =>
-                     {
-                         bool global = value.position is CareerPositionKind.Steward
-                             or CareerPositionKind.ChiefResearcher
-                             or CareerPositionKind.ChiefPhysician
-                             or CareerPositionKind.GuardCaptain;
-                         return (Position: value.position,
-                             Scope: global ? string.Empty : value.positionScopeId ?? string.Empty);
-                     }).Where(group => group.Count() > 1))
+                     .GroupBy(value => (Position: value.position,
+                         Scope: value.positionScopeId ?? string.Empty))
+                     .Where(group => group.Count() > 1))
             throw new InvalidOperationException(
                 $"Career position '{duplicate.Key.Position}' has duplicate occupants.");
         foreach (CareerMentorshipSaveData source in data.mentorships

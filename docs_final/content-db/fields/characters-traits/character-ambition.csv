@@ -312,7 +312,7 @@ CharacterAmbitionDefinitionSO|ambition:field-scholar,ambition:field-scholar,fail
 CharacterAmbitionDefinitionSO|ambition:field-scholar,ambition:field-scholar,failureConditions.worldMetrics,[],,,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:field-scholar,ambition:field-scholar,failureConditions.requiredFlags,[],,,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:field-scholar,ambition:field-scholar,failureConditions.excludedFlags,[],,,explicit-serialized
-CharacterAmbitionDefinitionSO|ambition:field-scholar,ambition:field-scholar,completionRewards.0.kind,3,,,explicit-serialized
+CharacterAmbitionDefinitionSO|ambition:field-scholar,ambition:field-scholar,completionRewards.0.kind,19,,,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:field-scholar,ambition:field-scholar,completionRewards.0.targetId,proficiency:scholarship,,,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:field-scholar,ambition:field-scholar,completionRewards.0.amount,100,,,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:field-scholar,ambition:field-scholar,completionRewards.0.durationDays,0,,,explicit-serialized
@@ -454,7 +454,7 @@ CharacterAmbitionDefinitionSO|ambition:master-healer,ambition:master-healer,fail
 CharacterAmbitionDefinitionSO|ambition:master-healer,ambition:master-healer,failureConditions.worldMetrics,[],,,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:master-healer,ambition:master-healer,failureConditions.requiredFlags,[],,,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:master-healer,ambition:master-healer,failureConditions.excludedFlags,[],,,explicit-serialized
-CharacterAmbitionDefinitionSO|ambition:master-healer,ambition:master-healer,completionRewards.0.kind,3,,,explicit-serialized
+CharacterAmbitionDefinitionSO|ambition:master-healer,ambition:master-healer,completionRewards.0.kind,19,,,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:master-healer,ambition:master-healer,completionRewards.0.targetId,proficiency:medicine,,,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:master-healer,ambition:master-healer,completionRewards.0.amount,100,,,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:master-healer,ambition:master-healer,completionRewards.0.durationDays,0,,,explicit-serialized
@@ -489,7 +489,7 @@ CharacterAmbitionDefinitionSO|ambition:master-smith,ambition:master-smith,failur
 CharacterAmbitionDefinitionSO|ambition:master-smith,ambition:master-smith,failureConditions.worldMetrics,[],,,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:master-smith,ambition:master-smith,failureConditions.requiredFlags,[],,,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:master-smith,ambition:master-smith,failureConditions.excludedFlags,[],,,explicit-serialized
-CharacterAmbitionDefinitionSO|ambition:master-smith,ambition:master-smith,completionRewards.0.kind,3,,,explicit-serialized
+CharacterAmbitionDefinitionSO|ambition:master-smith,ambition:master-smith,completionRewards.0.kind,19,,,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:master-smith,ambition:master-smith,completionRewards.0.targetId,proficiency:crafting,,,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:master-smith,ambition:master-smith,completionRewards.0.amount,100,,,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:master-smith,ambition:master-smith,completionRewards.0.durationDays,0,,,explicit-serialized
@@ -525,7 +525,7 @@ CharacterAmbitionDefinitionSO|ambition:mentor-generation,ambition:mentor-generat
 CharacterAmbitionDefinitionSO|ambition:mentor-generation,ambition:mentor-generation,failureConditions.worldMetrics,[],,,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:mentor-generation,ambition:mentor-generation,failureConditions.requiredFlags,[],,,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:mentor-generation,ambition:mentor-generation,failureConditions.excludedFlags,[],,,explicit-serialized
-CharacterAmbitionDefinitionSO|ambition:mentor-generation,ambition:mentor-generation,completionRewards.0.kind,3,,,explicit-serialized
+CharacterAmbitionDefinitionSO|ambition:mentor-generation,ambition:mentor-generation,completionRewards.0.kind,19,,,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:mentor-generation,ambition:mentor-generation,completionRewards.0.targetId,proficiency:social,,,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:mentor-generation,ambition:mentor-generation,completionRewards.0.amount,100,,,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:mentor-generation,ambition:mentor-generation,completionRewards.0.durationDays,0,,,explicit-serialized

@@ -131,7 +131,7 @@ public sealed class V20ContentResolutionService :
             this.live, this.catalog, this.items, facilities, dropZones);
         var typedEffects = new V20ContentTypedEffectRuntime(
             characters, bodyHealth, grief, populationHealth,
-            narrative, narrativeCatalog, narrativeQuery, diseases, RequireRegistry(this.live, effectHandlers));
+            narrative, narrativeCatalog, narrativeQuery, diseases, RequireRegistry(this.live, effectHandlers), calendar);
         effectRollback = new V20ContentEffectRollback(
             this.live, characters, this.careers, bodyHealth, grief,
             populationHealth, narrative, this.items, money, typedEffects.Handlers);
@@ -169,7 +169,8 @@ public sealed class V20ContentResolutionService :
         IPopulationHealthService populationHealth = null,
         IDiseaseDefinitionCatalog diseases = null,
         IGriefTraumaService grief = null,
-        V21ContentEffectExecutionRegistry effectHandlers = null)
+        V21ContentEffectExecutionRegistry effectHandlers = null,
+        IGameCalendar calendar = null)
     {
         this.live = live ?? throw new ArgumentNullException(nameof(live));
         this.catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
@@ -178,7 +179,6 @@ public sealed class V20ContentResolutionService :
         characters = characters
             ?? throw new ArgumentNullException(nameof(characters));
         this.careers = careers;
-        IGameCalendar calendar = null;
         IKinshipQuery kinship = null;
         ICharacterNarrativeQuery narrativeQuery = narrative as ICharacterNarrativeQuery;
         ICharacterProficiencyQuery proficiencyQuery = null;
@@ -201,7 +201,7 @@ public sealed class V20ContentResolutionService :
             this.live, this.catalog, this.items, facilities, dropZones);
         var typedEffects = new V20ContentTypedEffectRuntime(
             characters, bodyHealth, grief, populationHealth,
-            narrative, narrativeCatalog, narrativeQuery, diseases, RequireRegistry(this.live, effectHandlers));
+            narrative, narrativeCatalog, narrativeQuery, diseases, RequireRegistry(this.live, effectHandlers), calendar);
         effectRollback = new V20ContentEffectRollback(
             this.live, characters, this.careers, bodyHealth, grief,
             populationHealth, narrative, this.items, money, typedEffects.Handlers);

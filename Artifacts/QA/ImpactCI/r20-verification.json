@@ -1,0 +1,175 @@
+{
+  "schema": "so-audit-remediation-v1",
+  "scope": "R20-01 through R20-16 and R20-X01; bounded actual authoring, consumers, JSON restore/retry and Inspector; not exhaustive gameplay or balance certification",
+  "source": {
+    "digest": "ca389fb037ee9656a927c49abb9b4bc3fcddf2f79a8c78e5527b99403214ff11",
+    "count": 4775,
+    "pathsDigest": "abd81e7f0fd06b599fdc2242faab80fc81fb0892fd0b25e8aae526068e654a33"
+  },
+  "configurationDigest": "aa3cc68111a562a17bf5bb805e46b4f8a823de3c8e26487ae6d59d361bd81ea1",
+  "sourceManifest": "r147st; 21700 complete pre/post SHA-verified inputs",
+  "platform": "CUHA Linux; authenticated private Xvfb Inspector, no user display",
+  "checks": [
+    {
+      "group": "so-authoring",
+      "method": "V27CiEvidenceBatch.RunSoAuthoringContracts",
+      "sourceLabel": "r142st",
+      "sourceDigest": "0d03865c25900f7cfa4077d97b5e9dc1b48fb7250c4acd90450412a6d27b2103",
+      "configurationDigest": "78fa0b2838bba5ecff47d42e86c28faff8dad81131541a1819a5b403c447901b",
+      "nativeLabel": "r142st-impact-so-authoring",
+      "log": "Artifacts/QA/ImpactCI/r20-so-authoring.log",
+      "logSha256": "dfde27f611bf88e851535de1afc49e1fcdd20e22e00a363f7979b00d3e3f4675",
+      "summary": "Artifacts/QA/ImpactCI/r20-so-authoring-summary.json",
+      "summarySha256": "a54aa97bbeefe4314482e3b893ca41231a0539ccf238921f882d2100c0b94a6a"
+    },
+    {
+      "group": "so-runtime",
+      "method": "V27CiEvidenceBatch.RunSoRuntimeContracts",
+      "sourceLabel": "r147st",
+      "sourceDigest": "ca389fb037ee9656a927c49abb9b4bc3fcddf2f79a8c78e5527b99403214ff11",
+      "configurationDigest": "aa3cc68111a562a17bf5bb805e46b4f8a823de3c8e26487ae6d59d361bd81ea1",
+      "nativeLabel": "r147st-impact-so-runtime",
+      "log": "Artifacts/QA/ImpactCI/r20-so-runtime.log",
+      "logSha256": "d36cc5ccac9e79b0e14df90903cc66c6ee11fef211fdc0a0a5474e6fa0c2cea2",
+      "summary": "Artifacts/QA/ImpactCI/r20-so-runtime-summary.json",
+      "summarySha256": "0eaea997e442d5986187fc073cba0f7bfd160bb4e4c86d4c1928b9f1ea5095d7"
+    },
+    {
+      "group": "so-inspector",
+      "method": "V27CiEvidenceBatch.RunSoInspectorContracts",
+      "sourceLabel": "r145st",
+      "sourceDigest": "9ffa0537bf77bf2eb56fd91dc8f356fd791e161cc55ece186a9e6c837c30a5c2",
+      "configurationDigest": "91d2a7e8bfd86099284d877d87c41a052ab4f09295eeffb126152d43924081f0",
+      "nativeLabel": "r145st-impact-so-inspector",
+      "isolation": "Artifacts/QA/ImpactCI/r20-inspector-isolation.json",
+      "isolationSha256": "5f34a83b1f203eed2703a8a166787ef1f90488fed91a178b1c83b72abdebedf3",
+      "log": "Artifacts/QA/ImpactCI/r20-so-inspector.log",
+      "logSha256": "9b96abf0d0af75eec5803df06a47292c7ac96ce869f24ace694eff5f7a94667c",
+      "summary": "Artifacts/QA/ImpactCI/r20-so-inspector-summary.json",
+      "summarySha256": "7af7d48df586a4c08908dd86f93c411431743ce382bde05c08e8c9ee48a7208f"
+    }
+  ],
+  "unchangedCoverageReuse": [
+    {
+      "group": "so-authoring",
+      "proofLabel": "r142st",
+      "acceptedForLabel": "r147st",
+      "reason": "The exact differences are listed with complete input hashes. The authoring/Inspector definitions, authored assets, selection/drawer implementations, publication protection, group entry points and group scenarios are unchanged. Separate trait and effects-only fixtures were repaired. The only subsequent production change freezes the new proficiency-award clock in the existing resolution recovery journal, validates its optional metadata, and passes it to the internal effect invocation. Its actual next-day JSON recovery and corruption boundaries run in the final so-runtime group and all five impact groups run on final input, including compilation and official world restore. This proof retains its actual source/configuration and is not relabeled as a new execution.",
+      "differences": [
+        {
+          "path": "Assets/Editor/R20TraitRuntimeDebugScenarios.cs",
+          "beforeSha256": "fb711f9d2c2e7445f4ea13657518f7ffe7a9227a7274fc806892a3b4a1c109c7",
+          "afterSha256": "40d57c22b0c713532cbcd1cf41409d8e4f7da491f14e2eefcf68e945a0902bf4"
+        },
+        {
+          "path": "Assets/Scripts/Services/Infrastructure/Editor/ScriptableObjectModularityDebugScenarios.cs",
+          "beforeSha256": "8b23d77e6bf693a637dfdc6cf616a15aa67a79bb987dff5b3a03783bea2aec06",
+          "afterSha256": "34c5f0983945dd2d86b8a78451785f9e71c55630731be6381355a3c60bc998f8"
+        },
+        {
+          "path": "Assets/Scripts/Services/Infrastructure/V21ContentEffectExecutionRegistry.cs",
+          "beforeSha256": "491975bcb990ab9977edf338bc16d58bfd082ce9696cc155e81eefc6cd43798e",
+          "afterSha256": "9bf6f99cfd08fce73cb4aa146df3c1501665b4d3f1088eab2e95ffc121a9fb62"
+        },
+        {
+          "path": "Assets/Scripts/Services/Run/Editor/V20ContentResolutionRecoveryDebugScenarios.cs",
+          "beforeSha256": "040f5c0d4d62fef5b6c6bbe043bd5741d93750c92e715b38063564e7559905cf",
+          "afterSha256": "fcacf6e64f5a1b9de20ee39425ac89d2ec6e97ff1d09c9a78f2f90209cd48c2b"
+        },
+        {
+          "path": "Assets/Scripts/Services/Run/V20ContentEffectCommitReferences.cs",
+          "beforeSha256": "da86c5cb8409dba9a29d53888f72b65d0a45593fb281a178887f8ea35f29adec",
+          "afterSha256": "bf67c03c5d19a6b73bbee19b0a2c80cd129d22f1f339a1a0c4a48c35efdb967a"
+        },
+        {
+          "path": "Assets/Scripts/Services/Run/V20ContentEffectHandlers.cs",
+          "beforeSha256": "a36399016a45e7a2549530ccb203f6cda374d8199c7ebb3607bce99f42ab4b6a",
+          "afterSha256": "41cfc439c53c811388a98906b264ad664b5ce6e3aa8f194433a17013666c686e"
+        },
+        {
+          "path": "Assets/Scripts/Services/Run/V20ContentEffectTransaction.cs",
+          "beforeSha256": "c6d1adb312e1af05093dab9126a4c649525da20374e7aea5c6fe105bb1f8743a",
+          "afterSha256": "0d1b14af1de0aa503f1bd374c98df3ca12c5d45df49e6bc8c406d68689feddc8"
+        },
+        {
+          "path": "Assets/Scripts/Services/Run/V20ContentRecoveryEvidence.cs",
+          "beforeSha256": "8e2ba932b3995615b158132085b73343ed9c15d2f1273ae5f06fe36aa6cbf8ae",
+          "afterSha256": "3da37a2c59d20a82ee56429ee3da6b9ccb585ed5ffdec8d844675f4e332df1a2"
+        },
+        {
+          "path": "Assets/Scripts/Services/Run/V20ContentResolutionJournal.cs",
+          "beforeSha256": "e83410ed7fa1e746e8313311863cdb73530db14105629beb11ee7583c470efd4",
+          "afterSha256": "2e2e3befc934f79b3bba2a07e284649084398313d08627812fbcc1727c09243b"
+        },
+        {
+          "path": "Assets/Scripts/Services/Run/V20ContentResolutionRecoverySaveData.cs",
+          "beforeSha256": "7f1c53d220adbed8a8eb74774277dd4d860a875c019856bc5d9828c26f8663c9",
+          "afterSha256": "0094e34c8c417735d1259fe8648fda1ca159c274057f63ecb4619ec67031b243"
+        },
+        {
+          "path": "Assets/Scripts/Services/Run/V20ContentTypedEffectRuntime.cs",
+          "beforeSha256": "378098a9f7e241a6a98ec38e6a99fd3ac7bfa6cfc5e019c3b0cc09c9a4c461b1",
+          "afterSha256": "eab62b5628974979bd7e1102f097227fd90d392c2305c09f1a76f7d4de48d12d"
+        }
+      ]
+    },
+    {
+      "group": "so-inspector",
+      "proofLabel": "r145st",
+      "acceptedForLabel": "r147st",
+      "reason": "The exact differences are listed with complete input hashes. The authoring/Inspector definitions, authored assets, selection/drawer implementations, publication protection, group entry points and group scenarios are unchanged. Separate trait and effects-only fixtures were repaired. The only subsequent production change freezes the new proficiency-award clock in the existing resolution recovery journal, validates its optional metadata, and passes it to the internal effect invocation. Its actual next-day JSON recovery and corruption boundaries run in the final so-runtime group and all five impact groups run on final input, including compilation and official world restore. This proof retains its actual source/configuration and is not relabeled as a new execution.",
+      "differences": [
+        {
+          "path": "Assets/Scripts/Services/Infrastructure/Editor/ScriptableObjectModularityDebugScenarios.cs",
+          "beforeSha256": "8b23d77e6bf693a637dfdc6cf616a15aa67a79bb987dff5b3a03783bea2aec06",
+          "afterSha256": "34c5f0983945dd2d86b8a78451785f9e71c55630731be6381355a3c60bc998f8"
+        },
+        {
+          "path": "Assets/Scripts/Services/Infrastructure/V21ContentEffectExecutionRegistry.cs",
+          "beforeSha256": "491975bcb990ab9977edf338bc16d58bfd082ce9696cc155e81eefc6cd43798e",
+          "afterSha256": "9bf6f99cfd08fce73cb4aa146df3c1501665b4d3f1088eab2e95ffc121a9fb62"
+        },
+        {
+          "path": "Assets/Scripts/Services/Run/Editor/V20ContentResolutionRecoveryDebugScenarios.cs",
+          "beforeSha256": "c39ddcff89cf134d9714f5563fc8a753cf7db94b5a1415b507675c6b77d3f28c",
+          "afterSha256": "fcacf6e64f5a1b9de20ee39425ac89d2ec6e97ff1d09c9a78f2f90209cd48c2b"
+        },
+        {
+          "path": "Assets/Scripts/Services/Run/V20ContentEffectCommitReferences.cs",
+          "beforeSha256": "da86c5cb8409dba9a29d53888f72b65d0a45593fb281a178887f8ea35f29adec",
+          "afterSha256": "bf67c03c5d19a6b73bbee19b0a2c80cd129d22f1f339a1a0c4a48c35efdb967a"
+        },
+        {
+          "path": "Assets/Scripts/Services/Run/V20ContentEffectHandlers.cs",
+          "beforeSha256": "a36399016a45e7a2549530ccb203f6cda374d8199c7ebb3607bce99f42ab4b6a",
+          "afterSha256": "41cfc439c53c811388a98906b264ad664b5ce6e3aa8f194433a17013666c686e"
+        },
+        {
+          "path": "Assets/Scripts/Services/Run/V20ContentEffectTransaction.cs",
+          "beforeSha256": "c6d1adb312e1af05093dab9126a4c649525da20374e7aea5c6fe105bb1f8743a",
+          "afterSha256": "0d1b14af1de0aa503f1bd374c98df3ca12c5d45df49e6bc8c406d68689feddc8"
+        },
+        {
+          "path": "Assets/Scripts/Services/Run/V20ContentRecoveryEvidence.cs",
+          "beforeSha256": "8e2ba932b3995615b158132085b73343ed9c15d2f1273ae5f06fe36aa6cbf8ae",
+          "afterSha256": "3da37a2c59d20a82ee56429ee3da6b9ccb585ed5ffdec8d844675f4e332df1a2"
+        },
+        {
+          "path": "Assets/Scripts/Services/Run/V20ContentResolutionJournal.cs",
+          "beforeSha256": "e83410ed7fa1e746e8313311863cdb73530db14105629beb11ee7583c470efd4",
+          "afterSha256": "2e2e3befc934f79b3bba2a07e284649084398313d08627812fbcc1727c09243b"
+        },
+        {
+          "path": "Assets/Scripts/Services/Run/V20ContentResolutionRecoverySaveData.cs",
+          "beforeSha256": "7f1c53d220adbed8a8eb74774277dd4d860a875c019856bc5d9828c26f8663c9",
+          "afterSha256": "0094e34c8c417735d1259fe8648fda1ca159c274057f63ecb4619ec67031b243"
+        },
+        {
+          "path": "Assets/Scripts/Services/Run/V20ContentTypedEffectRuntime.cs",
+          "beforeSha256": "378098a9f7e241a6a98ec38e6a99fd3ac7bfa6cfc5e019c3b0cc09c9a4c461b1",
+          "afterSha256": "eab62b5628974979bd7e1102f097227fd90d392c2305c09f1a76f7d4de48d12d"
+        }
+      ]
+    }
+  ]
+}

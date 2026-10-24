@@ -12,6 +12,8 @@ internal sealed class V20ContentEffectCommitReferences
     internal static V20ContentEffectCommitReferences From(
         V20ContentResolutionRecoverySaveData recovery) => new()
     {
+        ProficiencyAwardAbsoluteHour = recovery?.proficiencyAwardClockVersion == 1
+            ? recovery.proficiencyAwardAbsoluteHour : null,
         MoneyTransactionId = recovery?.moneyTransactionId ?? string.Empty,
         ItemConsumptionOperationId = recovery?.itemConsumptionOperationId
             ?? string.Empty,
@@ -27,6 +29,7 @@ internal sealed class V20ContentEffectCommitReferences
             ?? string.Empty
     };
 
+    internal long? ProficiencyAwardAbsoluteHour { get; set; }
     internal string MoneyTransactionId { get; set; } = string.Empty;
     internal IReadOnlyList<V20ResolvedEventResult> AppliedResolutions { get; set; }
     internal string ItemConsumptionOperationId { get; set; } = string.Empty;

@@ -81,7 +81,10 @@ public static class ScriptableObjectModularityDebugScenarios
             value => value.kind == ServiceIncidentKind.Contamination);
         fixture.AddV20<CharacterBackgroundDefinitionSO>();
         fixture.AddV20<CharacterAmbitionDefinitionSO>();
-        fixture.AddV20<CulturalPracticeDefinitionSO>();
+        CulturalPracticeDefinitionSO practice = fixture.AddV20<CulturalPracticeDefinitionSO>();
+        SpeciesCultureDefinitionSO culture = fixture.Replace(fixture.Baseline.GetAll<SpeciesCultureDefinitionSO>()
+            .Single(value => value.StableId == practice.cultureId));
+        culture.ceremonyIds = new List<string>(culture.ceremonyIds) { practice.StableId };
         fixture.AddV20<ProficiencyDefinitionSO>();
         HeritableTraitDefinitionSO trait = fixture.AddClone<HeritableTraitDefinitionSO>();
         trait.traitId += "-qa-so-extension";

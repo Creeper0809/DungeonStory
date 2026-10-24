@@ -147,9 +147,10 @@ public sealed class V20StoryContentCatalog :
         IEnumerable<FactionContractDefinitionSO> contracts)
     {
         FactionChapterDefinitionSO[] allChapters = chapters.ToArray();
+        FactionContractDefinitionSO[] allContracts = contracts.ToArray();
         Dictionary<string, FactionChapterDefinitionSO> chaptersById =
             allChapters.ToDictionary(value => value.StableId, StringComparer.Ordinal);
-        Dictionary<string, FactionContractDefinitionSO> contractsById = contracts
+        Dictionary<string, FactionContractDefinitionSO> contractsById = allContracts
             .ToDictionary(value => value.StableId, StringComparer.Ordinal);
         HashSet<int> requiredChapterNumbers = Enumerable.Range(1, 6).ToHashSet();
 
@@ -212,6 +213,20 @@ public sealed class V20StoryContentCatalog :
                 throw new InvalidOperationException(
                     $"Faction arc '{arc.StableId}' chapter list does not match "
                     + $"the chapters consumed for faction '{arc.factionId}'.");
+
+            FactionContractDefinitionSO[] consumerContracts = allContracts
+                .Where(value => string.Equals(
+                        value.factionId,
+                        arc.factionId,
+                        StringComparison.Ordinal)
+                    && string.IsNullOrEmpty(value.seasonalEventId))
+                .ToArray();
+            if (arcContractIds.Length != consumerContracts.Length
+                || !arcContractIds.ToHashSet(StringComparer.Ordinal)
+                    .SetEquals(consumerContracts.Select(value => value.StableId)))
+                throw new InvalidOperationException(
+                    $"Faction arc '{arc.StableId}' contract list does not match "
+                    + $"the nonseasonal contracts consumed for faction '{arc.factionId}'.");
         }
     }
 

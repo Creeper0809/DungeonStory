@@ -21,7 +21,10 @@ public enum ContentReferenceKind
     BattleCounter, MetaEffectTarget, StartingProficiency, SkillBehavior, FormulaParameter,
     FormulaMirror, EquipmentApplicator, EquipmentStat, ProductionMassPolicy,
     ProductionOutputCostPolicy, RoomProfileKey, RoomScore, RoomMetric, DecisionContextTag,
-    ServiceProcessFeature
+    ServiceProcessFeature,
+    BuildingSemanticTag, ProductionFacilityTag, DiseaseResponse, CharacterNeed,
+    IdentityRuleProtocol, FacilityLineageTag, RoomTag, FacilityMutationTag,
+    FacilityPressure, FacilityValueKey
 }
 
 [AttributeUsage(AttributeTargets.Field)]
@@ -35,6 +38,7 @@ public sealed class ContentReferenceAttribute : PropertyAttribute
     // This is never a fallback for a missing definition.
     public string Aliases { get; set; }
     public bool IgnoreCase { get; set; }
+    public string ContextMember { get; set; }
     public ContentReferenceAttribute(ContentReferenceKind kind, int emptyNumericId = -1)
     {
         Kind = kind;
