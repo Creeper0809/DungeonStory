@@ -53,6 +53,10 @@ DungeonFactionDefinitionSO|faction:dungeon:beastkin|Assets/Resources/SO/Factions
 DungeonFactionDefinitionSO|faction:dungeon:beastkin|Assets/Resources/SO/Factions/faction_dungeon_beastkin.asset,faction:dungeon:beastkin,supplyCargo.0.amount,14,,,explicit-serialized
 DungeonFactionDefinitionSO|faction:dungeon:beastkin|Assets/Resources/SO/Factions/faction_dungeon_beastkin.asset,faction:dungeon:beastkin,supplyCargo.1.itemId,resource:blood,,,explicit-serialized
 DungeonFactionDefinitionSO|faction:dungeon:beastkin|Assets/Resources/SO/Factions/faction_dungeon_beastkin.asset,faction:dungeon:beastkin,supplyCargo.1.amount,10,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:beastkin|Assets/Resources/SO/Factions/faction_dungeon_beastkin.asset,faction:dungeon:beastkin,tradeEconomicPolicy.capabilityId,faction-economy:paid-market-purchase,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:beastkin|Assets/Resources/SO/Factions/faction_dungeon_beastkin.asset,faction:dungeon:beastkin,tradeEconomicPolicy.capabilityVersion,1,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:beastkin|Assets/Resources/SO/Factions/faction_dungeon_beastkin.asset,faction:dungeon:beastkin,supplyEconomicPolicy.capabilityId,faction-economy:alliance-benefit,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:beastkin|Assets/Resources/SO/Factions/faction_dungeon_beastkin.asset,faction:dungeon:beastkin,supplyEconomicPolicy.capabilityVersion,1,,,explicit-serialized
 DungeonFactionDefinitionSO|faction:dungeon:demon|Assets/Resources/SO/Factions/Dungeons/Faction_Demon_AshContractCourt.asset,faction:dungeon:demon,m_Name,Faction_Demon_AshContractCourt,,,explicit-serialized
 DungeonFactionDefinitionSO|faction:dungeon:demon|Assets/Resources/SO/Factions/Dungeons/Faction_Demon_AshContractCourt.asset,faction:dungeon:demon,factionId,faction:dungeon:demon,,,explicit-serialized
 DungeonFactionDefinitionSO|faction:dungeon:demon|Assets/Resources/SO/Factions/Dungeons/Faction_Demon_AshContractCourt.asset,faction:dungeon:demon,displayName,잿불 계약정,,,explicit-serialized
@@ -107,6 +111,10 @@ DungeonFactionDefinitionSO|faction:dungeon:demon|Assets/Resources/SO/Factions/fa
 DungeonFactionDefinitionSO|faction:dungeon:demon|Assets/Resources/SO/Factions/faction_dungeon_demon.asset,faction:dungeon:demon,supplyCargo.0.amount,14,,,explicit-serialized
 DungeonFactionDefinitionSO|faction:dungeon:demon|Assets/Resources/SO/Factions/faction_dungeon_demon.asset,faction:dungeon:demon,supplyCargo.1.itemId,material:lumber,,,explicit-serialized
 DungeonFactionDefinitionSO|faction:dungeon:demon|Assets/Resources/SO/Factions/faction_dungeon_demon.asset,faction:dungeon:demon,supplyCargo.1.amount,10,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:demon|Assets/Resources/SO/Factions/faction_dungeon_demon.asset,faction:dungeon:demon,tradeEconomicPolicy.capabilityId,faction-economy:paid-market-purchase,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:demon|Assets/Resources/SO/Factions/faction_dungeon_demon.asset,faction:dungeon:demon,tradeEconomicPolicy.capabilityVersion,1,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:demon|Assets/Resources/SO/Factions/faction_dungeon_demon.asset,faction:dungeon:demon,supplyEconomicPolicy.capabilityId,faction-economy:alliance-benefit,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:demon|Assets/Resources/SO/Factions/faction_dungeon_demon.asset,faction:dungeon:demon,supplyEconomicPolicy.capabilityVersion,1,,,explicit-serialized
 DungeonFactionDefinitionSO|faction:dungeon:golem|Assets/Resources/SO/Factions/Dungeons/Faction_Golem_StoneveinFoundry.asset,faction:dungeon:golem,m_Name,Faction_Golem_StoneveinFoundry,,,explicit-serialized
 DungeonFactionDefinitionSO|faction:dungeon:golem|Assets/Resources/SO/Factions/Dungeons/Faction_Golem_StoneveinFoundry.asset,faction:dungeon:golem,factionId,faction:dungeon:golem,,,explicit-serialized
 DungeonFactionDefinitionSO|faction:dungeon:golem|Assets/Resources/SO/Factions/Dungeons/Faction_Golem_StoneveinFoundry.asset,faction:dungeon:golem,displayName,석맥 주조소,,,explicit-serialized
@@ -161,6 +169,10 @@ DungeonFactionDefinitionSO|faction:dungeon:golem|Assets/Resources/SO/Factions/fa
 DungeonFactionDefinitionSO|faction:dungeon:golem|Assets/Resources/SO/Factions/faction_dungeon_golem.asset,faction:dungeon:golem,supplyCargo.0.amount,14,,,explicit-serialized
 DungeonFactionDefinitionSO|faction:dungeon:golem|Assets/Resources/SO/Factions/faction_dungeon_golem.asset,faction:dungeon:golem,supplyCargo.1.itemId,resource:mana-crystal,,,explicit-serialized
 DungeonFactionDefinitionSO|faction:dungeon:golem|Assets/Resources/SO/Factions/faction_dungeon_golem.asset,faction:dungeon:golem,supplyCargo.1.amount,10,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:golem|Assets/Resources/SO/Factions/faction_dungeon_golem.asset,faction:dungeon:golem,tradeEconomicPolicy.capabilityId,faction-economy:paid-market-purchase,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:golem|Assets/Resources/SO/Factions/faction_dungeon_golem.asset,faction:dungeon:golem,tradeEconomicPolicy.capabilityVersion,1,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:golem|Assets/Resources/SO/Factions/faction_dungeon_golem.asset,faction:dungeon:golem,supplyEconomicPolicy.capabilityId,faction-economy:alliance-benefit,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:golem|Assets/Resources/SO/Factions/faction_dungeon_golem.asset,faction:dungeon:golem,supplyEconomicPolicy.capabilityVersion,1,,,explicit-serialized
 DungeonFactionDefinitionSO|faction:dungeon:harpy|Assets/Resources/SO/Factions/Dungeons/Faction_Harpy_StormNest.asset,faction:dungeon:harpy,m_Name,Faction_Harpy_StormNest,,,explicit-serialized
 DungeonFactionDefinitionSO|faction:dungeon:harpy|Assets/Resources/SO/Factions/Dungeons/Faction_Harpy_StormNest.asset,faction:dungeon:harpy,factionId,faction:dungeon:harpy,,,explicit-serialized
 DungeonFactionDefinitionSO|faction:dungeon:harpy|Assets/Resources/SO/Factions/Dungeons/Faction_Harpy_StormNest.asset,faction:dungeon:harpy,displayName,폭풍 둥지,,,explicit-serialized
@@ -215,6 +227,10 @@ DungeonFactionDefinitionSO|faction:dungeon:harpy|Assets/Resources/SO/Factions/fa
 DungeonFactionDefinitionSO|faction:dungeon:harpy|Assets/Resources/SO/Factions/faction_dungeon_harpy.asset,faction:dungeon:harpy,supplyCargo.0.amount,14,,,explicit-serialized
 DungeonFactionDefinitionSO|faction:dungeon:harpy|Assets/Resources/SO/Factions/faction_dungeon_harpy.asset,faction:dungeon:harpy,supplyCargo.1.itemId,ammo:arrow,,,explicit-serialized
 DungeonFactionDefinitionSO|faction:dungeon:harpy|Assets/Resources/SO/Factions/faction_dungeon_harpy.asset,faction:dungeon:harpy,supplyCargo.1.amount,10,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:harpy|Assets/Resources/SO/Factions/faction_dungeon_harpy.asset,faction:dungeon:harpy,tradeEconomicPolicy.capabilityId,faction-economy:paid-market-purchase,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:harpy|Assets/Resources/SO/Factions/faction_dungeon_harpy.asset,faction:dungeon:harpy,tradeEconomicPolicy.capabilityVersion,1,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:harpy|Assets/Resources/SO/Factions/faction_dungeon_harpy.asset,faction:dungeon:harpy,supplyEconomicPolicy.capabilityId,faction-economy:alliance-benefit,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:harpy|Assets/Resources/SO/Factions/faction_dungeon_harpy.asset,faction:dungeon:harpy,supplyEconomicPolicy.capabilityVersion,1,,,explicit-serialized
 DungeonFactionDefinitionSO|faction:dungeon:kobold|Assets/Resources/SO/Factions/Dungeons/Faction_Kobold_DeepGearWarren.asset,faction:dungeon:kobold,m_Name,Faction_Kobold_DeepGearWarren,,,explicit-serialized
 DungeonFactionDefinitionSO|faction:dungeon:kobold|Assets/Resources/SO/Factions/Dungeons/Faction_Kobold_DeepGearWarren.asset,faction:dungeon:kobold,factionId,faction:dungeon:kobold,,,explicit-serialized
 DungeonFactionDefinitionSO|faction:dungeon:kobold|Assets/Resources/SO/Factions/Dungeons/Faction_Kobold_DeepGearWarren.asset,faction:dungeon:kobold,displayName,심층 톱니굴,,,explicit-serialized
@@ -269,6 +285,10 @@ DungeonFactionDefinitionSO|faction:dungeon:kobold|Assets/Resources/SO/Factions/f
 DungeonFactionDefinitionSO|faction:dungeon:kobold|Assets/Resources/SO/Factions/faction_dungeon_kobold.asset,faction:dungeon:kobold,supplyCargo.0.amount,14,,,explicit-serialized
 DungeonFactionDefinitionSO|faction:dungeon:kobold|Assets/Resources/SO/Factions/faction_dungeon_kobold.asset,faction:dungeon:kobold,supplyCargo.1.itemId,ammo:arrow,,,explicit-serialized
 DungeonFactionDefinitionSO|faction:dungeon:kobold|Assets/Resources/SO/Factions/faction_dungeon_kobold.asset,faction:dungeon:kobold,supplyCargo.1.amount,10,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:kobold|Assets/Resources/SO/Factions/faction_dungeon_kobold.asset,faction:dungeon:kobold,tradeEconomicPolicy.capabilityId,faction-economy:paid-market-purchase,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:kobold|Assets/Resources/SO/Factions/faction_dungeon_kobold.asset,faction:dungeon:kobold,tradeEconomicPolicy.capabilityVersion,1,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:kobold|Assets/Resources/SO/Factions/faction_dungeon_kobold.asset,faction:dungeon:kobold,supplyEconomicPolicy.capabilityId,faction-economy:alliance-benefit,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:kobold|Assets/Resources/SO/Factions/faction_dungeon_kobold.asset,faction:dungeon:kobold,supplyEconomicPolicy.capabilityVersion,1,,,explicit-serialized
 DungeonFactionDefinitionSO|faction:dungeon:myconid|Assets/Resources/SO/Factions/Dungeons/Faction_Myconid_MycelialGrove.asset,faction:dungeon:myconid,m_Name,Faction_Myconid_MycelialGrove,,,explicit-serialized
 DungeonFactionDefinitionSO|faction:dungeon:myconid|Assets/Resources/SO/Factions/Dungeons/Faction_Myconid_MycelialGrove.asset,faction:dungeon:myconid,factionId,faction:dungeon:myconid,,,explicit-serialized
 DungeonFactionDefinitionSO|faction:dungeon:myconid|Assets/Resources/SO/Factions/Dungeons/Faction_Myconid_MycelialGrove.asset,faction:dungeon:myconid,displayName,균사 심림,,,explicit-serialized
@@ -323,3 +343,7 @@ DungeonFactionDefinitionSO|faction:dungeon:myconid|Assets/Resources/SO/Factions/
 DungeonFactionDefinitionSO|faction:dungeon:myconid|Assets/Resources/SO/Factions/faction_dungeon_myconid.asset,faction:dungeon:myconid,supplyCargo.0.amount,14,,,explicit-serialized
 DungeonFactionDefinitionSO|faction:dungeon:myconid|Assets/Resources/SO/Factions/faction_dungeon_myconid.asset,faction:dungeon:myconid,supplyCargo.1.itemId,resource:blood,,,explicit-serialized
 DungeonFactionDefinitionSO|faction:dungeon:myconid|Assets/Resources/SO/Factions/faction_dungeon_myconid.asset,faction:dungeon:myconid,supplyCargo.1.amount,10,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:myconid|Assets/Resources/SO/Factions/faction_dungeon_myconid.asset,faction:dungeon:myconid,tradeEconomicPolicy.capabilityId,faction-economy:paid-market-purchase,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:myconid|Assets/Resources/SO/Factions/faction_dungeon_myconid.asset,faction:dungeon:myconid,tradeEconomicPolicy.capabilityVersion,1,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:myconid|Assets/Resources/SO/Factions/faction_dungeon_myconid.asset,faction:dungeon:myconid,supplyEconomicPolicy.capabilityId,faction-economy:alliance-benefit,,,explicit-serialized
+DungeonFactionDefinitionSO|faction:dungeon:myconid|Assets/Resources/SO/Factions/faction_dungeon_myconid.asset,faction:dungeon:myconid,supplyEconomicPolicy.capabilityVersion,1,,,explicit-serialized

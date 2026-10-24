@@ -1,5 +1,228 @@
 # SO 관계 전수 감사 — 2026-10-24
 
+## R18-01~R18-16 수정 및 표적 실행 완료
+
+수정 기준은 main `7b5003c6b6ee0b2d892edc471e10e0ea009e3432`다. 아래 원래 감사는 수정 전 상태이며 이 표가 이번 보완 결과다. 기존 GUID, 게시 ID, 저장 DTO 필드와 버전은 유지했다. 새 런타임 SO나 책임 분리용 클래스를 만들지 않고 기존 정의, registry, 소비자와 선택 경로를 보완했다.
+
+| 항목 | 반영한 보완 | 실제 확인한 경계 |
+|---|---|---|
+| R18-01 | 작성된 효과5개를 마법 전투/원정 snapshot, 마나 tick, 경보 지연, 감지 반경과 작업 통증 계산에 연결 | 기존 실제 계산 소유자에서1.6/0.5/0.5/1.15/0.75 보정, JSON 복원, 마나 거절 후 재시도와 환불 무중복 |
+| R18-02 | 효과 에셋을 자기 유효성 근거로 삼지 않고 선언된 코드 target 및 실제 capacity/proficiency 정의에서 선택 | 미등록 target 거절, 실제 Inspector Layout/Repaint, R18-01 실제 효과 소비 |
+| R18-03 | 시설 nested capability6개를 기존 게시 identity 보호에 추가 | 기존 값 보존, C#/Python 경로 대조와 게시 키 변경/삭제 거절 |
+| R18-04 | WorkType31개 코드 저장 ID의 이전 revision 비교 | rename/remove와 All 등록 누락 거절, 신규 ID 추가 허용 |
+| R18-05 | 수술 family를 실제 anatomy profile에서 선택하고 family-only 조건도 검사 | 미등록 family 및 대상 profile0 거절, 수정 후 재검사, 실제 Inspector |
+| R18-06 | lexicon family 선택과 실제 catalog 종족 전체의 라벨 검증 | Adventurer의 실제 family fallback 조회, 잘못된 family 거절과 복구 |
+| R18-07 | 고정 특성9개 키를 한 계약에서 선택/검증하고 저장 rule108개를 게시 보호 | 타입/키/누락 거절, 일반 자유 규칙 허용, 게시 rule rename/배열 생략 거절, 실제 Inspector |
+| R18-08 | 정책 ID와 version을 registry의 한 선택값으로 편집하고 조립 전에 검사 | root6 및 legacy6의 실제 trade/supply 견적, 잘못된 version/화물+None 거절, 무화물+None 허용, 실제 Inspector Undo |
+| R18-09 | 시설 재료를 stock-category 등록 목록에서 선택하고 정의 시점 검사 | 유효 재료/수량 보존, 미등록 키 거절과 수정 후 재검사 |
+| R18-10 | 시설 module을 실제 resultBuilding 적격성에 따라 선택하고 조기 거절 | 정확한 owner 후보, 다른 owner 전용 등록 module 거절과 복구 |
+| R18-11 | 장비 module 관계를 기존 registry 목록 선택기에 연결 | 실제 후보 집합 비교, 기존 RequireCatalogModuleIds 거절 계약은 코드 대조 |
+| R18-12 | recipe 작업장 및 지원 관계를 제공 능력 목록에서 선택 | 해당 작업장 지원만 노출, BatchProcessor 구분, 잘못된 조합 거절, 실제 Inspector |
+| R18-13 | 서비스 hub/feature 관계를 실제 호환 제공자에서 선택 | 해당 hub 지원만 노출, 다른 hub 전용 feature 거절, 기존 실제 서비스 계약 실행 |
+| R18-14 | 야생동물 habitat를 기존 parser의 닫힌 목록에서 선택 | 정확한 후보 집합, invalid 거절, 실제 Inspector |
+| R18-15 | 방 색상 role 선택과 provider 조립 시 검증 | 미등록/중복 role 거절과 복구, 실제 Inspector |
+| R18-16 | anchor purpose를 현재 확장 registry에서 선택 | 고정 복사본 대신 현재 등록값 조회, invalid 거절, 실제 Inspector |
+
+실제 변경된 콘텐츠는 구형 세력6개에 누락됐던 정책12개 연결뿐이다. 같은 factionId의 현재 등록 정의와 같은 정책을 사용하며 원래 YAML 전체 prefix와 화물 수량을 보존했다. None을 잘못된 @0으로 보던 문제와 화물 없는 경로의 정상 미선택도 구분했다. published baseline에는 기존10607개 보호값을 보존하여 시설6개와 특성 rule108개만 추가했고 현재3544개 에셋/10721개 키다. 특성13개의 생략된 빈 identityRules 목록은 기존 Unity 초기화 의미를 유지하며 게시된 rule 삭제는 계속 거절한다.
+
+[현재 R18 실행 증거](Artifacts/QA/ImpactCI/r18-verification.json), [필수 변경 영향 실행](Artifacts/QA/ImpactCI/verification.json), [월드 저장과 공식 복원](Artifacts/QA/ImpactCI/world-round-trip.txt), [실제 Inspector 격리](Artifacts/QA/ImpactCI/r18-inspector-isolation.json).
+
+수용한 각 native 실행은 compiler0, consoleErrors0, source drift0이다. 실제 Inspector는 사용자 화면과 분리된 인증 private Xvfb에서 Layout/Repaint와 Apply/Undo를 실행했다. Python CI73개 및 pinned analyzer DSB001~DSB008 검증도 통과했다. 앞선 컴파일 실패, 구형 세력 누락 검출, Undo 정리 실패는 실패로 보존했다. 패키지의 실제 Undo 콜백에 따른 dirty 상태는 전체 JSON/hash 확인 후 원래 상태로 복구하고 전체 원본 SHA 검사에서도 무변경을 확인했다.
+
+검증 범위는 현재 코드와 에셋의 참조, 통제된 실제 소비 계산, 실제 Inspector, 공식 월드 저장/복원 및 필수 영향 회귀다. 자연 AI가 모든 효과를 발동하는 플레이, 사람의 전체 UI 조작, 전수 seed와 장기 밸런스 인증을 수행한 것으로 세지 않는다. 과충전 수치 fixture는 실제 capability를 통제 호출하며 사용자 발동 UI의 새 전수 실행은 아니다. 일반 태그 정의와 새 identity 작성 자체는 허용하고, 기존 저장 join key와 닫힌 registry 관계를 보호한다.
+
+R18-09~R18-16 leaf fixture는 후보 목록, catalog/정의 검증과 Inspector를 직접 실행한다. 각 항목별 창고 차감, 진화 prepare, 생산 cycle, service session, 계절 도착, 역할 색상 및 anchor 소비를 새 시나리오로 모두 실행한 것은 아니다. 기존 소비와 provider 연결은 원본을 대조했고 현재 공식 월드 및 영향 회귀 실행과 구분한다. 관계 선택기를 추가한 것을 해당 게임 기능 전체의 새 플레이 인증으로 표시하지 않는다.
+
+실행 source `d698fc9aa0bed3cbbf664ea586dfa060132e6f186fddd0bd398d163ddcd2a092`, configuration `06a14e16fa1e125a1322b646be49a01566f0a4e5c100dc4c40555f599a693186`. GitHub 통합 결과는 현재 PR과 Goal의 실제 완료 기록을 따른다.
+
+SO 작성 증거는 r130sr의 실제 PASS를 보존했다. 이후 변경은 runtime fixture 한 파일의 동등 부상도 설정, 분할 Tick 관측과 마나 측정 준비 순서뿐이다. 전체21660입력 비교에서 생산 코드/에셋/작성/Inspector 시나리오가 동일함을 확인한 재사용이며, 이전 실행의 source/configuration을 현재 것으로 바꾸지 않았다. 수정된 runtime과 Inspector, 필수 영향5그룹은 최종 입력에서 실행했다.
+
+### 기존 효과 연결에 따른 수치 영향
+
+`arcane:power`는 활성 과충전 중 마법 전투력에만1.6, `arcane:mana-recovery`는 후유증 중 마나 회복에0.5를 적용한다. 경보 지연0.5는 실제 대기 시간에, 위험 감지1.15는 기존 감지 수식 결과를 사용하는 반경에 적용한다. 원정의 마법 배율 snapshot에도 같은 결과를 동결한다. 기존 의미와 게시 ID를 보존하며 target 치환으로 다른 종류의 능력을 바꾸지 않는다.
+
+`character:pain-work-penalty`는 기존 injury efficiency 곡선 `Lerp(1, 0.45, injurySeverity)`의 손실분을 보정한다. 통증 손실이 연결되므로 부상 노동자의 효율은 바뀐다. 부상도0.5에서 무특성0.725, 흉터0.75 보정 후0.79375다. 건강하거나 진통 억제 중이면1이며 장기 손상 자체의 capacity 감소는 별도다. 새 WU/EWU/가격/자원량이나 저장 필드를 추가하지 않는다. 이 변경의 표적 수치 및 복원 결과는 새 실행 증거로 판정한다. 과거 V27 밸런스 인증의 입력과 문서는 변경하지 않는다.
+
+## 수정 전 main7b5003c6b 재감사: 당시 남은 문제16묶음
+
+**수정 전 판정이다.** 기준은 당시 원격 main `7b5003c6b6ee0b2d892edc471e10e0ea009e3432`다. 기존 N01~N07 완료 여부와 별개로 현재 C# 선언, Inspector 작성 경로, 실제 소비자, 에셋 YAML, 게시 ID 보호를 다시 대조했다. 이번 결과는 **현재 콘텐츠의 효과 연결 누락 1묶음과 작성 또는 ID 변경 보호 누락 15묶음**이다. 16개 모두 현재 플레이가 망가졌다는 뜻은 아니다. 현재 값이 정상인 위험과 이미 작성된 효과의 연결 누락을 아래에서 구분한다.
+
+아래는 R18-01~R18-16의 수정 전 감사다. 당시 재감사에서는 게임 코드와 에셋을 변경하거나 Unity를 새로 실행하지 않았다. 과거 N01~N07 실행 성공을 새 항목의 실행 증거로 사용하지 않는다. 기존 보고서에서 닫힌 registry 관계나 실제 exact-match 관계를 단순한 의미 키로 제외한 부분은 이 재감사로 정정한다.
+
+### 현재 모집단과 검사의 한계
+
+| 확인 대상 | 현재 결과 | 의미 |
+|---|---:|---|
+| 원본 게임 SO 종류 | 142 | 상속, 중첩 직렬화 레코드, SerializeReference 도달 필드 포함 |
+| 직렬화 필드 선언 | 2,458 | 에셋 인스턴스별 필드 수와 다름 |
+| 넓은 관계 후보 | 879 | 자기 ID, 자유 태그, 표시값도 포함하는 탐색 집합 |
+| ContentReference 선언 | 180 | 표식이 없는 관계도 별도로 검토 |
+| 실제 게임 SO 에셋 | 3,544 | YAML 파싱 실패 0, 추출된 게임 타입의 미게시 에셋 0 |
+| GUID 형태 직접 참조 | 8,962 | script 등 다른 참조도 포함, 누락과 중복 metadata 0 |
+| .asset 대상 fileID 참조 | 4,731 | 확인한 대상 anchor 누락 0 |
+| Roslyn 구문 추출 | 오류 0 | Unity 컴파일 성공을 뜻하지 않음 |
+
+직접 참조가 멀쩡해도 참조 대상이 실제로 소비되는지, 문자열 관계가 유효한지, 필수 필드가 None인지까지 증명되지는 않는다. 임포트된 모델 등의 모든 subasset fileID, 실제 Inspector 이벤트, 실제 플레이를 이번 정적 감사에서 실행한 것으로 세지 않는다.
+
+현재 원본 자료는 `C:/Users/vulpo/Documents/Codex/2026-10-24/so-full-audit/main-reaudit-r18`에 보존했다. `inventory.json`, `current-assets.json`, `asset-groups.json`, `value-crosscheck.json`은 현재 필드와 에셋 대조 자료다. `actor-findings.md`, `content-findings.md`, `identity-findings.md`, `effect-target-check.json`, `effect-consumer-gap.json`은 아래 판정의 상세 근거다. 생성 지식베이스는 좁은 질의의 최신성을 확인한 뒤 탐색에만 썼으며 재생성하지 않았다.
+
+### 우선순위와 현재 영향
+
+P1은 먼저 연결하거나 보호해야 할 기능 및 저장 경계다. P2는 현재 데이터가 정상이고 주로 작성 실수 방지가 필요한 경계다. 검사가 이미 잘못된 값을 거절하는 경우에는 그 사실도 적었다.
+
+| 번호 | 우선순위 | 남은 경계 | 현재 에셋 상태 |
+|---|---|---|---|
+| R18-01 | P1 | 특성 효과와 실제 계산 대상의 연결 누락 | 특성 4개에 작성된 효과 5개 |
+| R18-02 | P1 | GameplayEffectDefinitionSO.targetId 수기 입력과 대상 검증 누락 | 정의 65개, 관련 문제는 R18-01에 합산 |
+| R18-03 | P1 | 시설 진화 capability ID의 게시 및 저장 호환 보호 누락 | 6개 ID는 현재 정상 |
+| R18-04 | P1 | WorkType 코드 ID의 이전 저장 키 변경 보호 누락 | 31개 ID는 현재 정상 |
+| R18-05 | P1 | 수술 anatomy family 선택과 조건 독립 검증 누락 | 작성 29행, 현재 오류 0 |
+| R18-06 | P1 | 신체 상태 lexicon family 관계와 실제 사용 종족 검사 누락 | 7개 lexicon, 현재 오류 0 |
+| R18-07 | P1 | 코드와 정확히 일치해야 하는 특성 rule/need 키의 계약 검사 누락 | 해당 계약 9개, 현재 오류 0 |
+| R18-08 | P1 | 세력 경제 정책 capability와 version 수기 입력 | 작성 12개, 현재 오류 0 |
+| R18-09 | P2 | 시설 진화 materialId 선택과 정의 시점 검사 누락 | 현재 작성 0 |
+| R18-10 | P2 | 시설 진화 evolutionModuleId 선택과 조기 검사 누락 | 작성 6개, 현재 오류 0 |
+| R18-11 | P2 | 장비 진화 catalogModuleIds 수기 입력 | 작성 39개, 현재 검증은 정상 |
+| R18-12 | P2 | 생산 workstation/support의 실제 태그 관계 수기 입력 | 대상 작업장 344개 recipe, 현재 오류 0 |
+| R18-13 | P2 | 서비스 hub/feature의 실제 태그 관계 수기 입력 | hub 관계 23행, feature 요구 25행 정상 |
+| R18-14 | P2 | 계절 야생동물 requiredHabitatId 수기 입력 | 작성 4개, 현재 검증은 정상 |
+| R18-15 | P2 | 방 색상 roleId 선택 및 등록 검사 누락 | 현재 override 0 |
+| R18-16 | P2 | 시설 anchor purposeId 수기 입력 | 작성 41개, 현재 오류 0 |
+
+### R18-01: 현재 특성 효과 5개를 실제 소비 경로에서 조회하지 않는다
+
+효과 SO와 binding의 GUID 연결은 정상이다. 그러나 [CharacterGameplayEffectProjector](Assets/Scripts/Services/Effects/Runtime/CharacterGameplayEffectProjector.cs#L28)는 요청한 target과 정의의 target이 정확히 같아야 적용한다. [CharacterPerformanceQuery](Assets/Scripts/Services/Character/Core/CharacterPerformanceQuery.cs#L448)는 각 formula의 `GameplayEffectTargetId`만 조회한다. 이전 연결 manifest에 소비자 이름이 적혀 있다는 것만으로 현재 연결을 인정하지 않았다.
+
+| 현재 특성 에셋과 효과 | 작성값 | 실제 계산 경계 |
+|---|---:|---|
+| [Trait_306_arcane-overcharge](Assets/Resources/SO/V26/Traits/Founder/Trait_306_arcane-overcharge.asset)의 `arcane:power` | ×1.6 | [마법 전투력 formula](Assets/Resources/SO/V27/CharacterPerformance/Formulas/performance_combat_arcane-power.asset#L36)는 `character:combat-power`를 조회 |
+| 같은 특성의 `arcane:mana-recovery` | ×0.5 | [마나 회복 formula](Assets/Resources/SO/V27/CharacterPerformance/Formulas/performance_combat_mana-recovery.asset#L40)는 `character:recovery-speed`를 조회 |
+| [Trait_201_light-sleeper](Assets/Resources/SO/V20/Traits/General/Trait_201_light-sleeper.asset)의 `character:alarm-response-delay` | ×0.5 | [경보 대응 formula](Assets/Resources/SO/V27/CharacterPerformance/Formulas/performance_survival_alarm-response.asset#L36)는 효과 target이 비어 있음 |
+| [Trait_204_scarred](Assets/Resources/SO/V20/Traits/General/Trait_204_scarred.asset)의 `character:pain-work-penalty` | ×0.75 | [실제 작업 문맥 배율](Assets/Scripts/Services/Character/Core/CharacterStatsProjectionService.cs#L196)에 이 대상의 조회가 없음 |
+| [Trait_205_keen-senses](Assets/Resources/SO/V20/Traits/General/Trait_205_keen-senses.asset)의 `character:danger-detection` | ×1.15 | [위험 감지 formula](Assets/Resources/SO/V27/CharacterPerformance/Formulas/performance_survival_risk-detection.asset#L36)는 효과 target이 비어 있음 |
+
+실제 소비 진입점도 확인했다. [CombatResolutionService](Assets/Scripts/Services/Combat/CombatResolutionService.cs#L1376)는 ArcanePower formula, [CharacterBodyHealthRuntime](Assets/Scripts/Services/Combat/CharacterBodyHealthRuntime.cs#L204)은 ManaRecovery formula, [CharacterAlarmResponseRuntime](Assets/Scripts/Services/Character/AI/CharacterAlarmResponseRuntime.cs#L583)은 AlarmResponse formula, [CharacterAiNaturalness](Assets/Scripts/Services/Character/AI/CharacterAiNaturalness.cs#L797)는 RiskDetection formula를 사용한다. [파생값 projector](Assets/Scripts/Services/Effects/Runtime/CharacterDerivedStatsSnapshot.cs#L700)에도 이 다섯 키를 새 키로 변환하는 경로가 없다.
+
+따라서 현재 소스상 이 다섯 binding의 보정이 해당 계산 경로에 도달하지 않는다. 특성 전체가 작동하지 않는다는 뜻은 아니다. 같은 특성의 다른 효과, 과충전의 발동 비용이나 상태 규칙은 별도 경로다. 이번에 새 Play로 수치를 재현한 것은 아니므로 결과를 실제 플레이 PASS/FAIL 수치로 부풀리지 않는다.
+
+최소 보완은 기존 의미와 게시 ID를 보존하여 실제 계산 소유자에 연결하는 것이다. 경보 지연 ×0.5와 대응 능력 ×0.5는 반대 효과가 될 수 있으므로 단순 target 치환은 안 된다. 마법 전용 보정이 모든 전투력을 바꾸거나 공통 회복 보정과 이중 적용되지 않게 해야 한다. 필요한 검증은 해당 특성의 활성/비활성 전후 실제 수치, 저장과 복원 후 동일 결과, 중복 적용 없음이다.
+
+### R18-02: 효과의 targetId 자체는 여전히 일반 문자열이다
+
+[GameplayEffectDefinitionSO.targetId](Assets/Scripts/Services/Foundation/GameplayEffectDefinitionSO.cs#L9)는 선택기와 관계 표식이 없다. [ValidateDefinition](Assets/Scripts/Services/Foundation/GameplayEffectDefinitionSO.cs#L53)은 빈 target을 거절하지만 실제 대상 존재나 소비 계약은 검사하지 않는다. [binding 검증](Assets/Scripts/Services/Foundation/GameplayEffectContracts.cs#L278)도 이 누락을 보완하지 않는다. 오타가 있는 비어 있지 않은 target은 게시 관계 검사에서 빠지고 projector에서는 조용히 적용 대상에서 제외된다.
+
+현재 65개 중 14개는 functional capacity 정의 ID이고 9개는 proficiency ID에 `:starting-xp`를 붙인 관계다. 이 23개는 실제 정의와 일치한다. 나머지 42개는 코드의 효과 target 계약이며 R18-01의 다섯 키도 여기에 속한다. 모두 자유 의미 키라고 제외할 수 없다.
+
+최소 보완은 기존 정의와 실제 소비 계약을 선택 권위로 사용하고, 신규 정의의 알 수 없는 target을 게시 전에 거절하는 것이다. 현재 `GameplayValueTarget` 후보는 효과 에셋 자체에서 추출한 일부 performance key라 이 필드에 그대로 붙이면 자기 자신을 근거로 유효하다고 판단할 수 있다. 새 SO를 key마다 만들 필요는 없다. 오타 거절, 새로 등록한 유효 target 선택, 실제 효과 적용을 표적으로 검증한다.
+
+### R18-03: 시설 진화의 nested capability ID 6개가 보호 목록에서 빠졌다
+
+[FacilityEvolutionRecipeSO.formulaCapabilities](Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionRecipeSO.cs#L43)의 `capabilityId`는 금지 조합 참조와 생성 결과의 저장 envelope에 사용된다. [저장 및 novelty 비교](Assets/Scripts/Services/FacilityEvolution/FacilityFormulaEvolutionAuthority.cs#L1024)도 같은 키를 쓴다.
+
+그러나 [C# nested identity 수집](Assets/Editor/ContentIdentityProtection.cs#L670)과 [Python NESTED_ROUTES](tools/V27Balance/verify_content_identities.py#L99)에 시설 recipe가 없다. 장비 capability는 있지만 시설 capability는 누락이다. 현재 6개 recipe의 보호 row에는 상위 ID만 있으며 이 nested 키는 없다. AlchemyBench capability 문자열만 메모리에서 바꿔 추출한 결과도 전후 모두 빈 nested 집합이었다. 파일을 바꾸거나 전체 CI가 통과한다고 가정한 검증은 하지 않았다.
+
+현재 여섯 ID는 정상이고 forbidden 목록은 비어 있다. 문제는 향후 capability와 관련 formula 문자열을 함께 바꾸면 기존 저장의 capability 정체성이 달라져도 게시 ID 검사에서 이 변경을 잡지 못한다는 점이다. 기존 C#/Python 경로에 같은 scoped nested 규칙과 6개 baseline 항목을 추가하면 된다. 순서 변경 허용, ID 변경 거절, 기존 저장 envelope 해석 유지가 필요한 표적 검증이다.
+
+### R18-04: WorkType의 현재 등록 검사는 과거 저장 키 변경을 막지 않는다
+
+[BuiltInWorkTypeIds](Assets/Scripts/Models/Work/WorkTypeId.cs#L40)의 31개 문자열은 [WorkTypeCatalog](Assets/Scripts/Models/Work/WorkTypeCatalog.cs#L88)가 정의하는 닫힌 코드 계약이다. SO에서의 선택과 현재 membership 검사는 N01로 보완됐다. 하지만 이 코드 상수는 SO identity baseline 밖이므로 이전 revision의 값과 비교하는 변경 보호가 없다.
+
+[WorkAmountSystem](Assets/Scripts/Services/Character/Work/WorkAmountSystem.cs#L2029)은 작업 종류를 저장하고 복원 때 다시 조회한다. 예를 들어 `work:craft`와 현재 SO 참조를 전부 새 이름으로 바꾸면 현재 콘텐츠 검사는 만족해도 과거 저장의 `work:craft`는 풀리지 않는다. [SettlementAlertRuntime](Assets/Scripts/Services/Character/Work/SettlementAlertRuntime.cs#L345)도 복원 시 미등록 작업을 거절한다.
+
+이는 현재 끊어진 에셋이 아니라 코드 변경 시 저장 호환 보호 누락이다. 기존 검증 체계에 저장 프로토콜 ID의 append-only 비교를 추가하거나 명시적 구 키 migration을 요구하면 된다. 임의 이름 변경 거절과 이전 JSON 복원 유지만 검증하며 WorkType마다 새 SO를 만들지 않는다.
+
+### R18-05: 수술의 anatomy family는 수기 관계이고 일부 작성 조합에서 검사를 빠져나간다
+
+[SurgicalProcedureSO.allowedAnatomyFamilies](Assets/Scripts/Models/Medical/Core/SurgicalProcedureSO.cs#L23)는 [AnatomyProfileSO.anatomyFamily](Assets/Scripts/Models/Medical/Core/AnatomyProfileSO.cs#L17)를 가리킨다. 실제 [수술 계획](Assets/Scripts/Services/Medical/SurgeryOrderPlanningService.cs#L136)은 exact family 비교로 대상을 제한한다.
+
+[현재 문맥 검사](Assets/Scripts/Services/Items/ContentReferenceCatalog.cs#L387)는 target node가 비면 node 검사를 생략하고 allowed species가 비면 species 반복 검사도 하지 않는다. [procedure_amputation](Assets/Resources/SO/Medical/Procedures/procedure_amputation.asset)처럼 둘 다 비어 있는 정의에 family `humanoidd`만 작성하면 적격 profile이 0개여도 이 경로는 거절하지 않는다. 이후 수술 주문은 family 불일치로 거절된다.
+
+현재 18개 anatomy profile은 12개 family를 정의하며 procedure 47개 중 family 작성은 29행이다. 현재 미정의 family와 적격 profile 0개인 procedure는 없다. 기존 family 작성 29건은 species도 작성돼 현재 문맥 검사에 걸릴 수 있지만, family만 쓰는 새 작성 경계는 비어 있다. 같은 profile 집합을 사용하는 family 선택기와 target/species 작성 여부에 독립적인 유효성 검사를 추가하고, 잘못된 family 거절 및 수정 후 정상 주문을 확인하면 된다.
+
+### R18-06: lexicon family fallback의 실제 사용 대상이 검증에서 빠진다
+
+[AnatomyConditionLexiconSO.anatomyFamily](Assets/Scripts/Models/Medical/Core/AnatomyConditionLexiconSO.cs#L38)도 profile family 관계지만 선택기와 존재 검사가 없다. [실제 lookup](Assets/Scripts/Services/Medical/AnatomyConditionLexiconCatalog.cs#L38)은 species가 없으면 family를 사용한다.
+
+[Species_Adventurer](Assets/Resources/SO/Character/Species/Species_Adventurer.asset)는 직접 species 목록에 없어서 [condition_biological](Assets/Resources/SO/Medical/ConditionLexicons/condition_biological.asset)의 `humanoid` fallback에 의존한다. [검증의 RequiredSpecies](Assets/Scripts/Services/Medical/AnatomyConditionLexiconCatalog.cs#L7)는 고정 10종이고 Adventurer가 빠졌다. family를 잘못 바꿔도 직접 species 경로가 있는 10종 검사는 통과할 수 있으며 Adventurer의 [실제 상태 라벨](Assets/Scripts/Views/UI/CharacterDetailedStatsRuntime.cs#L646)은 missing 상태가 된다.
+
+현재 7개 lexicon family는 모두 유효하다. R18-05와 같은 family 선택 권위를 재사용하고 실제 catalog의 종족과 profile에 대해 필요한 조건 라벨을 조회해야 한다. 고정 종족 상수에 하나만 추가하는 수정은 새 종족에서 다시 빠질 수 있다. family 오타 거절과 Adventurer 상태 라벨 lookup이 필요한 검증이다.
+
+### R18-07: 일부 특성 rule/need ID는 일반 수기 ID가 아니라 고정 코드 계약이다
+
+[CharacterTraitSO.identityRules](Assets/Scripts/Content/CharacterTraitSO.cs#L46)의 [ruleId와 needId](Assets/Scripts/Services/Foundation/CharacterIdentityRules.cs#L15)는 일반적으로 빈 값과 trait 내부 중복만 검사한다. 그러나 [ExtremeTraitRuleAccess](Assets/Scripts/Services/Character/Identity/Runtime/ExtremeTraitRuleAccess.cs#L59)는 trait ID, 구체 rule 타입, ruleId가 모두 일치해야 효과를 사용한다. trait 300도 [별도 exact lookup](Assets/Scripts/Services/Character/Identity/Runtime/CharacterIdentityRuntime.cs#L1630)을 가진다.
+
+trait 300~306의 7개 계약과 trait 213의 [의식 금식 need/rule 계약](Assets/Scripts/Services/Character/Identity/Runtime/CharacterRitualFastingRuntime.cs#L568), 합계 9개는 현재 값이 일치한다. 하지만 `extreme:last-stand`를 비어 있지 않은 오타로 바꾸면 일반 정의 검사는 통과하고 runtime은 rule을 찾지 못한다. 현재 113개 trait의 managed rule 108개 전체를 닫힌 목록으로 만들 필요는 없다. 코드가 특정 타입과 키를 요구하는 이 부분집합만 한 계약에서 선택 또는 읽기 전용으로 제공하고 게시 시 exact 검증하면 된다. 오타 거절과 해당 실제 효과 적용을 표적으로 확인한다.
+
+### R18-08: 세력 경제 정책은 capability와 version을 직접 입력한다
+
+[DungeonFactionDefinitionSO](Assets/Scripts/Models/Factions/Core/DungeonFactionDefinitionSO.cs#L53)의 trade/supply descriptor는 [FactionRouteEconomicPolicyRegistry](Assets/Scripts/Services/Factions/FactionRouteEconomicPolicy.cs#L66)에 등록된 `(capabilityId, capabilityVersion)`을 가리킨다. SO에는 선택기와 registry membership 검증이 없다. 오타나 잘못된 version은 실제 견적 생성 때 `등록되지 않은 세력 경로 경제 정책`으로 거절되어 경로를 만들지 못한다.
+
+정책을 작성한 6개 세력의 12개 descriptor는 모두 등록값이다. descriptor가 없는 구형/호환 에셋 6개는 이 작성값 집계와 구분한다. 기존 registry의 versioned 목록을 선택 권위로 사용하고 실제 조립 시 descriptor를 확인하면 된다. 정상 trade/supply 견적, 잘못된 key/version의 조기 거절을 확인하며 경제 수치나 저장 ID를 바꿀 필요는 없다.
+
+### R18-09: 시설 진화 재료 키는 잘못 입력하면 실제 차감 단계에서야 거절된다
+
+[FacilityEvolutionMaterialRequirement.materialId](Assets/Scripts/Models/Evolution/Facility/FacilityEvolutionTerms.cs#L271)는 `StockCategoryPersistenceId`의 닫힌 키인데 선택기가 없다. recipe 정의 검사도 membership을 확인하지 않는다. [실제 자원 provider](Assets/Scripts/Services/FacilityEvolution/WarehouseFacilityEvolutionResourceProvider.cs#L251)가 진화 시도 때 parse 실패를 거절한다.
+
+현재 6개 recipe의 requiredMaterials는 모두 비어 있으므로 현재 재료 참조 오류는 0개다. 기존 stock-category 선택 목록과 정의 검증을 적용하는 정도면 된다. 유효 재료의 차감/복원/재시도와 잘못된 키의 차감 전 거절이 필요한 좁은 검증이다.
+
+### R18-10: 시설 진화 module ID의 registry 검사가 작성 시점보다 늦다
+
+[FacilityEvolutionFormulaCapabilityDefinition.evolutionModuleId](Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionRecipeSO.cs#L194)는 EvolutionModuleRegistry 관계다. [RequireFormulaCapabilities](Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionRecipeSO.cs#L86)는 문자열과 중복, forbidden 관계를 검사하지만 module membership과 owner 적격성을 확인하지 않는다. 해당 검사는 [실제 진화 prepare/selection](Assets/Scripts/Services/FacilityEvolution/FacilityFormulaEvolutionAuthority.cs#L183)에서 수행한다.
+
+현재 6개 값은 정상이다. owner recipe와 version에 맞는 기존 registry 선택기를 제공하고 조기 검증을 같은 경계에 연결하면 된다. 다른 owner의 module 거절과 수정 후 정상 생성만 표적으로 확인한다. R18-03의 capability ID 변경 보호와는 다른 문제다.
+
+### R18-11: 장비 진화 catalogModuleIds는 검증되지만 여전히 수기 입력이다
+
+[EquipmentEvolutionFormulaCatalogSO.catalogModuleIds](Assets/Scripts/Services/Combat/EquipmentEvolutionFormulaDefinitionSO.cs#L162)는 registry의 module ID다. 두 catalog에 20개와 19개, 총 39개가 있으며 현재 누락이나 중복은 없다. [RequireCatalogModuleIds](Assets/Scripts/Services/Combat/EquipmentEvolutionFormulaDefinitionSO.cs#L331)는 unknown, 잘못된 prefix, 중복, capability 포함 관계를 이미 명시적으로 거절한다.
+
+필요한 보완은 현재 엄격한 검사를 유지하면서 owner/version별 등록 목록을 Inspector에 제공하는 것이다. 현재 기능 단절이나 silent fallback으로 세지 않는다. 선택 후보와 잘못된 값 거절의 표적 검증으로 충분하다.
+
+### R18-12: 생산 recipe와 시설의 workstation/support 관계가 수기 태그다
+
+[ProductionRecipeSO](Assets/Scripts/Models/Economy/Content/ProductionRecipeSO.cs#L32)의 `workstationTag`, `requiredSupportTags`, `batchSupportTag`는 시설의 workstation/support 능력과 실제로 매칭되는 값이다. 시설 측 `BuildingProductionWorkstationAbility.workstationTag`, `BuildingProductionSupportAbility.featureTags/compatibleWorkstationTags`까지 같은 작성 경계로 다뤄야 한다.
+
+367개 recipe 중 작업장 대상이 있는 344개는 146개 workstation 정의에 모두 연결된다. 나머지 23개는 Source 19개와 Sink 4개다. required support 50개와 batch support 8개도 현재 누락 0이다. [현재 output-factor 검증](Assets/Scripts/Services/Economy/ProductionMaximumOutputFactorCatalog.cs#L254)은 support 누락을 명시적으로 거절한다.
+
+정의 측 태그를 임의로 동결하거나 태그마다 SO를 만들 필요는 없다. provider를 선택 권위로 쓰고 소비 측에서 유효한 workstation/support를 선택하게 해야 한다. provider rename으로 매칭이 사라지는 경우도 같은 조립 검사에서 드러나야 한다. 대표 recipe 하나의 실제 작업장 및 지원 선택과 오타 거절을 확인한다.
+
+### R18-13: 서비스 방의 hub/feature 태그도 실제 관계지만 선택과 교차 검증이 부족하다
+
+[ServiceRoomAbilities](Assets/Scripts/Services/ServiceRooms/ServiceRoomAbilities.cs#L60)의 `serviceHubTag`, `compatibleHubTags`와 required feature는 [실제 서비스 적격성](Assets/Scripts/Services/ServiceRooms/ServiceRoomAbilities.cs#L130)에서 exact match한다. 현재 hub 관련 23행과 관리형/자동화형 required feature 25행은 provider에 연결된다. 별도 `supportedProcessIds` 8건은 이미 선택기가 있고 모두 실제 process 5개에 연결된다.
+
+hub/feature 쪽은 process ID 선택기를 고쳤다고 함께 해결되는 관계가 아니다. 현재 값은 정상이며 관련 provider 목록 선택과 조립 시 호환 관계 검사만 추가하는 것이 최소 범위다. 현재 production support 검사와 같은 강도의 서비스 태그 그래프 검사는 확인하지 못했다. 대표 서비스의 정상 처리와 잘못된 hub/feature 조합 거절이 필요한 검증이다.
+
+### R18-14: 계절 야생동물 habitat 키는 닫힌 값인데 수기 입력이다
+
+[SeasonalWildlifeArrivalProfile.requiredHabitatId](Assets/Scripts/Content/SeasonalWorldEventDefinitionSO.cs#L18)는 `SeasonalWildlifeArrivalRules.TryParseHabitat`가 받는 값이다. 현재 작성 4개는 `grass` 2개와 `lair` 2개이며 종의 선호 habitat와 일치한다. V20StoryContentCatalog가 profile 검증을 호출하여 unknown은 이미 조립 단계에서 거절한다. 기존 허용 목록 선택기만 연결하면 되는 P2 작성 편의 문제이며, 현재 기능이 끊겼다고 세지 않는다.
+
+### R18-15: 방 색상 override의 roleId 오타는 조용히 무시된다
+
+[FacilityRoleColorOverride.roleId](Assets/Scripts/Models/Rooms/Core/RoomEnvironmentSettingsSO.cs#L14)는 FacilityRoleCatalog key인데 선택기와 unknown/duplicate 검사가 없다. [GetRoleColor](Assets/Scripts/Models/Rooms/Core/RoomEnvironmentSettingsSO.cs#L145)는 일치하는 override가 없으면 기본 role color를 사용하므로 오타와 의도한 기본색을 구별하지 못한다. 현재 override는 0개다. registry 선택기 및 중복/unknown 거절, 유효 override 한 개의 실제 색상 조회를 확인하면 된다.
+
+### R18-16: 시설 anchor purposeId는 실제 등록 목적과 매칭하는 수기 키다
+
+[FacilityAnchorSlot.purposeId](Assets/Scripts/Services/Buildings/SO/FacilityDefinitionData.cs#L15)는 [FacilityAnchorPurposeCatalog](Assets/Scripts/Services/Buildings/FacilityAnchorPurposeCatalog.cs#L24)의 목적 키와 매칭된다. 현재 400개 건물 중 작성 slot 41개는 모두 `facility.work`로 유효하다. 잘못된 목적을 작성하면 정상 목적 조회가 해당 슬롯을 사용하지 못하고 일반 위치 fallback으로 흐를 수 있다.
+
+기본 목적 선택을 제공하되 이 catalog의 `Register` 확장을 막으면 안 된다. 실제 조립 문맥에서 등록한 목적까지 선택/검증해야 한다. 기본 work slot, 등록한 확장 목적, 잘못된 키를 구별하는 표적 검증이 필요하며 anchor 구조 분리는 불필요하다.
+
+### 별도 낮은 우선순위: 이미 보호되는 입력의 runtime 방어 중복
+
+`SeasonalManaLightningProfile.eligibleBuildingDefinitionIds`는 이미 BuildingNumeric 선택기와 게시 관계 검사를 받는다. 현재 작성 1건 `9825`는 실제 BuildingSO에 존재한다. [runtime profile 검사](Assets/Scripts/Content/SeasonalWorldEventDefinitionSO.cs#L104)는 양수와 중복만 확인하고 [실제 적용](Assets/Scripts/Services/Run/SeasonalArcaneEventApplicationAdapters.cs#L113)은 목록 일치 건물만 선택한다. 게시 경로를 우회해 stale 숫자를 주입하면 대상이 조용히 없어질 수 있다.
+
+정상 authoring에서 남은 수기 입력이나 무보호 ID로 세지 않으며 위 16묶음에도 포함하지 않는다. 외부 콘텐츠 주입을 지원해야 할 때 runtime catalog에도 존재 검사를 둘 수 있다는 방어 보완이다. 같은 검사를 모든 계층에 복제하는 작업을 우선 필수 수정으로 확대하지 않는다.
+
+### 현재 정상으로 확인한 범위와 제외 이유
+
+- 기존 N02 캠페인 선행 관계 5개는 같은 catalog 안에 존재하며 자기 참조와 순환이 없다. N03 로컬 drawback binding 1개, 일반 스킬 pair/forbidden 관계 8개도 현재 소유 문맥에 맞는다. N04 acquired와 N06 equipment/facility forbidden 및 N07 owner fixed skill의 실제 에셋 목록은 현재 비어 있는 경우를 빈 값으로 그대로 기록했다.
+- N02 target ID 6개, N03 binding ID 9개, 스킬/후천 특성 capability 63개, 장비 capability 13개, 스킬 module 24개와 scoped variant 50개는 게시 identity 보호 경로가 있다. 시설 capability만 R18-03처럼 빠졌다.
+- 현재 게시 baseline은 3,544개 에셋과 10,607개 보호 항목이다. catalog registration은 3,519행, 고유 GUID 3,517개이며 eligible game SO 3,516개는 자기 baseline row가 있다. 나머지 DOTweenSettings는 명시적 vendor 대상이다. 등록 삭제, 게시 게임 에셋 삭제/GUID 교체, startup root 경로 이동은 기존 Editor/CI가 거절한다. GUID를 유지하는 일반 등록 에셋 이동은 의도적으로 허용된다. 임의의 모든 direct reference 값을 다른 유효 에셋으로 바꾸는 행위까지 baseline이 동결하는 것은 아니다.
+- Research unlock 180건, recipe research 367건, 숨겨진 compatibility prerequisite ID 310건은 현재 정의와 맞는다. prerequisite 권위는 object reference이며 숨겨진 ID와 일치 검사도 있다. 세력 chapter/contract/seasonal graph, 원정 site/encounter/weather, character species와 anatomy 및 생애 profile, 현재 수술 node/species와 wildlife prey/disease도 원본 에셋 대조에서 추가 단절을 찾지 못했다.
+- BuildingSemanticTags의 `research:*` 117건 중 project ID와 다른 값 21개는 연구 catalog lookup을 하지 않는 개방형 semantic tag다. 이 차이를 끊어진 연구 참조로 보고하지 않는다. Wildlife migrationPatternId 18개는 같은 SO의 embedded profile을 설명하는 프로토콜 라벨이며 외부 pattern SO를 찾지 않는다.
+- display name, 설명, 자유 그룹/분류 태그, 자기 identity, 저장 snapshot 문자열 전체를 관계 선택기로 바꾸지 않는다. 다만 실제 provider/consumer exact match나 닫힌 registry lookup에 쓰이면 R18-02 및 R18-07~R18-16처럼 별도로 판정했다.
+- `BuildingLightingSettingsSO.targetSortingLayers`는 Unity sorting-layer 이름이며 SO 외래 키가 아니다. 현재 문서의 16묶음에는 넣지 않았다. Unity 프로젝트 설정과 실제 Renderer 계층 연결에 대한 전수 인증도 이번 결과에 포함하지 않는다.
+
+이번 조사는 현재 main에서 확인한 잔여 범위를 정리한 것이며 모든 미래 콘텐츠와 실행 조합에 대한 무결점 보증이 아니다. 아래 N/R/U/I 완료표와 기존 전체 필드 부록은 각 당시 입력의 기록이다. 현재 잔여 판단은 이 R18 절을 우선하며, 완료표만 근거로 “수기 ID와 참조 단절 가능성이 전혀 없다”고 말할 수 없다.
+
 ## N01~N07 보완 완료
 
 수정 기준은 main `1f1f990a2`다. 아래 재감사 기록은 수정 전 상태이며, 이번 보완의 결과는 이 표와 현재 소스에 결합된 실행 증거를 따른다. 기존 저장 ID, asset GUID, DTO 필드와 버전은 유지했다. 새 런타임 클래스나 SO 분할은 추가하지 않았다.
@@ -14,7 +237,7 @@
 | N06 | 장비와 시설의 금지 조합을 실제 조합 가능한 capability 목록에 연결 | 유효한 불이익 후보, 미등록 값 거절, 실제 조합 충돌 거절 |
 | N07 | 고정 스킬의 모듈과 변형 선택, 생성 snapshot 읽기 전용, 실행과 복원 전 정합성 확인 | 실제 작업 효과, legacy JSON, 실패 전후 무변경, 복원 후 무중복 재시도, 원본 SO 무변경 |
 
-[현재 SO 실행 증거](Artifacts/QA/ImpactCI/n01-n07-verification.json), [변경 영향 실행 증거](Artifacts/QA/ImpactCI/verification.json), [월드 저장과 복원](Artifacts/QA/ImpactCI/world-round-trip.txt), [실제 Inspector 격리 증거](Artifacts/QA/ImpactCI/n-so-inspector-isolation.json).
+[현재 SO 실행 증거](https://github.com/Creeper0809/DungeonStory/blob/7b5003c6b6ee0b2d892edc471e10e0ea009e3432/Artifacts/QA/ImpactCI/n01-n07-verification.json), [변경 영향 실행 증거](https://github.com/Creeper0809/DungeonStory/blob/7b5003c6b6ee0b2d892edc471e10e0ea009e3432/Artifacts/QA/ImpactCI/verification.json), [월드 저장과 복원](https://github.com/Creeper0809/DungeonStory/blob/7b5003c6b6ee0b2d892edc471e10e0ea009e3432/Artifacts/QA/ImpactCI/world-round-trip.txt), [실제 Inspector 격리 증거](https://github.com/Creeper0809/DungeonStory/blob/7b5003c6b6ee0b2d892edc471e10e0ea009e3432/Artifacts/QA/ImpactCI/n-so-inspector-isolation.json).
 
 Unity 컴파일, 표적 authoring 실행, private Xvfb의 실제 Inspector Layout/Repaint, 필수 영향 5그룹을 통과했다. 모든 수용 실행은 compiler error 0, console error 0, source drift 0을 확인했다. Python CI 67개, 게시 identity 3544개 에셋과 10607개 보호 항목, analyzer DSB001~DSB008을 검증했다. 전수 시드, 장기 밸런스와 무관한 확장 인증은 실행하지 않았다. 초기 실패나 다른 소스 결과를 현재 PASS로 바꾸지 않았다.
 

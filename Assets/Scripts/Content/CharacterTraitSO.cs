@@ -120,6 +120,9 @@ public class CharacterTraitSO : DataScriptableObject, IGameplayEffectSource
                      ?? new List<CharacterIdentityRule>()).Where(value => value != null))
             errors.AddRange(rule.Validate().Select(error =>
                 $"Character trait {id}: {error}"));
+        errors.AddRange(CharacterTraitIdentityRuleContract
+            .ValidateRules(id, identityRules)
+            .Select(error => $"Character trait {id}: {error}"));
         if ((identityRules ?? new List<CharacterIdentityRule>())
             .Where(value => value != null)
             .GroupBy(value => value.ruleId?.Trim() ?? string.Empty, System.StringComparer.Ordinal)

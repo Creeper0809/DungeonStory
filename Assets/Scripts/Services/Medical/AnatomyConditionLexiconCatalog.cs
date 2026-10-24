@@ -11,11 +11,14 @@ public sealed class ResourceAnatomyConditionLexicon : IAnatomyConditionLexicon
     };
 
     private readonly IReadOnlyList<LexiconDefinition> lexicons;
+    private readonly IReadOnlyList<string> requiredSpecies = RequiredSpecies;
 
     public ResourceAnatomyConditionLexicon(IGameContentCatalog content)
         : this((content ?? throw new ArgumentNullException(nameof(content)))
             .GetAll<AnatomyConditionLexiconSO>())
     {
+        requiredSpecies = content.GetAll<CharacterSpeciesDefinitionSO>()
+            .Select(value => value.speciesTag).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
     }
 
     public ResourceAnatomyConditionLexicon(
@@ -70,7 +73,12 @@ public sealed class ResourceAnatomyConditionLexicon : IAnatomyConditionLexicon
     public IReadOnlyList<string> Validate(IAnatomyProfileCatalog anatomyProfiles)
     {
         List<string> errors = new();
-        foreach (string species in RequiredSpecies)
+        var families = anatomyProfiles.Profiles.Select(value => value.AnatomyFamily)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        foreach (var lexicon in lexicons)
+            if (!families.Contains(lexicon.AnatomyFamily))
+                errors.Add($"{lexicon.AnatomyFamily}: unknown anatomy condition lexicon family.");
+        foreach (string species in requiredSpecies)
         {
             AnatomyProfileDefinition profile = anatomyProfiles.GetForSpecies(species);
             foreach (AnatomyConditionKind condition in

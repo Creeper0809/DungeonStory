@@ -6,7 +6,8 @@ public sealed class GameplayEffectDefinitionSO : ScriptableObject
 {
     [ContentIdentity, SerializeField] private int numericId;
     [ContentIdentity, SerializeField] private string effectId = string.Empty;
-    [SerializeField] private string targetId = string.Empty;
+    [ContentReference(ContentReferenceKind.GameplayEffectTarget), SerializeField]
+    private string targetId = string.Empty;
     [SerializeField] private GameplayEffectOperation operation;
     [SerializeField] private GameplayEffectProjectionPhase projectionPhase;
     [SerializeField] private GameplayEffectSourceKind allowedSources =

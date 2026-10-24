@@ -99,12 +99,18 @@ public sealed class DataCatalogFacilityEvolutionRecipeProvider : IFacilityEvolut
 
     public IReadOnlyList<FacilityEvolutionRecipeSO> GetRecipes()
     {
-        return catalog
+        var recipes = catalog
             .GetData<FacilityEvolutionRecipeSO>()
             .Values
             .Where((recipe) => recipe != null && recipe.HasValidData)
             .OrderBy((recipe) => recipe.id)
             .ToArray();
+        foreach (var recipe in recipes)
+        {
+            var errors = recipe.ValidateDefinition();
+            if (errors.Count > 0) throw new InvalidOperationException(string.Join(" | ", errors));
+        }
+        return recipes;
     }
 }
 

@@ -15,6 +15,7 @@ public static class FacilityAnchorPurposeIds
 public sealed class FacilityAnchorSlot
 {
     [Tooltip("이 슬롯을 사용하는 시스템의 안정적인 목적 ID")]
+    [ContentReference(ContentReferenceKind.FacilityAnchorPurpose)]
     public string purposeId = FacilityAnchorPurposeIds.Use;
     [Tooltip("시설 중심 칸에서 더할 그리드 좌표 오프셋")]
     public Vector2 offset;

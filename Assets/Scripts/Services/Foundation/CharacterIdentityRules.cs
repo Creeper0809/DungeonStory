@@ -12,6 +12,7 @@ public enum CharacterCommandOrigin
 [Serializable]
 public abstract class CharacterIdentityRule
 {
+    [ContentReference(ContentReferenceKind.FixedTraitRule)]
     public string ruleId = string.Empty;
     public int priority;
 
@@ -41,6 +42,7 @@ public sealed class BehaviorUtilityRule : CharacterIdentityRule
 [Serializable]
 public sealed class PersistentNeedRule : CharacterIdentityRule
 {
+    [ContentReference(ContentReferenceKind.FixedTraitRule)]
     public string needId = string.Empty;
     public string satisfiedEventId = string.Empty;
     public string deprivedEventId = string.Empty;
@@ -322,5 +324,213 @@ public sealed class ArcaneOverchargeRule : CharacterIdentityRule
             || equipmentDurabilityFraction <= 0f || equipmentDurabilityFraction >= 1f
             || aftermathDays <= 0)
             yield return $"Arcane overcharge rule '{ruleId}' has invalid activation or aftermath values.";
+    }
+}
+
+public static class CharacterTraitIdentityRuleContract
+{
+    public const int RitualFastingTraitId = 213;
+    public const int MythicInspirationTraitId =
+        MythicCraftInspirationRules.SourceTraitId;
+    public const int LastStandTraitId = 301;
+    public const int ForbiddenLeapTraitId = 302;
+    public const int MiracleSurgeryTraitId = 303;
+    public const int GoldenHarvestTraitId = 304;
+    public const int ProductionLimitBreakTraitId = 305;
+    public const int ArcaneOverchargeTraitId = 306;
+
+    public const string RitualFastingNeedId = "need:ritual-fast";
+    public const string RitualFastingBehaviorRuleId = "behavior:ritual-fast";
+    public const string MythicInspirationRuleId = "extreme:mythic-inspiration";
+    public const string LastStandRuleId = "extreme:last-stand";
+    public const string ForbiddenLeapRuleId = "extreme:forbidden-leap";
+    public const string MiracleSurgeryRuleId = "extreme:miracle-surgery";
+    public const string GoldenHarvestRuleId = "extreme:golden-harvest";
+    public const string ProductionLimitBreakRuleId = "extreme:production-limit-break";
+    public const string ArcaneOverchargeRuleId = "extreme:arcane-overcharge";
+
+    private sealed class FixedKey
+    {
+        public FixedKey(
+            int traitId,
+            Type ruleType,
+            string memberName,
+            string expectedKey)
+        {
+            TraitId = traitId;
+            RuleType = ruleType;
+            MemberName = memberName;
+            ExpectedKey = expectedKey;
+        }
+
+        public int TraitId { get; }
+        public Type RuleType { get; }
+        public string MemberName { get; }
+        public string ExpectedKey { get; }
+    }
+
+    private static readonly FixedKey[] FixedKeys =
+    {
+        new(
+            RitualFastingTraitId,
+            typeof(BehaviorUtilityRule),
+            nameof(CharacterIdentityRule.ruleId),
+            RitualFastingBehaviorRuleId),
+        new(
+            RitualFastingTraitId,
+            typeof(PersistentNeedRule),
+            nameof(PersistentNeedRule.needId),
+            RitualFastingNeedId),
+        new(
+            MythicInspirationTraitId,
+            typeof(ExtremeCraftInspirationRule),
+            nameof(CharacterIdentityRule.ruleId),
+            MythicInspirationRuleId),
+        new(
+            LastStandTraitId,
+            typeof(LastStandRule),
+            nameof(CharacterIdentityRule.ruleId),
+            LastStandRuleId),
+        new(
+            ForbiddenLeapTraitId,
+            typeof(ForbiddenResearchLeapRule),
+            nameof(CharacterIdentityRule.ruleId),
+            ForbiddenLeapRuleId),
+        new(
+            MiracleSurgeryTraitId,
+            typeof(MiracleSurgeryRule),
+            nameof(CharacterIdentityRule.ruleId),
+            MiracleSurgeryRuleId),
+        new(
+            GoldenHarvestTraitId,
+            typeof(GoldenHarvestRule),
+            nameof(CharacterIdentityRule.ruleId),
+            GoldenHarvestRuleId),
+        new(
+            ProductionLimitBreakTraitId,
+            typeof(ProductionLimitBreakRule),
+            nameof(CharacterIdentityRule.ruleId),
+            ProductionLimitBreakRuleId),
+        new(
+            ArcaneOverchargeTraitId,
+            typeof(ArcaneOverchargeRule),
+            nameof(CharacterIdentityRule.ruleId),
+            ArcaneOverchargeRuleId)
+    };
+
+    public static bool TryGetExpectedKey(
+        int traitId,
+        Type ruleType,
+        string memberName,
+        out string expectedKey)
+    {
+        foreach (FixedKey key in FixedKeys)
+        {
+            if (key.TraitId == traitId
+                && key.RuleType == ruleType
+                && string.Equals(
+                    key.MemberName,
+                    memberName,
+                    StringComparison.Ordinal))
+            {
+                expectedKey = key.ExpectedKey;
+                return true;
+            }
+        }
+
+        expectedKey = string.Empty;
+        return false;
+    }
+
+    public static IEnumerable<string> ValidateRules(
+        int traitId,
+        IEnumerable<CharacterIdentityRule> rules)
+    {
+        List<CharacterIdentityRule> authored = new();
+        if (rules != null)
+        {
+            foreach (CharacterIdentityRule rule in rules)
+            {
+                if (rule != null)
+                    authored.Add(rule);
+            }
+        }
+
+        foreach (FixedKey key in FixedKeys)
+        {
+            if (key.TraitId != traitId)
+                continue;
+
+            bool found = false;
+            CharacterIdentityRule sameType = null;
+            CharacterIdentityRule sameRuleId = null;
+            foreach (CharacterIdentityRule rule in authored)
+            {
+                if (rule.GetType() == key.RuleType)
+                {
+                    sameType ??= rule;
+                    if (string.Equals(
+                            ReadMember(rule, key.MemberName),
+                            key.ExpectedKey,
+                            StringComparison.Ordinal))
+                    {
+                        found = true;
+                        break;
+                    }
+                }
+
+                if (string.Equals(
+                        key.MemberName,
+                        nameof(CharacterIdentityRule.ruleId),
+                        StringComparison.Ordinal)
+                    && string.Equals(
+                        rule.ruleId,
+                        key.ExpectedKey,
+                        StringComparison.Ordinal))
+                    sameRuleId ??= rule;
+            }
+
+            if (found)
+                continue;
+
+            if (sameRuleId != null)
+            {
+                yield return
+                    $"fixed identity key '{key.ExpectedKey}' requires "
+                    + $"{key.RuleType.Name}, not {sameRuleId.GetType().Name}.";
+                continue;
+            }
+
+            if (sameType != null)
+            {
+                string authoredKey = ReadMember(sameType, key.MemberName);
+                yield return
+                    $"{key.RuleType.Name}.{key.MemberName} must be "
+                    + $"'{key.ExpectedKey}', not '{authoredKey}'.";
+                continue;
+            }
+
+            yield return
+                $"requires {key.RuleType.Name}.{key.MemberName} "
+                + $"'{key.ExpectedKey}'.";
+        }
+    }
+
+    private static string ReadMember(
+        CharacterIdentityRule rule,
+        string memberName)
+    {
+        if (string.Equals(
+                memberName,
+                nameof(CharacterIdentityRule.ruleId),
+                StringComparison.Ordinal))
+            return rule.ruleId ?? string.Empty;
+        if (string.Equals(
+                memberName,
+                nameof(PersistentNeedRule.needId),
+                StringComparison.Ordinal)
+            && rule is PersistentNeedRule persistentNeed)
+            return persistentNeed.needId ?? string.Empty;
+        return string.Empty;
     }
 }

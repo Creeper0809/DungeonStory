@@ -13,6 +13,7 @@ public interface IRoomEnvironmentAuthoredContentPort
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class FacilityRoleColorOverride
 {
+    [ContentReference(ContentReferenceKind.FacilityRole)]
     public string roleId;
     public Color color = Color.white;
 }
@@ -88,6 +89,39 @@ public sealed class RoomEnvironmentSettingsSO : ScriptableObject
     public float ImpressivenessCleanlinessWeight => impressivenessCleanlinessWeight;
     public float ImpressivenessQualityWeight => impressivenessQualityWeight;
     public float MoodDurationSeconds => moodDurationSeconds;
+
+    public IReadOnlyList<string> ValidateDefinition()
+    {
+        List<string> errors = new();
+        HashSet<string> seenRoleIds = new(StringComparer.Ordinal);
+        List<FacilityRoleColorOverride> overrides =
+            roleColorOverrides ?? new List<FacilityRoleColorOverride>();
+        for (int index = 0; index < overrides.Count; index++)
+        {
+            FacilityRoleColorOverride entry = overrides[index];
+            string roleId = entry?.roleId ?? string.Empty;
+            if (entry == null
+                || string.IsNullOrWhiteSpace(roleId)
+                || !string.Equals(roleId, roleId.Trim(), StringComparison.Ordinal))
+            {
+                errors.Add(
+                    $"Room role color override at index {index} requires a canonical role ID.");
+                continue;
+            }
+            if (!FacilityRoleCatalog.TryGet(roleId, out _))
+            {
+                errors.Add(
+                    $"Room role color override at index {index} names unknown role '{roleId}'.");
+                continue;
+            }
+            if (!seenRoleIds.Add(roleId))
+            {
+                errors.Add(
+                    $"Room role color override role '{roleId}' is duplicated.");
+            }
+        }
+        return errors;
+    }
 
     public DungeonStory.Rooms.RoomEnvironmentFormulaSettings
         CreateFormulaSettings()
@@ -180,10 +214,19 @@ public sealed class ResourceRoomEnvironmentSettingsProvider :
     public ResourceRoomEnvironmentSettingsProvider(
         IRoomEnvironmentAuthoredContentPort content)
     {
-        settings = (content ?? throw new ArgumentNullException(nameof(content)))
+        RoomEnvironmentSettingsSO authored =
+            (content ?? throw new ArgumentNullException(nameof(content)))
             .RoomEnvironmentSettings
             ?? throw new InvalidOperationException(
                 "The authored room-environment settings asset is missing.");
+        IReadOnlyList<string> errors = authored.ValidateDefinition();
+        if (errors.Count > 0)
+        {
+            throw new InvalidOperationException(
+                "The authored room-environment settings asset is invalid: "
+                + string.Join(" | ", errors));
+        }
+        settings = authored;
     }
 
     public RoomEnvironmentSettingsSO Settings => settings;

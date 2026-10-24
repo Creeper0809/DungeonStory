@@ -104,6 +104,9 @@ public static class V27CiEvidenceBatch
         EvolutionFormulaForbiddenSynergyReferenceDebugScenarios.Validate();
         ServiceRoomDebugScenarios.Run();
         CharacterProgressionDebugScenarios.VerifyOwnerFixedSkillReferenceRestore();
+        CharacterTraitIdentityRuleContractDebugScenarios.Run();
+        R18ContentReferenceDebugScenarios.RunAll();
+        R18MedicalPolicyReferenceDebugScenarios.RunAll();
     }));
     public static void RunSoRuntimeContracts() => RunImpact("so-runtime", () =>
     {
@@ -115,6 +118,7 @@ public static class V27CiEvidenceBatch
         Debug.Log(WildlifeDebugScenarios.VerifyPredationAuthority());
         DiseaseFieldResponseOutboxDebugScenarios.RunFromMenu();
         RitualFastingA08DebugScenarios.RunHeritableProjectionContracts();
+        RitualFastingA08DebugScenarios.RunR18TraitEffectContracts();
         CombatSystemDebugScenarios.VerifyHeritableBluntDamage();
         OffenseRewardDebugScenarios.RunPersistentBattleSnapshotRestoreRegression();
     });
@@ -124,6 +128,8 @@ public static class V27CiEvidenceBatch
             ContentReferenceSelectionDebugScenarios.VerifyInspectorGUI();
             ContentReferenceSelectionDebugScenarios.VerifyOwnerFixedInspectorGUI();
             OwnerScopedContentReferenceDebugScenarios.VerifyInspectorGUI();
+            R18ContentReferenceDebugScenarios.VerifyInspectorGUI();
+            R18MedicalPolicyReferenceDebugScenarios.VerifyInspectorGUI();
         }));
     public static void CaptureContentPublication() => RunImpact("content-publication", () =>
     {

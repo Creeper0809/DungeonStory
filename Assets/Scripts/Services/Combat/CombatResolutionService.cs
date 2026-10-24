@@ -1393,13 +1393,15 @@ public sealed class CombatResolutionService :
         if (!snapshot.IsApplicable)
             throw new InvalidOperationException(
                 snapshot.Failure?.Message ?? "Arcane power is unavailable.");
+        float arcanePower = snapshot.Value * actor.Stats.GetDetailedStatMultiplier(
+            GameplayEffectTargetIds.ArcanePower);
         CharacterPerformanceExecutionTrace.Record(
             CharacterPerformanceFormulaIds.ArcanePower,
             "CombatResolutionService.ResolveArcanePowerMultiplier",
             1f,
-            snapshot.Value,
+            arcanePower,
             attackerId);
-        return snapshot.Value;
+        return arcanePower;
     }
 
     private static float ResolveRoleDamageMultiplier(

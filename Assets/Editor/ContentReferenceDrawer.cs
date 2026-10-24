@@ -57,6 +57,7 @@ public sealed class ContentReferenceDrawer : PropertyDrawer
                     or ContentReferenceKind.SkillModule or ContentReferenceKind.SkillVariant
                     or ContentReferenceKind.CampaignTarget or ContentReferenceKind.AcquiredTraitBinding
                     or ContentReferenceKind.EquipmentCapability or ContentReferenceKind.FacilityCapability
+                || (int)kind.Value >= (int)ContentReferenceKind.GameplayEffectTarget
                 || contextual || aliases.Length > 0)
             {
                 var options = new List<(string Id, string Label)> { ("", "None") };
@@ -159,6 +160,18 @@ public static class ContentReferenceSelection
 
     public static ContentReferenceAttribute ResolveReference(ContentReferenceAttribute reference, SerializedProperty property)
     {
+        if (reference.Kind == ContentReferenceKind.FixedTraitRule)
+        {
+            if (property.serializedObject.targetObject is not CharacterTraitSO) return null;
+            if (property.serializedObject.isEditingMultipleObjects) return reference;
+            string path = property.propertyPath;
+            var rule = property.serializedObject.FindProperty(path.Substring(0, path.LastIndexOf('.')));
+            int traitId = property.serializedObject.FindProperty("id").intValue;
+            return rule?.managedReferenceValue != null && CharacterTraitIdentityRuleContract.TryGetExpectedKey(
+                traitId, rule.managedReferenceValue.GetType(), property.name, out string key)
+                ? new ContentReferenceAttribute(ContentReferenceKind.FixedTraitRule) { Aliases = key }
+                : null;
+        }
         if (reference.Kind == ContentReferenceKind.EncounterTarget)
         {
             var objective = property.serializedObject.FindProperty("objective");
@@ -329,7 +342,8 @@ public static class ContentReferenceSelection
     public static IReadOnlyList<Entry> Entries(ContentReferenceAttribute reference)
     {
         string key = $"{reference.Kind}:{reference.DefinitionTypeName}:{reference.IdMemberName}";
-        if (entries.TryGetValue(key, out var found)) return found;
+        if (reference.Kind != ContentReferenceKind.FacilityAnchorPurpose
+            && entries.TryGetValue(key, out var found)) return found;
         if (catalog == null)
         {
             var root = AssetDatabase.LoadAssetAtPath<GameContentCatalogSO>("Assets/Resources/SO/GameContentCatalog.asset");
@@ -341,6 +355,12 @@ public static class ContentReferenceSelection
 
     public static string ReadId(SerializedProperty property, ContentReferenceKind kind, int emptyNumericId = -1)
     {
+        if (kind == ContentReferenceKind.FactionEconomicPolicy)
+        {
+            int version = Sibling(property, "capabilityVersion").intValue;
+            return string.IsNullOrEmpty(property.stringValue) && version == 0
+                ? string.Empty : (property.stringValue ?? string.Empty) + "@" + version;
+        }
         if (property.propertyType == SerializedPropertyType.Integer)
             return property.intValue == (kind == ContentReferenceKind.ResearchNumeric ? 0 : emptyNumericId)
                 ? string.Empty : property.intValue.ToString(CultureInfo.InvariantCulture);
@@ -349,6 +369,13 @@ public static class ContentReferenceSelection
 
     public static void WriteId(SerializedProperty property, ContentReferenceKind kind, string id, int emptyNumericId = -1)
     {
+        if (kind == ContentReferenceKind.FactionEconomicPolicy)
+        {
+            int split = id.LastIndexOf('@');
+            property.stringValue = split < 0 ? string.Empty : id.Substring(0, split);
+            Sibling(property, "capabilityVersion").intValue = split < 0 ? 0 : int.Parse(id.Substring(split + 1), CultureInfo.InvariantCulture);
+            return;
+        }
         if (property.propertyType == SerializedPropertyType.Integer)
             property.intValue = id.Length == 0 ? (kind == ContentReferenceKind.ResearchNumeric ? 0 : emptyNumericId)
                 : int.Parse(id, CultureInfo.InvariantCulture);

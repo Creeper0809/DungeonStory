@@ -617,6 +617,10 @@
                     "value": "신들린 영감"
                 },
                 {
+                    "path": "@nested:identityRules[ruleId=extreme%3Amythic-inspiration].ruleId",
+                    "value": "extreme:mythic-inspiration"
+                },
+                {
                     "path": "id",
                     "value": "300"
                 }
@@ -797,6 +801,10 @@
                     "value": "사선 각성"
                 },
                 {
+                    "path": "@nested:identityRules[ruleId=extreme%3Alast-stand].ruleId",
+                    "value": "extreme:last-stand"
+                },
+                {
                     "path": "id",
                     "value": "301"
                 }
@@ -840,6 +848,14 @@
                 {
                     "path": "@legacy-trait-name:%EA%B3%B1%EC%94%B9%EB%8A%94%20%EC%84%B1%EA%B2%A9",
                     "value": "곱씹는 성격"
+                },
+                {
+                    "path": "@nested:identityRules[ruleId=behavior%3Aprevent-repeat-failure].ruleId",
+                    "value": "behavior:prevent-repeat-failure"
+                },
+                {
+                    "path": "@nested:identityRules[ruleId=mood%3Awork-failure].ruleId",
+                    "value": "mood:work-failure"
                 },
                 {
                     "path": "id",
@@ -1654,6 +1670,14 @@
                 {
                     "path": "@legacy-trait-name:%EC%97%B0%EA%B5%AC%EA%B0%80",
                     "value": "연구가"
+                },
+                {
+                    "path": "@nested:identityRules[ruleId=behavior%3Aprefer-research].ruleId",
+                    "value": "behavior:prefer-research"
+                },
+                {
+                    "path": "@nested:identityRules[ruleId=need%3Aresearch-access].ruleId",
+                    "value": "need:research-access"
                 },
                 {
                     "path": "id",
@@ -6680,6 +6704,14 @@
                     "value": "예민한 감각"
                 },
                 {
+                    "path": "@nested:identityRules[ruleId=behavior%3Ainspect-scout].ruleId",
+                    "value": "behavior:inspect-scout"
+                },
+                {
+                    "path": "@nested:identityRules[ruleId=mood%3Arot-stench].ruleId",
+                    "value": "mood:rot-stench"
+                },
+                {
                     "path": "id",
                     "value": "205"
                 }
@@ -10219,6 +10251,18 @@
                     "value": "즉흥 제작자"
                 },
                 {
+                    "path": "@nested:identityRules[ruleId=behavior%3Aprototype].ruleId",
+                    "value": "behavior:prototype"
+                },
+                {
+                    "path": "@nested:identityRules[ruleId=mood%3Astrict-procedure].ruleId",
+                    "value": "mood:strict-procedure"
+                },
+                {
+                    "path": "@nested:identityRules[ruleId=mood%3Asubstitute-success].ruleId",
+                    "value": "mood:substitute-success"
+                },
+                {
                     "path": "id",
                     "value": "224"
                 }
@@ -11543,6 +11587,14 @@
                 {
                     "path": "@legacy-trait-name:%EA%B7%9C%EC%B9%99%20%EC%A4%80%EC%88%98%EC%9E%90",
                     "value": "규칙 준수자"
+                },
+                {
+                    "path": "@nested:identityRules[ruleId=behavior%3Afollow-schedule].ruleId",
+                    "value": "behavior:follow-schedule"
+                },
+                {
+                    "path": "@nested:identityRules[ruleId=mood%3Asudden-reassignment].ruleId",
+                    "value": "mood:sudden-reassignment"
                 },
                 {
                     "path": "id",
@@ -13877,6 +13929,10 @@
             "typeName": "FacilityEvolutionRecipeSO",
             "fields": [
                 {
+                    "path": "@nested:formulaCapabilities[capabilityId=facility-evolution%3Aevolve_research_desk_to_alchemy_bench%3Afacility-research].capabilityId",
+                    "value": "facility-evolution:evolve_research_desk_to_alchemy_bench:facility-research"
+                },
+                {
                     "path": "evolutionId",
                     "value": "evolve_research_desk_to_alchemy_bench"
                 },
@@ -14310,6 +14366,18 @@
                 {
                     "path": "@legacy-trait-name:%EA%B9%94%EB%81%94%ED%95%A8",
                     "value": "깔끔함"
+                },
+                {
+                    "path": "@nested:identityRules[ruleId=behavior%3Aclean-dirt].ruleId",
+                    "value": "behavior:clean-dirt"
+                },
+                {
+                    "path": "@nested:identityRules[ruleId=mood%3Aclean-complete].ruleId",
+                    "value": "mood:clean-complete"
+                },
+                {
+                    "path": "@nested:identityRules[ruleId=mood%3Asevere-filth].ruleId",
+                    "value": "mood:severe-filth"
                 },
                 {
                     "path": "id",
@@ -15741,6 +15809,10 @@
             "scriptGuid": "7be3e50469ab0014fb12b8050afa04d6",
             "typeName": "FacilityEvolutionRecipeSO",
             "fields": [
+                {
+                    "path": "@nested:formulaCapabilities[capabilityId=facility-evolution%3Aevolve_commercial_hearth_to_grill%3Afacility-survival].capabilityId",
+                    "value": "facility-evolution:evolve_commercial_hearth_to_grill:facility-survival"
+                },
                 {
                     "path": "evolutionId",
                     "value": "evolve_commercial_hearth_to_grill"
@@ -17401,6 +17473,10 @@
             "typeName": "FacilityEvolutionRecipeSO",
             "fields": [
                 {
+                    "path": "@nested:formulaCapabilities[capabilityId=facility-evolution%3Aevolve_shop_display_to_secure_display%3Afacility-service-support].capabilityId",
+                    "value": "facility-evolution:evolve_shop_display_to_secure_display:facility-service-support"
+                },
+                {
                     "path": "evolutionId",
                     "value": "evolve_shop_display_to_secure_display"
                 },
@@ -17756,6 +17832,14 @@
                 {
                     "path": "@legacy-trait-name:%EB%B9%A0%EB%A5%B8%20%ED%95%99%EC%8A%B5%EC%9E%90",
                     "value": "빠른 학습자"
+                },
+                {
+                    "path": "@nested:identityRules[ruleId=behavior%3Anew-process].ruleId",
+                    "value": "behavior:new-process"
+                },
+                {
+                    "path": "@nested:identityRules[ruleId=mood%3Afirst-process-success].ruleId",
+                    "value": "mood:first-process-success"
                 },
                 {
                     "path": "id",
@@ -19089,6 +19173,14 @@
                     "value": "야간 체질"
                 },
                 {
+                    "path": "@nested:identityRules[ruleId=behavior%3Anight-shift].ruleId",
+                    "value": "behavior:night-shift"
+                },
+                {
+                    "path": "@nested:identityRules[ruleId=mood%3Aforced-day-shift].ruleId",
+                    "value": "mood:forced-day-shift"
+                },
+                {
                     "path": "id",
                     "value": "228"
                 }
@@ -20359,6 +20451,18 @@
                     "value": "육중한 체격"
                 },
                 {
+                    "path": "@nested:identityRules[ruleId=behavior%3Aheavy-haul].ruleId",
+                    "value": "behavior:heavy-haul"
+                },
+                {
+                    "path": "@nested:identityRules[ruleId=behavior%3Asubdue].ruleId",
+                    "value": "behavior:subdue"
+                },
+                {
+                    "path": "@nested:identityRules[ruleId=mood%3Acramped].ruleId",
+                    "value": "mood:cramped"
+                },
+                {
                     "path": "id",
                     "value": "206"
                 }
@@ -20785,6 +20889,22 @@
                     "value": "소심함"
                 },
                 {
+                    "path": "@nested:identityRules[ruleId=behavior%3Aavoid-danger].ruleId",
+                    "value": "behavior:avoid-danger"
+                },
+                {
+                    "path": "@nested:identityRules[ruleId=mood%3Aforced-danger].ruleId",
+                    "value": "mood:forced-danger"
+                },
+                {
+                    "path": "@nested:identityRules[ruleId=mood%3Asafe-return].ruleId",
+                    "value": "mood:safe-return"
+                },
+                {
+                    "path": "@nested:identityRules[ruleId=restriction%3Adangerous-work].ruleId",
+                    "value": "restriction:dangerous-work"
+                },
+                {
                     "path": "id",
                     "value": "105"
                 }
@@ -21107,6 +21227,18 @@
                 {
                     "path": "@legacy-trait-name:%EA%B4%80%EB%8C%80%ED%95%9C%20%EB%A7%88%EC%9D%8C",
                     "value": "관대한 마음"
+                },
+                {
+                    "path": "@nested:identityRules[ruleId=behavior%3Areconcile].ruleId",
+                    "value": "behavior:reconcile"
+                },
+                {
+                    "path": "@nested:identityRules[ruleId=memory%3Aforgiving].ruleId",
+                    "value": "memory:forgiving"
+                },
+                {
+                    "path": "@nested:identityRules[ruleId=mood%3Areconciled].ruleId",
+                    "value": "mood:reconciled"
                 },
                 {
                     "path": "id",
@@ -22428,6 +22560,14 @@
                     "value": "지구력"
                 },
                 {
+                    "path": "@nested:identityRules[ruleId=behavior%3Along-shift].ruleId",
+                    "value": "behavior:long-shift"
+                },
+                {
+                    "path": "@nested:identityRules[ruleId=mood%3Awell-rested].ruleId",
+                    "value": "mood:well-rested"
+                },
+                {
                     "path": "id",
                     "value": "200"
                 }
@@ -22819,6 +22959,10 @@
             "scriptGuid": "7be3e50469ab0014fb12b8050afa04d6",
             "typeName": "FacilityEvolutionRecipeSO",
             "fields": [
+                {
+                    "path": "@nested:formulaCapabilities[capabilityId=facility-evolution%3Aevolve_training_dummy_to_archery_target%3Afacility-training-operations].capabilityId",
+                    "value": "facility-evolution:evolve_training_dummy_to_archery_target:facility-training-operations"
+                },
                 {
                     "path": "evolutionId",
                     "value": "evolve_training_dummy_to_archery_target"
@@ -24176,6 +24320,10 @@
                     "value": "금단의 도약"
                 },
                 {
+                    "path": "@nested:identityRules[ruleId=extreme%3Aforbidden-leap].ruleId",
+                    "value": "extreme:forbidden-leap"
+                },
+                {
                     "path": "id",
                     "value": "302"
                 }
@@ -25452,6 +25600,22 @@
                     "value": "청소 강박"
                 },
                 {
+                    "path": "@nested:identityRules[ruleId=behavior%3Aclean-now].ruleId",
+                    "value": "behavior:clean-now"
+                },
+                {
+                    "path": "@nested:identityRules[ruleId=mood%3Acleaned-room].ruleId",
+                    "value": "mood:cleaned-room"
+                },
+                {
+                    "path": "@nested:identityRules[ruleId=mood%3Adirty-room].ruleId",
+                    "value": "mood:dirty-room"
+                },
+                {
+                    "path": "@nested:identityRules[ruleId=post%3Adefer-cleaning].ruleId",
+                    "value": "post:defer-cleaning"
+                },
+                {
                     "path": "id",
                     "value": "245"
                 }
@@ -25755,6 +25919,14 @@
                 {
                     "path": "@legacy-trait-name:%EC%9D%98%EC%8B%9D%20%EB%8B%A8%EC%8B%9D%EA%B0%80",
                     "value": "의식 단식가"
+                },
+                {
+                    "path": "@nested:identityRules[ruleId=behavior%3Aritual-fast].ruleId",
+                    "value": "behavior:ritual-fast"
+                },
+                {
+                    "path": "@nested:identityRules[ruleId=need%3Aritual-fast].ruleId",
+                    "value": "need:ritual-fast"
                 },
                 {
                     "path": "id",
@@ -27281,6 +27453,10 @@
             "typeName": "FacilityEvolutionRecipeSO",
             "fields": [
                 {
+                    "path": "@nested:formulaCapabilities[capabilityId=facility-evolution%3Aevolve_guard_desk_to_tactical_table%3Afacility-security-operations].capabilityId",
+                    "value": "facility-evolution:evolve_guard_desk_to_tactical_table:facility-security-operations"
+                },
+                {
                     "path": "evolutionId",
                     "value": "evolve_guard_desk_to_tactical_table"
                 },
@@ -28006,6 +28182,18 @@
                 {
                     "path": "@legacy-trait-name:%EC%A0%88%EC%95%BD%EA%B0%80",
                     "value": "절약가"
+                },
+                {
+                    "path": "@nested:identityRules[ruleId=behavior%3Aavoid-luxury].ruleId",
+                    "value": "behavior:avoid-luxury"
+                },
+                {
+                    "path": "@nested:identityRules[ruleId=mood%3Aresource-wasted].ruleId",
+                    "value": "mood:resource-wasted"
+                },
+                {
+                    "path": "@nested:identityRules[ruleId=mood%3Astockpile-met].ruleId",
+                    "value": "mood:stockpile-met"
                 },
                 {
                     "path": "id",
@@ -30311,6 +30499,14 @@
                     "value": "단맛 탐닉"
                 },
                 {
+                    "path": "@nested:identityRules[ruleId=behavior%3Aprefer-sweets].ruleId",
+                    "value": "behavior:prefer-sweets"
+                },
+                {
+                    "path": "@nested:identityRules[ruleId=need%3Asweets].ruleId",
+                    "value": "need:sweets"
+                },
+                {
                     "path": "id",
                     "value": "210"
                 }
@@ -30865,6 +31061,14 @@
                 {
                     "path": "@legacy-trait-name:%ED%9A%8C%EC%88%98%20%EC%A0%84%EB%AC%B8%EA%B0%80",
                     "value": "회수 전문가"
+                },
+                {
+                    "path": "@nested:identityRules[ruleId=behavior%3Asalvage-before-discard].ruleId",
+                    "value": "behavior:salvage-before-discard"
+                },
+                {
+                    "path": "@nested:identityRules[ruleId=mood%3Asalvageable-discarded].ruleId",
+                    "value": "mood:salvageable-discarded"
                 },
                 {
                     "path": "id",
@@ -31544,6 +31748,14 @@
                 {
                     "path": "@legacy-trait-name:%EC%8B%B8%EC%9B%80%EA%BE%BC",
                     "value": "싸움꾼"
+                },
+                {
+                    "path": "@nested:identityRules[ruleId=behavior%3Aseek-combat].ruleId",
+                    "value": "behavior:seek-combat"
+                },
+                {
+                    "path": "@nested:identityRules[ruleId=need%3Acombat-action].ruleId",
+                    "value": "need:combat-action"
                 },
                 {
                     "path": "id",
@@ -32627,6 +32839,14 @@
                     "value": "성급함"
                 },
                 {
+                    "path": "@nested:identityRules[ruleId=behavior%3Aresolve-now].ruleId",
+                    "value": "behavior:resolve-now"
+                },
+                {
+                    "path": "@nested:identityRules[ruleId=mood%3Await-exceeded].ruleId",
+                    "value": "mood:wait-exceeded"
+                },
+                {
                     "path": "id",
                     "value": "104"
                 }
@@ -33476,6 +33696,10 @@
                     "value": "한계 돌파"
                 },
                 {
+                    "path": "@nested:identityRules[ruleId=extreme%3Aproduction-limit-break].ruleId",
+                    "value": "extreme:production-limit-break"
+                },
+                {
                     "path": "id",
                     "value": "305"
                 }
@@ -33525,6 +33749,14 @@
                 {
                     "path": "@legacy-trait-name:%EC%98%A4%EB%9E%98%EB%90%9C%20%ED%9D%89%ED%84%B0",
                     "value": "오래된 흉터"
+                },
+                {
+                    "path": "@nested:identityRules[ruleId=behavior%3Apersist-through-pain].ruleId",
+                    "value": "behavior:persist-through-pain"
+                },
+                {
+                    "path": "@nested:identityRules[ruleId=mood%3Aclinic-memory].ruleId",
+                    "value": "mood:clinic-memory"
                 },
                 {
                     "path": "id",
@@ -33953,6 +34185,10 @@
                 {
                     "path": "@legacy-trait-name:%EC%9B%90%ED%95%9C%EC%9D%84%20%ED%92%88%EC%9D%8C",
                     "value": "원한을 품음"
+                },
+                {
+                    "path": "@nested:identityRules[ruleId=memory%3Agrudge].ruleId",
+                    "value": "memory:grudge"
                 },
                 {
                     "path": "id",
@@ -35929,6 +36165,14 @@
                     "value": "느린 대사"
                 },
                 {
+                    "path": "@nested:identityRules[ruleId=behavior%3Adelay-meal].ruleId",
+                    "value": "behavior:delay-meal"
+                },
+                {
+                    "path": "@nested:identityRules[ruleId=mood%3Acold-exposure].ruleId",
+                    "value": "mood:cold-exposure"
+                },
+                {
                     "path": "id",
                     "value": "208"
                 }
@@ -36710,6 +36954,14 @@
                     "value": "낙천가"
                 },
                 {
+                    "path": "@nested:identityRules[ruleId=behavior%3Aencourage].ruleId",
+                    "value": "behavior:encourage"
+                },
+                {
+                    "path": "@nested:identityRules[ruleId=mood%3Asmall-success].ruleId",
+                    "value": "mood:small-success"
+                },
+                {
                     "path": "id",
                     "value": "217"
                 }
@@ -37406,6 +37658,10 @@
                     "value": "기적의 집도"
                 },
                 {
+                    "path": "@nested:identityRules[ruleId=extreme%3Amiracle-surgery].ruleId",
+                    "value": "extreme:miracle-surgery"
+                },
+                {
                     "path": "id",
                     "value": "303"
                 }
@@ -37915,6 +38171,18 @@
                 {
                     "path": "@legacy-trait-name:%EC%96%91%EC%8B%AC%20%EA%B2%B0%EC%97%AC",
                     "value": "양심 결여"
+                },
+                {
+                    "path": "@nested:identityRules[ruleId=immunity%3Abutchery-guilt].ruleId",
+                    "value": "immunity:butchery-guilt"
+                },
+                {
+                    "path": "@nested:identityRules[ruleId=immunity%3Ahostile-execution-guilt].ruleId",
+                    "value": "immunity:hostile-execution-guilt"
+                },
+                {
+                    "path": "@nested:identityRules[ruleId=immunity%3Ahostile-kill-guilt].ruleId",
+                    "value": "immunity:hostile-kill-guilt"
                 },
                 {
                     "path": "id",
@@ -44753,6 +45021,14 @@
                     "value": "빠른 회복"
                 },
                 {
+                    "path": "@nested:identityRules[ruleId=behavior%3Afollow-treatment].ruleId",
+                    "value": "behavior:follow-treatment"
+                },
+                {
+                    "path": "@nested:identityRules[ruleId=mood%3Arecovery-stage].ruleId",
+                    "value": "mood:recovery-stage"
+                },
+                {
                     "path": "id",
                     "value": "207"
                 }
@@ -44882,6 +45158,14 @@
                 {
                     "path": "@legacy-trait-name:%EC%B9%A8%EC%B0%A9%ED%95%A8",
                     "value": "침착함"
+                },
+                {
+                    "path": "@nested:identityRules[ruleId=behavior%3Acrisis-rescue].ruleId",
+                    "value": "behavior:crisis-rescue"
+                },
+                {
+                    "path": "@nested:identityRules[ruleId=mood%3Apanic-quarter].ruleId",
+                    "value": "mood:panic-quarter"
                 },
                 {
                     "path": "id",
@@ -45137,6 +45421,10 @@
                 {
                     "path": "@legacy-trait-name:%EB%A7%88%EB%A0%A5%20%EA%B3%BC%EC%B6%A9%EC%A0%84",
                     "value": "마력 과충전"
+                },
+                {
+                    "path": "@nested:identityRules[ruleId=extreme%3Aarcane-overcharge].ruleId",
+                    "value": "extreme:arcane-overcharge"
                 },
                 {
                     "path": "id",
@@ -56804,6 +57092,18 @@
                     "value": "섬세한 체격"
                 },
                 {
+                    "path": "@nested:identityRules[ruleId=behavior%3Aavoid-heavy-haul].ruleId",
+                    "value": "behavior:avoid-heavy-haul"
+                },
+                {
+                    "path": "@nested:identityRules[ruleId=behavior%3Aprecision-craft].ruleId",
+                    "value": "behavior:precision-craft"
+                },
+                {
+                    "path": "@nested:identityRules[ruleId=mood%3Ablunt-injury].ruleId",
+                    "value": "mood:blunt-injury"
+                },
+                {
                     "path": "id",
                     "value": "203"
                 }
@@ -58851,6 +59151,14 @@
                     "value": "대식가"
                 },
                 {
+                    "path": "@nested:identityRules[ruleId=behavior%3Ameal-priority].ruleId",
+                    "value": "behavior:meal-priority"
+                },
+                {
+                    "path": "@nested:identityRules[ruleId=need%3Alarge-meal].ruleId",
+                    "value": "need:large-meal"
+                },
+                {
                     "path": "id",
                     "value": "101"
                 }
@@ -59286,6 +59594,14 @@
                 {
                     "path": "@legacy-trait-name:%EA%B0%80%EB%A5%B4%EC%B9%98%EB%8A%94%20%EB%B2%84%EB%A6%87",
                     "value": "가르치는 버릇"
+                },
+                {
+                    "path": "@nested:identityRules[ruleId=behavior%3Amentor-novice].ruleId",
+                    "value": "behavior:mentor-novice"
+                },
+                {
+                    "path": "@nested:identityRules[ruleId=mood%3Amentee-ranked-up].ruleId",
+                    "value": "mood:mentee-ranked-up"
                 },
                 {
                     "path": "id",
@@ -60380,6 +60696,10 @@
                     "value": "황금 수확"
                 },
                 {
+                    "path": "@nested:identityRules[ruleId=extreme%3Agolden-harvest].ruleId",
+                    "value": "extreme:golden-harvest"
+                },
+                {
                     "path": "id",
                     "value": "304"
                 }
@@ -60707,6 +61027,14 @@
                 {
                     "path": "@legacy-trait-name:%ED%8A%BC%ED%8A%BC%ED%95%9C%20%EC%9C%84%EC%9E%A5",
                     "value": "튼튼한 위장"
+                },
+                {
+                    "path": "@nested:identityRules[ruleId=behavior%3Atry-unfamiliar-food].ruleId",
+                    "value": "behavior:try-unfamiliar-food"
+                },
+                {
+                    "path": "@nested:identityRules[ruleId=mood%3Anew-meal].ruleId",
+                    "value": "mood:new-meal"
                 },
                 {
                     "path": "id",
@@ -61797,6 +62125,14 @@
                     "value": "온도 민감"
                 },
                 {
+                    "path": "@nested:identityRules[ruleId=behavior%3Aconditioned-room].ruleId",
+                    "value": "behavior:conditioned-room"
+                },
+                {
+                    "path": "@nested:identityRules[ruleId=mood%3Auncomfortable-temperature].ruleId",
+                    "value": "mood:uncomfortable-temperature"
+                },
+                {
                     "path": "id",
                     "value": "212"
                 }
@@ -61939,6 +62275,10 @@
             "typeName": "FacilityEvolutionRecipeSO",
             "fields": [
                 {
+                    "path": "@nested:formulaCapabilities[capabilityId=facility-evolution%3Aevolve_mana_shelf_to_ritual_focus%3Afacility-research].capabilityId",
+                    "value": "facility-evolution:evolve_mana_shelf_to_ritual_focus:facility-research"
+                },
+                {
                     "path": "evolutionId",
                     "value": "evolve_mana_shelf_to_ritual_focus"
                 },
@@ -62048,6 +62388,14 @@
                     "value": "불안한 계획가"
                 },
                 {
+                    "path": "@nested:identityRules[ruleId=behavior%3Acheck-emergency-stock].ruleId",
+                    "value": "behavior:check-emergency-stock"
+                },
+                {
+                    "path": "@nested:identityRules[ruleId=need%3Aemergency-readiness].ruleId",
+                    "value": "need:emergency-readiness"
+                },
+                {
                     "path": "id",
                     "value": "220"
                 }
@@ -62113,6 +62461,14 @@
                 {
                     "path": "@legacy-trait-name:%EC%96%95%EC%9D%80%20%EC%9E%A0",
                     "value": "얕은 잠"
+                },
+                {
+                    "path": "@nested:identityRules[ruleId=behavior%3Awake-on-alert].ruleId",
+                    "value": "behavior:wake-on-alert"
+                },
+                {
+                    "path": "@nested:identityRules[ruleId=mood%3Anoisy-sleep].ruleId",
+                    "value": "mood:noisy-sleep"
                 },
                 {
                     "path": "id",
@@ -62858,6 +63214,18 @@
                     "value": "꼼꼼함"
                 },
                 {
+                    "path": "@nested:identityRules[ruleId=behavior%3Ainspect-before-release].ruleId",
+                    "value": "behavior:inspect-before-release"
+                },
+                {
+                    "path": "@nested:identityRules[ruleId=mood%3Adefect-caught].ruleId",
+                    "value": "mood:defect-caught"
+                },
+                {
+                    "path": "@nested:identityRules[ruleId=mood%3Adefect-found].ruleId",
+                    "value": "mood:defect-found"
+                },
+                {
                     "path": "id",
                     "value": "223"
                 }
@@ -63306,6 +63674,14 @@
                 {
                     "path": "@legacy-trait-name:%EC%9E%90%EA%B7%B9%20%EC%B6%94%EA%B5%AC%EC%9E%90",
                     "value": "자극 추구자"
+                },
+                {
+                    "path": "@nested:identityRules[ruleId=behavior%3Aseek-danger].ruleId",
+                    "value": "behavior:seek-danger"
+                },
+                {
+                    "path": "@nested:identityRules[ruleId=need%3Astimulation].ruleId",
+                    "value": "need:stimulation"
                 },
                 {
                     "path": "id",
@@ -63940,6 +64316,14 @@
                     "value": "내한성 점액"
                 },
                 {
+                    "path": "@nested:identityRules[ruleId=behavior%3Aprefer-cold-work].ruleId",
+                    "value": "behavior:prefer-cold-work"
+                },
+                {
+                    "path": "@nested:identityRules[ruleId=mood%3Asafe-cold-work].ruleId",
+                    "value": "mood:safe-cold-work"
+                },
+                {
                     "path": "id",
                     "value": "109"
                 }
@@ -64439,6 +64823,18 @@
                 {
                     "path": "@legacy-trait-name:%EC%B2%B4%EB%A9%B4%20%EC%A4%91%EC%8B%9C",
                     "value": "체면 중시"
+                },
+                {
+                    "path": "@nested:identityRules[ruleId=behavior%3Aformal-etiquette].ruleId",
+                    "value": "behavior:formal-etiquette"
+                },
+                {
+                    "path": "@nested:identityRules[ruleId=mood%3Aformal-recognition].ruleId",
+                    "value": "mood:formal-recognition"
+                },
+                {
+                    "path": "@nested:identityRules[ruleId=mood%3Apublicly-ignored].ruleId",
+                    "value": "mood:publicly-ignored"
                 },
                 {
                     "path": "id",
@@ -65362,6 +65758,14 @@
                     "value": "안정된 발놀림"
                 },
                 {
+                    "path": "@nested:identityRules[ruleId=behavior%3Arough-rescue].ruleId",
+                    "value": "behavior:rough-rescue"
+                },
+                {
+                    "path": "@nested:identityRules[ruleId=mood%3Arough-crossing].ruleId",
+                    "value": "mood:rough-crossing"
+                },
+                {
                     "path": "id",
                     "value": "202"
                 }
@@ -65536,6 +65940,14 @@
                 {
                     "path": "@legacy-trait-name:%EB%B6%80%EC%9E%90",
                     "value": "부자"
+                },
+                {
+                    "path": "@nested:identityRules[ruleId=behavior%3Aprefer-luxury].ruleId",
+                    "value": "behavior:prefer-luxury"
+                },
+                {
+                    "path": "@nested:identityRules[ruleId=need%3Aluxury-standard].ruleId",
+                    "value": "need:luxury-standard"
                 },
                 {
                     "path": "id",
@@ -66079,6 +66491,18 @@
                 {
                     "path": "@legacy-trait-name:%EA%B3%BC%EB%AC%B5%ED%95%A8",
                     "value": "과묵함"
+                },
+                {
+                    "path": "@nested:identityRules[ruleId=behavior%3Arest-alone].ruleId",
+                    "value": "behavior:rest-alone"
+                },
+                {
+                    "path": "@nested:identityRules[ruleId=mood%3Aprivate-rest].ruleId",
+                    "value": "mood:private-rest"
+                },
+                {
+                    "path": "@nested:identityRules[ruleId=mood%3Apublic-question].ruleId",
+                    "value": "mood:public-question"
                 },
                 {
                     "path": "id",
@@ -66689,6 +67113,14 @@
                     "value": "소금 갈망"
                 },
                 {
+                    "path": "@nested:identityRules[ruleId=behavior%3Aprefer-salted].ruleId",
+                    "value": "behavior:prefer-salted"
+                },
+                {
+                    "path": "@nested:identityRules[ruleId=need%3Asalt].ruleId",
+                    "value": "need:salt"
+                },
+                {
                     "path": "id",
                     "value": "214"
                 }
@@ -66807,6 +67239,18 @@
                     "value": "품질 자부심"
                 },
                 {
+                    "path": "@nested:identityRules[ruleId=behavior%3Aquality-policy].ruleId",
+                    "value": "behavior:quality-policy"
+                },
+                {
+                    "path": "@nested:identityRules[ruleId=mood%3Alow-quality-product].ruleId",
+                    "value": "mood:low-quality-product"
+                },
+                {
+                    "path": "@nested:identityRules[ruleId=mood%3Amasterwork-product].ruleId",
+                    "value": "mood:masterwork-product"
+                },
+                {
                     "path": "id",
                     "value": "229"
                 }
@@ -66898,6 +67342,18 @@
                 {
                     "path": "@legacy-trait-name:%EB%9C%A8%EA%B1%B0%EC%9A%B4%20%ED%94%BC",
                     "value": "뜨거운 피"
+                },
+                {
+                    "path": "@nested:identityRules[ruleId=behavior%3Aanswer-insult].ruleId",
+                    "value": "behavior:answer-insult"
+                },
+                {
+                    "path": "@nested:identityRules[ruleId=mood%3Aanswered-insult].ruleId",
+                    "value": "mood:answered-insult"
+                },
+                {
+                    "path": "@nested:identityRules[ruleId=mood%3Ainsulted].ruleId",
+                    "value": "mood:insulted"
                 },
                 {
                     "path": "id",

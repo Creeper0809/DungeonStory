@@ -105,8 +105,11 @@ public static class FactionRouteEconomicPolicyIds
 [Serializable]
 public sealed class FactionRouteEconomicPolicyDescriptor
 {
+    [ContentReference(ContentReferenceKind.FactionEconomicPolicy)]
     public string capabilityId = string.Empty;
+    [UnityEngine.HideInInspector]
     public int capabilityVersion;
+    public bool HasSelection => !string.IsNullOrEmpty(capabilityId) || capabilityVersion != 0;
 
     public FactionRouteEconomicPolicyDescriptor Clone() => new()
     {

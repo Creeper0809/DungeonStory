@@ -38,3 +38,9 @@ MonoBehaviour:
     amount: 14
   - itemId: resource:mana-crystal
     amount: 10
+  tradeEconomicPolicy:
+    capabilityId: faction-economy:paid-market-purchase
+    capabilityVersion: 1
+  supplyEconomicPolicy:
+    capabilityId: faction-economy:alliance-benefit
+    capabilityVersion: 1

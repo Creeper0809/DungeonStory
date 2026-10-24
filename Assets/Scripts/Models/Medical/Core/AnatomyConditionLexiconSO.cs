@@ -35,7 +35,8 @@ public sealed class AnatomyConditionLexiconSO : ScriptableObject
     public const string ResourcePath = "SO/Medical/ConditionLexicons";
 
     [ContentIdentity, SerializeField] private string lexiconId = string.Empty;
-    [SerializeField] private string anatomyFamily = string.Empty;
+    [ContentReference(ContentReferenceKind.AnatomyFamily, IgnoreCase = true), SerializeField]
+    private string anatomyFamily = string.Empty;
     [ContentReference(ContentReferenceKind.Species, IgnoreCase = true), SerializeField]
     private List<string> speciesIds = new();
     [SerializeField] private List<AnatomyConditionLexiconEntry> entries = new();

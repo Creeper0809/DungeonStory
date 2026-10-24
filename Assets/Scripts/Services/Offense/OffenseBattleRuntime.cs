@@ -1221,7 +1221,8 @@ public sealed class OffenseBattleRuntime :
                 arcane.Failure?.Message
                 ?? $"Arcane power is unavailable for battle combatant '{combatant.PersistentId}'.");
         }
-        combatant.SetArcanePowerMultiplier(arcane.Value);
+        combatant.SetArcanePowerMultiplier(arcane.Value
+            * actor.Stats.GetDetailedStatMultiplier(GameplayEffectTargetIds.ArcanePower));
     }
 
     private void SynchronizeAlliedBodyHealth()

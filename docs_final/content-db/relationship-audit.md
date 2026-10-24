@@ -4,7 +4,7 @@
 
 | 해석 상태 | 관계 |
 |---|---:|
-| `non-content-protocol` | 1,783 |
+| `non-content-protocol` | 1,795 |
 | `resolved-content` | 4,658 |
 | `unresolved-content-reference` | 43 |
 | `unresolved-runtime-domain-id` | 87 |

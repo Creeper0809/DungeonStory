@@ -165,6 +165,7 @@ public sealed partial class EquipmentEvolutionFormulaCatalogSO : ScriptableObjec
     // Each authored formula generation owns the exact module surface that its
     // SHA-256 commits to. This prevents later catalog content from changing
     // the authority used to validate an already-committed node.
+    [ContentReference(ContentReferenceKind.EquipmentEvolutionModule)]
     public List<string> catalogModuleIds = new();
 
     public NarrativeFormulaStrengthPolicy RequirePolicy()

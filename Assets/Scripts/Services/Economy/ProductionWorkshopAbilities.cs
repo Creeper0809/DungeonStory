@@ -89,6 +89,7 @@ public sealed class BuildingProductionSupportAbility : BuildingAbility
     public string[] featureTags = Array.Empty<string>();
 
     [InspectorName("호환 작업대 태그")]
+    [ContentReference(ContentReferenceKind.ProductionWorkstation)]
     public string[] compatibleWorkstationTags = Array.Empty<string>();
 
     [InspectorName("시설 종류")]

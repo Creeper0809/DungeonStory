@@ -7,7 +7,8 @@ public sealed class ResourceDungeonFactionCatalogApplicationAdapter
 {
     private readonly IReadOnlyList<FactionDefinitionSnapshot> definitions;
 
-    public ResourceDungeonFactionCatalogApplicationAdapter(IGameContentCatalog content)
+    public ResourceDungeonFactionCatalogApplicationAdapter(IGameContentCatalog content,
+        FactionRouteEconomicPolicyRegistry economicPolicies = null)
     {
         List<DungeonFactionDefinitionSO> loaded =
             (content ?? throw new ArgumentNullException(nameof(content)))
@@ -32,6 +33,16 @@ public sealed class ResourceDungeonFactionCatalogApplicationAdapter
                 $"The root content catalog contains duplicate faction definition IDs: {string.Join(", ", duplicateIds)}.");
         }
 
+        economicPolicies ??= FactionRouteEconomicPolicyRegistry.CreateBuiltIns(
+            new ResourceDungeonItemCatalogProvider(new ResourceItemDefinitionCatalog(content)));
+        foreach (var faction in loaded)
+        {
+            if ((faction.tradeEconomicPolicy?.HasSelection == true || faction.tradeCargo?.Count > 0)
+                && !economicPolicies.Contains(faction.tradeEconomicPolicy)
+                || (faction.supplyEconomicPolicy?.HasSelection == true || faction.supplyCargo?.Count > 0)
+                && !economicPolicies.Contains(faction.supplyEconomicPolicy))
+                throw new InvalidOperationException($"Faction '{faction.StableId}' has an unregistered economic policy/version.");
+        }
         definitions = loaded.Select(value => value.ToSnapshot()).ToArray();
     }
 

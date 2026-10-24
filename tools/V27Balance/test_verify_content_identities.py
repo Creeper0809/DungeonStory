@@ -715,23 +715,57 @@ class RevisionVerificationTests(GitIdentityFixture):
     def test_trait_display_rename_is_allowed_but_legacy_alias_removal_is_rejected(self):
         source = self.root / "Assets/Scripts/TestSO.cs"
         source.write_text("public sealed class CharacterTraitSO {}\n", encoding="utf-8")
-        self.write_asset(fields=("traitName: Old Name", "legacyPolicyNames:", "- Old Name"))
+        self.write_asset(fields=("traitName: Old Name", "identityRules: []", "legacyPolicyNames:", "- Old Name"))
         fields = (("@legacy-trait-name:Old%20Name", "Old Name"),)
         self.write_baseline([self.asset_row(fields=fields, type_name="CharacterTraitSO")])
         base = self.commit("publish frozen trait policy alias")
 
-        self.write_asset(fields=("traitName: New Name", "legacyPolicyNames:", "- Old Name"))
+        self.write_asset(fields=("traitName: New Name", "identityRules: []", "legacyPolicyNames:", "- Old Name"))
         renamed = self.commit("rename trait display name")
         result = verifier.verify_revisions(base, renamed, self.root)
         self.assertEqual(1, result["fieldsChecked"])
 
-        self.write_asset(fields=("traitName: New Name", "legacyPolicyNames: []"))
+        self.write_asset(fields=("traitName: New Name", "identityRules: []", "legacyPolicyNames: []"))
         removed = self.commit("remove frozen trait policy alias")
         with self.assertRaisesRegex(verifier.VerificationError, "nested identities do not match"):
             verifier.verify_revisions(base, removed, self.root)
 
+    def test_trait_saved_rule_rename_and_omitted_list_are_rejected(self):
+        (self.root / "Assets/Scripts/TestSO.cs").write_text(
+            "public sealed class CharacterTraitSO {}\n", encoding="utf-8")
+        def rules(key):
+            return ("identityRules:", "- rid: 10", "references:", "  RefIds:",
+                    "  - rid: 10", "    type: {class: LastStandRule, ns: '', asm: Assembly-CSharp}",
+                    "    data:", "      ruleId: " + key)
+        self.write_asset(fields=rules("extreme:last-stand"))
+        self.write_baseline([self.asset_row(
+            fields=(("@nested:identityRules[ruleId=extreme%3Alast-stand].ruleId", "extreme:last-stand"),),
+            type_name="CharacterTraitSO")])
+        base = self.commit("publish saved trait rule")
+        verifier.verify_revisions(base, base, self.root)
+        for fields in (rules("extreme:renamed"), ("traitName: Legacy Empty",)):
+            self.write_asset(fields=fields)
+            changed = self.commit("change published trait rules")
+            with self.assertRaisesRegex(verifier.VerificationError, "nested identities do not match"):
+                verifier.verify_revisions(base, changed, self.root)
+
 
 class NestedIdentityExtractionTests(unittest.TestCase):
+    def test_legacy_trait_without_rule_list_has_no_saved_rule_identity(self):
+        self.assertEqual({}, self.extract("CharacterTraitSO", "  traitName: Legacy Empty\n"))
+
+    def test_trait_saved_rule_identity_is_captured(self):
+        actual = self.extract("CharacterTraitSO",
+            "  identityRules:\n  - rid: 10\n  references:\n    RefIds:\n"
+            "    - rid: 10\n      type: {class: LastStandRule, ns: '', asm: Assembly-CSharp}\n"
+            "      data:\n        ruleId: extreme:last-stand\n")
+        self.assertEqual({"@nested:identityRules[ruleId=extreme%3Alast-stand].ruleId": "extreme:last-stand"}, actual)
+
+    def test_facility_capability_identity_is_captured(self):
+        actual = self.extract("FacilityEvolutionRecipeSO",
+            "  formulaCapabilities:\n  - capabilityId: facility:alpha\n    evolutionModuleId: facility:research\n")
+        self.assertEqual({"@nested:formulaCapabilities[capabilityId=facility%3Aalpha].capabilityId": "facility:alpha"}, actual)
+
     @staticmethod
     def record(type_name: str) -> verifier.PublishedAsset:
         return verifier.PublishedAsset(ASSET_GUID, type_name, SCRIPT_GUID, ())
@@ -948,6 +982,34 @@ class GameAssetEligibilityTests(unittest.TestCase):
 
 
 class ScalarDecodingTests(unittest.TestCase):
+    def test_work_type_protocol_membership_and_uniqueness(self):
+        source = b'''public static readonly WorkTypeId Craft = new WorkTypeId("work:craft");
+public static readonly WorkTypeId Haul = new WorkTypeId("work:haul");
+public static readonly IReadOnlyList<WorkTypeId> All = new[] { Craft, Haul };'''
+        self.assertEqual(frozenset({"work:craft", "work:haul"}), verifier.work_type_protocol_ids(source))
+        for broken in (source.replace(b"Craft, Haul", b"Craft"),
+                       source.replace(b"work:haul", b"work:craft"),
+                       source.replace(b"new[]", b"CreateUnknown()")):
+            with self.assertRaises(verifier.VerificationError):
+                verifier.work_type_protocol_ids(broken)
+
+    def test_work_type_protocol_rename_or_source_removal_is_rejected(self):
+        raw = b'''public static readonly WorkTypeId Craft = new WorkTypeId("work:craft");
+public static readonly IReadOnlyList<WorkTypeId> All = new[] { Craft };'''
+        class Snapshot:
+            def __init__(self, content): self.content = content
+            def read_blob(self, path):
+                self.path = path
+                return self.content
+        before = Snapshot(raw)
+        verifier.verify_work_type_protocols(before, Snapshot(raw))
+        for after in (raw.replace(b"work:craft", b"work:craft-new"), None):
+            with self.assertRaises(verifier.VerificationError):
+                verifier.verify_work_type_protocols(before, Snapshot(after))
+        added = raw.replace(b"public static readonly IReadOnlyList", b'public static readonly WorkTypeId Haul = new WorkTypeId("work:haul");\npublic static readonly IReadOnlyList')
+        added = added.replace(b"{ Craft }", b"{ Craft, Haul }")
+        verifier.verify_work_type_protocols(before, Snapshot(added))
+
     def test_unicode_quotes_empty_and_whitespace_are_decoded_exactly(self):
         cases = (
             ('"한글\\u0020\\U0001F600"', "한글 😀"),

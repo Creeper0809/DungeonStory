@@ -24,6 +24,8 @@ public sealed class FacilityAnchorPurposeDefinition
 
 public static class FacilityAnchorPurposeCatalog
 {
+    public static IReadOnlyList<FacilityAnchorPurposeDefinition> All =>
+        new List<FacilityAnchorPurposeDefinition>(Definitions.Values).AsReadOnly();
     private static readonly Dictionary<string, FacilityAnchorPurposeDefinition> Definitions =
         new Dictionary<string, FacilityAnchorPurposeDefinition>(StringComparer.Ordinal);
 

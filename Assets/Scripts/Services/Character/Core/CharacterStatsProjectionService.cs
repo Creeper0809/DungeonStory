@@ -211,6 +211,7 @@ public sealed class CharacterStatsProjectionService
                     * substances.GetResearchSpeedMultiplier(context.Actor)
                 : 1f)
             * GetFatigueEfficiencyMultiplier(context.Sleep)
+            * GetPainWorkMultiplier(context)
             * discontentMultiplier
             * CharacterSkillRuntimeEffects.GetWorkSpeedMultiplier(context.Actor)
             * deprivation.GetWorkSpeedMultiplier(context.Actor)
@@ -234,6 +235,21 @@ public sealed class CharacterStatsProjectionService
         return precision
             ? environmentStatus.GetPrecisionWorkSpeedMultiplier(characterId)
             : environmentStatus.GetWorkSpeedMultiplier(characterId);
+    }
+
+    private float GetPainWorkMultiplier(CharacterStatsProjectionContext context)
+    {
+        if (context.InjurySeverity <= 0f
+            || substances.SuppressesPerceivedPain(context.Actor)) return 1f;
+        // Physical loss of anatomy function remains in the capacity query. This
+        // scales only the existing injury-efficiency curve's perceived-pain loss.
+        float penalty = 1f - GetInjuryEfficiencyMultiplier(context.InjurySeverity);
+        float adjusted = ProjectDetailedStat(context,
+            GameplayEffectTargetIds.PainWorkPenalty, penalty).Value;
+        if (float.IsNaN(adjusted) || float.IsInfinity(adjusted)
+            || adjusted < 0f || adjusted > 1f)
+            throw new InvalidOperationException("Pain work penalty must be within [0, 1].");
+        return 1f - adjusted;
     }
 
     public float GetCombatContextMultiplier(

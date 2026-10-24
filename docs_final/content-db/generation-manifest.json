@@ -1,14 +1,14 @@
 {
   "artifact_kind": "dungeonstory-content-database",
   "generator": "tools/Documentation/generate_content_database.py",
-  "output_digest": "d0b69bf2f6bb902c4457ebfb65439f8f9d48ea946fc0b1048a7c990ed2da9407",
+  "output_digest": "bbaa55e8752096371941c725e8aeac5559ca04c45077066b44ea14278f211c8d",
   "output_file_count": 491,
-  "output_files_manifest_sha256": "dbced6672b59d4dfad3362a03f8098866b88511719f7242e723a144d75f4fcec",
+  "output_files_manifest_sha256": "7e17d3383325f9bb52509583c57bf7bd480c4a7b407b2f34eed60ba54019ba6c",
   "output_root": "docs_final/content-db",
   "schema_version": 1,
-  "source_digest": "c14f67fef3e42187afd56f70e674cf559477791d69d4b9019b0f110c1ae265ea",
-  "source_file_count": 19613,
-  "source_files_manifest_sha256": "c8a4513dd6909a3afb959bbf9cde55203129e65bfbec779d348ab9406b62d7fb",
+  "source_digest": "1705e0ba71a514cf909acd727601425ce30a2e1a20413c443a24886a2219ede4",
+  "source_file_count": 19617,
+  "source_files_manifest_sha256": "c3fbe00cdd6a5dbcc5cb64b4986d72e22fd98ff6149d6c8d30ca29f0652ddc4b",
   "source_specs": [
     {
       "name": "unity-authored-assets",
@@ -42,7 +42,7 @@
   ],
   "statistics": {
     "code_consumer_csv_count": 75,
-    "code_consumer_row_count": 1472,
+    "code_consumer_row_count": 1473,
     "content_csv_count": 75,
     "duplicate_typed_id_groups": 10,
     "excluded_asset_type_count": 67,
@@ -63,10 +63,10 @@
       "legacy-authoring-review": 5
     },
     "parse_error_count": 0,
-    "relation_count": 6571,
+    "relation_count": 6583,
     "relation_csv_count": 75,
     "relation_status_counts": {
-      "non-content-protocol": 1783,
+      "non-content-protocol": 1795,
       "resolved-content": 4658,
       "unresolved-content-reference": 43,
       "unresolved-runtime-domain-id": 87
@@ -77,9 +77,9 @@
     },
     "row_count": 3483,
     "runtime_counts": {
-      "catalog-registered-static-consumer": 3240,
+      "catalog-registered-static-consumer": 3254,
       "resources-authored-consumer-unverified": 181,
-      "stable-id-literal-consumer": 43,
+      "stable-id-literal-consumer": 29,
       "type-consumer-registration-unverified": 19
     },
     "type_counts": {

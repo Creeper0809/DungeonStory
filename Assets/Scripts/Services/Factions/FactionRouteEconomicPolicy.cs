@@ -68,6 +68,20 @@ public sealed class FactionRouteEconomicPolicyRegistry :
 {
     private readonly IReadOnlyDictionary<string, IFactionRouteEconomicPolicy> policies;
 
+    public static FactionRouteEconomicPolicyRegistry CreateBuiltIns(IDungeonItemCatalogProvider items) =>
+        new(new IFactionRouteEconomicPolicy[]
+        {
+            new PaidMarketPurchaseFactionRouteEconomicPolicy(items),
+            new AllianceBenefitFactionRouteEconomicPolicy(items)
+        });
+
+    public IReadOnlyList<FactionRouteEconomicPolicyDescriptor> Definitions => policies.Values
+        .Select(policy => FactionRouteEconomicPolicyDescriptor.Create(policy.CapabilityId, policy.CapabilityVersion))
+        .ToArray();
+
+    public bool Contains(FactionRouteEconomicPolicyDescriptor descriptor) => descriptor != null
+        && policies.ContainsKey(Key(descriptor.capabilityId, descriptor.capabilityVersion));
+
     public FactionRouteEconomicPolicyRegistry(
         IEnumerable<IFactionRouteEconomicPolicy> policies)
     {
