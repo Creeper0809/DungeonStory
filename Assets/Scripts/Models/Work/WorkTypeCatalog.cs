@@ -150,6 +150,42 @@ public static class WorkTypeCatalog
         return TryGet(id.Value, out definition);
     }
 
+    public static WorkTypeDefinition RequireRegistered(
+        string id,
+        string ownerContext)
+    {
+        string context = string.IsNullOrWhiteSpace(ownerContext)
+            ? "Work type reference"
+            : ownerContext.Trim();
+        if (string.IsNullOrWhiteSpace(id)
+            || !string.Equals(id, id.Trim(), StringComparison.Ordinal)
+            || !TryGet(id, out WorkTypeDefinition definition))
+        {
+            throw new InvalidOperationException(
+                $"{context} references unregistered work type ID "
+                + $"'{id ?? "<null>"}'.");
+        }
+
+        return definition;
+    }
+
+    public static WorkTypeDefinition RequireRegistered(
+        WorkTypeId id,
+        string ownerContext)
+    {
+        string context = string.IsNullOrWhiteSpace(ownerContext)
+            ? "Work type reference"
+            : ownerContext.Trim();
+        if (!id.IsValid || !TryGet(id, out WorkTypeDefinition definition))
+        {
+            throw new InvalidOperationException(
+                $"{context} references unregistered work type ID "
+                + $"'{id.Value ?? "<null>"}'.");
+        }
+
+        return definition;
+    }
+
     private static WorkTypeDefinition Definition(
         WorkTypeId id,
         string displayName,

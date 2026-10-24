@@ -1,14 +1,33 @@
 # DungeonStory Current Task Plan
 
+## 현재 Goal — N01–N07 수정·표적 실행·main 통합 (2026-10-24)
+
+Status: implementation_verified / GitHub integration in_progress. N01~N07 구현과 필요한 실행을 완료했다. 최종 r121sn에서 so-authoring260초, so-inspector150초, effects560초, core190초, character160초, world250초, crop190초가 모두 native0/C#0/consoleErrors0/drift0이다. 현재 Unity0, operation.lock 획득을 확인해 검증 창을 닫았다. 원본 Documents checkout과 과거 QA는 보존했다. commit/push, PR CI, main 병합과 병합 후 CI를 이어서 완료한다.
+
+1. 구현 및 표적 실행 완료: N07 사장 고정 스킬 작성/런타임 정합성, N01 WorkType 선택·등록 거절을 먼저 수정한다. 공용 선택기·catalog·저장 경계는 메인이 통합하며 독립 WorkType 수정과 N05 무소비 작성면 정리는 기존 읽기 담당에게 맡긴다.
+2. 구현 및 표적 실행 완료: N04 소유 문맥별 formula 선택/검증, N06 실제 조합 대상 무결성, N02/N03 로컬 선택기를 기존 경로로 연결한다. N05는 서비스 실행의 기존 권위를 바꾸지 않고 무소비 ID 작성면을 제거한다.
+3. 완료: 현재 소스 컴파일, 실제 실행, Inspector, 저장과 복원, 거절 후 재시도 및 무중복 재시도를 검증했다. 전수 seed, 장기 밸런스, 무관한 확장 인증은 실행하지 않았다.
+4. 진행 중: 현재 입력에 결합된 실행 증거와 N01~N07 완료표, 최종 생성 인덱스를 마감했다. Python 67개, 게시 identity 3544에셋/10607필드, analyzer 검증 결과를 유지하며 commit/push, PR attach와 CI, main 병합과 병합 후 CI를 확인한다. 최종 원격 결과는 외부 so-full-audit/n01-n07-integration-final.json에 실제 SHA와 CI URL로 기록한다.
+
+호환 계약: 기존 asset GUID/게시 ID/DTO 필드명·버전과 저장 키를 유지한다. 새 SO로 분할하지 않고 기존 registry/정의 목록을 선택 권위로 쓴다. owner-fixed의 작성 입력과 생성 snapshot을 구분하되 기존 legacy/formula 저장을 임의 재생성하거나 원본 SO를 runtime에서 변경하지 않는다. 원본 Documents checkout은 수정하지 않는다.
+
+## 현재 작업 — main SO 관계 원본 재검토 (2026-10-24)
+
+Status: completed / read-only audit. 기준은 새로 fetch한 main `1f1f990a26f457611d438eebd5423a92b4e77a51`; 조사 worktree HEAD와 tree `c16083b71c1f16371032f3ede30d361f804f158e`가 같다. 마지막 원격 조회에서도 같은 SHA다. 기존 완료 표 대신 원본을 대조했다. 게임 소스·에셋·Unity·생성 인덱스는 변경하지 않았다.
+
+1. 완료: 현재 정의/중첩 필드와 에셋 목록을 다시 추출하고 관계 선택기·카탈로그/소비자를 대조했다. 직접 GUID/fileID와 게시 목록의 현재 일치 검사도 실행했다.
+2. 완료: 메인은 Inspector·게시 보호·공유 formula/DTO 작성 문맥을 확인했고 독립 읽기 결과의 주요 소비 경로를 검토했다. 현재 유효한 값과 향후 작성 위험을 분리했다.
+3. 완료: [SO_REFERENCE_FULL_AUDIT.md](SO_REFERENCE_FULL_AUDIT.md) 상단 N01–N07에 잔여 7묶음과 증거·최소 보완 범위를 기록했다. 수정이나 새 Unity 실행은 요청 범위가 아니므로 하지 않았다. 이전 Goal의 30항목 완료를 모든 SO 작성 경계의 완료로 해석하지 않는다.
+
 ## 현재 Goal — SO 감사 30항목 수정·실행·main 통합 (2026-10-24)
 
-Status: implementation_verified / GitHub integration in_progress. Goal ACTIVE. `codex/so-audit-remediation`, base main5476a748e. 원본 Documents checkout과 기존 QA 증거를 보존했다. 최종 통합의 권위는 PR merged 상태와 해당 main commit의 GitHub CI다.
+Status: completed. PR17 병합 main `1f1f990a2`, PR CI40019409246/main CI40019893717 성공을 확인했고 Goal도 완료했다. 원본 Documents checkout과 기존 QA 증거를 보존했다. 외부 `so-full-audit/integration-final.json`에 실제 원격 결과를 보존했다.
 
 1. 완료: R01–R24, U01–U05, I01 수정과30행 마감표. 기존3538개 GUID/type/script 및5857 보호 필드의 변경/누락0. 현재3544개 SO/10607필드를 검증했고 기존 DTO 저장 버전을 유지했다.
 2. 완료: core190초, character160초, effects650초, crop190초, world250초, so-authoring170초, so-runtime270초, so-inspector150초. 모두 native0/C#0/consoleErrors0/drift0. SO3개는 r112 입력의 실제 실행을 보존하고, 최종 영향5개는 r113sa의 실제 실행이다. 두 입력은 별도 Editor 확장 fixture 한 파일만 다르며 재사용의 전체 SHA 비교를 SO 영수증에 기록했다.
 3. 완료: 실제 Inspector5문맥(private authenticated Xvfb), 월드104섹션 저장/공식복원/원래 상태 복구, 작물 실제 실행·복원·무중복 재시도. 전수 seed·장기 밸런스 인증은 하지 않았다.
 4. 완료: Python67/67, 게시 값 보존/등록 자체 row 누락 거절, 동일 analyzer 검증, 생성 인덱스1회 및 내용/링크/최신성 검사. 감사 문서의 생성 색인 한계도 분리했다. 검증 중 코드 편집은 없었다.
-5. 진행: commit/push → PR 생성·attach/CI 성공 → main 병합/main CI. 이 단계가 확인돼야 Goal complete다. 최종 원격 연결 결과는 외부 `C:/Users/vulpo/Documents/Codex/2026-10-24/so-full-audit/integration-final.json`에 회수한다.
+5. 완료: commit560cf45b3/push, PR17 생성·attach/CI 성공, main1f1f990a2 병합과 해당 main CI 성공.
 
 실행 증거: [영향 CI](Artifacts/QA/ImpactCI/verification.json), [SO 실행](Artifacts/QA/ImpactCI/so-verification.json), [30항목 마감](SO_REFERENCE_FULL_AUDIT.md). 이전 실패·부분·다른 입력 결과를 현재 소스의 실행으로 바꾸지 않는다.
 

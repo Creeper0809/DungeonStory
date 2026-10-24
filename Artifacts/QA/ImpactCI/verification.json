@@ -2,55 +2,55 @@
   "schema": "impact-ci-v1",
   "scope": "targeted-contracts-not-full-balance-certification",
   "source": {
-    "digest": "d9dff3485fe467653d986d00edefd3320544903da16585425ed9ab31bd47ec55",
-    "count": 4749,
-    "pathsDigest": "5983904fd31fdd6a7198518b3707abd3bbedc3db4b3fa4d1a9f5e30971b0ef54"
+    "digest": "72a4ca27a89469682d6e4d4b379c3c81d593d3664f5d5c8e85d3b2d67b338bbe",
+    "count": 4752,
+    "pathsDigest": "d2de02479c6e58a944c9316a76a0f6a1726f2ededf1e87519097e4633dd3b5ac"
   },
-  "configurationDigest": "6bacd40070886ee1391aa41a9f7e180e61ef163e87ac44ba73af996ca865d737",
+  "configurationDigest": "ca67916ce8dde4a7f92660d364a30acfaded193341d81ffa6456d23e4e37cb3d",
   "unity": "6000.3.8f1",
   "platform": "cuha Linux headless; DISPLAY and WAYLAND_DISPLAY unset",
-  "sourceManifest": "r113sa; 21648 input files; complete pre/post SHA verification",
-  "redaction": "Native outcome/error lines retained; license and player-connection identifiers omitted; trailing whitespace normalized; summary JSON uses repository LF line endings without changing values; originals preserved outside the commit.",
+  "sourceManifest": "r121sn; 21654 input files; complete pre/post SHA verification",
+  "redaction": "Native outcome/error lines retained; player-connection network identifiers omitted; originals preserved in external run evidence.",
   "checks": [
     {
       "group": "core",
       "method": "V27CiEvidenceBatch.RunImpactCoreContracts",
       "log": "Artifacts/QA/ImpactCI/core.log",
-      "logSha256": "33f5e736e85eccd41f6bb704f59af29ee403bf1198f0189540c662b0477c7e8e",
+      "logSha256": "acdbb3878e1efbf243fa2daca560cd4b1e8812eeddd626ddacbe7a8373441d1c",
       "summary": "Artifacts/QA/ImpactCI/core-summary.json",
-      "summarySha256": "1a552f9046ff637bf7ccae1660ac8ee5147509e5e000fed68acf58b4667b0260"
+      "summarySha256": "56bee324e251d6098388603cb88f9e97c8696a774bdc198dc547098aa34ec098"
     },
     {
       "group": "character",
       "method": "V27CiEvidenceBatch.RunImpactCharacterContracts",
       "log": "Artifacts/QA/ImpactCI/character.log",
-      "logSha256": "85de638ac42fa4d48653ef949029c9ee50637d2fed63f41201cf1fbf36de3abb",
+      "logSha256": "dc0f1d68d2155a2be782da6ef652762a173cb8199fdc34556dc53c54fb6120ca",
       "summary": "Artifacts/QA/ImpactCI/character-summary.json",
-      "summarySha256": "cf2239cd501c9df54bf1e8fc2c0e42386c02fbb14b7b3bdec5ac5b1de8bec65c"
+      "summarySha256": "3d5dd961b4d7d6d3b5fbdfcce612354a5821489b35239181b37b14ef2225cd5d"
     },
     {
       "group": "effects",
       "method": "V27CiEvidenceBatch.RunImpactEffectContracts",
       "log": "Artifacts/QA/ImpactCI/effects.log",
-      "logSha256": "ec333f4cf5a783bd8ded5ad08470032e12f9f2c3acb057bb666e125af582bc75",
+      "logSha256": "eacbac2fd7ae71f9a3ba318d9349cd5f6ec2b065cc587416f89d6c3c6c817333",
       "summary": "Artifacts/QA/ImpactCI/effects-summary.json",
-      "summarySha256": "79773cf06fb56e6a69503da8d52d6a9aeef76e8cc1fb49a09fd3e3865a671a9e"
+      "summarySha256": "a529f29c054157482055b5167fc59b0bb3c6ed2c14feef1758dd6a068a117098"
     },
     {
       "group": "crop",
       "method": "V27CiEvidenceBatch.RunImpactCrops",
       "log": "Artifacts/QA/ImpactCI/crop.log",
-      "logSha256": "65ff9888cd783a8c2a379b9f3e19335b08b3aa28bb4c7bd7009623d6f07db0ee",
+      "logSha256": "4c2c54401fb7b651e619b50807d090c89a06f28d9a0d9313ad1a21b3c3239d50",
       "summary": "Artifacts/QA/ImpactCI/crop-summary.json",
-      "summarySha256": "1a552f9046ff637bf7ccae1660ac8ee5147509e5e000fed68acf58b4667b0260"
+      "summarySha256": "56bee324e251d6098388603cb88f9e97c8696a774bdc198dc547098aa34ec098"
     },
     {
       "group": "world",
       "method": "V27CiEvidenceBatch.RunImpactWorldRestore",
       "log": "Artifacts/QA/ImpactCI/world.log",
-      "logSha256": "8ca1ff767944ff4b34c385a995b268f64f3929e8e10e1a027442637a07f5d6c4",
+      "logSha256": "590752d926eda1e6c7a1c0fe3b3cecbe7b334ffcb2a40097c0a4173938dc5ec9",
       "summary": "Artifacts/QA/ImpactCI/world-summary.json",
-      "summarySha256": "8ccb4bfa62e42abe79481dd5dad9dbe01c787204961744619294c1390f568564"
+      "summarySha256": "e4b71a7ebcfad7631c620a4e2170af7fd34aabcee6a3df028c298f69f885fd82"
     }
   ]
 }

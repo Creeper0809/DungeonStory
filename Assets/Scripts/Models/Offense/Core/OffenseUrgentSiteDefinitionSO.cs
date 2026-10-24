@@ -14,9 +14,27 @@ public sealed class OffenseUrgentSiteDefinitionSO : DataScriptableObject
     public OffenseThreatModifierKind modifierKind;
     [Range(0f, 3f)] public float maximumStrength = 1f;
     [Range(0f, 1f)] public float maximumMitigation = 0.6f;
+    [ContentReference(ContentReferenceKind.WorkType)]
     public string mitigationWorkTypeId;
     [ContentReference(ContentReferenceKind.Item)]
     public string mitigationItemId;
     [Min(0)] public int mitigationItemAmount;
     [Min(0f)] public float mitigationWork;
+
+    public bool HasMitigationWorkType =>
+        !string.IsNullOrEmpty(mitigationWorkTypeId);
+
+    public WorkTypeId MitigationWorkType => HasMitigationWorkType
+        ? WorkTypeCatalog.RequireRegistered(
+            mitigationWorkTypeId,
+            $"Offense urgent site '{urgentSiteId ?? "<null>"}'").WorkTypeId
+        : default;
+
+    public void ValidateWorkTypeOrThrow()
+    {
+        if (HasMitigationWorkType)
+        {
+            _ = MitigationWorkType;
+        }
+    }
 }

@@ -177,6 +177,7 @@ public class OffenseTargetDefinition
     public StrategicPressureAxis strategicPressureAxis;
     [Min(0f)] public float strategicPressureAmount = 15f;
     [Min(1)] public int campaignOrder = 1;
+    [ContentReference(ContentReferenceKind.CampaignTarget)]
     public string prerequisiteTargetId;
     public bool revealsTruth;
     [TextArea] public string truthText;

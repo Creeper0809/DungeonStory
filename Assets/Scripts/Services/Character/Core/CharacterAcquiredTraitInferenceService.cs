@@ -105,6 +105,7 @@ public static class CharacterAcquiredTraitFormulaGeneration
             .Where(value => value != null).OrderBy(value => value.ModuleId, StringComparer.Ordinal).ToArray();
         if (settings == null) throw new ArgumentNullException(nameof(settings));
         NarrativeFormulaStrengthPolicy formulaPolicy = settings.RequireFormulaPolicy();
+        settings.RequireFormulaRelations(modules);
         GameplayOutcomeEvidenceBindingSnapshot[] exactBindings = (outcomeBindings
                 ?? Array.Empty<GameplayOutcomeEvidenceBindingSnapshot>())
             .Where(value => value != null).Select(value => value.Clone()).ToArray();
@@ -497,6 +498,7 @@ public static class CharacterAcquiredTraitFormulaGeneration
         CharacterAcquiredTraitModuleSO[] modules = (source ?? throw new ArgumentNullException(nameof(source)))
             .Where(value => value != null).OrderBy(value => value.ModuleId, StringComparer.Ordinal).ToArray();
         if (modules.Length == 0) throw new InvalidOperationException("Formula acquired-trait generation has no authored modules.");
+        settings.RequireFormulaRelations(modules);
         Dictionary<string, CharacterAcquiredTraitModuleSO> byId = modules
             .ToDictionary(value => value.ModuleId, StringComparer.Ordinal);
         CharacterAcquiredTraitInstanceState[] active = (aggregateState

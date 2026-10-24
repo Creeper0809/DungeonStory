@@ -38,6 +38,7 @@ public sealed class ProductionRecipeSO : DataScriptableObject
     [SerializeField] private ProductionFlowRole flowRole;
     [SerializeField] private ProductionProcessClass processClass;
     [SerializeField] private bool processClassAuthored;
+    [ContentReference(ContentReferenceKind.WorkType)]
     [SerializeField] private string workTypeId = "work:craft";
     [SerializeField] private ProficiencyWorkProfileAuthoring proficiency = new();
     [ContentReference(ContentReferenceKind.Research), SerializeField]
@@ -76,8 +77,7 @@ public sealed class ProductionRecipeSO : DataScriptableObject
     public ProductionFlowRole FlowRole => flowRole;
     public ProductionProcessClass ProcessClass => processClass;
     public bool HasAuthoredProcessClass => processClassAuthored;
-    public WorkTypeId WorkTypeId => new WorkTypeId(
-        string.IsNullOrWhiteSpace(workTypeId) ? "work:craft" : workTypeId);
+    public WorkTypeId WorkTypeId => RequireWorkTypeDefinition().WorkTypeId;
     public ProficiencyWorkProfileAuthoring Proficiency =>
         proficiency ??= new ProficiencyWorkProfileAuthoring();
     public string RequiredResearchId => requiredResearchId?.Trim() ?? string.Empty;
@@ -121,16 +121,30 @@ public sealed class ProductionRecipeSO : DataScriptableObject
 
     public IReadOnlyList<ProductionOutputDefinition> CaptureCanonicalOutputs()
     {
+        ValidateWorkTypeOrThrow();
         ProductionOutputDefinition[] snapshot =
             (outputs ?? new List<ProductionOutputDefinition>()).ToArray();
         ValidateCanonicalOutputLinesOrThrow(RecipeId, snapshot);
         return snapshot;
     }
 
-    public void ValidateCanonicalOutputLinesOrThrow() =>
+    public void ValidateCanonicalOutputLinesOrThrow()
+    {
+        ValidateWorkTypeOrThrow();
         ValidateCanonicalOutputLinesOrThrow(
             RecipeId,
             outputs ?? new List<ProductionOutputDefinition>());
+    }
+
+    public void ValidateWorkTypeOrThrow() => RequireWorkTypeDefinition();
+
+    private WorkTypeDefinition RequireWorkTypeDefinition()
+    {
+        string context = $"Production recipe '{(RecipeId.Length == 0 ? "<missing-recipe-id>" : RecipeId)}'";
+        return string.IsNullOrWhiteSpace(workTypeId)
+            ? WorkTypeCatalog.RequireRegistered(BuiltInWorkTypeIds.Craft, context)
+            : WorkTypeCatalog.RequireRegistered(workTypeId, context);
+    }
 
     private static void ValidateCanonicalOutputLinesOrThrow(
         string ownerRecipeId,
@@ -180,21 +194,28 @@ public sealed class ProductionRecipeSO : DataScriptableObject
         IEnumerable<ItemAmountDefinition> recipeInputs,
         IEnumerable<ProductionOutputDefinition> recipeOutputs)
     {
-        recipeId = stableId?.Trim() ?? string.Empty;
-        displayName = name?.Trim() ?? string.Empty;
-        description = recipeDescription?.Trim() ?? string.Empty;
-        facilityTag = requiredFacilityTag?.Trim() ?? string.Empty;
-        workTypeId = string.IsNullOrWhiteSpace(requiredWorkTypeId)
-            ? "work:craft"
-            : requiredWorkTypeId.Trim();
-        requiredResearchId = researchId?.Trim() ?? string.Empty;
-        requiredWork = Mathf.Max(0.1f, work);
-        inputs = recipeInputs?.Where(input => input != null).ToList()
+        string configuredRecipeId = stableId?.Trim() ?? string.Empty;
+        string context = $"Production recipe '{(configuredRecipeId.Length == 0 ? "<missing-recipe-id>" : configuredRecipeId)}'";
+        WorkTypeDefinition configuredWorkType =
+            string.IsNullOrWhiteSpace(requiredWorkTypeId)
+                ? WorkTypeCatalog.RequireRegistered(BuiltInWorkTypeIds.Craft, context)
+                : WorkTypeCatalog.RequireRegistered(requiredWorkTypeId, context);
+        List<ItemAmountDefinition> configuredInputs = recipeInputs?
+            .Where(input => input != null).ToList()
             ?? new List<ItemAmountDefinition>();
         ProductionOutputDefinition[] configuredOutputs =
             recipeOutputs?.ToArray()
             ?? Array.Empty<ProductionOutputDefinition>();
-        ValidateCanonicalOutputLinesOrThrow(recipeId, configuredOutputs);
+        ValidateCanonicalOutputLinesOrThrow(configuredRecipeId, configuredOutputs);
+
+        recipeId = configuredRecipeId;
+        displayName = name?.Trim() ?? string.Empty;
+        description = recipeDescription?.Trim() ?? string.Empty;
+        facilityTag = requiredFacilityTag?.Trim() ?? string.Empty;
+        workTypeId = configuredWorkType.Id;
+        requiredResearchId = researchId?.Trim() ?? string.Empty;
+        requiredWork = Mathf.Max(0.1f, work);
+        inputs = configuredInputs;
         outputs = configuredOutputs.ToList();
     }
 

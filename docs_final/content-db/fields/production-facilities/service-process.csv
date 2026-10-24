@@ -33,7 +33,6 @@ ServiceProcessSO|service:bathing:wash,service:bathing:wash,modeContracts.2.clean
 ServiceProcessSO|service:bathing:wash,service:bathing:wash,modeContracts.2.basePrice,8,,,explicit-serialized
 ServiceProcessSO|service:bathing:wash,service:bathing:wash,modeContracts.2.satisfaction,52,,,explicit-serialized
 ServiceProcessSO|service:bathing:wash,service:bathing:wash,modeContracts.2.requiredFeatureTags,[],,,explicit-serialized
-ServiceProcessSO|service:bathing:wash,service:bathing:wash,workTypeId,,,,explicit-serialized
 ServiceProcessSO|service:bathing:wash,service:bathing:wash,cleanWater,0.45,,,explicit-serialized
 ServiceProcessSO|service:bathing:wash,service:bathing:wash,wastewater,0.45,,,explicit-serialized
 ServiceProcessSO|service:bathing:wash,service:bathing:wash,allowsManualWaterFallback,1,,,explicit-serialized
@@ -75,7 +74,6 @@ ServiceProcessSO|service:dining:meal,service:dining:meal,modeContracts.2.cleanup
 ServiceProcessSO|service:dining:meal,service:dining:meal,modeContracts.2.basePrice,9,,,explicit-serialized
 ServiceProcessSO|service:dining:meal,service:dining:meal,modeContracts.2.satisfaction,50,,,explicit-serialized
 ServiceProcessSO|service:dining:meal,service:dining:meal,modeContracts.2.requiredFeatureTags,[],,,explicit-serialized
-ServiceProcessSO|service:dining:meal,service:dining:meal,workTypeId,,,,explicit-serialized
 ServiceProcessSO|service:dining:meal,service:dining:meal,cleanWater,0,,,explicit-serialized
 ServiceProcessSO|service:dining:meal,service:dining:meal,wastewater,0,,,explicit-serialized
 ServiceProcessSO|service:dining:meal,service:dining:meal,allowsManualWaterFallback,0,,,explicit-serialized
@@ -117,7 +115,6 @@ ServiceProcessSO|service:lodging:rest,service:lodging:rest,modeContracts.2.clean
 ServiceProcessSO|service:lodging:rest,service:lodging:rest,modeContracts.2.basePrice,11,,,explicit-serialized
 ServiceProcessSO|service:lodging:rest,service:lodging:rest,modeContracts.2.satisfaction,54,,,explicit-serialized
 ServiceProcessSO|service:lodging:rest,service:lodging:rest,modeContracts.2.requiredFeatureTags,[],,,explicit-serialized
-ServiceProcessSO|service:lodging:rest,service:lodging:rest,workTypeId,,,,explicit-serialized
 ServiceProcessSO|service:lodging:rest,service:lodging:rest,cleanWater,0,,,explicit-serialized
 ServiceProcessSO|service:lodging:rest,service:lodging:rest,wastewater,0,,,explicit-serialized
 ServiceProcessSO|service:lodging:rest,service:lodging:rest,allowsManualWaterFallback,0,,,explicit-serialized
@@ -159,7 +156,6 @@ ServiceProcessSO|service:medical:treat,service:medical:treat,modeContracts.2.cle
 ServiceProcessSO|service:medical:treat,service:medical:treat,modeContracts.2.basePrice,13,,,explicit-serialized
 ServiceProcessSO|service:medical:treat,service:medical:treat,modeContracts.2.satisfaction,56,,,explicit-serialized
 ServiceProcessSO|service:medical:treat,service:medical:treat,modeContracts.2.requiredFeatureTags,[],,,explicit-serialized
-ServiceProcessSO|service:medical:treat,service:medical:treat,workTypeId,work:treat,,,explicit-serialized
 ServiceProcessSO|service:medical:treat,service:medical:treat,cleanWater,0,,,explicit-serialized
 ServiceProcessSO|service:medical:treat,service:medical:treat,wastewater,0,,,explicit-serialized
 ServiceProcessSO|service:medical:treat,service:medical:treat,allowsManualWaterFallback,0,,,explicit-serialized
@@ -201,7 +197,6 @@ ServiceProcessSO|service:retail:sale,service:retail:sale,modeContracts.2.cleanup
 ServiceProcessSO|service:retail:sale,service:retail:sale,modeContracts.2.basePrice,7,,,explicit-serialized
 ServiceProcessSO|service:retail:sale,service:retail:sale,modeContracts.2.satisfaction,48,,,explicit-serialized
 ServiceProcessSO|service:retail:sale,service:retail:sale,modeContracts.2.requiredFeatureTags,[],,,explicit-serialized
-ServiceProcessSO|service:retail:sale,service:retail:sale,workTypeId,,,,explicit-serialized
 ServiceProcessSO|service:retail:sale,service:retail:sale,cleanWater,0,,,explicit-serialized
 ServiceProcessSO|service:retail:sale,service:retail:sale,wastewater,0,,,explicit-serialized
 ServiceProcessSO|service:retail:sale,service:retail:sale,allowsManualWaterFallback,0,,,explicit-serialized

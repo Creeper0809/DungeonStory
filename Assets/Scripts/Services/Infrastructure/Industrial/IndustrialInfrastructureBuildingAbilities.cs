@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 [Serializable]
@@ -163,6 +164,7 @@ public sealed class BuildingWaterFixtureAbility : BuildingAbility
 public sealed class BuildingProcessFluidAbility : BuildingAbility
 {
     [InspectorName("적용 작업 ID")]
+    [ContentReference(ContentReferenceKind.WorkType)]
     public string[] workTypeIds = Array.Empty<string>();
 
     [Min(0f), InspectorName("주기당 상수")]
@@ -182,16 +184,20 @@ public sealed class BuildingProcessFluidAbility : BuildingAbility
 
     public bool Supports(WorkTypeId workTypeId)
     {
+        ValidateOrThrow();
         if (!workTypeId.IsValid || workTypeIds == null)
         {
             return false;
         }
 
-        string value = workTypeId.Value;
+        WorkTypeDefinition candidate = WorkTypeCatalog.RequireRegistered(
+            workTypeId,
+            $"{nameof(BuildingProcessFluidAbility)} candidate");
+        string value = candidate.Id;
         for (int i = 0; i < workTypeIds.Length; i++)
         {
             if (string.Equals(
-                    workTypeIds[i]?.Trim(),
+                    workTypeIds[i],
                     value,
                     StringComparison.Ordinal))
             {
@@ -200,6 +206,24 @@ public sealed class BuildingProcessFluidAbility : BuildingAbility
         }
 
         return false;
+    }
+
+    public void ValidateOrThrow()
+    {
+        var registered = new HashSet<string>(StringComparer.Ordinal);
+        string[] authored = workTypeIds ?? Array.Empty<string>();
+        for (int index = 0; index < authored.Length; index++)
+        {
+            WorkTypeDefinition definition = WorkTypeCatalog.RequireRegistered(
+                authored[index],
+                $"{nameof(BuildingProcessFluidAbility)}.{nameof(workTypeIds)}[{index}]");
+            if (!registered.Add(definition.Id))
+            {
+                throw new InvalidOperationException(
+                    $"{nameof(BuildingProcessFluidAbility)} contains duplicate "
+                    + $"work type ID '{definition.Id}'.");
+            }
+        }
     }
 }
 

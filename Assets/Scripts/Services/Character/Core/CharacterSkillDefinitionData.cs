@@ -104,7 +104,9 @@ public static class CharacterSkillAreaRules
 [Serializable]
 public sealed class CharacterSkillModuleSelection
 {
+    [ContentReference(ContentReferenceKind.SkillModule)]
     public string moduleId = string.Empty;
+    [ContentReference(ContentReferenceKind.SkillVariant)]
     public string variantId = string.Empty;
 
     public CharacterSkillModuleSelection Clone()

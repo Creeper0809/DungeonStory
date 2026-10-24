@@ -1,0 +1,33 @@
+{
+  "schema": "so-audit-remediation-v1",
+  "source": {
+    "digest": "72a4ca27a89469682d6e4d4b379c3c81d593d3664f5d5c8e85d3b2d67b338bbe",
+    "count": 4752,
+    "pathsDigest": "d2de02479c6e58a944c9316a76a0f6a1726f2ededf1e87519097e4633dd3b5ac"
+  },
+  "configurationDigest": "ca67916ce8dde4a7f92660d364a30acfaded193341d81ffa6456d23e4e37cb3d",
+  "scope": "N01-N07: bounded reference authoring, owner-fixed actual work/save/restore/retry, and actual IMGUI draw; not exhaustive gameplay",
+  "sourceManifest": "r121sn; 21654 input files; complete pre/post SHA verification",
+  "platform": "CUHA Linux; authoring/runtime headless; Inspector uses private Xvfb graphics",
+  "checks": [
+    {
+      "group": "so-authoring",
+      "method": "V27CiEvidenceBatch.RunSoAuthoringContracts",
+      "log": "Artifacts/QA/ImpactCI/n-so-authoring.log",
+      "logSha256": "c097886f782137e250541088caf9e0f40d6bc6b911ff3323d66bc02a92446725",
+      "summary": "Artifacts/QA/ImpactCI/n-so-authoring-summary.json",
+      "summarySha256": "d8f4aec040069f7266e7a01e34672e5e583a9f85181b71807cf783ed22ec667f"
+    },
+    {
+      "group": "so-inspector",
+      "method": "V27CiEvidenceBatch.RunSoInspectorContracts",
+      "isolation": "Artifacts/QA/ImpactCI/n-so-inspector-isolation.json",
+      "isolationSha256": "de6cc66f4efd4976e6c9b6f7467308a717994b4349b1d9fb3e9d54b40496fcc2",
+      "platform": "CUHA Linux batchmode with graphics on authenticated private Xvfb; no user display",
+      "log": "Artifacts/QA/ImpactCI/n-so-inspector.log",
+      "logSha256": "9ec5129483df3235850a6b5a0cd3db7d53478812d38f2e651dab111434a89a20",
+      "summary": "Artifacts/QA/ImpactCI/n-so-inspector-summary.json",
+      "summarySha256": "1abdfb633227c59495992417b175b57c1bb5aaf5c56be5598c9e6f9c6210d276"
+    }
+  ]
+}

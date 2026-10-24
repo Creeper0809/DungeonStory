@@ -46,7 +46,6 @@ MonoBehaviour:
     basePrice: 9
     satisfaction: 50
     requiredFeatureTags: []
-  workTypeId: 
   cleanWater: 0
   wastewater: 0
   allowsManualWaterFallback: 0

@@ -13,6 +13,84 @@ using VContainer;
 
 public static class CharacterProgressionDebugScenarios
 {
+    public static void VerifyOwnerFixedSkillReferenceRestore()
+    {
+        using ActorFixture fixture = new ActorFixture(81207, "OwnerReference", "Slime");
+        using var outcomes = new CharacterSkillActivationEditorFixture(
+            "run:n07-owner-reference", calendar: EditorFixedGameCalendar.Instance);
+        CharacterActor actor = fixture.Actor;
+        actor.Progression.ConstructSkillActivationRuntime(outcomes.Transaction);
+        CharacterSO definition = actor.Identity.Data;
+        definition.role = CharacterRole.Owner;
+        definition.species = null;
+        var field = typeof(CharacterSO).GetField("ownerFixedSkills",
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+        Require(field != null, "Owner skill authoring field is missing.");
+        string originalJson = EditorJsonUtility.ToJson(definition);
+        CharacterSkillInstance skill = actor.Progression.OwnerFixedSkills[0].Clone();
+        skill.id = "qa:owner-reference";
+        skill.displayName = "Owner reference execution";
+        skill.modules.Add(Module("mood", "small"));
+        field.SetValue(definition, new[] { skill });
+        actor.Progression.GrowthState.passiveSkills.Clear();
+        string authoredJson = EditorJsonUtility.ToJson(definition);
+        float moodBefore = actor.Stats.Mood;
+        const string eventId = "qa:owner-reference:work-started";
+        CharacterSkillRuntimeEffects.BeginWork(actor, null, BuiltInWorkTypeIds.Operate, eventId);
+        Require(actor.Stats.Mood > moodBefore
+                && Mathf.Approximately(CharacterSkillRuntimeEffects.GetWorkSpeedMultiplier(actor), 1.1f),
+            "Owner fixed skill did not reach actual mood and work-speed consumers.");
+        CharacterProgressionSnapshot snapshot = actor.Progression.CapturePersistentState();
+        var saved = new PreparedStartPartyMemberSnapshot
+        {
+            isOwner = true, persistentId = actor.Identity.PersistentId, level = snapshot.Level,
+            currentExperience = snapshot.CurrentExperience,
+            growth = snapshot.GrowthState, narrative = snapshot.NarrativeLedger
+        };
+        string json = JsonUtility.ToJson(saved);
+        var restored = JsonUtility.FromJson<PreparedStartPartyMemberSnapshot>(json);
+        Require(!json.Contains("ownerFixedSkills", StringComparison.Ordinal),
+            "Immutable owner definitions were duplicated into the save DTO.");
+        string stateBefore = JsonUtility.ToJson(actor.Progression.GrowthState);
+        void RejectRestore(string label)
+        {
+            bool rejected = false;
+            try { actor.Progression.RestorePersistentState(restored.ToProgressionSnapshot()); }
+            catch (InvalidOperationException) { rejected = true; }
+            Require(rejected, "Owner restore accepted " + label);
+            Require(JsonUtility.ToJson(actor.Progression.GrowthState) == stateBefore,
+                "Rejected owner restore partially mutated growth: " + label);
+        }
+        skill.modules[0].moduleId = "missing-owner-module";
+        RejectRestore("an unknown module");
+        skill.modules[0].moduleId = "work_speed";
+        skill.modules[0].variantId = "missing-owner-variant";
+        RejectRestore("an unknown variant");
+        skill.modules[0].variantId = "small";
+        skill.formulaVersion = 1;
+        RejectRestore("an incomplete frozen formula envelope");
+        skill.formulaVersion = 0;
+        actor.Progression.RestorePersistentState(restored.ToProgressionSnapshot());
+        float moodAfter = actor.Stats.Mood;
+        long revision = actor.Progression.GrowthState.useLimits.activationSequence;
+        int receipts = actor.Progression.GrowthState.useLimits.automaticSkillActivations.Count;
+        Require(receipts > 0, "The actual automatic owner activation produced no durable receipt.");
+        CharacterSkillRuntimeEffects.BeginWork(actor, null, BuiltInWorkTypeIds.Operate, eventId);
+        Require(Mathf.Approximately(actor.Stats.Mood, moodAfter)
+                && actor.Progression.GrowthState.useLimits.activationSequence == revision
+                && actor.Progression.GrowthState.useLimits.automaticSkillActivations.Count == receipts,
+            "Retry after owner save/restore repeated the automatic effect or receipt.");
+        Require(actor.Progression.OwnerFixedSkills.Count == 4
+                && actor.Progression.OwnerFixedSkills[0].id == skill.id
+                && Mathf.Approximately(CharacterSkillRuntimeEffects.GetWorkSpeedMultiplier(actor), 1.1f),
+            "Owner identity, fallback slots or work-speed changed after restore/retry.");
+        Require(EditorJsonUtility.ToJson(definition) == authoredJson,
+            "Owner execution/restore mutated the authored SO.");
+        CharacterSkillRuntimeEffects.EndWork(actor);
+        EditorJsonUtility.FromJsonOverwrite(originalJson, definition);
+        Debug.Log("N07_OWNER_FIXED_REFERENCE=PASS; actual-work-mood; legacy-json; reject-unchanged; repair-restore; retry-no-duplicate; source-unchanged");
+    }
+
     // Controlled projection regression using immutable historical inputs. This
     // is not a repair of that saved request or a fresh gameplay capture.
     public static string VerifySkillPublicNarrativeEvidence()

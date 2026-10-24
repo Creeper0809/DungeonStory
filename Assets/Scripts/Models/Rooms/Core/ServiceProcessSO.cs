@@ -33,8 +33,7 @@ public sealed class ServiceProcessSO : ScriptableObject
     [SerializeField] private ServiceModeProcessContract[] modeContracts =
         Array.Empty<ServiceModeProcessContract>();
 
-    [Header("Work and utilities")]
-    [SerializeField] private string workTypeId = string.Empty;
+    [Header("Utilities")]
     [Min(0f), SerializeField] private float cleanWater;
     [Min(0f), SerializeField] private float wastewater;
     [SerializeField] private bool allowsManualWaterFallback;
@@ -47,17 +46,6 @@ public sealed class ServiceProcessSO : ScriptableObject
     public string ProcessId => processId ?? string.Empty;
     public ServiceCategory ServiceCategory => serviceCategory;
     public string OwnerHubTag => ownerHubTag ?? string.Empty;
-    public bool TryGetWorkTypeId(out WorkTypeId value)
-    {
-        if (string.IsNullOrWhiteSpace(workTypeId))
-        {
-            value = default;
-            return false;
-        }
-
-        value = new WorkTypeId(workTypeId);
-        return true;
-    }
     public float CleanWater => Mathf.Max(0f, cleanWater);
     public float Wastewater => Mathf.Max(0f, wastewater);
     public bool AllowsManualWaterFallback => allowsManualWaterFallback;
@@ -95,12 +83,6 @@ public sealed class ServiceProcessSO : ScriptableObject
             }
         }
 
-        if (!string.IsNullOrEmpty(workTypeId)
-            && (!IsCanonicalRequired(workTypeId)
-                || !WorkTypeCatalog.TryGet(workTypeId, out _)))
-        {
-            errors.Add($"Work type '{workTypeId}' is missing or non-canonical.");
-        }
         if (!IsFiniteNonNegative(cleanWater)
             || !IsFiniteNonNegative(wastewater))
         {
@@ -140,7 +122,6 @@ public sealed class ServiceProcessSO : ScriptableObject
         ServiceCategory category,
         string hubTag,
         ServiceModeProcessContract[] contracts,
-        string requiredWorkTypeId,
         float water,
         float waste,
         bool manualWaterFallback,
@@ -151,7 +132,6 @@ public sealed class ServiceProcessSO : ScriptableObject
         serviceCategory = category;
         ownerHubTag = hubTag?.Trim() ?? string.Empty;
         modeContracts = contracts ?? Array.Empty<ServiceModeProcessContract>();
-        workTypeId = requiredWorkTypeId?.Trim() ?? string.Empty;
         cleanWater = Mathf.Max(0f, water);
         wastewater = Mathf.Max(0f, waste);
         allowsManualWaterFallback = manualWaterFallback;

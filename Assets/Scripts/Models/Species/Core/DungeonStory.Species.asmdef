@@ -7,7 +7,8 @@
     "DungeonStory.Combat",
     "DungeonStory.CoreSession",
     "DungeonStory.Foundation",
-    "DungeonStory.Grid"
+    "DungeonStory.Grid",
+    "DungeonStory.Work"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],

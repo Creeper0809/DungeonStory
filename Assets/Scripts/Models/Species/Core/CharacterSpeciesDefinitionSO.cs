@@ -252,7 +252,9 @@ public abstract class CharacterSpeciesDefinitionSO : SerializedScriptableObject
     public FuneralCultureSO funeralCulture;
     public string[] relationTags = Array.Empty<string>();
     public string[] defenseAffinityTags = Array.Empty<string>();
+    [ContentReference(ContentReferenceKind.WorkType)]
     public string[] strongWorkTypeIds = Array.Empty<string>();
+    [ContentReference(ContentReferenceKind.WorkType)]
     public string[] weakWorkTypeIds = Array.Empty<string>();
     [TextArea] public string shortDescription;
     [TextArea] public string description;
@@ -278,6 +280,50 @@ public abstract class CharacterSpeciesDefinitionSO : SerializedScriptableObject
         incident?.description?.Trim() ?? string.Empty;
     public FacilityRole IncidentMitigatingRoles =>
         incident?.mitigatingRoles ?? FacilityRole.None;
+
+    public void ValidateWorkTypeAptitudesOrThrow()
+    {
+        string context = $"Character species '{(string.IsNullOrWhiteSpace(speciesTag) ? name : speciesTag)}'";
+        HashSet<string> strong = RequireDistinctRegisteredWorkTypes(
+            strongWorkTypeIds,
+            "strong",
+            context);
+        HashSet<string> weak = RequireDistinctRegisteredWorkTypes(
+            weakWorkTypeIds,
+            "weak",
+            context);
+        string overlap = strong.FirstOrDefault(weak.Contains);
+        if (overlap != null)
+        {
+            throw new InvalidOperationException(
+                $"{context} lists work type ID '{overlap}' as both strong and weak.");
+        }
+    }
+
+    private static HashSet<string> RequireDistinctRegisteredWorkTypes(
+        IEnumerable<string> authored,
+        string aptitude,
+        string ownerContext)
+    {
+        var registered = new HashSet<string>(StringComparer.Ordinal);
+        int index = 0;
+        foreach (string id in authored ?? Array.Empty<string>())
+        {
+            WorkTypeDefinition definition = WorkTypeCatalog.RequireRegistered(
+                id,
+                $"{ownerContext} {aptitude} work type at index {index}");
+            if (!registered.Add(definition.Id))
+            {
+                throw new InvalidOperationException(
+                    $"{ownerContext} contains duplicate {aptitude} work type ID "
+                    + $"'{definition.Id}'.");
+            }
+
+            index++;
+        }
+
+        return registered;
+    }
 }
 
 public static class CharacterSpeciesDefinitionCatalogRequirements
@@ -308,6 +354,7 @@ public static class CharacterSpeciesDefinitionCatalogRequirements
 
         foreach (T species in values)
         {
+            species.ValidateWorkTypeAptitudesOrThrow();
             if (!species.DefinitionId.IsValid
                 || !string.Equals(
                     species.DefinitionId.Value,

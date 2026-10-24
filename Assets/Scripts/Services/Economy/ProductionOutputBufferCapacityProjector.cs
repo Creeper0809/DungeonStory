@@ -76,6 +76,7 @@ public static class ProductionFacilityCapacitySubjectAdapter
         if (ability == null)
             return ProductionFacilityProcessFluidCapacityProfile.Empty;
 
+        ability.ValidateOrThrow();
         string[] authoredWorkTypes = ability.workTypeIds
             ?? Array.Empty<string>();
         if (authoredWorkTypes.Length == 0)

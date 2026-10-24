@@ -1,5 +1,13 @@
 # DungeonStory Current Progress
 
+## 2026-10-24 main SO 원본 재검토 완료 — 읽기 전용
+
+main `1f1f990a26f457611d438eebd5423a92b4e77a51`와 조사 HEAD의 tree 일치를 확인하고 현재 Roslyn 구문·에셋을 새로 추출했다. 142 SO 타입/2459 필드 후보/880 관계 후보/167 표식, 3544 게임 SO asset, 구문·YAML 파싱 오류0이다. nonzero GUID8962건 대상 누락/중복0, .asset fileID4731건 누락0. main→동일 main의 `verify_content_identities.py` 실행 exit0:3544 assets/10607 fields PASS. 이는 현재 게시 목록과 에셋의 정적 일치 검사이며 새 Unity 실행 결과가 아니다.
+
+독립 검토와 메인 소비자 확인을 통합해 감사 문서 상단에 N01–N07을 추가했다. 현재 식별한 관계값은 유효하지만 수기 WorkType7필드, 로컬 관계2종, 다른 catalog를 쓰는 공유 formula 선택기, 미검증 진화 금지 조합, 소비 없는 서비스 작업 ID, SO에 노출된 사장 고정 스킬 DTO가 남는다. 현재 빈 목록과 실제 잘못된 값은 구분했다. 원본 근거·최소 보완 범위·미실행 경계는 감사 문서에 있다.
+
+증거 폴더: `C:/Users/vulpo/Documents/Codex/2026-10-24/so-full-audit/main-reaudit-r17` (`inventory.json`, `current-assets.json`, `current-identity-check.json`, `campaign-reference-check.json`, `actor-findings.md`, `content-findings.md`). 게임 소스/에셋·원본 Documents checkout·기존 QA 증거를 변경하지 않았고 Unity/생성 인덱스/commit/push는 실행하지 않았다. 이전 PR17/main 통합은 완료된 상태를 유지한다.
+
 ## 2026-10-24 SO 보완 실행 마감·GitHub 통합
 
 core190초, character160초, effects650초, crop190초, world250초, so-authoring170초, so-runtime270초, so-inspector150초 완료. native0/C#0/consoleErrors0/drift0. 최종 영향 입력 r113sa source `d9dff3485fe467653d986d00edefd3320544903da16585425ed9ab31bd47ec55`, config `6bacd40070886ee1391aa41a9f7e180e61ef163e87ac44ba73af996ca865d737`. SO3개는 별도 Editor 확장 fixture 수정 전의 r112 입력을 유지하고, 실제 게임/에셋·SO 시나리오가 동일한 바이트임을21648입력 비교로 확인해 재사용했다. 원래 로그·요약의 source label/hash를 변경하지 않았다. effects의 신규 특성 복제 fixture 충돌은 고유 이름/빈 legacy alias로 바로잡았으며 중복 보호 검사는 유지했다.
@@ -6727,3 +6735,25 @@ C3 native-destructive-drain-current-r3은 메모리 중단 없이 Title/owner �
 - 과거 C3 r5는 strict research parent preflight 실패 뒤 memory guard925978624 bytes로 종료해 최종 보고서가 없다. 정상 연구 완료 명령으로 fixture를 수정했다. r6 native build20.89초/errors0, r6/r7은 이전 중단이 남긴 자체 임시 복사본의 strict orphan guard로 Play 전 종료했다. 해당 복사본·meta3개만 원본 hash/경로/프로세스0 확인 뒤 QA 보관소로 옮겼고 원본 씬/빌드 설정을 보존했다. 원 실패 로그와 guard는 유지한다.
 - G3 `verification-g3-execution-r1.json`: 실제 Unity의 WorkAmount owner 완료/취소·환불/실패/JSON 저장 복원·거절 보존/rollback/orphan/drain suite와 exact construction input descriptor가 각 exit0. 후자의 구형 schema10 기대만 현재14로 수정했고 production DTO/validation은 변화0. 최신 Editor native build19.33초/errors0; Runtime2723/Buildings32/Economy95는 기존 검증 후 불변. `verification-native-current-source-r5.json`에 current source/native binding을 남겼다. 통제 Editor runtime fixture이며 자연 worker AI 증거가 아니다.
 - C16 `verification-c16-medical-execution-r1.json`: 공식 party/Gameplay 뒤 Orc PopulationProfilePreparing으로 원40초 내 입장하지 못해 native exit1, memory guard 없음. 식사/신체/Society/AIRescue/공식 복원은 미도달이므로 미완료다. 기준이나 생산 코드는 바꾸지 않았다. 소스 처리32/실제20·잔여12와 최종 통합 유지, 전체 Goal 완료 아님. 인덱스·현재 핀 마감은 `actual-followup-close-r1.json`을 따른다.
+
+## N01–N07 batch N-A (2026-10-24)
+- 독립 작성자 모두 READY/FROZEN, 메인 통합 완료. SOURCE_EDIT 종료 → UNITY_VERIFY. CUHA Unity0/lock 획득/여유10.08GiB, 기존 r113sa drift0 재확인. r114sn으로 현재 입력을 동결한다.
+- Roslyn 구문 분석 errors0, diff whitespace 오류0. 아직 현재 수정의 Unity 컴파일/실행 PASS는 아니다.
+- r114sn so-authoring: 40초, compiler errors9(고유3), exit1, drift0. 모델 asmdef의 Work 직접 참조 누락이며 실행 미도달. Unity0/lock 획득 확인 후 SOURCE_EDIT N-B에서 Environment/Species/Offense→Work를 명시했다(기존 rank3 아래 의존, 순환 없음). fluid null목록 Supports의 기존 false 의미도 보존했다. 다시 FROZEN.
+- Python CI67/67, DSB001–008 analyzer byte-equivalence PASS, 게시3544 SO/10607 보호 필드 호환성 PASS.
+
+- r115sn so-authoring: C# 오류0, exit1/260초/drift0. catalog 목록 안의 SO가 상위 root 문맥을 물려받아 정상 로컬 관계6개를 거절했다. Unity0/lockfree 확인 뒤 Visit 진입에서 실제 SO를 owner로 확정하는 국소 수정을 적용했다. r116sn 입력21654개, 변경1개, 원격 SHA drift0; 표적 authoring 재실행 중.
+
+- r116sn: 등록 참조 검사 통과 뒤 전역 목록만 가정한 기존 선택기 테스트에서 실패(exit1/190초/C#0/drift0). 로컬 종류는 전역 노출0을 검사하고 별도 owner/pending-row 시나리오로 정확한 후보를 검사하도록 수정했다.
+- r117sn: 기존 참조/작성/종족/연구 검사와 N01 검사 이후 미저장 campaign 행의 선택 목록 누락을 검출했다. native exit0이어도 예외와 최종 PASS marker 누락으로 FAIL 처리했다. Unity0/lockfree 확인 뒤 pending SO 복제 시 배열 크기와 자식 값을 모두 복사하도록 수정했다. 현재 r118sn 입력21654개와 변경3개가 서버 전체 SHA drift0이며 SO 작성 검증을 실행 중이다. 큰 전송의 연결 reset은 기존 manifest 대비 변경분 전송 및 원본 파일 SHA 일치 확인으로 복구했다.
+
+- r118sn: N01, owner-scoped 관계, 진화 금지 조합, 서비스 계약 통과. N07 fixture에 자동 효과 영수증 권위가 주입되지 않아 중복 방지 검사가 실패했다. 기존 실제 CharacterSkillActivationEditorFixture를 주입했고 r119sn은 동기화만 했다. r120sn에는 고정 스킬 새 행의 생성 snapshot 복제 방지도 포함했다.
+- r120sn 첫 실행은 C# 컴파일 완료 뒤 resource guard로 중단됐다. 여유 RAM 회복 뒤 동일 소스 retry1에서 N01~N07 기능 검사는 모두 통과했지만 pending SO 복제의 Generic container CopyFromSerializedProperty가 native console error를 남겨 최종 gate는 FAIL이었다(exit0이어도 PASS로 세지 않음). source drift0, 추가 파일0을 확인했다. 배열 크기와 구조 자식, leaf 값을 명시적으로 복사하도록 수정했으며 최종 gate의 소스 변경, 설정 변경, 콘솔 오류 진단을 분리했다. 현재 r121sn 입력21654개 동결, drift0으로 재실행 중이다. r120sn 문서 인덱스 생성과 최신성 검사는 통과했으나 이후 Editor 코드 변경으로 최종 마감 시 갱신한다.
+
+- r121sn 최종 SO 표적 검사 통과: so-authoring260초와 so-inspector150초 모두 native0, C#0, consoleErrors0, source drift0. N01 작업 종류, N02~N04 로컬 및 사용 문맥 후보, N05 서비스 계약, N06 금지 조합, N07 실제 작업 효과와 legacy JSON 복원 및 무중복 재시도를 확인했다. Inspector는 인증된 private Xvfb의 실제 Layout/Repaint, 새 행 초기화, 생성 snapshot 읽기 전용, 소스 무변경을 확인했다. 실패했던 이전 실행은 수용하지 않았다. 현재 같은 r121sn 소스의 필수 영향5그룹을 순차 실행한다.
+
+## N01~N07 현재 소스 실행 마감 (2026-10-24)
+
+최종 r121sn의 SO authoring260초, Inspector150초, effects560초, core190초, character160초, world250초, crop190초가 모두 native0/C#0/consoleErrors0/drift0으로 완료됐다. source72a4ca27a89469682d6e4d4b379c3c81d593d3664f5d5c8e85d3b2d67b338bbe, configca67916ce8dde4a7f92660d364a30acfaded193341d81ffa6456d23e4e37cb3d, 전체 입력21654개와 C# 등4752개를 결합했다. 실제 월드104섹션 저장, 공식 복원, 원래 상태 복구가 일치하며 작물 PlayMode 실행과 복원도 완료했다.
+
+현재 증거는 Artifacts/QA/ImpactCI/verification.json, n01-n07-verification.json, n-so-inspector-isolation.json, world-round-trip.txt다. 이전 실패와 R/U/I의 SO 증거를 덮어 PASS로 바꾸지 않았고 과거 영향 증거 링크는 main1f1f990a2에 고정했다. 최종 인덱스 생성, query5개, 내용/링크/최신성 검사 failure0이며 Python67개와 identity3544/10607, analyzer DSB001~DSB008 결과를 확인했다. Unity0/lockfree로 검증 창을 닫았으며 원본 Documents checkout은 보존했다. 원격 통합 결과는 실제 PR과 CI가 완료된 뒤 외부 n01-n07-integration-final.json에 기록한다.

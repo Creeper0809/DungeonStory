@@ -418,7 +418,12 @@ internal sealed class FluidFacilityInputOwnerAuthority :
 
             BuildingProcessFluidAbility process = building.BuildingData?
                 .GetAbility<BuildingProcessFluidAbility>();
-            if (process is not { allowsManualWaterFallback: true }
+            if (process == null)
+            {
+                continue;
+            }
+            process.ValidateOrThrow();
+            if (!process.allowsManualWaterFallback
                 || process.cleanWaterPerCycle <= 0f)
             {
                 continue;

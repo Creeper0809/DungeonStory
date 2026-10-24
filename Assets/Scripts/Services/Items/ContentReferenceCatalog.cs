@@ -63,7 +63,11 @@ public sealed class ContentReferenceCatalog
         ContentReferenceKind.Disease => typeof(DiseaseDefinitionSO),
         ContentReferenceKind.InvasionPattern => typeof(GameDomainContentCatalogSO),
         ContentReferenceKind.WorkerTrait or ContentReferenceKind.WorkType => typeof(ScriptableObject),
-        ContentReferenceKind.SkillCapability => typeof(CharacterSkillSystemSettingsSO),
+        ContentReferenceKind.SkillCapability or ContentReferenceKind.SkillModule or ContentReferenceKind.SkillVariant => typeof(CharacterSkillSystemSettingsSO),
+        ContentReferenceKind.CampaignTarget => typeof(OffenseCampaignCatalogSO),
+        ContentReferenceKind.AcquiredTraitBinding => typeof(CharacterAcquiredTraitModuleSO),
+        ContentReferenceKind.EquipmentCapability => typeof(EquipmentEvolutionFormulaCatalogSO),
+        ContentReferenceKind.FacilityCapability => typeof(FacilityEvolutionRecipeSO),
         ContentReferenceKind.GameplayValueTarget => typeof(GameplayEffectDefinitionSO),
         _ => throw new ArgumentOutOfRangeException(nameof(kind))
     };
@@ -94,6 +98,48 @@ public sealed class ContentReferenceCatalog
         return found;
     }
 
+    public static bool RequiresOwnerContext(ContentReferenceKind kind) => kind is
+        ContentReferenceKind.CampaignTarget or ContentReferenceKind.AcquiredTraitBinding
+        or ContentReferenceKind.SkillCapability or ContentReferenceKind.SkillVariant
+        or ContentReferenceKind.EquipmentCapability or ContentReferenceKind.FacilityCapability;
+
+    // Local relationships are scoped to their owning asset. They must never use
+    // the global cache: two catalogs may intentionally publish the same local ID.
+    public IReadOnlyList<Entry> Entries(ContentReferenceAttribute reference, ScriptableObject root, object owner = null)
+    {
+        if (reference.Kind == ContentReferenceKind.CampaignTarget)
+            return root is OffenseCampaignCatalogSO campaign
+                ? (campaign.Targets ?? Array.Empty<OffenseTargetDefinition>()).Where(value => value != null)
+                    .Select(value => new Entry(root, value.id)).ToArray() : Array.Empty<Entry>();
+        if (reference.Kind == ContentReferenceKind.AcquiredTraitBinding)
+            return root is CharacterAcquiredTraitModuleSO acquired
+                ? acquired.Effects.Where(value => value != null).Select(value => new Entry(root, value.bindingId)).ToArray()
+                : Array.Empty<Entry>();
+        if (reference.Kind == ContentReferenceKind.SkillCapability)
+        {
+            if (root is CharacterAcquiredTraitModuleSO or CharacterAcquiredTraitSettingsSO)
+                return assets.OfType<CharacterAcquiredTraitModuleSO>()
+                    .Select(value => new Entry(value, value.CapabilityId)).ToArray();
+            if (root is CharacterSkillSystemSettingsSO skillSettings)
+                return skillSettings.Modules.Where(value => value != null)
+                    .Select(value => new Entry(root, CharacterSkillModuleCapabilityRegistry.Require(value).CapabilityId)).ToArray();
+            return Array.Empty<Entry>();
+        }
+        if (reference.Kind == ContentReferenceKind.SkillVariant)
+            return owner is CharacterSkillModuleSelection selection
+                ? assets.OfType<CharacterSkillSystemSettingsSO>().SelectMany(settings =>
+                    (settings.FindModule(selection.moduleId)?.variants ?? new List<CharacterSkillNumericVariant>())
+                    .Where(value => value != null).Select(value => new Entry(settings, value.id))).ToArray()
+                : Array.Empty<Entry>();
+        if (reference.Kind == ContentReferenceKind.EquipmentCapability)
+            return root is EquipmentEvolutionFormulaCatalogSO equipment
+                ? equipment.ReferenceCapabilityIds().Select(id => new Entry(root, id)).ToArray() : Array.Empty<Entry>();
+        if (reference.Kind == ContentReferenceKind.FacilityCapability)
+            return root is FacilityEvolutionRecipeSO facility
+                ? facility.ReferenceCapabilityIds().Select(id => new Entry(root, id)).ToArray() : Array.Empty<Entry>();
+        return Entries(reference);
+    }
+
     public IReadOnlyList<Entry> AnatomyNodesFor(MedicalProcedureFamily family, bool allowsWildlife,
         IReadOnlyList<string> allowedFamilies, IReadOnlyList<string> allowedSpecies)
     {
@@ -111,6 +157,11 @@ public sealed class ContentReferenceCatalog
     private Entry[] BuildEntries(ContentReferenceAttribute reference)
     {
         ContentReferenceKind kind = reference.Kind;
+        if (RequiresOwnerContext(kind) && kind != ContentReferenceKind.SkillCapability)
+            return Array.Empty<Entry>();
+        if (kind == ContentReferenceKind.SkillModule)
+            return assets.OfType<CharacterSkillSystemSettingsSO>().SelectMany(settings => settings.Modules
+                .Where(value => value != null).Select(value => new Entry(settings, value.id))).ToArray();
         Type targetType = kind == ContentReferenceKind.Definition
             ? ResolveType(reference.DefinitionTypeName) : AssetType(kind);
         var result = new List<Entry>();
@@ -296,6 +347,9 @@ public sealed class ContentReferenceCatalog
         if (!visited.Add(value)) return;
         if (value is UnityEngine.Object unity && unity == null) return;
         if (value is UnityEngine.Object && value is not ScriptableObject) return;
+        // Collection elements establish their own definition scope just like
+        // directly referenced SO fields; nested records retain that scope.
+        if (value is ScriptableObject definition) root = definition;
         if (value is IEnumerable sequence)
         {
             Type element = value.GetType().IsArray ? value.GetType().GetElementType()
@@ -309,6 +363,21 @@ public sealed class ContentReferenceCatalog
             errors.AddRange(enemy.ValidateDefinition().Select(error => path + ": " + error));
         if (value is HeritableTraitDefinitionSO heritable)
             errors.AddRange(heritable.ValidateDefinition().Select(error => path + ": " + error));
+        if (value is CharacterAcquiredTraitModuleSO acquiredModule)
+            errors.AddRange(acquiredModule.ValidateDefinition().Select(error => path + ": " + error));
+        if (value is OffenseCampaignCatalogSO campaign)
+            errors.AddRange(campaign.ValidateDefinition().Select(error => path + ": " + error));
+        if (value is CharacterSO ownerCharacter && ownerCharacter.IsOwnerCandidate)
+        {
+            try
+            {
+                CharacterOwnerFixedSkillUtility.GetSkills(ownerCharacter,
+                    assets.OfType<CharacterSkillSystemSettingsSO>().SingleOrDefault()
+                    ?? throw new InvalidOperationException("Owner fixed skills require registered skill settings."));
+            }
+            catch (Exception exception) when (exception is InvalidOperationException or ArgumentException)
+            { errors.Add(path + ": " + exception.Message); }
+        }
         if (value is CharacterSO character && character.species != null)
         {
             if (!Entries(new ContentReferenceAttribute(ContentReferenceKind.Species)).Any(entry => entry.Asset == character.species)
@@ -358,9 +427,9 @@ public sealed class ContentReferenceCatalog
                     if (member is IEnumerable collection && member is not string)
                     {
                         int index = 0;
-                        foreach (object item in collection) ValidateId(item, resolved, reference.Kind, $"{memberPath}[{index++}]", errors);
+                        foreach (object item in collection) ValidateId(item, resolved, reference.Kind, $"{memberPath}[{index++}]", errors, root, value);
                     }
-                    else ValidateId(member, resolved, reference.Kind, memberPath, errors);
+                    else ValidateId(member, resolved, reference.Kind, memberPath, errors, root, value);
                 }
             }
             Visit(member, memberPath, member as ScriptableObject ?? root, visited, errors);
@@ -371,7 +440,7 @@ public sealed class ContentReferenceCatalog
         string.Equals(left, right, reference.IgnoreCase ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal);
 
     private void ValidateId(object value, ContentReferenceAttribute reference, ContentReferenceKind requested,
-        string path, List<string> errors)
+        string path, List<string> errors, ScriptableObject root, object owner)
     {
         string id = Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty;
         if (requested == ContentReferenceKind.AuthoredEffectText && string.IsNullOrWhiteSpace(id))
@@ -384,6 +453,13 @@ public sealed class ContentReferenceCatalog
         if ((reference.Aliases ?? string.Empty).Split('|').Any(alias => Matches(reference, alias, id))) return;
         if (requested == ContentReferenceKind.EffectTarget && reference.Kind == ContentReferenceKind.Faction
             && (id == "affected-faction" || id == "requesting-faction")) return;
+        if (RequiresOwnerContext(reference.Kind))
+        {
+            int localCount = Entries(reference, root, owner).Count(entry => Matches(reference, entry.Id, id));
+            if (localCount != 1)
+                errors.Add($"{path}: unknown or ambiguous owner-scoped {reference.Kind} reference '{id}'.");
+            return;
+        }
         string key = $"{reference.Kind}:{reference.DefinitionTypeName}:{reference.IdMemberName}:{reference.IgnoreCase}";
         if (!matchCounts.TryGetValue(key, out var counts))
         {

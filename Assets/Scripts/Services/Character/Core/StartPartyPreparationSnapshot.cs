@@ -143,15 +143,25 @@ public static class CharacterOwnerFixedSkillUtility
             CharacterSkillTrigger.WorkCompleted)
     };
 
-    public static IReadOnlyList<CharacterSkillInstance> GetSkills(CharacterSO ownerData)
+    public static IReadOnlyList<CharacterSkillInstance> GetSkills(
+        CharacterSO ownerData, CharacterSkillSystemSettingsSO settings = null)
     {
         if (ownerData == null || !ownerData.IsOwnerCandidate)
         {
             return Array.Empty<CharacterSkillInstance>();
         }
 
-        List<CharacterSkillInstance> skills = ownerData.OwnerFixedSkills
-            .Where(skill => skill != null && !string.IsNullOrWhiteSpace(skill.displayName))
+        CharacterSkillInstance[] authored = ownerData.OwnerFixedSkills.ToArray();
+        if (authored.Length > FixedSlotCount || authored.Any(skill => skill == null
+                || string.IsNullOrWhiteSpace(skill.displayName)
+                || skill.modules == null || skill.modules.Count == 0
+                || skill.modules.Any(module => module == null)
+                || skill.formulaVersion > 0 && (skill.formulaCapabilities == null
+                    || skill.formulaCapabilities.Any(value => value == null)
+                    || skill.evidenceBindings == null || skill.evidenceBindings.Any(value => value == null))))
+            throw new InvalidOperationException(
+                $"Character '{ownerData.name}' has incomplete or excessive owner fixed skills.");
+        List<CharacterSkillInstance> skills = authored
             .Select(skill => Normalize(skill.Clone(), ownerData))
             .ToList();
 
@@ -160,7 +170,37 @@ public static class CharacterOwnerFixedSkillUtility
             skills.Add(FallbackSkills[i].Clone());
         }
 
-        return skills.Take(FixedSlotCount).ToArray();
+        if (skills.Any(skill => !skill.IsReady)
+            || skills.Select(skill => skill.id).Distinct(StringComparer.Ordinal).Count() != skills.Count)
+            throw new InvalidOperationException(
+                $"Character '{ownerData.name}' has unpublished or duplicate owner fixed skills.");
+        if (settings != null)
+            foreach (CharacterSkillInstance skill in skills) ValidateReferences(skill, settings);
+        return skills.ToArray();
+    }
+
+    private static void ValidateReferences(CharacterSkillInstance skill, CharacterSkillSystemSettingsSO settings)
+    {
+        if (skill.formulaVersion < 0)
+            throw new InvalidOperationException($"Owner fixed skill '{skill.id}' has an invalid formula version.");
+        if (skill.modules.Select(value => value.moduleId).Distinct(StringComparer.Ordinal).Count() != skill.modules.Count)
+            throw new InvalidOperationException($"Owner fixed skill '{skill.id}' contains duplicate module selections.");
+        foreach (CharacterSkillModuleSelection selection in skill.modules)
+        {
+            CharacterSkillModuleRule[] matches = settings.Modules.Where(value => value != null
+                && string.Equals(value.id, selection.moduleId, StringComparison.Ordinal)).ToArray();
+            if (matches.Length != 1)
+                throw new InvalidOperationException($"Owner fixed skill '{skill.id}' names unknown or ambiguous module '{selection.moduleId}'.");
+            CharacterSkillModuleRule module = matches[0];
+            _ = CharacterSkillModuleCapabilityRegistry.Require(module);
+            if (skill.formulaVersion == 0 && (module.variants == null
+                || module.variants.Count(value => value != null
+                    && string.Equals(value.id, selection.variantId, StringComparison.Ordinal)) != 1))
+                throw new InvalidOperationException($"Owner fixed skill '{skill.id}' names unknown or ambiguous variant '{selection.variantId}' for '{selection.moduleId}'.");
+        }
+        // Generated skills keep their frozen versioned authority; never rebuild
+        // their envelope from today's variant values or mutate the source SO.
+        CharacterSkillFormulaGeneration.ValidateRestoredFormulaSkill(skill, settings);
     }
 
     private static CharacterSkillInstance Normalize(CharacterSkillInstance skill, CharacterSO ownerData)
