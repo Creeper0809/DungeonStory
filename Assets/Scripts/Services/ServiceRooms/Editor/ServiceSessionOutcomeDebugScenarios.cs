@@ -1156,6 +1156,13 @@ public static class ServiceSessionOutcomeDebugScenarios
             fixture.ReplaceRuntime(saved, viaSection: true);
             fixture.SetBuildings(fixture.Hub);
             int balance = fixture.Money.Balance;
+            ServiceRoomsSaveData blockedSave = fixture.RoundTrip(fixture.Runtime.Capture());
+            Require(fixture.RequireSession(session.SessionId).IsActive
+                && fixture.CountTerminalOutcomes() == 0 && fixture.Money.Balance == balance,
+                "Saving a temporarily blocked process cancelled its pending session.");
+            fixture.ReplaceRuntime(blockedSave, viaSection: true);
+            Require(fixture.RequireSession(session.SessionId).IsActive,
+                "Temporarily blocked session did not survive V7 JSON restore.");
             Require(!fixture.Runtime.TrySetStage(session.SessionId, ServiceSessionStage.Service, out failure)
                 && failure.Code == FailureCode.ServiceFeatureMissing, "Restored stage command bypassed missing process feature.");
             Require(!fixture.Runtime.TryCompleteSession(session.SessionId, out _, out failure)
@@ -1170,7 +1177,7 @@ public static class ServiceSessionOutcomeDebugScenarios
             fixture.Runtime.TryCompleteSession(session.SessionId, out _, out _);
             Require(fixture.Money.SuccessfulCredits.Count == 1 && fixture.CountTerminalOutcomes() == 1,
                 "Service completion retry repeated payment or terminal publication.");
-            Debug.Log("R19_SERVICE_PROCESS_FEATURE=PASS; real-room-support-link; rejection-before-reservation; V7-json-restore; missing-link-atomic-reject; repair-retry; payment-once");
+            Debug.Log("R19_SERVICE_PROCESS_FEATURE=PASS; real-room-support-link; rejection-before-reservation; V7-json-restore; blocked-save-restore-preserved; missing-link-atomic-reject; repair-retry; payment-once");
         }
         finally
         {

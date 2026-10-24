@@ -1,14 +1,14 @@
 {
   "schema": "so-audit-remediation-v1",
-  "scope": "R19-01 through R19-20; bounded authoring, actual consumer commands, JSON restore/retry and actual IMGUI; not exhaustive gameplay or balance certification",
+  "scope": "R19-01 through R19-20, including R19-07 temporarily blocked capture/restore/retry; bounded contracts, not exhaustive gameplay or balance certification",
   "source": {
-    "digest": "4b61fd8575a91115682a4a50267930a9d1cd27b997499d82c59df79ca0588b0b",
+    "digest": "2bca6d13a58e24bf8ae9edded82968293a2743e6e3a9e6e9f3c3b8879ecd0587",
     "count": 4762,
     "pathsDigest": "38d557e335f4e4f9512b0c91cc0696623866ee6ad8d05f4e20fe392e22cbde47"
   },
-  "configurationDigest": "06520602d53b966e38f0a99f33686b51805b2ae9e72c0f7a3e56d13e3c7ad147",
+  "configurationDigest": "ee0e4dc0da3d0beddbaf5403150f4747f01d6afd3944f2ae25dc165d3a481582",
   "platform": "CUHA Linux; Inspector authenticated private Xvfb, no user display",
-  "sourceManifest": "r138sr; 21674 complete pre/post SHA-verified inputs",
+  "sourceManifest": "r139sr; 21674 complete pre/post SHA-verified inputs",
   "checks": [
     {
       "group": "so-authoring",
@@ -25,14 +25,14 @@
     {
       "group": "so-runtime",
       "method": "V27CiEvidenceBatch.RunSoRuntimeContracts",
-      "sourceLabel": "r137sr",
-      "sourceDigest": "ca8ff0763ecb0aff4398cbd0d16bec95a3ceb5a9eb12d6c61da2f44c40b3c0d0",
-      "configurationDigest": "842eaf08746be492b8e8f5555170a18b8d6cc523ca3e9f0ba1990961ede0054d",
-      "nativeLabel": "r137sr-impact-so-runtime",
+      "sourceLabel": "r139sr",
+      "sourceDigest": "2bca6d13a58e24bf8ae9edded82968293a2743e6e3a9e6e9f3c3b8879ecd0587",
+      "configurationDigest": "ee0e4dc0da3d0beddbaf5403150f4747f01d6afd3944f2ae25dc165d3a481582",
+      "nativeLabel": "r139sr-impact-so-runtime",
       "log": "Artifacts/QA/ImpactCI/r19-so-runtime.log",
-      "logSha256": "cdc29084821f15d7fe10fc9680aa44be114ef3599ff6a7fdb93931a64e0f4e3c",
+      "logSha256": "3490cb6191793785e8f83a9bbe5dfa728536d285880d6738db358d04ef90b352",
       "summary": "Artifacts/QA/ImpactCI/r19-so-runtime-summary.json",
-      "summarySha256": "884488787216d4a250b6f4b1b6cd544cd025b8b67f5d2a0d8e934c5f35e1e78d"
+      "summarySha256": "33129d13f4703952373724e51b1c7823ccaf4371efe1a9cffde075cbb96071bf"
     },
     {
       "group": "so-inspector",
@@ -52,20 +52,48 @@
   "acceptedReuse": {
     "groups": [
       "so-authoring",
-      "so-runtime"
+      "so-inspector"
     ],
-    "proofLabel": "r137sr",
-    "acceptedForLabel": "r138sr",
-    "proofSourceDigest": "ca8ff0763ecb0aff4398cbd0d16bec95a3ceb5a9eb12d6c61da2f44c40b3c0d0",
-    "proofConfigurationDigest": "842eaf08746be492b8e8f5555170a18b8d6cc523ca3e9f0ba1990961ede0054d",
-    "reason": "Only the Editor pending-value reader changed: managed references are independently cloned and every pending child is copied. Production code, authored assets, validation registries, runtime/save consumers and all fixtures are byte-identical. Final-source native Inspector reruns all affected pending and managed-reference choices, Layout/Repaint, Apply/Undo and source preservation. All five mandatory impact groups execute on the final source. Original source identities are retained.",
-    "comparedInputCount": 21674,
-    "differences": [
+    "acceptedForLabel": "r139sr",
+    "comparisons": [
       {
-        "path": "Assets/Editor/ContentReferenceDrawer.cs",
-        "beforeSha256": "619e881175ad149a144a096f42c4148285f826e7a4577a3db00bb81dfcba1c0b",
-        "afterSha256": "a730187c3784cd43b6d6c4537a64eebc90e6f62e997ebf4ca5a47602fa0c4e34"
+        "proofLabel": "r137sr",
+        "comparedInputCount": 21674,
+        "differences": [
+          {
+            "path": "Assets/Editor/ContentReferenceDrawer.cs",
+            "beforeSha256": "619e881175ad149a144a096f42c4148285f826e7a4577a3db00bb81dfcba1c0b",
+            "afterSha256": "a730187c3784cd43b6d6c4537a64eebc90e6f62e997ebf4ca5a47602fa0c4e34"
+          },
+          {
+            "path": "Assets/Scripts/Services/ServiceRooms/Editor/ServiceSessionOutcomeDebugScenarios.cs",
+            "beforeSha256": "506e72f19306297dda5a74c5005a497de7daa5839e5bfe7e66c2a2a87ff8f05d",
+            "afterSha256": "e15c8e31af8cfec06932c662f0e2173bd1885dedb386a7cbac62da5037c87e4a"
+          },
+          {
+            "path": "Assets/Scripts/Services/ServiceRooms/ServiceSessionRuntime.cs",
+            "beforeSha256": "fed40613eeafd067f9f3c01de196a27b5c18bc2e94c7edc4bbae26604dcd352f",
+            "afterSha256": "410b4c473743f75e92a5ee01e7140906397466fb2ff9d784d5afd99dc207efe9"
+          }
+        ]
+      },
+      {
+        "proofLabel": "r138sr",
+        "comparedInputCount": 21674,
+        "differences": [
+          {
+            "path": "Assets/Scripts/Services/ServiceRooms/Editor/ServiceSessionOutcomeDebugScenarios.cs",
+            "beforeSha256": "506e72f19306297dda5a74c5005a497de7daa5839e5bfe7e66c2a2a87ff8f05d",
+            "afterSha256": "e15c8e31af8cfec06932c662f0e2173bd1885dedb386a7cbac62da5037c87e4a"
+          },
+          {
+            "path": "Assets/Scripts/Services/ServiceRooms/ServiceSessionRuntime.cs",
+            "beforeSha256": "fed40613eeafd067f9f3c01de196a27b5c18bc2e94c7edc4bbae26604dcd352f",
+            "afterSha256": "410b4c473743f75e92a5ee01e7140906397466fb2ff9d784d5afd99dc207efe9"
+          }
+        ]
       }
-    ]
+    ],
+    "reason": "The final follow-up changes only the service Capture cancellation predicate and its existing runtime regression. Registered definitions, authored assets, all authoring validation and Inspector code/fixtures are unchanged from the accepted Inspector input. The older authoring input additionally differs only in the already-verified pending reader fix. Final-source runtime explicitly verifies missing-feature Capture, V7 JSON section restore, execution rejection, repair retry and one payment. All five mandatory impact groups execute on the final input. Each reused run retains its actual source/configuration identity."
   }
 }
