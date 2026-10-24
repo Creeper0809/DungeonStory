@@ -2,7 +2,7 @@
 
 ## 현재 Goal — R19-01~20 수정과 실제 검증/main 통합 (2026-10-24)
 
-Status: integration / branch `codex/fix-so-r19`, base main886973b7. R19-01~20 구현, 필요한 실제 실행과 문서/영수증 마감을 완료했다. 작성360초/runtime240초 및 최종 private Inspector260초, r138sr effects1040/core240/character180/world250/crop200초 모두 수용했다. commit/push, PR CI, main 병합과 후속 CI를 마무리한다. 원본 checkout 및 QA를 보존했다.
+Status: follow-up integration / branch `codex/fix-so-r19-save-retry`, base main cd73a69e4. PR20과 PR/main CI는 성공했다. R19-07 일시 불가 상태의 저장/복원 보존을 보완했고 r139 runtime380초 및 effects1050/core240/character180/world250/crop200초 모두 수용했다. 현재 입력 영수증, 문서와 생성 인덱스를 마감했다. 후속 commit/push, PR CI, main 병합과 후속 CI를 완료한다. 원본 checkout 및 QA를 보존한다.
 
 1. 진행/소비: R01 엔딩 flag 생산과 호환, R02 시설 조건의 단일 평가, R03 실제 counter 생산 및 선택 검증을 우선 수정.
 2. 호환/정의: R04/R16 게시 보호, R05~19의 기존 owner/registry 선택과 조기 거절, 기본 genome/촉매/서비스/작업 정책 권위를 통합. R20 미소비 metadata와 실제 생태 관계 검증을 구분한다.

@@ -755,7 +755,7 @@ public sealed class ServiceSessionRuntime :
                     process.OwnerHubTag,
                     ability.ServiceHubTag,
                     StringComparison.Ordinal);
-            if (validActor && validHub && validProcess && ValidateSessionFeatures(session, out _))
+            if (validActor && validHub && validProcess)
             {
                 continue;
             }
