@@ -8,8 +8,9 @@ using UnityEngine;
 [Serializable]
 public sealed class ProductionMassExplanationAuthoring
 {
-    [SerializeField] private string capabilityId = string.Empty;
-    [SerializeField] private int contractVersion;
+    [ContentReference(ContentReferenceKind.ProductionMassPolicy), SerializeField]
+    private string capabilityId = string.Empty;
+    [HideInInspector, SerializeField] private int contractVersion;
     [SerializeField] private string canonicalPayload = string.Empty;
 
     public string CapabilityId => capabilityId ?? string.Empty;

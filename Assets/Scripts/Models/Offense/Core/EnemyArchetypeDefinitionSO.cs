@@ -98,6 +98,7 @@ public sealed class EnemyArchetypeDefinitionSO : ScriptableObject
     [ContentReference(ContentReferenceKind.EnemyAbility)]
     public List<string> abilityIds = new();
     public EnemyTacticalProfile tacticalProfile = new();
+    [ContentReference(ContentReferenceKind.BattleCounter)]
     public List<string> counterTags = new();
     [ContentReference(ContentReferenceKind.Item)]
     public List<string> rewardItemIds = new();
@@ -119,6 +120,14 @@ public sealed class EnemyArchetypeDefinitionSO : ScriptableObject
             errors.Add($"'{stableId}' requires a valid tactical profile.");
         if (counterTags == null || counterTags.Count == 0 || counterTags.Any(string.IsNullOrWhiteSpace))
             errors.Add($"'{stableId}' requires counter tags.");
+        else
+        {
+            foreach (string counterTag in counterTags.Where(value =>
+                         !OffenseBattleCounterRules.IsDeclared(value)))
+            {
+                errors.Add($"'{stableId}' has an unknown battle counter tag '{counterTag}'.");
+            }
+        }
         if (individualGeneration == null || !individualGeneration.IsValid)
             errors.Add($"'{stableId}' requires a valid individual-generation profile.");
         if (bossPhases == null)

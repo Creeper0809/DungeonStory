@@ -364,23 +364,29 @@ public sealed class CropEcologyAggregateState
     public IReadOnlyList<CropEcologyPlotSaveData> Plots => plots.Values
         .OrderBy(value => value.plotId, StringComparer.Ordinal).ToArray();
 
-    public bool TryClaimInitialSeedGrant(out IReadOnlyList<SeedLotState> seedLots)
+    public bool TryClaimInitialSeedGrant(
+        IReadOnlyCollection<string> baseGenomeIds,
+        out IReadOnlyList<SeedLotState> seedLots)
     {
+        if (baseGenomeIds == null)
+            throw new ArgumentNullException(nameof(baseGenomeIds));
         if (initialSeedGrantIssued)
         {
             seedLots = Array.Empty<SeedLotState>();
             return false;
         }
-        CultivarGenomeSaveData[] bases = active.Values
-            .Where(value => value.generation == 0
-                && value.genomeId.EndsWith(
-                    ":base",
-                    StringComparison.Ordinal))
-            .OrderBy(value => value.cropId, StringComparer.Ordinal).ToArray();
+        CultivarGenomeSaveData[] bases = baseGenomeIds
+            .Select(RequireGenome)
+            .OrderBy(value => value.cropId, StringComparer.Ordinal)
+            .ToArray();
         if (bases.Length == 0
-            || bases.Select(value => value.cropId).Distinct(StringComparer.Ordinal).Count() != bases.Length)
+            || bases.Any(value => value.generation != 0)
+            || bases.Select(value => value.genomeId)
+                .Distinct(StringComparer.Ordinal).Count() != bases.Length
+            || bases.Select(value => value.cropId)
+                .Distinct(StringComparer.Ordinal).Count() != bases.Length)
             throw new InvalidOperationException(
-                "Initial seed grant requires exactly one base cultivar per crop.");
+                "Initial seed grant requires exactly one registered direct base cultivar per crop.");
         initialSeedGrantIssued = true;
         seedLots = bases.Select(value => new SeedLotState
         {

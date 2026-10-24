@@ -327,7 +327,7 @@ public sealed class CropEcologyRuntime :
     public const string GeneticsRandomStreamId = "crop:genetics";
     private readonly DungeonRuntimeAggregateRootStore rootStore;
     private readonly CropGenomeDefinitionSO[] authoredGenomes;
-    private readonly CropGenomeDefinitionSO[] baseGenomes;
+    private readonly string[] baseGenomeIds;
     private readonly IRandomStream random;
     private readonly IStockQuery stock;
     private int version = 1;
@@ -339,22 +339,24 @@ public sealed class CropEcologyRuntime :
         IStockQuery stock)
     {
         this.rootStore = rootStore ?? throw new ArgumentNullException(nameof(rootStore));
-        authoredGenomes = (content ?? throw new ArgumentNullException(nameof(content)))
+        IGameContentCatalog authoredContent = content
+            ?? throw new ArgumentNullException(nameof(content));
+        authoredGenomes = authoredContent
             .GetAll<CropGenomeDefinitionSO>()
+            .Where(value => value != null)
             .OrderBy(value => value.GenomeId, StringComparer.Ordinal)
             .ToArray();
-        HashSet<string> authoredCropIds = content
+        CropDefinitionSO[] authoredCrops = authoredContent
             .GetAll<CropDefinitionSO>()
             .Where(value => value != null)
+            .OrderBy(value => value.CropId, StringComparer.Ordinal)
+            .ToArray();
+        HashSet<string> authoredCropIds = authoredCrops
             .Select(value => value.CropId)
             .Where(value => !string.IsNullOrWhiteSpace(value))
             .ToHashSet(StringComparer.Ordinal);
-        baseGenomes = authoredGenomes
-            .Where(value => value.GenomeId.EndsWith(
-                ":base",
-                StringComparison.Ordinal))
-            .ToArray();
-        if (authoredCropIds.Count == 0
+        if (authoredCrops.Length == 0
+            || authoredCropIds.Count != authoredCrops.Length
             || authoredGenomes.Length == 0
             || authoredGenomes.Any(value => string.IsNullOrWhiteSpace(value.GenomeId)
                 || string.IsNullOrWhiteSpace(value.CropId)
@@ -362,14 +364,19 @@ public sealed class CropEcologyRuntime :
                 || value.ValidateDefinition().Count != 0)
             || authoredGenomes.Select(value => value.GenomeId)
                 .Distinct(StringComparer.Ordinal).Count() != authoredGenomes.Length
-            || baseGenomes.Length != authoredCropIds.Count
-            || baseGenomes.Select(value => value.CropId)
-                .Distinct(StringComparer.Ordinal).Count() != baseGenomes.Length
-            || !baseGenomes.Select(value => value.CropId)
-                .ToHashSet(StringComparer.Ordinal)
-                .SetEquals(authoredCropIds))
+            || authoredCrops.Any(crop => crop.BaseGenome == null
+                || !string.Equals(
+                    crop.BaseGenome.CropId,
+                    crop.CropId,
+                    StringComparison.Ordinal)
+                || !authoredGenomes.Any(genome => ReferenceEquals(
+                    genome,
+                    crop.BaseGenome))))
             throw new InvalidOperationException(
-                "Crop ecology requires valid unique authored genomes and exactly one base genome per crop.");
+                "Crop ecology requires valid unique authored genomes and exactly one registered direct base genome per crop.");
+        baseGenomeIds = authoredCrops
+            .Select(value => value.BaseGenome.GenomeId)
+            .ToArray();
         random = (randomStreams ?? throw new ArgumentNullException(nameof(randomStreams)))
             .Get(GeneticsRandomStreamId);
         this.stock = stock ?? throw new ArgumentNullException(nameof(stock));
@@ -461,7 +468,9 @@ public sealed class CropEcologyRuntime :
     public CropEcologyWorldSaveData Capture() => Current.Capture();
     public bool TryClaim(out IReadOnlyList<SeedLotState> seedLots)
     {
-        bool claimed = Writable.TryClaimInitialSeedGrant(out seedLots);
+        bool claimed = Writable.TryClaimInitialSeedGrant(
+            baseGenomeIds,
+            out seedLots);
         if (claimed) version = unchecked(version + 1);
         return claimed;
     }

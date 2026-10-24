@@ -1,5 +1,127 @@
 # SO 관계 전수 감사 — 2026-10-24
 
+## R19-01~20 수정 및 필요한 실행 검증 완료
+
+기준 main은 886973b7이다. 아래는 그 감사에서 찾은 20묶음의 수정 결과이며, 모든 미래 콘텐츠와 임의 코드 변경까지 자동으로 안전하다는 보증이 아니다. 기존 에셋, 게시 ID, GUID 및 저장 DTO 버전은 유지했다.
+
+| 항목 | 수정 | 필요한 확인 경계 |
+|---|---|---|
+| R19-01 | 실제 120일 생산 권위에서 기존 엔딩 flag를 호환 투영 | 119일 JSON 후120일 완료, 같은 날/복원 후 무중복 |
+| R19-02 | 실제 시설 능력과 운영 판정을 snapshot과 live query에 공유 | 실제 시설 projector, preflight, 장 선택, 불가 시 무변경과 복원 |
+| R19-03 | 실제 장비 counter가 있을 때만 기존9키를 호환 투영 | 빈 파티, 실제 장비와 spore 전투 계산, unknown 거절 |
+| R19-04 | WorkType symbol과 저장 ID의 대응을 보호 | ID 교환/제거/rename 반례와 정상 추가 |
+| R19-05 | behavior registry와 domain에서 후보 생성 | 잘못된 행도 수정 후보 유지, unknown 거절, 실제 Inspector |
+| R19-06 | 실제 등록된 서비스 hub에서 선택 | 다른 hub와 unknown 거절 |
+| R19-07 | mode feature를 시작/단계/완료 명령에서 강제 | 실제 방/지원 연결, V7 JSON, 실패 후 복구와 결제1회 |
+| R19-08 | 직접 BaseGenome 참조가 초기 씨앗과 인증의 권위 | suffix와 다른 등록 genome, 초기 지급/복원/중복 거절 |
+| R19-09 | 촉매 feature와 runtime parser가 같은 ID 의미를 검증 | 현재 촉매와 잔재, family/potency/residue 모순 거절과 수정 재시도 |
+| R19-10 | 실제 score/metric 생산자에서 조건 key 선택 | max-only unknown 거절, provider 정의의 자유 key 유지 |
+| R19-11 | 실제 integer4/multiplier5 대상에서 종류별 선택 | 잘못된 종류/빈 target 거절, pending Inspector 문맥 |
+| R19-12 | 시작 숙련도 후보를 실제 허용9종으로 일치 | 등록 SO와 owner 허용 집합 대조 |
+| R19-13 | capacity의 미정의 enum과 null 행 거절 | 현재 정의와 invalid/수정 재시도 |
+| R19-14 | incident/category/mode를 의미가 표시된 숫자 선택기로 연결 | 정확한6/5/2 집합, 실제 Inspector와 invalid 거절 |
+| R19-15 | 정의의 작업자 정책에서 실행 인스턴스 ID 작성 금지 | 현재 정책, invalid 모드/ID 거절, runtime DTO JSON 보존 |
+| R19-16 | 게시된 에셋에도 새 빈 identity 추가 거절 | C#/Python 반례, 기존 legacy 빈 값 보존 |
+| R19-17 | formula parameter/mirror/applicator/stat을 실제 권위에 연결 | 종류/owner 선택과 거절, pending 입력과 atomic Undo |
+| R19-18 | 생산 registry ID와 version을 함께 선택하고 catalog 조립에서 등록 확인 | unknown ID/version 조기 거절, empty 계약과 payload 보존 |
+| R19-19 | 실제 tools/weather 생산자에서 조건 tag 선택 | 현재 후보, unknown 거절과 복구 |
+| R19-20 | 미소비 nest/migration/선호 family를 숨김 legacy metadata로 명시 | 실제 생태 관계만 집계, 현재 species 정의와 미정의 season 거절 |
+
+새 SO 분리나 저장 구조 재편은 하지 않았다. 기존 코드 registry와 provider 정의를 선택 권위로 사용한다. 독립 게임 기능이 없는 legacy 필드를 새 기능으로 표시하지 않는다. 전수 seed와 장기 밸런스 인증을 실행한 것으로 세지 않는다.
+
+[R19 작성/실행/Inspector 영수증](Artifacts/QA/ImpactCI/r19-verification.json), [변경 영향 실행](Artifacts/QA/ImpactCI/verification.json), [공식 월드 저장/복원](Artifacts/QA/ImpactCI/world-round-trip.txt), [Inspector 격리](Artifacts/QA/ImpactCI/r19-inspector-isolation.json).
+
+수용한 각 native 실행은 C# 오류0, consoleErrors0, source drift0이다. 실제 Inspector는 인증된 private Xvfb에서 Layout/Repaint와 pending 입력, Apply/Undo를 확인했다. 진행과 서비스의 통제된 실제 명령, 실제 장비 snapshot의 counter 계산, 공식 GameplayScene의 저장/복원을 구별한다. 자연 AI의 모든 콘텐츠 발동이나 사람의 전체 UI 조작을 전수 인증한 결과는 아니다.
+
+기존3544에셋/10721게시 키/WorkType31 보존, Python77개 및 고정 분석기 검증을 통과했다. r134 컴파일 및 r135 작성 실패는 실패로 보존했으며 과거 PASS를 현재 source로 바꾸지 않았다. 원본 Documents checkout과 과거 QA를 보존했다.
+
+실행 source `4b61fd8575a91115682a4a50267930a9d1cd27b997499d82c59df79ca0588b0b`, configuration `06520602d53b966e38f0a99f33686b51805b2ae9e72c0f7a3e56d13e3c7ad147`. GitHub 통합 완료 여부는 실제 PR과 CI 결과를 따른다.
+
+
+작성과 runtime 증거는 r137sr의 실제 PASS와 당시 source/configuration을 유지했다. r138sr과 전체21,674입력을 대조하여 차이가 Editor pending reader 한 파일뿐임을 확인했다. 저장과 실제 소비, 정의와 에셋은 동일하고, 변경된 입력 복사와 실제 Inspector 및 필수 영향5그룹은 최종 입력에서 실행했다. 이전 PASS의 식별자를 현재 것으로 바꾸지 않았다.
+
+## 수정 전 main886973b7 재감사 — 당시 잔여20묶음
+
+기준은 원격 main `886973b7e1aa3a3acf8af0de79f26af8a350e50b`다. 아래 R18 완료 표는 그 수정 범위의 기록이며, 전체 SO 관계에 잔여가 없다는 뜻으로 사용하지 않는다. 이번에는 현재 선언, 실제 에셋, Inspector, 게시 검사, 실제 생산자와 소비자를 다시 대조했다. **수정 전 판정이다.** 특히 엔딩 flag, 세력 시설 조건, 전투 counter는 현재 콘텐츠와 실행 코드 사이의 단절이다.
+
+이전 감사에서 별도 SO가 없는 코드 registry 관계를 자유 의미 키로 제외하고, 값이 유효하거나 검증기가 존재하는 것을 실제 소비와 동일시한 부분이 있었다. 이 판정을 정정한다. 반대로 새 identity를 정의하는 필드와 임의 표시 문구를 모두 외래키로 잠그지는 않는다.
+
+당시 요청은 조사였다. 해당 감사에서는 게임 코드와 에셋을 수정하거나 Unity, 실제 Inspector, Play와 저장/복원을 새로 실행하지 않았다. 아래의 실제 함수 변형 재현 2건은 Python 게시 검증기 호출이며 Unity 실행 증거가 아니다.
+
+### 모집단과 현재 값 대조
+
+| 확인 대상 | 결과 | 보장 범위 |
+|---|---:|---|
+| 현재 게임 SO 타입 | 142 | 상속, partial, 중첩 레코드, SerializeReference 구현을 포함한 탐색 |
+| 직렬화 선언 | 2,458 | 넓은 관계 후보 879개 외의 숫자/문자열 필드도 검토 |
+| ContentReference 선언 | 199 | 표식 존재와 실제 소비의 정합성을 별도 확인 |
+| 실제 게임 SO 에셋 | 3,544 | YAML 파싱 오류 0, 미게시 대상 0 |
+| 직접 지정된 GUID / asset fileID | 8,962 / 4,731 | 지정된 대상의 누락과 metadata 중복 0. 필수 미선택과 문자열 의미 검사는 별도 |
+| 게시 보호 필드 | 10,721 | 현재 에셋과 기존 보호값 일치. 아래 변경 반례의 차단을 뜻하지 않음 |
+| Roslyn Editor / Player 구문 분석 | 오류 0 | Unity 컴파일과 런타임 성공을 뜻하지 않음 |
+
+새 추출과 읽기 전용 대조는 외부 [R19 조사 폴더](C:/Users/vulpo/Documents/Codex/2026-10-24/so-full-audit/main-reaudit-r19)에 보존했다. 원본 Documents checkout과 과거 QA를 유지했고 생성 지식베이스는 갱신하지 않았다. 좁은 ContentReferenceCatalog query는 fresh였으며 결과가 없었던 다른 query를 부재 증명으로 사용하지 않았다.
+
+### 잔여 목록
+
+각 행은 수정 대상 묶음이며 필드 수나 이미 깨진 에셋 수가 아니다. P1을 먼저 처리하고 P2는 기존 경로의 국소 보완으로 다룬다. 값이 정상인 항목을 현재 플레이 장애로 부풀리지 않는다.
+
+| ID | 우선순위 | 남은 경계 | 현재 에셋과 영향 |
+|---|---|---|---|
+| R19-01 | P1 | 엔딩 요구 flag와 생산 flag 불일치 | 등록된 ‘시간 없는 성역’ 1개가 생산되지 않는 flag를 요구 |
+| R19-02 | P1 | 시설 capability 조건의 두 평가 경로 불일치 | 36개 세력 장의 support/bargain 72선택이 snapshot에 없는 capability key를 조회 |
+| R19-03 | P1 | 전투 counter 키에 생산자가 없는 값과 수기 입력 | 9개 미생산 키, encounter 12개와 enemy 9개의 힌트에 포함. spore-bloom counter는 실제 3개 encounter에서 성립 불가 |
+| R19-04 | P1 | WorkType의 symbol과 저장 ID 대응 변경 보호 누락 | 현재 31개 정상. Craft/Cook ID 교환은 실제 verifier에서 통과 |
+| R19-05 | P2 | skill module의 C# behavior 관계가 수기이고 고장난 행을 고칠 후보도 행 자체에서 역산 | 현재 24개 정상. 오타/다른 domain이면 후보 열거 또는 실제 생성에서 실패 |
+| R19-06 | P2 | ServiceProcess.ownerHubTag가 수기이며 provider membership 검사가 없음 | 현재 5개 정상. 알 수 없는 정규 문자열도 정의/카탈로그 검사 통과 |
+| R19-07 | P2 | process mode의 requiredFeatureTags가 실행에서 누락 | 현재 15개 mode 목록은 비어 있음. 새 요구 feature를 넣어도 session에서 강제되지 않음 |
+| R19-08 | P2 | Crop.BaseGenome와 `:base` suffix가 각각 기본 유전체를 결정 | 현재 12개 일치. 같은 crop의 다른 등록 genome 선택 시 초기 씨앗과 certified seed가 서로 달라짐 |
+| R19-09 | P2 | 촉매 item ID와 feature의 family/potency/residue가 독립 권위 | 현재 촉매 147개/잔재 21개 일치. 유효 범위의 feature 수정은 runtime 의미에 반영되지 않을 수 있음 |
+| R19-10 | P2 | 시설 진화 requiredRoomScores/Metrics의 key가 수기 관계 | 현재 값 오류는 발견하지 않음. 미등록 max-only key는 0으로 처리되어 조건 통과 가능 |
+| R19-11 | P2 | 메타 효과 id가 자유 identity처럼 입력되지만 실제로는 닫힌 코드 target 관계 | 현재 9개 정상. 오타나 integer/multiplier 종류 불일치가 조용한 효과 0/중립값으로 이어짐 |
+| R19-12 | P2 | 시작 origin/history의 proficiency 후보와 실제 허용 집합 불일치 | 현재 15개 profile/내장 9종 정상. 유효한 확장 proficiency도 선택 후 owner 검사에서 거절 |
+| R19-13 | P2 | 성능 공식 capacityId 숫자에 미정의 enum 거절 없음 | 현재 107개 공식/518행 정상. 99 같은 값은 정의 검사 뒤 실제 조회에서 예외 |
+| R19-14 | P2 | CoreSession의 incident/service 연결이 수기 숫자 | 현재 값 정상. incident 99는 positive 검사 통과 후 어떤 실제 사건에도 연결되지 않음. service 숫자는 범위 검사는 있지만 의미 선택 UI가 없음 |
+| R19-15 | P2 | Building 기본 작업자 정책에 실행 인스턴스 ID를 수기로 작성 가능 | 현재 400개 정책의 특정/제외 ID는 모두 빈 값. stale 특정 ID를 넣으면 새 건설 주문의 모든 작업자를 배제 가능 |
+| R19-16 | P2 | 기존 게시 SO의 새 빈 identity field 게시를 거절하지 않음 | 현재 신규 빈 값 0. 실제 compare_baselines에서 새 빈 필드 추가 통과, 이후 빈 값이 게시값으로 고정될 위험 |
+| R19-17 | P2, 작성면 | formula의 parameter/applicator/stat 관계 및 일부 mirror가 수기 | 현재 계약 정상이고 실제 formula 검사는 엄격함. 닫힌 코드 축을 참조하는 입력과 파생 mirror를 계속 직접 편집 |
+| R19-18 | P2 | 생산 mass/cost capability registry 관계가 수기이며 거절이 늦음 | 현재 mass process-loss 307개와 cost weighted-output-share 3개 정상. 미등록 정규 키는 catalog를 지나 출력 완료/다중 출력 가치 계산에서야 거절 |
+| R19-19 | P2, 작성면 | 원정 선택 requiredTag가 실제 context tag와 수기 연결 | 현재 tools 1개는 실제 생산됨. 오타는 변환 표시만 조용히 비활성화 |
+| R19-20 | P2, 계약 정리 | 관계로 보이는 ecology/침입 필드의 실제 값 소비가 없음 | wildlife nest/migration은 ecology 관계 수에 포함. 침입 family 목록은 내용 대신 Count만 사용 |
+
+### 현재 연결이 끊긴 세 경계
+
+**R19-01.** [엔딩 에셋](Assets/Resources/SO/V20/Milestones/Endings/ending_timeless-sanctuary.asset#L34)의 `temporal:population-sustained`는 현재 root domain에 등록되어 있다. [일일 생산](Assets/Scripts/Services/Run/V20MilestoneWorldSnapshotProjector.cs#L199)과 [120일 누적](Assets/Scripts/Services/Run/V20MilestoneRuntime.cs#L550)은 `temporal:productivity-qualified-today`와 `temporal:productivity-sustained`를 만든다. 다른 현재 WorldFlag 효과에도 population-sustained 생산자가 없다. [실제 엔딩 평가](Assets/Scripts/Services/Run/V20MilestoneRuntime.cs#L204)는 요구 flag를 그대로 검사하므로, 새 정상 진행에서 이 엔딩 조건을 만족시킬 수 없다. requiredFlags/excludedFlags는 자유 문구가 아니라 flag 생산자와의 관계다. 실제 생산 목록과 작성 목록을 연결하고, 요구와 의미가 일치하도록 고쳐야 한다. 저장된 flag를 무조건 지우거나 검사 자체를 제거하는 해결은 부적절하다.
+
+**R19-02.** [에셋의 시설 조건](Assets/Resources/SO/V20/Factions/Chapters/chapter_beastkin_1.asset#L48)은 빈 building ID와 Administration 같은 capability를 쓴다. [실제 preflight](Assets/Scripts/Services/Infrastructure/ContentRequirementEvaluator.cs#L64)는 운영 중인 시설 query로 검사한다. [같은 서비스의 다음 단계](Assets/Scripts/Services/Run/V20ContentResolutionService.cs#L346)는 수정하지 않은 요청 snapshot으로 candidate를 호출한다. [TryResolveChapter](Assets/Scripts/Services/Run/V20CampaignRuntime.cs#L544)는 [공통 조건식](Assets/Scripts/Services/Run/V20ContentDefinitionRules.cs#L21)의 `capability:Administration` 등의 key를 다시 요구하지만, [snapshot 생산자](Assets/Scripts/Services/Run/V20MilestoneWorldSnapshotProjector.cs#L77)는 building ID count만 만든다. 일반 UI도 [world.Build 결과](Assets/Scripts/Services/Infrastructure/V21ContentAlertChoiceActionDispatcher.cs#L223)를 사용한다. 따라서 정상 시설이 있어도 support/bargain은 두 번째 비교에서 실패하는 경로이며, 시설 조건 없는 refuse와 구별해야 한다. 운영 여부와 count의 권위를 하나로 맞추고 시설 capability 선택/게시 membership도 함께 보완한다.
+
+**R19-03.** [실제 counter 생산자](Assets/Scripts/Models/Offense/Core/OffenseBattleContracts.cs#L209)의 현재 집합은 32개다. 현재 작성된 키 중 `break-contract`, `break-formation`, `decoy`, `deny-retreat`, `detector`, `fungicide`, `isolate-leader`, `rush`, `separate-cargo`의 counter 키 9개는 이 생산자에 없다. 특히 등록된 [spore-bloom](Assets/Resources/SO/V20/Combat/Modifiers/battlefield_spore-bloom.asset)의 `counter:fungicide`는 encounter_11/23/35에 사용되며 [보정 해제 조건](Assets/Scripts/Models/Offense/Core/OffenseBattleContracts.cs#L172)을 만족시킬 수 없다. enemy 쪽 counter 일부는 힌트에만 쓰이므로 전부 전투 보정 손실로 세지 않는다. 새 counter에 실제 장비/행동 생산 경로를 연결하거나 의도된 지원 집합으로 데이터를 정합화해야 한다. 잘못된 조건을 선택 목록에 추가하는 것만으로 해결되지 않는다.
+
+### 작성과 변경 보호의 구체적인 수용 경계
+
+- **R19-04/16:** [현재 보호기](tools/V27Balance/verify_content_identities.py#L1289)는 WorkType 값 집합만 비교하여 symbol과 ID 교환을 놓친다. [C# 신규 게시 검사](Assets/Editor/ContentIdentityProtection.cs#L410)는 기존 GUID면 새 field 검사도 건너뛰고, Python 비교도 과거 row만 본다. 외부 [재현 결과](C:/Users/vulpo/Documents/Codex/2026-10-24/so-full-audit/main-reaudit-r19/identity-guard-repros.json)는 실제 두 함수의 통과를 기록한다. 현재 legacy 빈 scalar 350개는 기존 값이며 신규 결함으로 세지 않는다. 과거 symbol 대응과 새 identity row를 각각 검증하되 기존 저장 호환은 유지한다.
+- **R19-05/17:** [module.capabilityId](Assets/Scripts/Services/Character/SO/CharacterSkillSystemSettingsSO.cs#L439)는 [C# registry](Assets/Scripts/Services/Character/Core/CharacterSkillModuleCapabilityRegistry.cs#L114)와의 관계다. 현재 module 목록을 Require해 후보를 만드는 방식은 오타 행이 있을 때 복구 선택창도 중단시킨다. combat/management registry를 원본으로 후보를 제공해야 한다. 현재 pair/forbidden 목록이 일부 비어 있지 않아 공용 검사가 간접 예외로 중단할 수 있으며, 항상 clean 우회한다고 표현하지 않는다. skill/acquired/facility formula의 formatter/applicator는 해당 owner capability의 mirror다. parameterRanges.parameterId와 equipment/공유 appliedParameterIds는 magnitude/duration/count/targetCount의 닫힌 축 관계이고, [장비 statId/applicatorId](Assets/Scripts/Services/Combat/EquipmentEvolutionFormulaDefinitionSO.cs#L39)는 허용 조합을 선택하는 관계다. 이미 존재하는 엄격한 ToRuntime/Require 검사는 유지하면서 mirror는 파생/읽기 전용, 관계는 선택으로 작성하게 한다. equipment formatterId는 실제 formatter dispatch 없이 frozen metadata로만 전달되므로 외래키 누락으로 세지 않는다. 새 SO를 축마다 만들 필요는 없다.
+- **R19-06/07:** [ownerHubTag](Assets/Scripts/Models/Rooms/Core/ServiceProcessSO.cs#L32)는 기존 ServiceHub 후보를 재사용할 수 있다. [mode.requiredFeatureTags](Assets/Scripts/Models/Rooms/Core/ServiceProcessSO.cs#L20)는 [현재 session 검사](Assets/Scripts/Services/ServiceRooms/ServiceSessionRuntime.cs#L1231)가 읽는 hub 목록과 분리되어 있다. 실제 선택 mode의 process 요구와 hub 요구를 한 경로로 검사하거나 폐기된 필드를 정리해야 한다. 빈 현재 목록을 근거로 앞으로도 안전하다고 하지 않는다.
+- **R19-08/09:** [CropEcology의 suffix 선택](Assets/Scripts/Services/Economy/CropEcologyRuntime.cs#L352)과 [certified seed의 직접 참조](Assets/Scripts/Services/Economy/CertifiedSeedSpecialThroughputContributor.cs#L188)를 같은 기본 genome 권위로 결합한다. [촉매 feature](Assets/Scripts/Models/Economy/Content/ItemDefinitionSO.cs#L520)는 [ID parser](Assets/Scripts/Services/Combat/EquipmentEvolutionContracts.cs#L160)의 실제 결과와 검증하거나 한쪽을 파생시켜야 한다. 현재 등록된 다른 cultivar 선택과 유효 범위 feature 변경만으로도 두 권위가 달라질 수 있다.
+- **R19-10:** [required metric key](Assets/Scripts/Models/Evolution/Facility/FacilityEvolutionTerms.cs#L208)는 [진화 검사](Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionService.cs#L865)가 조회하는 관계다. 없는 key를 0으로 보는 의미는 정상 key가 해당 방에 없는 경우와 전역에 존재하지 않는 오타를 구별하지 못한다. 실제 room producer와 contribution 정의에서 후보를 얻고 전역 미등록 key를 조기에 거절한다. FacilityEvolutionValue.key는 새 metric을 정의하는 provider일 수 있으므로 똑같이 잠그지 않는다.
+- **R19-11:** [메타 nested effect.id](Assets/Scripts/Content/GameDomainContentCatalogSO.cs#L316)는 [생성자](Assets/Scripts/Services/Run/AuthoredGameplayCatalog.cs#L464)에 전달된다. 생성자는 공란만 거절하지만 [소비자](Assets/Scripts/Models/Meta/Core/MetaProgressionEffects.cs#L95)는 MetaUpgradeEffectIds와 integer/multiplier interface를 exact match한다. 종류별 코드 target 선택과 검증이 필요하다. metaUpgrades[].id라는 자기 게시 identity와 혼동하지 않는다.
+- **R19-12/13:** [시작 history](Assets/Scripts/Models/Characters/CharacterStartingHistorySO.cs#L28)와 [origin](Assets/Scripts/Models/Characters/CharacterStartingOriginSO.cs#L28)은 내장 proficiency만 허용하지만 일반 후보는 전체 등록 정의다. 확장 허용 정책과 선택/소비 집합을 맞춰야 한다. [capacity 정의 검사](Assets/Scripts/Services/Foundation/CharacterPerformanceFormulaDefinitionSO.cs#L74)는 Enum.IsDefined가 빠져 있고, [실제 Get](Assets/Scripts/Services/Foundation/CharacterPerformanceContracts.cs#L234)은 미정의 값에서 예외를 낸다. 이미 enum 선택 UI가 있으므로 별도 reference framework는 필요 없다.
+- **R19-14:** [CoreSession 연결 숫자](Assets/Scripts/Content/CoreSession/CoreSessionRulesSO.cs#L18)는 실제 enum 관계다. allowedIncidentKinds는 양수만 검사하여 99를 허용하고 [실제 사건 비교](Assets/Scripts/Services/Infrastructure/ExperiencePacingApplicationAdapter.cs#L55)는 exact int match한다. enum 선택과 정의 여부 검증을 쓰면 되며 저장된 숫자 의미를 바꾸지 않는다. serviceCategory/operationMode는 현재 범위 검사는 있으므로 이쪽은 수기 작성면 보완이다.
+- **R19-15:** [BuildingWorkAmountAbility.defaultWorkerPolicy](Assets/Scripts/Services/Buildings/Abilities/BuildingAbility.cs#L153)의 [instance ID 목록](Assets/Scripts/Services/Foundation/V23CraftingPrimitives.cs#L40)은 CharacterSO의 ID와 다르다. [새 건설 주문](Assets/Scripts/Services/Character/Work/WorkAmountSystem.cs#L618)에 복사되고 [실제 작업자 필터](Assets/Scripts/Services/Character/Work/V23WorkerPolicyContracts.cs#L193)는 PersistentId로 비교한다. SO 초기 정의에는 정적 rule 조건을 두고 실행 인스턴스 선택은 기존 runtime UI가 소유하게 하거나, 별도 정적 지명 계약이 필요하다. CharacterSO를 고르는 것만으로 다른 ID 체계를 연결하지 않는다.
+- **R19-18:** [생산 mass](Assets/Scripts/Models/Economy/Content/ProductionMassExplanationAuthoring.cs#L11)와 [cost](Assets/Scripts/Models/Economy/Content/ProductionOutputCostAllocationAuthoring.cs#L12)의 capabilityId/version은 기존 registry 관계다. snapshot의 정규 문자열 검사와 recipe catalog는 membership을 검사하지 않아 오타가 catalog를 통과한다. 실제 mass resolver와 다중 출력 cost resolver는 엄격히 거절하므로 silent 성공으로 세지 않지만, 오류가 실제 생산 경로까지 늦춰진다. 기존 registry에서 선택하고 version을 함께 기록하며 nonempty envelope를 catalog 조립 때 같은 resolver로 검사하면 된다. 정상 empty 계약을 없애거나 canonicalPayload 전체를 새 구조로 쪼개는 요구는 아니다.
+- **R19-19:** [requiredTag](Assets/Scripts/Models/Offense/Core/OffenseDecisionDefinitions.cs#L25)는 현재 [날씨와 보유 도구](Assets/Scripts/Services/Offense/OffenseStrategicExpeditionServices.cs#L586)에서 생산되고 [표시 전환](Assets/Scripts/Services/Offense/Strategic/OffenseTravelAndDecisionRuntime.cs#L1756)에 사용된다. tools의 생산 단절은 과거 수정으로 해결됐다. 남은 것은 후보/producer membership 작성 검사이며, 이 태그가 보상 효과를 바꾼다고 주장하지 않는다.
+- **R19-20:** [wildlife.nestTag/migrationPatternId](Assets/Scripts/Models/Wildlife/Core/WildlifeSpeciesSO.cs#L54)는 projection 뒤 게임 동작의 reader가 없지만 ecology 관계 수에 포함된다. 현재 V20 species 8종이 이 비실행 필드 중 하나 이상에 기대어 gate를 통과한다. [침입 preferredFacilityFamilyIds](Assets/Scripts/Content/GameDomainContentCatalogSO.cs#L237)는 실제 family 내용이 아닌 [Count만 경보 식별에 사용](Assets/Scripts/Services/Invasion/InvasionIntruderSystem.cs#L554)한다. 현재 2개 pattern이 목록을 가진다. 실행 관계로 유지하려면 소비자를 연결하고, metadata라면 그런 계약으로 명시해 기능 연결 검사에서 제외한다. 무의미한 ID 선택기만 추가하지 않는다.
+
+### 정상으로 구분한 범위와 남은 확인 한계
+
+기존 R18 선택/검증은 실제 원본에 남아 있다. 종족과 해부 profile/node, 수술 family, trait 고정 규칙, 시설/장비 capability 금지 조합, 생산 workstation/support, service hub feature, habitat/room role/anchor 및 게시 nested ID 보호는 현재 값과 연결을 대조했다. 연구 prerequisite의 직접 SO와 저장 ID 동기화, membership/cycle 검사, faction arc의 chapter/contract 소유 세력 검사도 존재한다. faction arc picker가 다른 세력 SO를 보여주는 편의 문제와 이미 차단되는 잘못된 소유 관계를 새 무검사 단절로 중복 산정하지 않는다.
+
+자유 provider 태그, 자기 identity, 실행 중 생성되는 instance/provenance key, 표시 문구는 별도 SO 관계가 아니다. 다만 닫힌 registry 조회 키나 소비 목록과 exact match하는 키를 이 이유로 제외하지 않는다. lexical icon/vfx key, recipeTags 같은 미소비 metadata를 실제 기능 완료로 세지도 않는다. offense의 human/sealed/hostile 같은 소유 문자열은 외교 faction SO 원장과 다른 문맥이므로 억지로 그 선택기에 연결하지 않는다.
+
+R19는 현재 소스/에셋 대조 및 실제 Python 보호기 반례까지의 결과다. 현재 값이 정상인 필드에 새 native PASS를 붙이지 않았고, 모든 동적 확장과 임의의 미래 데이터에 대한 무결점 보증은 하지 않는다. 위 항목을 고칠 때는 해당 소비, 거절, 필요한 저장/복원/재시도를 표적으로 검증하면 되며 전수 seed나 무관한 전체 실행을 요구하지 않는다.
+
+---
+
 ## R18-01~R18-16 수정 및 표적 실행 완료
 
 수정 기준은 main `7b5003c6b6ee0b2d892edc471e10e0ea009e3432`다. 아래 원래 감사는 수정 전 상태이며 이 표가 이번 보완 결과다. 기존 GUID, 게시 ID, 저장 DTO 필드와 버전은 유지했다. 새 런타임 SO나 책임 분리용 클래스를 만들지 않고 기존 정의, registry, 소비자와 선택 경로를 보완했다.
@@ -25,7 +147,7 @@
 
 실제 변경된 콘텐츠는 구형 세력6개에 누락됐던 정책12개 연결뿐이다. 같은 factionId의 현재 등록 정의와 같은 정책을 사용하며 원래 YAML 전체 prefix와 화물 수량을 보존했다. None을 잘못된 @0으로 보던 문제와 화물 없는 경로의 정상 미선택도 구분했다. published baseline에는 기존10607개 보호값을 보존하여 시설6개와 특성 rule108개만 추가했고 현재3544개 에셋/10721개 키다. 특성13개의 생략된 빈 identityRules 목록은 기존 Unity 초기화 의미를 유지하며 게시된 rule 삭제는 계속 거절한다.
 
-[현재 R18 실행 증거](Artifacts/QA/ImpactCI/r18-verification.json), [필수 변경 영향 실행](Artifacts/QA/ImpactCI/verification.json), [월드 저장과 공식 복원](Artifacts/QA/ImpactCI/world-round-trip.txt), [실제 Inspector 격리](Artifacts/QA/ImpactCI/r18-inspector-isolation.json).
+[현재 R18 실행 증거](https://github.com/Creeper0809/DungeonStory/blob/886973b7e1aa3a3acf8af0de79f26af8a350e50b/Artifacts/QA/ImpactCI/r18-verification.json), [필수 변경 영향 실행](https://github.com/Creeper0809/DungeonStory/blob/886973b7e1aa3a3acf8af0de79f26af8a350e50b/Artifacts/QA/ImpactCI/verification.json), [월드 저장과 공식 복원](https://github.com/Creeper0809/DungeonStory/blob/886973b7e1aa3a3acf8af0de79f26af8a350e50b/Artifacts/QA/ImpactCI/world-round-trip.txt), [실제 Inspector 격리](https://github.com/Creeper0809/DungeonStory/blob/886973b7e1aa3a3acf8af0de79f26af8a350e50b/Artifacts/QA/ImpactCI/r18-inspector-isolation.json).
 
 수용한 각 native 실행은 compiler0, consoleErrors0, source drift0이다. 실제 Inspector는 사용자 화면과 분리된 인증 private Xvfb에서 Layout/Repaint와 Apply/Undo를 실행했다. Python CI73개 및 pinned analyzer DSB001~DSB008 검증도 통과했다. 앞선 컴파일 실패, 구형 세력 누락 검출, Undo 정리 실패는 실패로 보존했다. 패키지의 실제 Undo 콜백에 따른 dirty 상태는 전체 JSON/hash 확인 후 원래 상태로 복구하고 전체 원본 SHA 검사에서도 무변경을 확인했다.
 

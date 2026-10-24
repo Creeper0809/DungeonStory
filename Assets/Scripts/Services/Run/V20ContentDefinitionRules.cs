@@ -18,7 +18,7 @@ internal static class V20ContentDefinitionRules
             && (requirements.excludedFlags ?? new()).All(value => !snapshot.WorldFlags.Contains(value))
             && (requirements.worldMetrics ?? new()).All(value => snapshot.WorldMetrics.TryGetValue(value.kind, out float actual) && actual >= value.minimumValue)
             && (requirements.items ?? new()).All(value => snapshot.ItemQuantities.TryGetValue(value.itemDefinitionId, out int quantity) && quantity >= value.amount)
-            && (requirements.facilities ?? new()).All(value => snapshot.FacilityCounts.TryGetValue(FacilityRequirementKey(value), out int count) && count >= value.minimumCount)
+            && (requirements.facilities ?? new()).All(value => value != null && snapshot.CountFacilities(value) >= value.minimumCount)
             && (requirements.factions ?? new()).All(value => snapshot.Factions.TryGetValue(value.factionId, out FactionCampaignStateSaveData faction)
                 && faction.rapport >= value.minimumRapport
                 && faction.grievance <= value.maximumGrievance
@@ -53,10 +53,15 @@ internal static class V20ContentDefinitionRules
         definition is LifeEventDefinitionSO { emergency: true }
         || definition is ServiceIncidentDefinitionSO;
 
-    internal static string FacilityRequirementKey(V20FacilityRequirement value) =>
-        !string.IsNullOrWhiteSpace(value.buildingDefinitionId)
-            ? value.buildingDefinitionId
-            : $"capability:{value.capabilityId}";
+    internal static string FacilityRequirementKey(V20FacilityRequirement value)
+    {
+        string building = value.buildingDefinitionId?.Trim() ?? string.Empty;
+        string capability = (value.capabilityId?.Trim() ?? string.Empty)
+            .Split(':', '.', '/').Last().ToLowerInvariant();
+        return capability.Length == 0 ? building
+            : building.Length == 0 ? $"capability:{capability}"
+            : $"{building}|capability:{capability}";
+    }
     internal static void RequireUniqueIds(
         IEnumerable<string> source,
         string label)

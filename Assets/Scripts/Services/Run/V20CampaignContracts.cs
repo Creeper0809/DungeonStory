@@ -979,6 +979,35 @@ public sealed class RunMilestoneEvaluationSnapshot
         new Dictionary<string, int>(StringComparer.Ordinal);
     public IDictionary<string, int> FacilityCounts { get; } =
         new Dictionary<string, int>(StringComparer.Ordinal);
+    public IDictionary<string, int> OperationalFacilityCounts { get; } =
+        new Dictionary<string, int>(StringComparer.Ordinal);
+
+    // Transient projections, never a second persisted facility owner.
+    public void RecordFacility(string buildingId, IEnumerable<string> capabilities, bool operational)
+    {
+        if (string.IsNullOrWhiteSpace(buildingId))
+            throw new ArgumentException("A projected facility requires its definition ID.", nameof(buildingId));
+        Add(new V20FacilityRequirement { buildingDefinitionId = buildingId });
+        foreach (string capability in capabilities.Distinct(StringComparer.Ordinal))
+        {
+            Add(new V20FacilityRequirement { capabilityId = capability });
+            Add(new V20FacilityRequirement { buildingDefinitionId = buildingId, capabilityId = capability });
+        }
+        void Add(V20FacilityRequirement requirement)
+        {
+            string key = V20ContentDefinitionRules.FacilityRequirementKey(requirement);
+            FacilityCounts[key] = FacilityCounts.TryGetValue(key, out int count) ? count + 1 : 1;
+            if (operational)
+                OperationalFacilityCounts[key] = OperationalFacilityCounts.TryGetValue(key, out int active) ? active + 1 : 1;
+        }
+    }
+
+    public int CountFacilities(V20FacilityRequirement requirement)
+    {
+        if (requirement == null) return 0;
+        var counts = requirement.mustBeOperational ? OperationalFacilityCounts : FacilityCounts;
+        return counts.TryGetValue(V20ContentDefinitionRules.FacilityRequirementKey(requirement), out int count) ? count : 0;
+    }
     public IDictionary<string, FactionCampaignStateSaveData> Factions { get; } =
         new Dictionary<string, FactionCampaignStateSaveData>(StringComparer.Ordinal);
     public int EligibleCharacterCount { get; set; }

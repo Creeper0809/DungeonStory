@@ -16,7 +16,12 @@ public enum ContentReferenceKind
     GameplayEffectTarget, AnatomyFamily, FixedTraitRule, FactionEconomicPolicy,
     StockCategory, FacilityEvolutionModule, EquipmentEvolutionModule,
     ProductionWorkstation, ProductionSupport, ServiceHub, ServiceFeature,
-    WildlifeHabitat, FacilityRole, FacilityAnchorPurpose, ProductionBatchSupport
+    WildlifeHabitat, FacilityRole, FacilityAnchorPurpose, ProductionBatchSupport,
+    CoreIncident, CoreServiceCategory, CoreServiceMode, WorldFlag, FacilityOperationCapability,
+    BattleCounter, MetaEffectTarget, StartingProficiency, SkillBehavior, FormulaParameter,
+    FormulaMirror, EquipmentApplicator, EquipmentStat, ProductionMassPolicy,
+    ProductionOutputCostPolicy, RoomProfileKey, RoomScore, RoomMetric, DecisionContextTag,
+    ServiceProcessFeature
 }
 
 [AttributeUsage(AttributeTargets.Field)]

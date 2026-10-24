@@ -5,6 +5,7 @@ using System.Globalization;
 using System.Linq;
 using System.Reflection;
 using DungeonStory.Factions;
+using DungeonStory.Balance;
 using UnityEngine;
 
 // Inspector selection and startup validation use exactly the same registered definitions.
@@ -15,7 +16,8 @@ public sealed class ContentReferenceCatalog
     {
         public readonly ScriptableObject Asset;
         public readonly string Id;
-        public Entry(ScriptableObject asset, string id) { Asset = asset; Id = id; }
+        public readonly string Label;
+        public Entry(ScriptableObject asset, string id, string label = null) { Asset = asset; Id = id; Label = label ?? asset?.name ?? id; }
     }
     private readonly ScriptableObject[] assets;
     private readonly Dictionary<string, Entry[]> entries = new(StringComparer.Ordinal);
@@ -37,6 +39,25 @@ public sealed class ContentReferenceCatalog
             .Concat(new ScriptableObject[] { root.GetCharacterSkillSettings<CharacterSkillSystemSettingsSO>() }));
     }
 
+    public static bool IsKeyReference(ContentReferenceKind kind) => kind is
+        ContentReferenceKind.WorkType or ContentReferenceKind.GameplayEffectTarget
+        or ContentReferenceKind.AnatomyFamily or ContentReferenceKind.FixedTraitRule
+        or ContentReferenceKind.FactionEconomicPolicy or ContentReferenceKind.StockCategory
+        or ContentReferenceKind.FacilityEvolutionModule or ContentReferenceKind.EquipmentEvolutionModule
+        or ContentReferenceKind.ProductionWorkstation or ContentReferenceKind.ProductionSupport
+        or ContentReferenceKind.ProductionBatchSupport or ContentReferenceKind.ServiceHub
+        or ContentReferenceKind.ServiceFeature or ContentReferenceKind.ServiceProcessFeature
+        or ContentReferenceKind.WildlifeHabitat or ContentReferenceKind.FacilityRole
+        or ContentReferenceKind.FacilityAnchorPurpose or ContentReferenceKind.CoreIncident
+        or ContentReferenceKind.CoreServiceCategory or ContentReferenceKind.CoreServiceMode
+        or ContentReferenceKind.WorldFlag or ContentReferenceKind.FacilityOperationCapability
+        or ContentReferenceKind.BattleCounter or ContentReferenceKind.MetaEffectTarget
+        or ContentReferenceKind.SkillBehavior or ContentReferenceKind.FormulaParameter
+        or ContentReferenceKind.FormulaMirror or ContentReferenceKind.EquipmentApplicator
+        or ContentReferenceKind.EquipmentStat or ContentReferenceKind.ProductionMassPolicy
+        or ContentReferenceKind.ProductionOutputCostPolicy or ContentReferenceKind.RoomProfileKey
+        or ContentReferenceKind.RoomScore or ContentReferenceKind.RoomMetric or ContentReferenceKind.DecisionContextTag;
+
     public static Type AssetType(ContentReferenceKind kind) => kind switch
     {
         ContentReferenceKind.Item or ContentReferenceKind.Ammunition => typeof(ItemDefinitionSO),
@@ -50,7 +71,7 @@ public sealed class ContentReferenceCatalog
         ContentReferenceKind.ExpeditionChoice => typeof(OffenseDecisionCardSO),
         ContentReferenceKind.Species => typeof(CharacterSpeciesDefinitionSO),
         ContentReferenceKind.AnatomyProfile or ContentReferenceKind.AnatomyNode => typeof(AnatomyProfileSO),
-        ContentReferenceKind.Proficiency => typeof(ProficiencyDefinitionSO),
+        ContentReferenceKind.Proficiency or ContentReferenceKind.StartingProficiency => typeof(ProficiencyDefinitionSO),
         ContentReferenceKind.Culture => typeof(SpeciesCultureDefinitionSO),
         ContentReferenceKind.Practice => typeof(CulturalPracticeDefinitionSO),
         ContentReferenceKind.Ambition => typeof(CharacterAmbitionDefinitionSO),
@@ -70,7 +91,7 @@ public sealed class ContentReferenceCatalog
         ContentReferenceKind.EquipmentCapability => typeof(EquipmentEvolutionFormulaCatalogSO),
         ContentReferenceKind.FacilityCapability => typeof(FacilityEvolutionRecipeSO),
         ContentReferenceKind.GameplayValueTarget => typeof(GameplayEffectDefinitionSO),
-        _ when (int)kind >= (int)ContentReferenceKind.GameplayEffectTarget => typeof(ScriptableObject),
+        _ when IsKeyReference(kind) => typeof(ScriptableObject),
         _ => throw new ArgumentOutOfRangeException(nameof(kind))
     };
 
@@ -107,12 +128,42 @@ public sealed class ContentReferenceCatalog
         or ContentReferenceKind.EquipmentCapability or ContentReferenceKind.FacilityCapability
         or ContentReferenceKind.FacilityEvolutionModule or ContentReferenceKind.FixedTraitRule
         or ContentReferenceKind.ProductionSupport or ContentReferenceKind.ProductionBatchSupport
-        or ContentReferenceKind.ServiceFeature;
+        or ContentReferenceKind.ServiceFeature or ContentReferenceKind.ServiceProcessFeature
+        or ContentReferenceKind.SkillBehavior or ContentReferenceKind.FormulaMirror
+        or ContentReferenceKind.MetaEffectTarget or ContentReferenceKind.EquipmentStat
+        or ContentReferenceKind.RoomProfileKey;
 
     // Local relationships are scoped to their owning asset. They must never use
     // the global cache: two catalogs may intentionally publish the same local ID.
     public IReadOnlyList<Entry> Entries(ContentReferenceAttribute reference, ScriptableObject root, object owner = null)
     {
+        if (reference.Kind == ContentReferenceKind.SkillBehavior)
+            return CharacterSkillModuleCapabilityRegistry.CapabilityIds.Select(CharacterSkillModuleCapabilityRegistry.Require)
+                .Where(value => owner is CharacterCombatSkillModuleRule && value.Domain == CharacterSkillCapabilityDomain.Combat
+                    || owner is CharacterManagementSkillModuleRule && value.Domain == CharacterSkillCapabilityDomain.Management)
+                .Select(value => new Entry(null, value.CapabilityId)).ToArray();
+        if (reference.Kind == ContentReferenceKind.FormulaMirror)
+        {
+            object parent = owner is CharacterSkillCapabilityFormulaDefinition
+                ? GraphObjects(new[] { root }).FirstOrDefault(value => SerializedFields(value.GetType())
+                    .Any(field => field.Name == "formula" && ReferenceEquals(field.GetValue(value), owner))) : owner;
+            string id = parent == null ? string.Empty : ReadMember(parent, "capabilityId");
+            return string.IsNullOrWhiteSpace(id) ? Array.Empty<Entry>() : new[] { new Entry(null, id) };
+        }
+        if (reference.Kind == ContentReferenceKind.EquipmentStat)
+            return owner is EquipmentEvolutionFormulaCapabilityDefinition equipment
+                && EquipmentEvolutionFormulaCapabilityDefinition.TryResolveApplicator(equipment.applicatorId, out string stat, out _)
+                ? new[] { new Entry(null, stat) } : Array.Empty<Entry>();
+        if (reference.Kind == ContentReferenceKind.MetaEffectTarget)
+            return owner is AuthoredGameplayEffectRecord effect
+                ? (effect.kind == AuthoredGameplayEffectKind.MetaIntegerBonus ? MetaUpgradeEffectIds.IntegerTargets
+                    : effect.kind == AuthoredGameplayEffectKind.MetaMultiplierDelta ? MetaUpgradeEffectIds.MultiplierTargets
+                    : Array.Empty<string>()).Select(id => new Entry(null, id)).ToArray() : Array.Empty<Entry>();
+        if (reference.Kind == ContentReferenceKind.ServiceProcessFeature)
+            return root is ServiceProcessSO process ? assets.OfType<BuildingSO>().SelectMany(value => value.Abilities)
+                .OfType<BuildingServiceSupportAbility>().Where(value => value.SupportsHub(process.OwnerHubTag))
+                .SelectMany(value => value.featureTags ?? Array.Empty<string>()).Distinct(StringComparer.Ordinal)
+                .Select(id => new Entry(null, id)).ToArray() : Array.Empty<Entry>();
         if (reference.Kind is ContentReferenceKind.ProductionSupport or ContentReferenceKind.ProductionBatchSupport)
             return root is ProductionRecipeSO production
                 ? assets.OfType<BuildingSO>().SelectMany(value => value.Abilities)
@@ -153,7 +204,7 @@ public sealed class ContentReferenceCatalog
                 return assets.OfType<CharacterAcquiredTraitModuleSO>()
                     .Select(value => new Entry(value, value.CapabilityId)).ToArray();
             if (root is CharacterSkillSystemSettingsSO skillSettings)
-                return skillSettings.Modules.Where(value => value != null)
+                return skillSettings.Modules.Where(IsRegisteredSkillBehavior)
                     .Select(value => new Entry(root, CharacterSkillModuleCapabilityRegistry.Require(value).CapabilityId)).ToArray();
             return Array.Empty<Entry>();
         }
@@ -170,6 +221,29 @@ public sealed class ContentReferenceCatalog
             return root is FacilityEvolutionRecipeSO facility
                 ? facility.ReferenceCapabilityIds().Select(id => new Entry(root, id)).ToArray() : Array.Empty<Entry>();
         return Entries(reference);
+    }
+
+    private static bool IsRegisteredSkillBehavior(CharacterSkillModuleRule module)
+    {
+        if (module == null) return false;
+        try { CharacterSkillModuleCapabilityRegistry.Require(module); return true; }
+        catch (InvalidOperationException) { return false; } // Its own SkillBehavior field reports the invalid definition.
+    }
+
+    private static IEnumerable<object> GraphObjects(IEnumerable<ScriptableObject> roots)
+    {
+        var visited = new HashSet<object>(ReferenceEqualityComparer.Instance);
+        var pending = new Stack<object>(roots.Where(value => value != null));
+        while (pending.Count > 0)
+        {
+            object value = pending.Pop();
+            if (value == null || value is string || value.GetType().IsPrimitive || value.GetType().IsEnum
+                || !visited.Add(value) || value is UnityEngine.Object && value is not ScriptableObject) continue;
+            yield return value;
+            if (value is IEnumerable collection)
+                foreach (object item in collection) pending.Push(item);
+            else foreach (FieldInfo field in SerializedFields(value.GetType())) pending.Push(field.GetValue(value));
+        }
     }
 
     public IReadOnlyList<Entry> AnatomyNodesFor(MedicalProcedureFamily family, bool allowsWildlife,
@@ -204,6 +278,44 @@ public sealed class ContentReferenceCatalog
             .SelectMany(building => building.Abilities).Where(value => value != null);
         switch (kind)
         {
+            case ContentReferenceKind.CoreIncident:
+                return Enum.GetValues(typeof(ExteriorIncidentKind)).Cast<ExteriorIncidentKind>()
+                    .Where(value => value != ExteriorIncidentKind.None)
+                    .Select(value => new Entry(null, ((int)value).ToString(CultureInfo.InvariantCulture), value.ToString())).ToArray();
+            case ContentReferenceKind.CoreServiceCategory:
+                return Enum.GetValues(typeof(ServiceCategory)).Cast<ServiceCategory>()
+                    .Select(value => new Entry(null, ((int)value).ToString(CultureInfo.InvariantCulture), value.ToString())).ToArray();
+            case ContentReferenceKind.CoreServiceMode:
+                return new[] { ServiceOperationMode.Managed, ServiceOperationMode.Automated }
+                    .Select(value => new Entry(null, ((int)value).ToString(CultureInfo.InvariantCulture), value.ToString())).ToArray();
+            case ContentReferenceKind.WorldFlag:
+                return KeyEntries(V20WorldFlagIds.Computed.Concat(GraphObjects(assets).OfType<V20ContentEffect>()
+                    .Where(value => value.kind == V20ContentEffectKind.WorldFlag).Select(value => value.targetId))).ToArray();
+            case ContentReferenceKind.FacilityOperationCapability:
+                return KeyEntries(Enum.GetNames(typeof(FacilityCapabilityKind)).Where(value => value != nameof(FacilityCapabilityKind.None))).ToArray();
+            case ContentReferenceKind.BattleCounter: return KeyEntries(OffenseBattleCounterRules.DeclaredTags).ToArray();
+            case ContentReferenceKind.StartingProficiency:
+                return assets.OfType<ProficiencyDefinitionSO>()
+                    .Where(value => BuiltInCharacterProficiencyIds.All.Any(id => id.Value == value.StableId))
+                    .Select(value => new Entry(value, value.StableId)).ToArray();
+            case ContentReferenceKind.FormulaParameter:
+                return KeyEntries(new[] { NarrativeFormulaParameterIds.Magnitude, NarrativeFormulaParameterIds.Duration,
+                    NarrativeFormulaParameterIds.Count, NarrativeFormulaParameterIds.TargetCount }).ToArray();
+            case ContentReferenceKind.EquipmentApplicator:
+                return KeyEntries(EquipmentEvolutionFormulaCapabilityDefinition.ApplicatorIds).ToArray();
+            case ContentReferenceKind.ProductionMassPolicy:
+                return KeyEntries(ProductionMassExplanationCapabilityRegistry.CreateDefault().RegisteredKeys).ToArray();
+            case ContentReferenceKind.ProductionOutputCostPolicy:
+                return KeyEntries(ProductionOutputCostAllocationCapabilityRegistry.CreateDefault().RegisteredKeys).ToArray();
+            case ContentReferenceKind.RoomScore:
+                return KeyEntries(RoomProfileBuilder.ProducedScoreKeys.Concat(GraphObjects(assets).OfType<FacilityEvolutionContributionData>()
+                    .SelectMany(value => value.scores ?? Array.Empty<FacilityEvolutionValue>()).Select(value => value.key))).ToArray();
+            case ContentReferenceKind.RoomMetric:
+                return KeyEntries(RoomProfileBuilder.ProducedMetricKeys.Concat(FacilityEvolutionRecordEventRecorder.ProducedMetricKeys)
+                    .Concat(GraphObjects(assets).OfType<FacilityEvolutionContributionData>()
+                        .SelectMany(value => value.metrics ?? Array.Empty<FacilityEvolutionValue>()).Select(value => value.key))).ToArray();
+            case ContentReferenceKind.DecisionContextTag:
+                return KeyEntries(new[] { "tools" }.Concat(assets.OfType<WeatherFrontDefinitionSO>().Select(value => value.stableId))).ToArray();
             case ContentReferenceKind.FixedTraitRule: return Array.Empty<Entry>();
             case ContentReferenceKind.FactionEconomicPolicy:
                 return KeyEntries(FactionRouteEconomicPolicyRegistry.CreateBuiltIns(
@@ -262,7 +374,7 @@ public sealed class ContentReferenceCatalog
             if (kind == ContentReferenceKind.SkillCapability)
             {
                 if (asset is CharacterSkillSystemSettingsSO settings)
-                    foreach (var module in settings.Modules.Where(value => value != null))
+                    foreach (var module in settings.Modules.Where(IsRegisteredSkillBehavior))
                         result.Add(new Entry(asset, CharacterSkillModuleCapabilityRegistry.Require(module).CapabilityId));
                 continue;
             }
@@ -392,6 +504,11 @@ public sealed class ContentReferenceCatalog
     public static ContentReferenceAttribute ResolveReference(ContentReferenceAttribute reference, string path, object owner,
         ScriptableObject root = null)
     {
+        if (reference.Kind == ContentReferenceKind.RoomProfileKey)
+            return new ContentReferenceAttribute(path.Contains("requiredRoomScores") ? ContentReferenceKind.RoomScore : ContentReferenceKind.RoomMetric);
+        if (reference.Kind == ContentReferenceKind.MetaEffectTarget)
+            return owner is AuthoredGameplayEffectRecord { kind: AuthoredGameplayEffectKind.MetaIntegerBonus or AuthoredGameplayEffectKind.MetaMultiplierDelta }
+                ? reference : null;
         if (reference.Kind == ContentReferenceKind.FixedTraitRule)
         {
             if (root is not CharacterTraitSO trait || owner == null) return null;
@@ -466,6 +583,17 @@ public sealed class ContentReferenceCatalog
             errors.AddRange(facilityRecipe.ValidateDefinition().Select(error => path + ": " + error));
         if (value is RoomEnvironmentSettingsSO roomSettings)
             errors.AddRange(roomSettings.ValidateDefinition().Select(error => path + ": " + error));
+        if (value is BuildingWorkAmountAbility workAmount)
+            errors.AddRange(workAmount.ValidateDefaultWorkerPolicy().Select(error => path + ": " + error));
+        if (value is ProductionRecipeSO production)
+        {
+            try
+            {
+                ProductionMassExplanationCapabilityRegistry.CreateDefault().ValidateRegistered(production.MassExplanation);
+                ProductionOutputCostAllocationCapabilityRegistry.CreateDefault().ValidateRegistered(production.OutputCostAllocation);
+            }
+            catch (InvalidOperationException error) { errors.Add(path + ": " + error.Message); }
+        }
         if (value is DungeonFactionDefinitionSO faction)
         {
             if (faction.tradeCargo?.Count > 0 && faction.tradeEconomicPolicy?.HasSelection != true)
@@ -560,7 +688,12 @@ public sealed class ContentReferenceCatalog
         if (reference.Kind == ContentReferenceKind.FactionEconomicPolicy
             && owner is FactionRouteEconomicPolicyDescriptor policy)
             id = policy.HasSelection ? id + "@" + policy.capabilityVersion.ToString(CultureInfo.InvariantCulture) : string.Empty;
-        if (requested == ContentReferenceKind.AuthoredEffectText && string.IsNullOrWhiteSpace(id))
+        if (reference.Kind is ContentReferenceKind.ProductionMassPolicy or ContentReferenceKind.ProductionOutputCostPolicy)
+        {
+            int version = int.Parse(ReadMember(owner, "contractVersion"), CultureInfo.InvariantCulture);
+            id = id.Length == 0 && version == 0 ? string.Empty : id + "@" + version.ToString(CultureInfo.InvariantCulture);
+        }
+        if (requested is ContentReferenceKind.AuthoredEffectText or ContentReferenceKind.MetaEffectTarget && string.IsNullOrWhiteSpace(id))
         {
             errors.Add($"{path}: {reference.Kind} effect requires a selected definition.");
             return;

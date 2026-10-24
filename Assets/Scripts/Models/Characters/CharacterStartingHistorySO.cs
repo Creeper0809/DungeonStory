@@ -11,9 +11,9 @@ public sealed class CharacterStartingHistorySO : ScriptableObject
     [ContentIdentity] public string historyId = string.Empty;
     public string displayName = string.Empty;
     [TextArea] public string description = string.Empty;
-    [ContentReference(ContentReferenceKind.Proficiency)]
+    [ContentReference(ContentReferenceKind.StartingProficiency)]
     public string primaryProficiencyId = string.Empty;
-    [ContentReference(ContentReferenceKind.Proficiency)]
+    [ContentReference(ContentReferenceKind.StartingProficiency)]
     public string secondaryProficiencyId = string.Empty;
     [Min(0)] public int primaryBaseExperience = 45;
     [Min(0)] public int secondaryBaseExperience = 25;

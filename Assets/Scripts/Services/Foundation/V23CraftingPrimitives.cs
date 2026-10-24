@@ -37,8 +37,8 @@ public sealed class WorkerSelectionPolicySaveData
     public WorkerSelectionMode mode = WorkerSelectionMode.Anyone;
     public WorkerRequirementMatchMode matchMode = WorkerRequirementMatchMode.All;
     public WorkerCandidateSortMode sortMode = WorkerCandidateSortMode.Fastest;
-    public List<string> specificCharacterIds = new();
-    public List<string> excludedCharacterIds = new();
+    [HideInInspector] public List<string> specificCharacterIds = new();
+    [HideInInspector] public List<string> excludedCharacterIds = new();
     [ContentReference(ContentReferenceKind.Proficiency)]
     public string minimumSkillId = string.Empty;
     [Min(0)] public int minimumSkillExperience;

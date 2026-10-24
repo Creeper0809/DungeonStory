@@ -220,6 +220,7 @@ public class FacilityEvolutionRecipeSO : DataScriptableObject
 [Serializable]
 public sealed class FacilityEvolutionFormulaRangeDefinition
 {
+    [ContentReference(ContentReferenceKind.FormulaParameter)]
     public string parameterId = string.Empty;
     [Min(0)] public long minimumUnits;
     [Min(0)] public long maximumUnits;
@@ -249,7 +250,9 @@ public sealed class FacilityEvolutionFormulaCapabilityDefinition
     public List<string> conflictGroups = new();
     [ContentReference(ContentReferenceKind.FacilityCapability)]
     public List<string> forbiddenSynergies = new();
+    [ContentReference(ContentReferenceKind.FormulaMirror)]
     public string formatterId = string.Empty;
+    [ContentReference(ContentReferenceKind.FormulaMirror)]
     public string applicatorId = string.Empty;
     public List<FacilityEvolutionFormulaRangeDefinition> parameterRanges = new();
 

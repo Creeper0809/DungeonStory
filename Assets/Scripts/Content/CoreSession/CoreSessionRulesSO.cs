@@ -19,14 +19,17 @@ namespace DungeonStory.Content.CoreSession
     {
         [Min(1)] public int lastDayInclusive = 3;
         [Min(0)] public int maximumConcurrentProblems;
+        [ContentReference(ContentReferenceKind.CoreIncident, emptyNumericId: 0)]
         public List<int> allowedIncidentKinds = new();
     }
 
     [Serializable]
     public sealed class ServiceResearchRule
     {
-        [Min(0)] public int serviceCategory;
-        [Min(0)] public int operationMode;
+        [ContentReference(ContentReferenceKind.CoreServiceCategory), Min(0)]
+        public int serviceCategory;
+        [ContentReference(ContentReferenceKind.CoreServiceMode, emptyNumericId: 0), Min(0)]
+        public int operationMode;
         [ContentReference(ContentReferenceKind.Research)]
         public string researchId = string.Empty;
     }
@@ -37,6 +40,13 @@ namespace DungeonStory.Content.CoreSession
         order = -98)]
     public sealed class CoreSessionRulesSO : ScriptableObject
     {
+        private const int FirstExteriorIncidentKind = 1;
+        private const int LastExteriorIncidentKind = 6;
+        private const int FirstServiceCategory = 0;
+        private const int LastServiceCategory = 4;
+        private const int FirstResearchOperationMode = 1;
+        private const int LastResearchOperationMode = 2;
+
         [Header("Run pacing")]
         [SerializeField, Min(1)] private int randomInvasionStartDay = 31;
         [SerializeField, Min(1)] private int growthStartDay = 4;
@@ -193,7 +203,9 @@ namespace DungeonStory.Content.CoreSession
                     || band.lastDayInclusive <= previousDay
                     || band.maximumConcurrentProblems < 0
                     || band.allowedIncidentKinds == null
-                    || band.allowedIncidentKinds.Any(kind => kind <= 0)
+                    || band.allowedIncidentKinds.Any(kind =>
+                        kind < FirstExteriorIncidentKind
+                        || kind > LastExteriorIncidentKind)
                     || band.allowedIncidentKinds.Distinct().Count()
                         != band.allowedIncidentKinds.Count)
                 {
@@ -224,10 +236,10 @@ namespace DungeonStory.Content.CoreSession
             }
 
             if (serviceResearch.Any(rule => rule == null
-                    || rule.serviceCategory < 0
-                    || rule.serviceCategory > 4
-                    || rule.operationMode < 1
-                    || rule.operationMode > 2
+                    || rule.serviceCategory < FirstServiceCategory
+                    || rule.serviceCategory > LastServiceCategory
+                    || rule.operationMode < FirstResearchOperationMode
+                    || rule.operationMode > LastResearchOperationMode
                     || string.IsNullOrWhiteSpace(rule.researchId)
                     || !string.Equals(
                         rule.researchId,

@@ -288,6 +288,43 @@ class RevisionVerificationTests(GitIdentityFixture):
         self.assertEqual(2, result["assetsChecked"])
         self.assertEqual(4, result["fieldsChecked"])
 
+    def test_new_blank_field_on_published_asset_is_rejected(self):
+        base = self.publish_default()
+        self.write_asset(fields=("identity: item:alpha", "newId:"))
+        self.write_baseline([
+            self.asset_row(fields=(("identity", "item:alpha"), ("newId", "")))
+        ])
+        head = self.commit("append blank published identity")
+
+        with self.assertRaisesRegex(
+            verifier.VerificationError, "new published identity field is blank"
+        ):
+            verifier.verify_revisions(base, head, self.root)
+
+    def test_new_nonblank_field_and_existing_blank_field_are_allowed(self):
+        self.write_asset(fields=("identity: item:alpha", "legacyId:"))
+        self.write_baseline([
+            self.asset_row(fields=(("identity", "item:alpha"), ("legacyId", "")))
+        ])
+        base = self.commit("publish legacy blank identity")
+        self.write_asset(
+            fields=("identity: item:alpha", "legacyId:", "newId: item:new")
+        )
+        self.write_baseline([
+            self.asset_row(
+                fields=(
+                    ("identity", "item:alpha"),
+                    ("legacyId", ""),
+                    ("newId", "item:new"),
+                )
+            )
+        ])
+        head = self.commit("append nonblank published identity")
+
+        result = verifier.verify_revisions(base, head, self.root)
+
+        self.assertEqual(3, result["fieldsChecked"])
+
     def test_changed_asset_identity_is_rejected_even_when_baseline_is_unchanged(self):
         base = self.publish_default()
         self.write_asset(fields=("identity: item:changed", "numericId: 7"))
@@ -986,7 +1023,10 @@ class ScalarDecodingTests(unittest.TestCase):
         source = b'''public static readonly WorkTypeId Craft = new WorkTypeId("work:craft");
 public static readonly WorkTypeId Haul = new WorkTypeId("work:haul");
 public static readonly IReadOnlyList<WorkTypeId> All = new[] { Craft, Haul };'''
-        self.assertEqual(frozenset({"work:craft", "work:haul"}), verifier.work_type_protocol_ids(source))
+        self.assertEqual(
+            {"Craft": "work:craft", "Haul": "work:haul"},
+            verifier.work_type_protocol_ids(source),
+        )
         for broken in (source.replace(b"Craft, Haul", b"Craft"),
                        source.replace(b"work:haul", b"work:craft"),
                        source.replace(b"new[]", b"CreateUnknown()")):
@@ -1009,6 +1049,42 @@ public static readonly IReadOnlyList<WorkTypeId> All = new[] { Craft };'''
         added = raw.replace(b"public static readonly IReadOnlyList", b'public static readonly WorkTypeId Haul = new WorkTypeId("work:haul");\npublic static readonly IReadOnlyList')
         added = added.replace(b"{ Craft }", b"{ Craft, Haul }")
         verifier.verify_work_type_protocols(before, Snapshot(added))
+
+    def test_work_type_protocol_symbol_value_swap_is_rejected(self):
+        raw = b'''public static readonly WorkTypeId Craft = new WorkTypeId("work:craft");
+public static readonly WorkTypeId Cook = new WorkTypeId("work:cook");
+public static readonly IReadOnlyList<WorkTypeId> All = new[] { Craft, Cook };'''
+        swapped = raw.replace(b'"work:craft"', b'"work:temporary"')
+        swapped = swapped.replace(b'"work:cook"', b'"work:craft"')
+        swapped = swapped.replace(b'"work:temporary"', b'"work:cook"')
+
+        class Snapshot:
+            def __init__(self, content): self.content = content
+            def read_blob(self, path): return self.content
+
+        with self.assertRaisesRegex(
+            verifier.VerificationError, "WorkType protocol binding changed"
+        ):
+            verifier.verify_work_type_protocols(Snapshot(raw), Snapshot(swapped))
+
+    def test_work_type_symbol_rename_requires_compatible_alias(self):
+        raw = b'''public static readonly WorkTypeId Craft = new WorkTypeId("work:craft");
+public static readonly IReadOnlyList<WorkTypeId> All = new[] { Craft };'''
+        renamed = b'''public static readonly WorkTypeId Fabricate = new WorkTypeId("work:craft");
+public static readonly IReadOnlyList<WorkTypeId> All = new[] { Fabricate };'''
+        aliased = b'''public static readonly WorkTypeId Fabricate = new WorkTypeId("work:craft");
+public static readonly WorkTypeId Craft = Fabricate;
+public static readonly IReadOnlyList<WorkTypeId> All = new[] { Fabricate };'''
+
+        class Snapshot:
+            def __init__(self, content): self.content = content
+            def read_blob(self, path): return self.content
+
+        with self.assertRaisesRegex(
+            verifier.VerificationError, "WorkType protocol symbol was removed"
+        ):
+            verifier.verify_work_type_protocols(Snapshot(raw), Snapshot(renamed))
+        verifier.verify_work_type_protocols(Snapshot(raw), Snapshot(aliased))
 
     def test_unicode_quotes_empty_and_whitespace_are_decoded_exactly(self):
         cases = (

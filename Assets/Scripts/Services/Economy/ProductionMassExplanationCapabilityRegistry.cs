@@ -155,6 +155,7 @@ public sealed class ProductionMassExplanationCapabilityRegistry
 
     private readonly Dictionary<string, IProductionMassExplanationCapability>
         capabilities;
+    private readonly IReadOnlyList<string> registeredKeys;
 
     public ProductionMassExplanationCapabilityRegistry(
         IEnumerable<IProductionMassExplanationCapability> source)
@@ -184,10 +185,14 @@ public sealed class ProductionMassExplanationCapabilityRegistry
             digest.Append(capability.ContractVersion);
             digest.Append(capability.GetType().FullName ?? string.Empty);
         }
+        registeredKeys = Array.AsReadOnly(capabilities.Keys
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToArray());
         RegistryFingerprint = digest.ComputeSha256();
     }
 
     public string RegistryFingerprint { get; }
+    public IReadOnlyList<string> RegisteredKeys => registeredKeys;
 
     public static ProductionMassExplanationCapabilityRegistry CreateDefault() =>
         new(new IProductionMassExplanationCapability[]
@@ -206,6 +211,17 @@ public sealed class ProductionMassExplanationCapabilityRegistry
         if (!capabilities.TryGetValue(key, out IProductionMassExplanationCapability capability))
             throw new InvalidOperationException("Unknown production mass explanation capability: " + key);
         return capability.Resolve(authoring, subject);
+    }
+
+    public void ValidateRegistered(
+        ProductionMassExplanationAuthoringSnapshot authoring)
+    {
+        if (authoring.IsEmpty)
+            return;
+        string key = BuildKey(authoring.CapabilityId, authoring.ContractVersion);
+        if (!capabilities.ContainsKey(key))
+            throw new InvalidOperationException(
+                "Unknown production mass explanation capability: " + key);
     }
 
     private static string BuildKey(string id, int version) =>

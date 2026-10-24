@@ -3,6 +3,20 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
+public static class V20WorldFlagIds
+{
+    public const string TemporalProductivitySustained = "temporal:productivity-sustained";
+    // Published ending requirement retained for existing saves and authored content.
+    public const string TemporalPopulationSustained = "temporal:population-sustained";
+    public static IReadOnlyList<string> Computed { get; } = Array.AsReadOnly(new[]
+    {
+        "ecology:self-sufficient-today", "ecology:closed-cycle", "faction:all-six-allied",
+        "story:truth-core-secured", "offense:surface-command-broken", "lineage:three-generations",
+        "economy:sovereign-ready", "industry:self-maintaining", "arcane:grid-integrated",
+        "temporal:productivity-qualified-today", TemporalProductivitySustained, TemporalPopulationSustained
+    });
+}
+
 public abstract class V20AuthoredContentSO : ScriptableObject
 {
     [ContentIdentity, SerializeField] private string stableId = string.Empty;
@@ -55,6 +69,7 @@ public sealed class V20ItemAmountRequirement
 public sealed class V20FacilityRequirement
 {
     [ContentReference(ContentReferenceKind.Building)] public string buildingDefinitionId = string.Empty;
+    [ContentReference(ContentReferenceKind.FacilityOperationCapability, IgnoreCase = true)]
     public string capabilityId = string.Empty;
     [Min(1)] public int minimumCount = 1;
     public bool mustBeOperational = true;
@@ -122,8 +137,8 @@ public sealed class V20ContentRequirementSet
     public List<V20CharacterRequirement> characters = new();
     public List<V20FactionRequirement> factions = new();
     public List<V20WorldMetricRequirement> worldMetrics = new();
-    public List<string> requiredFlags = new();
-    public List<string> excludedFlags = new();
+    [ContentReference(ContentReferenceKind.WorldFlag)] public List<string> requiredFlags = new();
+    [ContentReference(ContentReferenceKind.WorldFlag)] public List<string> excludedFlags = new();
 
     public IEnumerable<string> Validate(string ownerId)
     {

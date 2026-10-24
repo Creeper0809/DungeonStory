@@ -471,9 +471,13 @@ public sealed class AuthoredGameplayCatalog :
         return record.kind switch
         {
             AuthoredGameplayEffectKind.MetaIntegerBonus =>
-                new MetaIntegerBonusEffect(record.id, Mathf.RoundToInt(record.numberValue)),
+                MetaUpgradeEffectIds.IntegerTargets.Contains(record.id, StringComparer.Ordinal)
+                    ? new MetaIntegerBonusEffect(record.id, Mathf.RoundToInt(record.numberValue))
+                    : throw new InvalidOperationException($"Unknown integer meta effect target '{record.id}'."),
             AuthoredGameplayEffectKind.MetaMultiplierDelta =>
-                new MetaMultiplierDeltaEffect(record.id, record.numberValue),
+                MetaUpgradeEffectIds.MultiplierTargets.Contains(record.id, StringComparer.Ordinal)
+                    ? new MetaMultiplierDeltaEffect(record.id, record.numberValue)
+                    : throw new InvalidOperationException($"Unknown multiplier meta effect target '{record.id}'."),
             _ => throw new InvalidOperationException(
                 $"Effect kind '{record.kind}' is not valid for a meta upgrade.")
         };

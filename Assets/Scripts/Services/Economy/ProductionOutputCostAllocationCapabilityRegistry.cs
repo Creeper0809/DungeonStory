@@ -31,6 +31,7 @@ namespace DungeonStory.Balance
     {
         private readonly Dictionary<string, IProductionOutputCostAllocationCapability>
             capabilities;
+        private readonly IReadOnlyList<string> registeredKeys;
 
         public ProductionOutputCostAllocationCapabilityRegistry(
             IEnumerable<IProductionOutputCostAllocationCapability> source)
@@ -46,7 +47,12 @@ namespace DungeonStory.Balance
                     throw new InvalidOperationException(
                         $"Duplicate output-cost allocation capability '{key}'.");
             }
+            registeredKeys = Array.AsReadOnly(capabilities.Keys
+                .OrderBy(value => value, StringComparer.Ordinal)
+                .ToArray());
         }
+
+        public IReadOnlyList<string> RegisteredKeys => registeredKeys;
 
         public static ProductionOutputCostAllocationCapabilityRegistry CreateDefault() =>
             new(new IProductionOutputCostAllocationCapability[]
@@ -66,6 +72,17 @@ namespace DungeonStory.Balance
                 throw new InvalidOperationException(
                     $"Unknown output-cost allocation capability '{key}'.");
             return capability.ResolveWeights(authoring, outputs);
+        }
+
+        public void ValidateRegistered(
+            ProductionOutputCostAllocationAuthoringSnapshot authoring)
+        {
+            if (authoring.IsEmpty)
+                return;
+            string key = Key(authoring.CapabilityId, authoring.ContractVersion);
+            if (!capabilities.ContainsKey(key))
+                throw new InvalidOperationException(
+                    $"Unknown output-cost allocation capability '{key}'.");
         }
 
         private static string Key(string id, int version) =>

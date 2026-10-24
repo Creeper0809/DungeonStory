@@ -467,7 +467,7 @@ public static class ContentReferenceSelectionDebugScenarios
                     "Work choices differ from the production work-type registry.");
                 continue;
             }
-            if ((int)kind >= (int)ContentReferenceKind.GameplayEffectTarget)
+            if (ContentReferenceCatalog.IsKeyReference(kind))
             {
                 // Registry keys and family/tag relationships have no single SO
                 // identity. R18 scenarios compare their exact provider sets.

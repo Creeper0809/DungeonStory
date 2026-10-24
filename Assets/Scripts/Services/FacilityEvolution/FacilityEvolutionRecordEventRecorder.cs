@@ -29,29 +29,34 @@ public sealed class FacilityEvolutionRecordEventRecorder : IFacilityEvolutionRec
     private readonly IFacilityEvolutionRecordComponentService recordComponentService;
     private readonly IFacilityEvolutionRuntime instanceEvolutionRuntime;
     private readonly FacilityEvolutionRecordTokenDefinitionSO[] tokenDefinitions;
-    private static readonly HashSet<string> ProducedMetrics = new(StringComparer.Ordinal)
-    {
-        FacilityEvolutionTerms.AverageSatisfaction,
-        FacilityEvolutionTerms.AverageSpend,
-        FacilityEvolutionTerms.CombatVisitorRatio,
-        FacilityEvolutionTerms.CrimeCount,
-        FacilityEvolutionTerms.CriminalVisitorRatio,
-        FacilityEvolutionTerms.FacilityDamageTaken,
-        FacilityEvolutionTerms.HighValueTransactionCount,
-        FacilityEvolutionTerms.IntruderDamageDealt,
-        FacilityEvolutionTerms.IntruderDelayTime,
-        FacilityEvolutionTerms.NegativeMentionCount,
-        FacilityEvolutionTerms.NobleVisitorRatio,
-        FacilityEvolutionTerms.PositiveMentionCount,
-        FacilityEvolutionTerms.ProfitPerVisit,
-        FacilityEvolutionTerms.RepeatVisitorRatio,
-        FacilityEvolutionTerms.StockCostPerVisit,
-        FacilityEvolutionTerms.StockoutCount,
-        FacilityEvolutionTerms.TheftCount,
-        FacilityEvolutionTerms.TotalRevenue,
-        FacilityEvolutionTerms.UniqueVisitorCount,
-        FacilityEvolutionTerms.VisitCount,
-    };
+    private static readonly IReadOnlyList<string> ProducedMetricKeyValues =
+        Array.AsReadOnly(new[]
+        {
+            FacilityEvolutionTerms.AverageSatisfaction,
+            FacilityEvolutionTerms.AverageSpend,
+            FacilityEvolutionTerms.CombatVisitorRatio,
+            FacilityEvolutionTerms.CrimeCount,
+            FacilityEvolutionTerms.CriminalVisitorRatio,
+            FacilityEvolutionTerms.FacilityDamageTaken,
+            FacilityEvolutionTerms.HighValueTransactionCount,
+            FacilityEvolutionTerms.IntruderDamageDealt,
+            FacilityEvolutionTerms.IntruderDelayTime,
+            FacilityEvolutionTerms.NegativeMentionCount,
+            FacilityEvolutionTerms.NobleVisitorRatio,
+            FacilityEvolutionTerms.PositiveMentionCount,
+            FacilityEvolutionTerms.ProfitPerVisit,
+            FacilityEvolutionTerms.RepeatVisitorRatio,
+            FacilityEvolutionTerms.StockCostPerVisit,
+            FacilityEvolutionTerms.StockoutCount,
+            FacilityEvolutionTerms.TheftCount,
+            FacilityEvolutionTerms.TotalRevenue,
+            FacilityEvolutionTerms.UniqueVisitorCount,
+            FacilityEvolutionTerms.VisitCount
+        });
+    private static readonly HashSet<string> ProducedMetrics =
+        new HashSet<string>(ProducedMetricKeyValues, StringComparer.Ordinal);
+
+    public static IReadOnlyList<string> ProducedMetricKeys => ProducedMetricKeyValues;
 
     public FacilityEvolutionRecordEventRecorder(
         IFacilityCandidateCache facilityCandidateCache,

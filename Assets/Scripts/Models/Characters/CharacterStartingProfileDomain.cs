@@ -42,7 +42,7 @@ public enum CharacterStartingAgeBand
 [Serializable]
 public sealed class CharacterStartingProficiencyBonus
 {
-    [ContentReference(ContentReferenceKind.Proficiency)]
+    [ContentReference(ContentReferenceKind.StartingProficiency)]
     public string proficiencyId = string.Empty;
     [Min(0)] public int experience;
 }

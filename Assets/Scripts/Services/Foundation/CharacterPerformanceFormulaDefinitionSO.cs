@@ -82,10 +82,15 @@ public sealed class CharacterPerformanceFormulaDefinitionSO : ScriptableObject
             errors.Add($"Formula '{FormulaId}' has no capacity inputs.");
         else
         {
-            if (capacityInputs.Any(input => input == null || float.IsNaN(input.Weight)
+            if (capacityInputs.Any(input => input == null
+                    || !Enum.IsDefined(typeof(CharacterFunctionalCapacityId), input.CapacityId)
+                    || float.IsNaN(input.Weight)
                     || float.IsInfinity(input.Weight) || input.Weight < 0f))
                 errors.Add($"Formula '{FormulaId}' has an invalid capacity input.");
-            if (capacityInputs.GroupBy(input => input.CapacityId).Any(group => group.Count() > 1))
+            if (capacityInputs
+                    .Where(input => input != null)
+                    .GroupBy(input => input.CapacityId)
+                    .Any(group => group.Count() > 1))
                 errors.Add($"Formula '{FormulaId}' repeats a capacity input.");
         }
         if (SecondaryProficiencyWeight < 0f || SecondaryProficiencyWeight > 0.2f)

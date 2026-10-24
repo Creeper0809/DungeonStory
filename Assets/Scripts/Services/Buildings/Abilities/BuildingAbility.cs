@@ -174,6 +174,48 @@ public sealed class BuildingWorkAmountAbility : BuildingAbility,
         ?? WorkerSelectionPolicySaveData.Anyone(
             WorkerCandidateSortMode.SpecificThenBestExpectedQuality);
 
+    public IReadOnlyList<string> ValidateDefaultWorkerPolicy()
+    {
+        List<string> errors = new();
+        if (defaultWorkerPolicy == null)
+        {
+            return errors;
+        }
+
+        if (!Enum.IsDefined(
+                typeof(WorkerSelectionMode),
+                defaultWorkerPolicy.mode))
+        {
+            errors.Add("Default worker policy has an invalid selection mode.");
+        }
+        if (!Enum.IsDefined(
+                typeof(WorkerRequirementMatchMode),
+                defaultWorkerPolicy.matchMode))
+        {
+            errors.Add("Default worker policy has an invalid requirement match mode.");
+        }
+        if (!Enum.IsDefined(
+                typeof(WorkerCandidateSortMode),
+                defaultWorkerPolicy.sortMode))
+        {
+            errors.Add("Default worker policy has an invalid candidate sort mode.");
+        }
+        if (defaultWorkerPolicy.mode is WorkerSelectionMode.SpecificCharacters
+            or WorkerSelectionMode.SpecificOrRuleSet)
+        {
+            errors.Add(
+                "Definition default worker policy cannot select specific characters.");
+        }
+        if ((defaultWorkerPolicy.specificCharacterIds?.Count ?? 0) > 0
+            || (defaultWorkerPolicy.excludedCharacterIds?.Count ?? 0) > 0)
+        {
+            errors.Add(
+                "Definition default worker policy cannot contain instance character IDs.");
+        }
+
+        return errors;
+    }
+
     public ProjectScale ConstructionProjectScale
     {
         get

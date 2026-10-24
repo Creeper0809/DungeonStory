@@ -57,7 +57,7 @@ public sealed class ContentReferenceDrawer : PropertyDrawer
                     or ContentReferenceKind.SkillModule or ContentReferenceKind.SkillVariant
                     or ContentReferenceKind.CampaignTarget or ContentReferenceKind.AcquiredTraitBinding
                     or ContentReferenceKind.EquipmentCapability or ContentReferenceKind.FacilityCapability
-                || (int)kind.Value >= (int)ContentReferenceKind.GameplayEffectTarget
+                || ContentReferenceCatalog.IsKeyReference(kind.Value)
                 || contextual || aliases.Length > 0)
             {
                 var options = new List<(string Id, string Label)> { ("", "None") };
@@ -67,7 +67,7 @@ public sealed class ContentReferenceDrawer : PropertyDrawer
                     options.Add(("requesting-faction", "요청한 세력 (requesting-faction)"));
                 }
                 options.AddRange(aliases.Select(value => (value, "호환/문맥 키: " + value)));
-                options.AddRange(entries.Select(value => (value.Id, (value.Asset != null ? value.Asset.name : "코드 정의") + " / " + value.Id)));
+                options.AddRange(entries.Select(value => (value.Id, value.Label + " / " + value.Id)));
                 int selected = options.FindIndex(value => ContentReferenceCatalog.Matches(resolved, value.Id, current));
                 if (selected < 0)
                 {
@@ -133,7 +133,8 @@ public static class ContentReferenceSelection
     {
         public readonly ScriptableObject Asset;
         public readonly string Id;
-        public Entry(ScriptableObject asset, string id) { Asset = asset; Id = id; }
+        public readonly string Label;
+        public Entry(ScriptableObject asset, string id, string label = null) { Asset = asset; Id = id; Label = label ?? asset?.name ?? id; }
     }
 
     public static ContentReferenceKind? ResolveKind(ContentReferenceKind kind, SerializedProperty property)
@@ -160,6 +161,13 @@ public static class ContentReferenceSelection
 
     public static ContentReferenceAttribute ResolveReference(ContentReferenceAttribute reference, SerializedProperty property)
     {
+        if (reference.Kind == ContentReferenceKind.MetaEffectTarget)
+        {
+            var kind = ContextKind(property);
+            return kind == null || kind.hasMultipleDifferentValues ? null
+                : ContentReferenceCatalog.ResolveReference(reference, property.propertyPath,
+                    new AuthoredGameplayEffectRecord { kind = (AuthoredGameplayEffectKind)kind.intValue });
+        }
         if (reference.Kind == ContentReferenceKind.FixedTraitRule)
         {
             if (property.serializedObject.targetObject is not CharacterTraitSO) return null;
@@ -217,7 +225,7 @@ public static class ContentReferenceSelection
             || reference.Kind == ContentReferenceKind.SkillVariant && Sibling(property, "moduleId")?.hasMultipleDifferentValues == true
             || (reference.Kind == ContentReferenceKind.EncounterTarget
             ? property.serializedObject.FindProperty("objective")?.hasMultipleDifferentValues == true
-            : reference.Kind is ContentReferenceKind.EffectTarget or ContentReferenceKind.NarrativeTarget or ContentReferenceKind.AuthoredEffectText
+            : reference.Kind is ContentReferenceKind.EffectTarget or ContentReferenceKind.NarrativeTarget or ContentReferenceKind.AuthoredEffectText or ContentReferenceKind.MetaEffectTarget
                 && ContextKind(property)?.hasMultipleDifferentValues == true);
 
     private static SerializedProperty Sibling(SerializedProperty property, string name) =>
@@ -234,7 +242,7 @@ public static class ContentReferenceSelection
                 return catalog.Entries(reference, property.serializedObject.targetObject as ScriptableObject,
                     new CharacterSkillModuleSelection { moduleId = Sibling(property, "moduleId")?.stringValue })
                     .Select(entry => new Entry(entry.Asset, entry.Id)).ToArray();
-            return PendingOwnerEntries(reference, property.serializedObject);
+            return PendingOwnerEntries(reference, property);
         }
         if (reference.Kind == ContentReferenceKind.AnatomyNode
             && property.serializedObject.targetObject is SurgicalProcedureSO)
@@ -284,8 +292,9 @@ public static class ContentReferenceSelection
     // Copy pending serialized values to a disposable object, never Apply to the
     // user's asset just to populate a picker. New list rows and Undo therefore
     // see the same local catalog that validation will see after Apply.
-    private static IReadOnlyList<Entry> PendingOwnerEntries(ContentReferenceAttribute reference, SerializedObject source)
+    private static IReadOnlyList<Entry> PendingOwnerEntries(ContentReferenceAttribute reference, SerializedProperty property)
     {
+        SerializedObject source = property.serializedObject;
         if (source.targetObject is not ScriptableObject original) return Array.Empty<Entry>();
         ScriptableObject pending = ScriptableObject.CreateInstance(original.GetType());
         pending.hideFlags = HideFlags.HideAndDontSave;
@@ -301,10 +310,27 @@ public static class ContentReferenceSelection
                     CopyPendingValue(field, copy.FindProperty(field.propertyPath));
             }
             copy.ApplyModifiedPropertiesWithoutUndo();
-            return catalog.Entries(reference, pending).Select(entry =>
-                new Entry(entry.Asset == pending ? original : entry.Asset, entry.Id)).ToArray();
+            return catalog.Entries(reference, pending, ReadOwner(pending, property.propertyPath)).Select(entry =>
+                new Entry(entry.Asset == pending ? original : entry.Asset, entry.Id, entry.Label)).ToArray();
         }
         finally { UnityEngine.Object.DestroyImmediate(pending); }
+    }
+
+    private static object ReadOwner(object root, string propertyPath)
+    {
+        string[] parts = propertyPath.Replace(".Array.data[", "[").Split('.');
+        object value = root;
+        foreach (string part in parts.Take(parts.Length - 1))
+        {
+            int bracket = part.IndexOf('[');
+            string name = bracket < 0 ? part : part.Substring(0, bracket);
+            var field = ContentReferenceCatalog.SerializedFields(value.GetType()).FirstOrDefault(item => item.Name == name);
+            value = field?.GetValue(value);
+            if (value == null) return null;
+            if (bracket >= 0)
+                value = ((System.Collections.IList)value)[int.Parse(part.Substring(bracket + 1, part.Length - bracket - 2), CultureInfo.InvariantCulture)];
+        }
+        return value;
     }
 
     private static void CopyPendingValue(SerializedProperty source, SerializedProperty target)
@@ -317,8 +343,15 @@ public static class ContentReferenceSelection
             for (int i = 0; i < source.arraySize; i++)
                 CopyPendingValue(source.GetArrayElementAtIndex(i), target.GetArrayElementAtIndex(i));
         }
-        else if (source.propertyType == SerializedPropertyType.Generic)
+        else if (source.propertyType is SerializedPropertyType.Generic or SerializedPropertyType.ManagedReference)
         {
+            if (source.propertyType == SerializedPropertyType.ManagedReference)
+            {
+                object managed = source.managedReferenceValue;
+                target.managedReferenceValue = managed == null ? null
+                    : JsonUtility.FromJson(JsonUtility.ToJson(managed), managed.GetType());
+                if (managed == null) return;
+            }
             var child = source.Copy();
             var end = source.GetEndProperty();
             if (child.Next(true))
@@ -350,14 +383,14 @@ public static class ContentReferenceSelection
             if (root == null) return Array.Empty<Entry>();
             catalog = ContentReferenceCatalog.FromRoot(root);
         }
-        return entries[key] = catalog.Entries(reference).Select(value => new Entry(value.Asset, value.Id)).ToArray();
+        return entries[key] = catalog.Entries(reference).Select(value => new Entry(value.Asset, value.Id, value.Label)).ToArray();
     }
 
     public static string ReadId(SerializedProperty property, ContentReferenceKind kind, int emptyNumericId = -1)
     {
-        if (kind == ContentReferenceKind.FactionEconomicPolicy)
+        if (kind is ContentReferenceKind.FactionEconomicPolicy or ContentReferenceKind.ProductionMassPolicy or ContentReferenceKind.ProductionOutputCostPolicy)
         {
-            int version = Sibling(property, "capabilityVersion").intValue;
+            int version = Sibling(property, kind == ContentReferenceKind.FactionEconomicPolicy ? "capabilityVersion" : "contractVersion").intValue;
             return string.IsNullOrEmpty(property.stringValue) && version == 0
                 ? string.Empty : (property.stringValue ?? string.Empty) + "@" + version;
         }
@@ -369,17 +402,34 @@ public static class ContentReferenceSelection
 
     public static void WriteId(SerializedProperty property, ContentReferenceKind kind, string id, int emptyNumericId = -1)
     {
-        if (kind == ContentReferenceKind.FactionEconomicPolicy)
+        if (kind is ContentReferenceKind.FactionEconomicPolicy or ContentReferenceKind.ProductionMassPolicy or ContentReferenceKind.ProductionOutputCostPolicy)
         {
             int split = id.LastIndexOf('@');
             property.stringValue = split < 0 ? string.Empty : id.Substring(0, split);
-            Sibling(property, "capabilityVersion").intValue = split < 0 ? 0 : int.Parse(id.Substring(split + 1), CultureInfo.InvariantCulture);
+            Sibling(property, kind == ContentReferenceKind.FactionEconomicPolicy ? "capabilityVersion" : "contractVersion").intValue = split < 0 ? 0 : int.Parse(id.Substring(split + 1), CultureInfo.InvariantCulture);
+            if (split < 0 && kind != ContentReferenceKind.FactionEconomicPolicy)
+                Sibling(property, "canonicalPayload").stringValue = string.Empty;
             return;
         }
         if (property.propertyType == SerializedPropertyType.Integer)
             property.intValue = id.Length == 0 ? (kind == ContentReferenceKind.ResearchNumeric ? 0 : emptyNumericId)
                 : int.Parse(id, CultureInfo.InvariantCulture);
         else property.stringValue = id;
+        if (kind == ContentReferenceKind.SkillBehavior)
+        {
+            var formula = Sibling(property, "formula");
+            if (formula != null)
+            {
+                formula.FindPropertyRelative("formatterId").stringValue = id;
+                formula.FindPropertyRelative("applicatorId").stringValue = id;
+            }
+        }
+        if (kind == ContentReferenceKind.EquipmentApplicator
+            && EquipmentEvolutionFormulaCapabilityDefinition.TryResolveApplicator(id, out string stat, out var modifier))
+        {
+            Sibling(property, "statId").stringValue = stat;
+            Sibling(property, "modifierKind").intValue = (int)modifier;
+        }
     }
 
     public static bool TryAssign(SerializedProperty property, ContentReferenceKind kind,

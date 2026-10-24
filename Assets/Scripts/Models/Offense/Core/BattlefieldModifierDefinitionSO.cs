@@ -16,6 +16,7 @@ public sealed class BattlefieldModifierDefinitionSO : ScriptableObject
     [Range(0.25f, 2f)] public float movementMultiplier = 1f;
     [Range(0.25f, 2f)] public float accuracyMultiplier = 1f;
     [Range(0.25f, 2f)] public float damageMultiplier = 1f;
+    [ContentReference(ContentReferenceKind.BattleCounter)]
     public string requiredCounterTag = string.Empty;
 
     public IReadOnlyList<string> ValidateDefinition()
@@ -28,6 +29,9 @@ public sealed class BattlefieldModifierDefinitionSO : ScriptableObject
             && Mathf.Approximately(damageMultiplier, 1f)
             && string.IsNullOrWhiteSpace(requiredCounterTag))
             errors.Add($"'{stableId}' requires a mechanical consequence.");
+        if (!string.IsNullOrWhiteSpace(requiredCounterTag)
+            && !OffenseBattleCounterRules.IsDeclared(requiredCounterTag))
+            errors.Add($"'{stableId}' has an unknown battle counter tag '{requiredCounterTag}'.");
         return errors;
     }
 }

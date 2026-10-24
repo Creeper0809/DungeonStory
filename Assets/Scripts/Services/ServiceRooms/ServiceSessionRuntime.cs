@@ -561,6 +561,9 @@ public sealed class ServiceSessionRuntime :
             return false;
         }
 
+        if (!ValidateRequiredFeatures(hub, modeContract.requiredFeatureTags, out failure))
+            return false;
+
         ServiceSessionContractSnapshot contract =
             CreateContract(
                 hubState,
@@ -589,6 +592,8 @@ public sealed class ServiceSessionRuntime :
         ServiceSessionStage stage,
         out DomainFailure failure)
     {
+        if (Aggregate.TryGetSession(sessionId, out ServiceSessionSnapshot active) && active.IsActive
+            && !ValidateSessionFeatures(active, out failure)) return false;
         return Aggregate.TrySetStage(
             sessionId,
             stage,
@@ -615,6 +620,7 @@ public sealed class ServiceSessionRuntime :
             failure = new DomainFailure(FailureCode.ServiceHubUnavailable);
             return false;
         }
+        if (!ValidateSessionFeatures(active, out failure)) return false;
         float completedAt = Aggregate.GetTimelineTime(clock.Time);
         string terminalHubName = ResolveHubDisplayName(active.HubId);
         if (!TryReserveTerminal(active, ServiceSessionStage.Completed, absoluteDay, terminalHubName,
@@ -749,7 +755,7 @@ public sealed class ServiceSessionRuntime :
                     process.OwnerHubTag,
                     ability.ServiceHubTag,
                     StringComparison.Ordinal);
-            if (validActor && validHub && validProcess)
+            if (validActor && validHub && validProcess && ValidateSessionFeatures(session, out _))
             {
                 continue;
             }
@@ -1234,12 +1240,29 @@ public sealed class ServiceSessionRuntime :
                 .Concat(ability.automatedRequiredFeatureTags
                     ?? Array.Empty<string>())
                 .ToArray();
+        return ValidateRequiredFeatures(hub, required, out failure);
+    }
+
+    private bool ValidateSessionFeatures(ServiceSessionSnapshot session, out DomainFailure failure)
+    {
+        BuildableObject hub = GetOperationalHubs(null).FirstOrDefault(value => GetHubId(value) == session.HubId);
+        if (hub == null || !processCatalog.TryGet(session.ProcessId, out ServiceProcessSO process)
+            || !process.TryGetContract(session.Contract.mode, out ServiceModeProcessContract contract))
+        {
+            failure = new DomainFailure(FailureCode.ServiceProcessContractMissing);
+            return false;
+        }
+        return ValidateRequiredFeatures(hub, contract.requiredFeatureTags, out failure);
+    }
+
+    private bool ValidateRequiredFeatures(BuildableObject hub, IReadOnlyList<string> required, out DomainFailure failure)
+    {
         if (!links.HasFeatures(hub, required, out failure))
         {
             return false;
         }
 
-        foreach (string feature in required
+        foreach (string feature in (required ?? Array.Empty<string>())
                      .Where(feature => !string.IsNullOrWhiteSpace(feature)))
         {
             if (!links.TryResolveFeature(

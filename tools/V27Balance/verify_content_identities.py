@@ -554,6 +554,7 @@ def compare_baselines(base: IdentityBaseline, head: IdentityBaseline) -> None:
                 f"{old_asset.script_guid} -> {current.script_guid}"
             )
         current_fields = current.fields_by_path()
+        old_fields = old_asset.fields_by_path()
         for old_field in old_asset.fields:
             new_field = current_fields.get(old_field.path)
             if new_field is None:
@@ -564,6 +565,12 @@ def compare_baselines(base: IdentityBaseline, head: IdentityBaseline) -> None:
                 raise VerificationError(
                     f"published identity changed: {old_asset.guid}.{old_field.path} "
                     f"{old_field.value!r} -> {new_field.value!r}"
+                )
+        for new_field in current.fields:
+            if new_field.path not in old_fields and new_field.value == "":
+                raise VerificationError(
+                    "new published identity field is blank: "
+                    f"{old_asset.guid}.{new_field.path}"
                 )
 
 
@@ -1269,21 +1276,55 @@ def verify_head_assets(snapshot: GitSnapshot, baseline: IdentityBaseline) -> tup
     return assets_checked, fields_checked
 
 
-def work_type_protocol_ids(raw: bytes) -> frozenset[str]:
+def work_type_protocol_ids(raw: bytes) -> dict[str, str]:
     text = raw.decode("utf-8-sig")
-    definitions = dict(re.findall(
-        r"public\s+static\s+readonly\s+WorkTypeId\s+(\w+)\s*=\s*new\s+WorkTypeId\(\s*\"([^\"]+)\"\s*\)\s*;", text
-    ))
+    declarations = re.findall(
+        r"public\s+static\s+readonly\s+WorkTypeId\s+(\w+)\s*=\s*(.*?)\s*;",
+        text,
+        re.S,
+    )
     membership = re.search(r"IReadOnlyList<WorkTypeId>\s+All\s*=\s*new\[\]\s*\{([^}]+)\}", text, re.S)
-    if not definitions or membership is None:
+    if not declarations or membership is None:
         raise VerificationError("WorkType protocol declarations or membership cannot be read")
+    definitions: dict[str, str] = {}
+    aliases: dict[str, str] = {}
+    for name, expression in declarations:
+        if name in definitions or name in aliases:
+            raise VerificationError(f"WorkType protocol symbol is declared more than once: {name}")
+        constructor = re.fullmatch(
+            r"new\s+WorkTypeId\(\s*\"([^\"]+)\"\s*\)", expression
+        )
+        alias = re.fullmatch(r"([A-Za-z_]\w*)", expression)
+        if constructor is not None:
+            definitions[name] = constructor[1]
+        elif alias is not None:
+            aliases[name] = alias[1]
+        else:
+            raise VerificationError(
+                f"WorkType protocol declaration is unsupported: {name} = {expression.strip()}"
+            )
     names = [value.strip() for value in membership[1].split(",") if value.strip()]
     if len(names) != len(set(names)) or set(names) != set(definitions):
         raise VerificationError("WorkType protocol membership disagrees with its declarations")
     values = list(definitions.values())
     if len(values) != len(set(values)) or any(re.fullmatch(r"work:[a-z]+(?:-[a-z]+)*", value) is None for value in values):
         raise VerificationError("WorkType protocol IDs are duplicate or noncanonical")
-    return frozenset(values)
+
+    resolved = dict(definitions)
+
+    def resolve_alias(name: str, chain: tuple[str, ...]) -> str:
+        if name in resolved:
+            return resolved[name]
+        target = aliases.get(name)
+        if target is None or name in chain:
+            raise VerificationError(f"WorkType protocol alias is invalid: {' -> '.join((*chain, name))}")
+        value = resolve_alias(target, (*chain, name))
+        resolved[name] = value
+        return value
+
+    for name in aliases:
+        resolve_alias(name, ())
+    return resolved
 
 
 def verify_work_type_protocols(base_snapshot: GitSnapshot, head_snapshot: GitSnapshot) -> None:
@@ -1295,9 +1336,18 @@ def verify_work_type_protocols(base_snapshot: GitSnapshot, head_snapshot: GitSna
         raise VerificationError("Published WorkType protocol source was removed")
     current = work_type_protocol_ids(after)
     if before is not None:
-        removed = work_type_protocol_ids(before) - current
-        if removed:
-            raise VerificationError(f"Published WorkType save IDs were removed or renamed: {sorted(removed)}")
+        previous = work_type_protocol_ids(before)
+        for symbol, old_id in previous.items():
+            new_id = current.get(symbol)
+            if new_id is None:
+                raise VerificationError(
+                    f"Published WorkType protocol symbol was removed: {symbol} ({old_id})"
+                )
+            if new_id != old_id:
+                raise VerificationError(
+                    f"Published WorkType protocol binding changed: {symbol} "
+                    f"{old_id!r} -> {new_id!r}"
+                )
 
 
 def verify_revisions(

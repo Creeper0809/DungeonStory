@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Linq;
 using System.Security.Cryptography;
@@ -15,6 +16,7 @@ public enum EquipmentEvolutionFormulaModifierKind
 [Serializable]
 public sealed class EquipmentEvolutionFormulaRangeDefinition
 {
+    [ContentReference(ContentReferenceKind.FormulaParameter)]
     public string parameterId = string.Empty;
     public long minimumUnits;
     public long maximumUnits;
@@ -34,8 +36,34 @@ public sealed class EquipmentEvolutionFormulaRangeDefinition
 [Serializable]
 public sealed class EquipmentEvolutionFormulaCapabilityDefinition
 {
+    private static readonly IReadOnlyDictionary<
+        string,
+        (string StatId, EquipmentEvolutionFormulaModifierKind ModifierKind)> Applicators =
+        new ReadOnlyDictionary<
+            string,
+            (string StatId, EquipmentEvolutionFormulaModifierKind ModifierKind)>(
+            new Dictionary<
+                string,
+                (string StatId, EquipmentEvolutionFormulaModifierKind ModifierKind)>(
+                StringComparer.Ordinal)
+            {
+                ["equipment:combat-damage:increase"] =
+                    ("combat.damage", EquipmentEvolutionFormulaModifierKind.MultiplierIncrease),
+                ["equipment:combat-accuracy:increase"] =
+                    ("combat.accuracy", EquipmentEvolutionFormulaModifierKind.MultiplierIncrease),
+                ["equipment:combat-durability:increase"] =
+                    ("combat.durability", EquipmentEvolutionFormulaModifierKind.MultiplierIncrease),
+                ["equipment:combat-reload:reduction"] =
+                    ("combat.reload", EquipmentEvolutionFormulaModifierKind.MultiplierReduction)
+            });
+    private static readonly IReadOnlyList<string> RegisteredApplicatorIds =
+        Array.AsReadOnly(Applicators.Keys.OrderBy(value => value, StringComparer.Ordinal).ToArray());
+
+    public static IReadOnlyList<string> ApplicatorIds => RegisteredApplicatorIds;
+
     public string capabilityId = string.Empty;
     public string displayName = string.Empty;
+    [ContentReference(ContentReferenceKind.EquipmentStat)]
     public string statId = string.Empty;
     public EquipmentEvolutionFormulaModifierKind modifierKind;
     public int baseCost;
@@ -48,8 +76,13 @@ public sealed class EquipmentEvolutionFormulaCapabilityDefinition
     public List<string> conflictGroups = new();
     [ContentReference(ContentReferenceKind.EquipmentCapability)]
     public List<string> forbiddenSynergies = new();
+    [ContentReference(ContentReferenceKind.FormulaParameter)]
     public List<string> appliedParameterIds = new();
+    // Frozen serialized metadata retained for content digest compatibility.
+    // No runtime formatter dispatch consumes this value.
+    [HideInInspector]
     public string formatterId = string.Empty;
+    [ContentReference(ContentReferenceKind.EquipmentApplicator)]
     public string applicatorId = string.Empty;
     public List<EquipmentEvolutionFormulaRangeDefinition> parameterRanges = new();
 
@@ -80,21 +113,31 @@ public sealed class EquipmentEvolutionFormulaCapabilityDefinition
             applicatorId);
     }
 
+    public static bool TryResolveApplicator(
+        string id,
+        out string statId,
+        out EquipmentEvolutionFormulaModifierKind modifierKind)
+    {
+        if (id != null && Applicators.TryGetValue(id, out var definition))
+        {
+            statId = definition.StatId;
+            modifierKind = definition.ModifierKind;
+            return true;
+        }
+
+        statId = string.Empty;
+        modifierKind = default;
+        return false;
+    }
+
     private void ValidateApplicator()
     {
-        (string expectedStatId, EquipmentEvolutionFormulaModifierKind expectedKind) = applicatorId switch
-        {
-            "equipment:combat-damage:increase" =>
-                ("combat.damage", EquipmentEvolutionFormulaModifierKind.MultiplierIncrease),
-            "equipment:combat-accuracy:increase" =>
-                ("combat.accuracy", EquipmentEvolutionFormulaModifierKind.MultiplierIncrease),
-            "equipment:combat-durability:increase" =>
-                ("combat.durability", EquipmentEvolutionFormulaModifierKind.MultiplierIncrease),
-            "equipment:combat-reload:reduction" =>
-                ("combat.reload", EquipmentEvolutionFormulaModifierKind.MultiplierReduction),
-            _ => throw new InvalidOperationException(
-                $"Unknown equipment formula applicator '{applicatorId ?? string.Empty}'.")
-        };
+        if (!TryResolveApplicator(
+                applicatorId,
+                out string expectedStatId,
+                out EquipmentEvolutionFormulaModifierKind expectedKind))
+            throw new InvalidOperationException(
+                $"Unknown equipment formula applicator '{applicatorId ?? string.Empty}'.");
         if (!string.Equals(statId, expectedStatId, StringComparison.Ordinal)
             || modifierKind != expectedKind)
             throw new InvalidOperationException(

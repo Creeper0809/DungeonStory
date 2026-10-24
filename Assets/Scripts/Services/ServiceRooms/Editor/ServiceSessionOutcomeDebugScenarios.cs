@@ -1116,13 +1116,88 @@ public static class ServiceSessionOutcomeDebugScenarios
         public void Dispose() => fixture.Dispose();
     }
 
+    public static void RunR19ProcessFeatureContracts()
+    {
+        ServiceProcessSO source = AssetDatabase.LoadAssetAtPath<ServiceProcessSO>(
+            "Assets/Resources/SO/ServiceRooms/Processes/service_bathing_wash.asset");
+        string sourceJson = EditorJsonUtility.ToJson(source);
+        bool sourceDirty = EditorUtility.IsDirty(source);
+        var process = UnityEngine.Object.Instantiate(source);
+        GameObject supportObject = null;
+        try
+        {
+            using var fixture = new Fixture("run:r19-process-features", processOverride: process);
+            BuildingSO supportData = new ResourceGameContentCatalog(new UnityGameContentRootLoader())
+                .GetAll<BuildingSO>().First(value => value.GetAbility<BuildingServiceSupportAbility>() is { } support
+                    && support.SupportsHub(process.OwnerHubTag) && support.featureTags?.Length > 0);
+            string feature = supportData.GetAbility<BuildingServiceSupportAbility>().featureTags.First();
+            Require(process.TryGetContract(ServiceOperationMode.Direct, out var mode), "R19 direct process mode missing.");
+            mode.requiredFeatureTags = new[] { feature };
+            var rooms = new R19RoomCache();
+            fixture.Links = new ServiceRoomLinkRuntime(fixture.BuildingWorld, rooms);
+            fixture.ReplaceRuntime(new ServiceRoomsSaveData());
+            ServiceSessionRequest Request() => new() { Hub = fixture.Hub, ProcessId = process.ProcessId, AdvertisedDemand = true };
+            string empty = JsonUtility.ToJson(fixture.Runtime.Capture());
+            Require(!fixture.Runtime.TryBeginSession(Request(), out _, out var failure)
+                && failure.Code == FailureCode.ServiceFeatureMissing
+                && JsonUtility.ToJson(fixture.Runtime.Capture()) == empty, "Missing process feature reserved a session or was silently ignored.");
+            supportObject = new GameObject("R19 actual linked service support");
+            var supportBuilding = supportObject.AddComponent<BuildableObject>();
+            CharacterAiEditorTestDependencies.Inject(supportBuilding);
+            supportBuilding.Initialization(supportData, Vector2Int.right);
+            var room = new RoomInstance(19001, new[] { Vector2Int.zero, Vector2Int.right },
+                new[] { fixture.Hub, supportBuilding }, new[] { fixture.Hub }, Array.Empty<BuildableObject>(), 2, 0);
+            rooms.Assign(room, fixture.Hub, supportBuilding);
+            fixture.SetBuildings(fixture.Hub, supportBuilding);
+            Require(fixture.Links.HasFeatures(fixture.Hub, new[] { feature }, out _), "Actual room/support linker did not produce the requested feature.");
+            Require(fixture.Runtime.TryBeginSession(Request(), out var session, out _), "Repairing actual support link did not allow session retry.");
+            fixture.Clock.Advance(session.Contract.serviceSeconds);
+            ServiceRoomsSaveData saved = fixture.RoundTrip(fixture.Runtime.Capture());
+            fixture.ReplaceRuntime(saved, viaSection: true);
+            fixture.SetBuildings(fixture.Hub);
+            int balance = fixture.Money.Balance;
+            Require(!fixture.Runtime.TrySetStage(session.SessionId, ServiceSessionStage.Service, out failure)
+                && failure.Code == FailureCode.ServiceFeatureMissing, "Restored stage command bypassed missing process feature.");
+            Require(!fixture.Runtime.TryCompleteSession(session.SessionId, out _, out failure)
+                && failure.Code == FailureCode.ServiceFeatureMissing && fixture.Money.Balance == balance
+                && fixture.CountTerminalOutcomes() == 0 && fixture.RequireSession(session.SessionId).IsActive,
+                "Missing feature partially completed or paid a restored service.");
+            fixture.SetBuildings(fixture.Hub, supportBuilding);
+            Require(fixture.Runtime.TryCompleteSession(session.SessionId, out _, out _)
+                && fixture.Money.Balance == balance + session.Contract.price
+                && fixture.Money.SuccessfulCredits.Count == 1 && fixture.CountTerminalOutcomes() == 1,
+                "Restored service could not complete once after support repair.");
+            fixture.Runtime.TryCompleteSession(session.SessionId, out _, out _);
+            Require(fixture.Money.SuccessfulCredits.Count == 1 && fixture.CountTerminalOutcomes() == 1,
+                "Service completion retry repeated payment or terminal publication.");
+            Debug.Log("R19_SERVICE_PROCESS_FEATURE=PASS; real-room-support-link; rejection-before-reservation; V7-json-restore; missing-link-atomic-reject; repair-retry; payment-once");
+        }
+        finally
+        {
+            if (supportObject != null) UnityEngine.Object.DestroyImmediate(supportObject);
+            UnityEngine.Object.DestroyImmediate(process);
+            Require(EditorJsonUtility.ToJson(source) == sourceJson && EditorUtility.IsDirty(source) == sourceDirty,
+                "Service feature fixture mutated its source process.");
+        }
+    }
+
+    private sealed class R19RoomCache : IRoomLayoutCache
+    {
+        private readonly Dictionary<BuildableObject, RoomInstance> assigned = new();
+        public void Assign(RoomInstance room, params BuildableObject[] parts) { foreach (var part in parts) assigned[part] = room; }
+        public RoomLayout GetLayout(Grid grid) => new(assigned.Values.Distinct().ToArray());
+        public bool TryGetRoom(BuildableObject part, out RoomInstance room) => assigned.TryGetValue(part, out room);
+        public bool TryGetRoom(Grid grid, Vector2Int cell, out RoomInstance room) { room = null; return false; }
+        public void Clear() => assigned.Clear();
+    }
+
     private sealed class Fixture : IDisposable
     {
         private readonly string runId;
         private readonly BuildingSO hubData;
         private readonly BuildableObject hub;
         private readonly FixedBuildingWorld buildingWorld;
-        private readonly AcceptAllLinks links = new();
+        private IServiceRoomLinkRuntime links = new AcceptAllLinks();
         private readonly SingleProcessCatalog processes;
         private IGameSessionStateProvider sessionState;
         private ProductionSessionState productionSession;
@@ -1144,7 +1219,7 @@ public static class ServiceSessionOutcomeDebugScenarios
             CharacterActor externalPatient = null, BuildableObject externalHub = null,
             Grid externalGrid = null, DungeonRuntimeAggregateRootStore sharedRoots = null,
             RestoreWorldCandidateIndex sharedCandidates = null,
-            bool productionMoney = false, int productionStartingMoney = 100)
+            bool productionMoney = false, int productionStartingMoney = 100, ServiceProcessSO processOverride = null)
         {
             this.runId = runId;
             this.sharedRoots = sharedRoots;
@@ -1163,7 +1238,7 @@ public static class ServiceSessionOutcomeDebugScenarios
                 + (medical ? "service_medical_treat.asset" : "service_bathing_wash.asset"))
                 ?? throw new InvalidOperationException(
                     "Authored bathing service process is missing.");
-            processes = new SingleProcessCatalog(process);
+            processes = new SingleProcessCatalog(processOverride ?? process);
             CoreSessionRulesSO rulesAsset = AssetDatabase.LoadAssetAtPath<
                 CoreSessionRulesSO>(
                 "Assets/Resources/SO/Content/CoreSessionRules.asset")
@@ -1249,6 +1324,10 @@ public static class ServiceSessionOutcomeDebugScenarios
         internal MoneyAccount Money { get; }
         internal ControlledClock Clock { get; }
         internal ServiceSessionRuntime Runtime { get; private set; }
+        internal BuildableObject Hub => hub;
+        internal IBuildingWorldQuery BuildingWorld => buildingWorld;
+        internal IServiceRoomLinkRuntime Links { get => links; set => links = value; }
+        internal void SetBuildings(params BuildableObject[] values) => buildingWorld.Set(values);
         internal string EvidenceCaseId => runId;
         internal bool HasProductionMoney => productionMoney != null;
         internal GameMoneyAccount ProductionMoney => productionMoney
@@ -1597,8 +1676,9 @@ public static class ServiceSessionOutcomeDebugScenarios
     {
         internal FixedBuildingWorld(BuildableObject hub) =>
             Buildings = new[] { hub };
-        public int BuildingVersion => 1;
-        public IReadOnlyList<BuildableObject> Buildings { get; }
+        public int BuildingVersion { get; private set; } = 1;
+        public IReadOnlyList<BuildableObject> Buildings { get; private set; }
+        internal void Set(params BuildableObject[] values) { Buildings = values; BuildingVersion++; }
     }
 
     private sealed class SingleProcessCatalog : IServiceProcessCatalog

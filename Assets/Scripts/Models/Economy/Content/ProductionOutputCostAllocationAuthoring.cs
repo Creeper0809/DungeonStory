@@ -9,8 +9,9 @@ using UnityEngine;
 [Serializable]
 public sealed class ProductionOutputCostAllocationAuthoring
 {
-    [SerializeField] private string capabilityId = string.Empty;
-    [SerializeField] private int contractVersion;
+    [ContentReference(ContentReferenceKind.ProductionOutputCostPolicy), SerializeField]
+    private string capabilityId = string.Empty;
+    [HideInInspector, SerializeField] private int contractVersion;
     [SerializeField] private string canonicalPayload = string.Empty;
 
     public bool IsEmpty => string.IsNullOrEmpty(capabilityId)

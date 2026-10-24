@@ -1,5 +1,25 @@
 # DungeonStory Current Findings
 
+## 2026-10-24 R19 수정 계약
+
+밸런스 기준서의 연구/시간 고정 진행과4.11 전투 대응 규칙을 대조했다. R19는 기존 수치의 재조정이 아니라 막힌 조건의 정상화다. 인구60/연구7271/유효120일 조건과 기존 세력 비용은 유지한다. counter 호환 연결로 spore-bloom에서 실제 준비 장비가 기존 미준비 정확도0.8 대신 기존 대응 배율1.03을 적용받게 되므로 실효 전투 결과에는 영향이 있다. 새 살균 소모품이나 독립 cargo/계약 행동을 만든 것이 아니며 실제 대응 수단이 없으면 alias도 없다. 기존 WU/질량/가격/소비와 시간을 바꾸지 않고 전역 승률 동일성이나 장기 밸런스 인증을 주장하지 않는다.
+
+SO와 저장 DTO의 기존 필드, 게시 ID와 GUID는 유지한다. 엔딩의 기존 population-sustained 키를 바꾸지 않고 실제 120일 productivity 권위에서 호환 키를 함께 투영한다. 시설 snapshot은 기존 시설 query와 같은 능력 및 운영 판정을 사용하며, 저장하지 않는 파생값이다. 실제 명령 전 live query는 그대로 재확인한다. 전투의 기존 9개 counter는 대응하는 실제 장비 수단이 생산될 때만 호환 alias를 갖는다.
+
+작성 선택은 실제 registry와 owner 문맥을 사용한다. 생산 capability와 version, equipment applicator와 stat, skill behavior와 formula mirror는 함께 맞춘다. 기존 자유 provider key를 소비 관계와 구별하며, 무소비 wildlife nest/migration과 invasion 선호 family는 기존 bytes를 유지한 숨김 metadata로 명시한다. 새 게임 기능이 생긴 것으로 세지 않는다.
+
+process mode feature는 실제 시작, 단계 전환과 완료 명령에서 연결 및 전원을 확인한다. 저장 형식은 V7 그대로이며 저장된 process/mode로 현재 불변 계약을 조회한다. 초기 유전체와 촉매의 이중 해석은 기존 정의와 실제 feature 문법의 단일 권위로 정리한다. WorkType은 이름과 ID의 대응까지 보호하고 이미 게시된 asset에 새 빈 identity가 추가되는 경우를 거절한다. 검증은 현재 변경의 작성, 실제 Inspector, 진행 및 서비스 명령, JSON 복원과 재시도에 한정하며 전수 seed 인증을 추가하지 않는다.
+
+## 2026-10-24 main886973b7 읽기 전용 재감사 최종 판정
+
+현재 재추출은 SO142종, 직렬화 선언2458개, 관계 후보879개, 참조 표식199개, 실제 게임 에셋3544개다. GUID8962개 및 asset fileID4731개에 누락/중복0이다. 외부 main-reaudit-r19에 과거 증거와 별도로 보존했다. 현재 에셋 정상과 새 작성/ID 변경 보호는 별개로 판단한다.
+
+실제 V20 시설 조건은 capabilityId 문자열을 FacilityCapabilityKind로 파싱하지만 선언은 수기이며 정의 검사는 비어 있지 않은지만 본다. 메타 효과의 nested id 역시 자유 identity가 아니라 소비 코드9개 키와의 관계이며 현재 membership/kind 검사가 없다. temporal ending은 실제 등록되어 있지만 요구 population-sustained와 생산 productivity-sustained가 다르고 다른 현재 effect 생산자가 없다. 전투 counter9개 키는 현재 party projector가 생산하지 않으며 spore-bloom의 fungicide counter도 포함한다.
+
+시설 조건72행은 등록 문자열 자체는 모두 정상이나 실제 소비 계약이 다르다. ContentRequirementEvaluator는 운영 중 능력 query로 승인하고, 바로 뒤 TryResolveChapter는 같은 요청 snapshot의 capability:Administration 등으로 다시 조회한다. V20MilestoneWorldSnapshotProjector는 building ID별 count만 생산한다. 현재36개 장의 support/bargain72선택에 해당하며 refuse에는 시설 조건이 없다. 정상 시설을 지어도 두 번째 비교를 통과하지 못하는 정적 경로다. 새 Unity 실행으로 재현한 결과와 구분한다.
+
+최종 잔여는 SO_REFERENCE_FULL_AUDIT.md 상단 R19-01~20이다. 코드 registry 조회, sibling/로컬 관계, 검증되지만 미소비인 작성 필드도 포함했고 자기 identity와 free provider 정의는 구별했다. formula와 생산 registry는 기존 엄격한 거절이 있는 부분과 늦은 실패를 구분했다. WorkType symbol/값 교환 및 기존 게시 asset의 새 빈 identity field는 실제 Python 검증 함수가 허용하는 메모리 반례를 별도 보존했다. 현재 자산의 잘못된 값과 향후 작성/변경 보호 누락을 같은 수치로 세지 않는다.
+
 ## 2026-10-24 R18 수정 계약
 
 target 존재와 실제 소비를 서로 다른 수용 조건으로 둔다. GameplayEffectTarget 후보는 효과 에셋 자체가 아니라 코드 소비 target 상수와 capacity/proficiency 정의에서 얻는다. 경보 효과는 대기 시간에, 마법 효과는 마법 전투력과 원정 동결값에, 통증 효과는 기존 injury 곡선의 손실분에만 적용한다. 통증 전용 작업 보정이 없었던 실제 동작 변화는 밸런스 기준서에 명시했다. 실제 소비/JSON/재시도 fixture는 작성했지만 첫 native 결과 전이다.
