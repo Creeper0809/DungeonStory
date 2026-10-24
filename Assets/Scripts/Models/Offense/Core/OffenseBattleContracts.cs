@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.Scripting.APIUpdating;
@@ -208,6 +209,74 @@ public sealed class OffenseBattleEncounterRules
 
 public static class OffenseBattleCounterRules
 {
+    private static readonly IReadOnlyDictionary<string, string>
+        legacyAliasBindings = new ReadOnlyDictionary<string, string>(
+            new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["counter:break-contract"] = "counter:mana-disrupt",
+                ["counter:break-formation"] = "counter:split-pressure",
+                ["counter:decoy"] = "counter:smoke",
+                ["counter:deny-retreat"] = "counter:pin-leader",
+                ["counter:detector"] = "counter:precision",
+                ["counter:fungicide"] = "counter:air-filter",
+                ["counter:isolate-leader"] = "counter:focus-support",
+                ["counter:rush"] = "counter:mobile",
+                ["counter:separate-cargo"] = "counter:precision"
+            });
+
+    private static readonly IReadOnlyList<string> declaredTags = new[]
+        {
+            "counter:ranged",
+            "counter:anti-air",
+            "counter:kite",
+            "counter:precision",
+            "counter:focus-support",
+            "counter:pin-leader",
+            "counter:split-pressure",
+            "counter:reach",
+            "counter:brace",
+            "counter:armor-break",
+            "counter:destroy-cover",
+            "counter:physical-burst",
+            "counter:sabotage",
+            "counter:cover",
+            "counter:guard-backline",
+            "counter:slow-advance",
+            "counter:mana-disrupt",
+            "counter:mana-grounding",
+            "counter:dispel",
+            "counter:air-filter",
+            "counter:smoke-hood",
+            "counter:insulated",
+            "counter:smoke",
+            "counter:nonlethal",
+            "counter:powder",
+            "counter:arcane",
+            "counter:engineering",
+            "counter:mobile",
+            "counter:interrupt-heal",
+            "counter:mixed-tactics",
+            "counter:flank",
+            "counter:mundane"
+        }
+        .Concat(legacyAliasBindings.Keys)
+        .OrderBy(value => value, StringComparer.Ordinal)
+        .ToList()
+        .AsReadOnly();
+
+    private static readonly HashSet<string> declaredTagSet = new(
+        declaredTags,
+        StringComparer.Ordinal);
+
+    public static IReadOnlyList<string> DeclaredTags => declaredTags;
+
+    public static IReadOnlyDictionary<string, string> LegacyAliasBindings =>
+        legacyAliasBindings;
+
+    public static bool IsDeclared(string tag) =>
+        !string.IsNullOrWhiteSpace(tag)
+        && declaredTagSet.Contains(tag.Trim());
+
     public static IReadOnlyCollection<string> Project(
         IEnumerable<OffenseBattleCombatant> combatants)
     {
@@ -329,6 +398,14 @@ public static class OffenseBattleCounterRules
             && !(value.Weapon?.DefinitionId?.Contains("mana", StringComparison.Ordinal) ?? false)))
         {
             tags.Add("counter:mundane");
+        }
+
+        foreach (KeyValuePair<string, string> binding in legacyAliasBindings)
+        {
+            if (tags.Contains(binding.Value))
+            {
+                tags.Add(binding.Key);
+            }
         }
 
         return tags.OrderBy(value => value, StringComparer.Ordinal).ToArray();

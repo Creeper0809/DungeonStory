@@ -534,7 +534,10 @@ internal sealed class V20MilestoneRuntime : IRunMilestoneQuery, ICommittedRunRes
             if (state.selfSufficiencyStreakDays >= 120)
                 snapshot.WorldFlags.Add("ecology:closed-cycle");
             if (state.productivityCoverageStreakDays >= 120)
-                snapshot.WorldFlags.Add("temporal:productivity-sustained");
+            {
+                snapshot.WorldFlags.Add(V20WorldFlagIds.TemporalProductivitySustained);
+                snapshot.WorldFlags.Add(V20WorldFlagIds.TemporalPopulationSustained);
+            }
             return;
         }
 
@@ -559,7 +562,10 @@ internal sealed class V20MilestoneRuntime : IRunMilestoneQuery, ICommittedRunRes
         snapshot.WorldMetrics[V20WorldMetricKind.ProductivityCoverageDays] =
             state.productivityCoverageStreakDays;
         if (state.productivityCoverageStreakDays >= 120)
-            snapshot.WorldFlags.Add("temporal:productivity-sustained");
+        {
+            snapshot.WorldFlags.Add(V20WorldFlagIds.TemporalProductivitySustained);
+            snapshot.WorldFlags.Add(V20WorldFlagIds.TemporalPopulationSustained);
+        }
     }
     private static string RewardId(string milestoneId)
     {

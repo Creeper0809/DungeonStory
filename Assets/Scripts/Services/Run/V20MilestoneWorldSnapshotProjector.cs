@@ -75,10 +75,12 @@ public sealed class V20MilestoneWorldSnapshotProjector :
                 && !value.IsBuildingDestroyed
                 && value.BuildingData != null)
             .ToArray();
-        foreach (IGrouping<string, BuildableObject> group in activeBuildings
-                     .GroupBy(value => BuildingId(value.BuildingData),
-                         StringComparer.Ordinal))
-            snapshot.FacilityCounts[group.Key] = group.Count();
+        FacilityCapabilityKind[] capabilities = Enum.GetValues(typeof(FacilityCapabilityKind))
+            .Cast<FacilityCapabilityKind>().Where(value => value != FacilityCapabilityKind.None).ToArray();
+        foreach (BuildableObject building in activeBuildings)
+            snapshot.RecordFacility(BuildingId(building.BuildingData),
+                capabilities.Where(value => FacilityCapabilityQuery.SupportsCapability(building, value))
+                    .Select(value => value.ToString()), FacilityCapabilityQuery.IsOperational(building));
 
         foreach (FactionCampaignStateSaveData faction in factions.Factions)
             snapshot.Factions[faction.factionId] = faction;

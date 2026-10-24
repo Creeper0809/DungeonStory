@@ -144,14 +144,30 @@ public sealed class CropGenomeReachableMaximumWitnessCatalog
             .Where(value => value != null)
             .OrderBy(value => value.GenomeId, StringComparer.Ordinal)
             .ToArray();
+        HashSet<string> cropIds = crops
+            .Select(value => value.CropId)
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .ToHashSet(StringComparer.Ordinal);
         if (crops.Length == 0
-            || crops.Select(value => value.CropId)
-                .Distinct(StringComparer.Ordinal).Count() != crops.Length
+            || genomes.Length == 0
+            || cropIds.Count != crops.Length
+            || genomes.Any(value => string.IsNullOrWhiteSpace(value.GenomeId)
+                || string.IsNullOrWhiteSpace(value.CropId)
+                || !cropIds.Contains(value.CropId)
+                || value.ValidateDefinition().Count != 0)
             || genomes.Select(value => value.GenomeId)
-                .Distinct(StringComparer.Ordinal).Count() != genomes.Length)
+                .Distinct(StringComparer.Ordinal).Count() != genomes.Length
+            || crops.Any(crop => crop.BaseGenome == null
+                || !string.Equals(
+                    crop.BaseGenome.CropId,
+                    crop.CropId,
+                    StringComparison.Ordinal)
+                || !genomes.Any(genome => ReferenceEquals(
+                    genome,
+                    crop.BaseGenome))))
         {
             throw new InvalidOperationException(
-                "Crop genome witness content is empty or ambiguous.");
+                "Crop genome witness content requires exactly one registered direct base genome per crop.");
         }
 
         Dictionary<string, CropGenomeReachableMaximumWitnessSnapshot>
@@ -170,15 +186,7 @@ public sealed class CropGenomeReachableMaximumWitnessCatalog
                 .ThenBy(value => value.Definition.GenomeId,
                     StringComparer.Ordinal)
                 .ToArray();
-            if (crop.BaseGenome == null
-                || !string.Equals(
-                    crop.BaseGenome.CropId,
-                    crop.CropId,
-                    StringComparison.Ordinal)
-                || !candidates.Any(value => ReferenceEquals(
-                    value.Definition,
-                    crop.BaseGenome))
-                || candidates.Length == 0)
+            if (candidates.Length == 0)
             {
                 throw new InvalidOperationException(
                     "Crop has no runtime-registered authored genome witness: "

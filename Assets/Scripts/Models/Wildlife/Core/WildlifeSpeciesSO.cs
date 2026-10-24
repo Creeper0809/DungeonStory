@@ -51,9 +51,11 @@ public sealed class WildlifeSpeciesSO : ScriptableObject
     [SerializeField, Min(1)] private int authoringRevision = 1;
     [ContentReference("WildlifeSpeciesSO", "SpeciesId"), SerializeField]
     private List<string> preySpeciesIds = new();
-    [SerializeField] private string nestTag = string.Empty;
+    // Legacy serialized metadata with no gameplay consumer.
+    [HideInInspector, SerializeField] private string nestTag = string.Empty;
     [SerializeField] private Season breedingSeason;
-    [SerializeField] private string migrationPatternId = string.Empty;
+    // Legacy serialized metadata with no gameplay consumer.
+    [HideInInspector, SerializeField] private string migrationPatternId = string.Empty;
     [SerializeField] private WildlifeMigrationProfile migrationProfile;
     [SerializeField] private bool hasCompanionRoleProfile;
     [SerializeField] private WildlifeCompanionRoleProfile companionRoleProfile;
@@ -147,12 +149,25 @@ public sealed class WildlifeSpeciesSO : ScriptableObject
                 errors.AddRange(haulRoleProfile.Validate(SpeciesId));
             }
         }
+        bool hasValidBreedingSeason = System.Enum.IsDefined(
+            typeof(Season),
+            breedingSeason);
+        if (!hasValidBreedingSeason)
+            errors.Add($"'{SpeciesId}' has an invalid breeding season.");
+        if ((activeSeasons ?? new()).Any(value =>
+                !System.Enum.IsDefined(typeof(Season), value)))
+        {
+            errors.Add($"'{SpeciesId}' has an invalid active season.");
+        }
+
         int relationshipGroups = 0;
-        if ((preySpeciesIds ?? new()).Count > 0) relationshipGroups++;
-        if (!string.IsNullOrWhiteSpace(nestTag)) relationshipGroups++;
-        if (!string.IsNullOrWhiteSpace(migrationPatternId)) relationshipGroups++;
-        if ((diseaseVectorIds ?? new()).Count > 0) relationshipGroups++;
-        if ((activeSeasons ?? new()).Distinct().Count() > 0) relationshipGroups++;
+        if ((preySpeciesIds ?? new()).Any(value =>
+                !string.IsNullOrWhiteSpace(value))) relationshipGroups++;
+        if ((diseaseVectorIds ?? new()).Any(value =>
+                !string.IsNullOrWhiteSpace(value))) relationshipGroups++;
+        if ((activeSeasons ?? new()).Any(value =>
+                System.Enum.IsDefined(typeof(Season), value))) relationshipGroups++;
+        if (hasValidBreedingSeason) relationshipGroups++;
         if (relationshipGroups < 3) errors.Add($"'{SpeciesId}' requires at least three authored ecology relationship groups.");
         if (authoringRevision < 1) errors.Add($"'{SpeciesId}' authoring revision must be positive.");
         return errors;

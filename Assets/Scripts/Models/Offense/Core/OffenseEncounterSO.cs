@@ -49,6 +49,7 @@ public sealed class OffenseEncounterSO : DataScriptableObject
     public string objectiveTargetId = string.Empty;
     [ContentReference(ContentReferenceKind.BattlefieldModifier)]
     public List<string> battlefieldModifierIds = new();
+    [ContentReference(ContentReferenceKind.BattleCounter)]
     public List<string> counterTags = new();
     [ContentReference(ContentReferenceKind.Item)]
     public List<string> rewardItemIds = new();
@@ -108,6 +109,14 @@ public sealed class OffenseEncounterSO : DataScriptableObject
             || counterTags.Exists(string.IsNullOrWhiteSpace)
             || counterTags.Distinct(StringComparer.Ordinal).Count() != counterTags.Count)
             errors.Add($"'{encounterId}' requires unique gameplay counter tags.");
+        else
+        {
+            foreach (string counterTag in counterTags.Where(value =>
+                         !OffenseBattleCounterRules.IsDeclared(value)))
+            {
+                errors.Add($"'{encounterId}' has an unknown battle counter tag '{counterTag}'.");
+            }
+        }
         if (rewardItemIds == null || rewardItemIds.Count == 0
             || rewardItemIds.Exists(string.IsNullOrWhiteSpace)
             || rewardItemIds.Distinct(StringComparer.Ordinal).Count() != rewardItemIds.Count)

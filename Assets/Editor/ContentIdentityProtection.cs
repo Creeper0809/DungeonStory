@@ -290,6 +290,9 @@ public static class ContentIdentityProtection
         }
 
         errors.AddRange(ValidatePreservedRecord(published, current));
+        errors.AddRange(ValidateNewPublication(
+            new Snapshot { assets = new List<AssetRecord> { published } },
+            new Snapshot { assets = new List<AssetRecord> { current } }));
         return errors;
     }
 
@@ -419,7 +422,14 @@ public static class ContentIdentityProtection
             string assetPath = AssetDatabase.GUIDToAssetPath(record.guid);
             if (record.typeName == nameof(GameContentCatalogSO) && assetPath != RootAssetPath)
                 errors.Add("The startup content catalog must remain at " + RootAssetPath);
-            if (published.ContainsKey(record.guid)) continue;
+            if (published.TryGetValue(record.guid, out AssetRecord previous))
+            {
+                var previousPaths = previous.fields.Select(field => field.path).ToHashSet(StringComparer.Ordinal);
+                foreach (FieldRecord field in record.fields)
+                    if (!previousPaths.Contains(field.path) && string.IsNullOrWhiteSpace(field.value))
+                        errors.Add($"New identity '{assetPath}.{field.path}' cannot be empty.");
+                continue;
+            }
             if (!registered.Contains(record.guid))
                 errors.Add($"Unregistered draft '{assetPath}' cannot be published.");
             foreach (FieldRecord field in record.fields)

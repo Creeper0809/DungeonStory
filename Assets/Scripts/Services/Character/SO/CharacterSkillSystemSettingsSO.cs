@@ -71,6 +71,7 @@ public sealed class CharacterSkillNumericVariant
 [Serializable]
 public sealed class CharacterSkillFormulaAxisDefinition
 {
+    [ContentReference(ContentReferenceKind.FormulaParameter)]
     public string parameterId = string.Empty;
     [Min(0)] public long minimumUnits;
     [Min(0)] public long maximumUnits;
@@ -102,6 +103,7 @@ public sealed class CharacterSkillPairSynergyCostDefinition
 public sealed class CharacterSkillCapabilityFormulaDefinition
 {
     [Tooltip("Formula axes consumed by the registered runtime applicator. Unlisted axes must be fixed ranges.")]
+    [ContentReference(ContentReferenceKind.FormulaParameter)]
     public List<string> appliedParameterIds = new List<string>();
     [Min(0)] public int baseCost;
     [FormerlySerializedAs("triggerFrequencyCost")]
@@ -119,7 +121,9 @@ public sealed class CharacterSkillCapabilityFormulaDefinition
     public List<string> conflictGroups = new List<string>();
     [ContentReference(ContentReferenceKind.SkillCapability)]
     public List<string> forbiddenSynergies = new List<string>();
+    [ContentReference(ContentReferenceKind.FormulaMirror)]
     public string formatterId = string.Empty;
+    [ContentReference(ContentReferenceKind.FormulaMirror)]
     public string applicatorId = string.Empty;
     public List<CharacterSkillFormulaAxisDefinition> parameterRanges =
         new List<CharacterSkillFormulaAxisDefinition>();
@@ -440,6 +444,7 @@ public abstract class CharacterSkillModuleRule
 {
     public string id = string.Empty;
     [Tooltip("Registered C# behavior reused by this authored module. This ID is required and is not part of combination identity.")]
+    [ContentReference(ContentReferenceKind.SkillBehavior)]
     public string capabilityId = string.Empty;
     public string displayName = string.Empty;
     public List<CharacterSkillKind> allowedKinds = new List<CharacterSkillKind>();

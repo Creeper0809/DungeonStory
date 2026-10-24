@@ -196,6 +196,44 @@ public sealed class RoomProfile
 
 public sealed class RoomProfileBuilder : IRoomProfileProvider
 {
+    private static readonly IReadOnlyList<string> ProducedScoreKeyValues =
+        Array.AsReadOnly(new[]
+        {
+            FacilityEvolutionTerms.Dining,
+            FacilityEvolutionTerms.Cooking,
+            "Shop",
+            FacilityEvolutionTerms.Rest,
+            FacilityEvolutionTerms.Training,
+            FacilityEvolutionTerms.Combat,
+            FacilityEvolutionTerms.Research,
+            FacilityEvolutionTerms.Mana,
+            FacilityEvolutionTerms.Storage,
+            FacilityEvolutionTerms.Hygiene,
+            FacilityEvolutionTerms.Defense
+        });
+    private static readonly IReadOnlyList<string> ProducedMetricKeyValues =
+        Array.AsReadOnly(new[]
+        {
+            FacilityEvolutionTerms.RoomArea,
+            FacilityEvolutionTerms.DoorCount,
+            FacilityEvolutionTerms.FurnitureCount,
+            FacilityEvolutionTerms.SeatDensity,
+            FacilityEvolutionTerms.TableDensity,
+            FacilityEvolutionTerms.SeatPerTable,
+            FacilityEvolutionTerms.LargeTableRatio,
+            FacilityEvolutionTerms.CounterRatio,
+            FacilityEvolutionTerms.PrivateSeatRatio,
+            FacilityEvolutionTerms.AverageSeatSpacing,
+            FacilityEvolutionTerms.LuxuryPerSeat,
+            FacilityEvolutionTerms.ServiceScorePerSeat,
+            FacilityEvolutionTerms.CookingScorePerSeat,
+            FacilityEvolutionTerms.DecorToUtilityRatio,
+            FacilityEvolutionTerms.ClutterScore
+        });
+
+    public static IReadOnlyList<string> ProducedScoreKeys => ProducedScoreKeyValues;
+    public static IReadOnlyList<string> ProducedMetricKeys => ProducedMetricKeyValues;
+
     private readonly IFacilityEvolutionRecordProvider recordProvider;
     private readonly IRoomLayoutCache roomLayoutCache;
 

@@ -107,6 +107,11 @@ public static class V27CiEvidenceBatch
         CharacterTraitIdentityRuleContractDebugScenarios.Run();
         R18ContentReferenceDebugScenarios.RunAll();
         R18MedicalPolicyReferenceDebugScenarios.RunAll();
+        R19DefinitionGuardDebugScenarios.RunAll();
+        R19BattleCounterDebugScenarios.RunAll();
+        R19ProductionRegistryDebugScenarios.RunAll();
+        R19CropCatalystDebugScenarios.RunAll();
+        R19ContentSelectionDebugScenarios.RunAll();
     }));
     public static void RunSoRuntimeContracts() => RunImpact("so-runtime", () =>
     {
@@ -121,6 +126,8 @@ public static class V27CiEvidenceBatch
         RitualFastingA08DebugScenarios.RunR18TraitEffectContracts();
         CombatSystemDebugScenarios.VerifyHeritableBluntDamage();
         OffenseRewardDebugScenarios.RunPersistentBattleSnapshotRestoreRegression();
+        R19ProgressionDebugScenarios.RunAll();
+        ServiceSessionOutcomeDebugScenarios.RunR19ProcessFeatureContracts();
     });
     public static void RunSoInspectorContracts() => RunImpact("so-inspector", () =>
         ContentReferenceSelectionDebugScenarios.RunWithUndoIsolation(() =>
@@ -130,6 +137,7 @@ public static class V27CiEvidenceBatch
             OwnerScopedContentReferenceDebugScenarios.VerifyInspectorGUI();
             R18ContentReferenceDebugScenarios.VerifyInspectorGUI();
             R18MedicalPolicyReferenceDebugScenarios.VerifyInspectorGUI();
+            R19InspectorDebugScenarios.VerifyInspectorGUI();
         }));
     public static void CaptureContentPublication() => RunImpact("content-publication", () =>
     {

@@ -14,6 +14,10 @@ public static class MetaUpgradeEffectIds
     public const string CommerceStockCost = "meta:commerce-stock-cost";
     public const string FortressDefenseFacilityCost = "meta:fortress-defense-facility-cost";
     public const string ArcaneResearchWork = "meta:arcane-research-work";
+    public static System.Collections.Generic.IReadOnlyList<string> IntegerTargets { get; } = Array.AsReadOnly(new[]
+    { StartingFacilityCandidates, StartingOwnerTraitCandidates, BasicPurchaseEntries, PreservedRecipeSlots });
+    public static System.Collections.Generic.IReadOnlyList<string> MultiplierTargets { get; } = Array.AsReadOnly(new[]
+    { OwnerMaxHealth, InvasionWarningThreshold, CommerceStockCost, FortressDefenseFacilityCost, ArcaneResearchWork });
 }
 
 public interface IMetaUpgradeEffect

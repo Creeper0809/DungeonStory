@@ -2049,14 +2049,15 @@ public static class V20CampaignDebugScenarios
                         out int current) ? current : 0);
             foreach (V20FacilityRequirement value in requirements.facilities)
             {
-                string id = !string.IsNullOrWhiteSpace(value.buildingDefinitionId)
-                    ? value.buildingDefinitionId
-                    : "capability:" + value.capabilityId;
+                string id = V20ContentDefinitionRules.FacilityRequirementKey(value);
                 snapshot.FacilityCounts[id] = Math.Max(
                     value.minimumCount,
                     snapshot.FacilityCounts.TryGetValue(id, out int current)
                         ? current
                         : 0);
+                if (value.mustBeOperational)
+                    snapshot.OperationalFacilityCounts[id] = Math.Max(value.minimumCount,
+                        snapshot.OperationalFacilityCounts.TryGetValue(id, out int active) ? active : 0);
             }
             foreach (V20FactionRequirement value in requirements.factions)
                 snapshot.Factions[value.factionId] = new FactionCampaignStateSaveData

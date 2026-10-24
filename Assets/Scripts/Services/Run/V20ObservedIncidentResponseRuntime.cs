@@ -1098,6 +1098,8 @@ internal sealed class V20ObservedIncidentResponseRuntime
             destination.ItemQuantities[pair.Key] = pair.Value;
         foreach (KeyValuePair<string, int> pair in source.FacilityCounts)
             destination.FacilityCounts[pair.Key] = pair.Value;
+        foreach (KeyValuePair<string, int> pair in source.OperationalFacilityCounts)
+            destination.OperationalFacilityCounts[pair.Key] = pair.Value;
         foreach (KeyValuePair<string, FactionCampaignStateSaveData> pair in source.Factions)
             destination.Factions[pair.Key] = pair.Value;
         destination.EligibleCharacterCount = source.EligibleCharacterCount;

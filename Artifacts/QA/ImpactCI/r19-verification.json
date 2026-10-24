@@ -1,0 +1,71 @@
+{
+  "schema": "so-audit-remediation-v1",
+  "scope": "R19-01 through R19-20; bounded authoring, actual consumer commands, JSON restore/retry and actual IMGUI; not exhaustive gameplay or balance certification",
+  "source": {
+    "digest": "4b61fd8575a91115682a4a50267930a9d1cd27b997499d82c59df79ca0588b0b",
+    "count": 4762,
+    "pathsDigest": "38d557e335f4e4f9512b0c91cc0696623866ee6ad8d05f4e20fe392e22cbde47"
+  },
+  "configurationDigest": "06520602d53b966e38f0a99f33686b51805b2ae9e72c0f7a3e56d13e3c7ad147",
+  "platform": "CUHA Linux; Inspector authenticated private Xvfb, no user display",
+  "sourceManifest": "r138sr; 21674 complete pre/post SHA-verified inputs",
+  "checks": [
+    {
+      "group": "so-authoring",
+      "method": "V27CiEvidenceBatch.RunSoAuthoringContracts",
+      "sourceLabel": "r137sr",
+      "sourceDigest": "ca8ff0763ecb0aff4398cbd0d16bec95a3ceb5a9eb12d6c61da2f44c40b3c0d0",
+      "configurationDigest": "842eaf08746be492b8e8f5555170a18b8d6cc523ca3e9f0ba1990961ede0054d",
+      "nativeLabel": "r137sr-impact-so-authoring",
+      "log": "Artifacts/QA/ImpactCI/r19-so-authoring.log",
+      "logSha256": "571f09b36b2120bfb447943c0c43e7eca443d9b171eebc9a8c93f74e324a6efa",
+      "summary": "Artifacts/QA/ImpactCI/r19-so-authoring-summary.json",
+      "summarySha256": "cc6905f575c1b0f9722b3be155f537fbac55abc78aad708d0fc3e4d9819f5f07"
+    },
+    {
+      "group": "so-runtime",
+      "method": "V27CiEvidenceBatch.RunSoRuntimeContracts",
+      "sourceLabel": "r137sr",
+      "sourceDigest": "ca8ff0763ecb0aff4398cbd0d16bec95a3ceb5a9eb12d6c61da2f44c40b3c0d0",
+      "configurationDigest": "842eaf08746be492b8e8f5555170a18b8d6cc523ca3e9f0ba1990961ede0054d",
+      "nativeLabel": "r137sr-impact-so-runtime",
+      "log": "Artifacts/QA/ImpactCI/r19-so-runtime.log",
+      "logSha256": "cdc29084821f15d7fe10fc9680aa44be114ef3599ff6a7fdb93931a64e0f4e3c",
+      "summary": "Artifacts/QA/ImpactCI/r19-so-runtime-summary.json",
+      "summarySha256": "884488787216d4a250b6f4b1b6cd544cd025b8b67f5d2a0d8e934c5f35e1e78d"
+    },
+    {
+      "group": "so-inspector",
+      "method": "V27CiEvidenceBatch.RunSoInspectorContracts",
+      "sourceLabel": "r138sr",
+      "sourceDigest": "4b61fd8575a91115682a4a50267930a9d1cd27b997499d82c59df79ca0588b0b",
+      "configurationDigest": "06520602d53b966e38f0a99f33686b51805b2ae9e72c0f7a3e56d13e3c7ad147",
+      "nativeLabel": "r138sr-impact-so-inspector",
+      "isolation": "Artifacts/QA/ImpactCI/r19-inspector-isolation.json",
+      "isolationSha256": "0d3ddfb9e13da00e6adade9b5b3c9062100ca0d375514060e7341bd5e0dbc997",
+      "log": "Artifacts/QA/ImpactCI/r19-so-inspector.log",
+      "logSha256": "51b623229561a2d4656ce2b9ab05e313dd702d2b3af57fca8dbe543f66c5d797",
+      "summary": "Artifacts/QA/ImpactCI/r19-so-inspector-summary.json",
+      "summarySha256": "dfa3635ed455d08f6ac13eaddddc7a0b904dd671d54c7652a4e849bd7676f75b"
+    }
+  ],
+  "acceptedReuse": {
+    "groups": [
+      "so-authoring",
+      "so-runtime"
+    ],
+    "proofLabel": "r137sr",
+    "acceptedForLabel": "r138sr",
+    "proofSourceDigest": "ca8ff0763ecb0aff4398cbd0d16bec95a3ceb5a9eb12d6c61da2f44c40b3c0d0",
+    "proofConfigurationDigest": "842eaf08746be492b8e8f5555170a18b8d6cc523ca3e9f0ba1990961ede0054d",
+    "reason": "Only the Editor pending-value reader changed: managed references are independently cloned and every pending child is copied. Production code, authored assets, validation registries, runtime/save consumers and all fixtures are byte-identical. Final-source native Inspector reruns all affected pending and managed-reference choices, Layout/Repaint, Apply/Undo and source preservation. All five mandatory impact groups execute on the final source. Original source identities are retained.",
+    "comparedInputCount": 21674,
+    "differences": [
+      {
+        "path": "Assets/Editor/ContentReferenceDrawer.cs",
+        "beforeSha256": "619e881175ad149a144a096f42c4148285f826e7a4577a3db00bb81dfcba1c0b",
+        "afterSha256": "a730187c3784cd43b6d6c4537a64eebc90e6f62e997ebf4ca5a47602fa0c4e34"
+      }
+    ]
+  }
+}

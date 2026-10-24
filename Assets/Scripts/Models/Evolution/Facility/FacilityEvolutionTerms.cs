@@ -207,6 +207,7 @@ public class FacilityEvolutionContributionData
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public struct FacilityEvolutionMetricRequirement
 {
+    [ContentReference(ContentReferenceKind.RoomProfileKey)]
     public string key;
     public bool requireMin;
     public float minValue;

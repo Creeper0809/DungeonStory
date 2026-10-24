@@ -18,11 +18,6 @@ public sealed class FacilityCapabilityQuery : IFacilityCapabilityQuery
         string buildingDefinitionId = "")
     {
         string definitionId = buildingDefinitionId?.Trim() ?? string.Empty;
-        bool requiresIsolationRecovery = capability
-            == FacilityCapabilityKind.IsolationRecovery;
-        FacilityRole role = requiresIsolationRecovery
-            ? FacilityRole.Medical
-            : ToRole(capability);
         return world.Buildings
             .Where(value => value != null
                 && !value.IsBuildingDestroyed
@@ -32,14 +27,7 @@ public sealed class FacilityCapabilityQuery : IFacilityCapabilityQuery
                         BuildingDefinitionId(value.BuildingData),
                         definitionId,
                         StringComparison.Ordinal))
-                && (role == FacilityRole.None || value.SupportsFacilityRole(role))
-                && (!requiresIsolationRecovery
-                    || value.BuildingData.Abilities
-                        .OfType<ISurgicalFacilityAbility>()
-                        .Any(ability =>
-                            (ability.FacilityTags
-                                & SurgeryFacilityTag.IsolationRecovery)
-                            == SurgeryFacilityTag.IsolationRecovery))
+                && SupportsCapability(value, capability)
                 && IsOperational(value))
             .OrderBy(
                 value => value.PersistentInstanceId.Value,
@@ -67,7 +55,18 @@ public sealed class FacilityCapabilityQuery : IFacilityCapabilityQuery
             .ToArray();
     }
 
-    private static bool IsOperational(BuildableObject building)
+    public static bool SupportsCapability(BuildableObject building, FacilityCapabilityKind capability)
+    {
+        if (building?.BuildingData == null || !Enum.IsDefined(typeof(FacilityCapabilityKind), capability)) return false;
+        bool isolation = capability == FacilityCapabilityKind.IsolationRecovery;
+        FacilityRole role = isolation ? FacilityRole.Medical : ToRole(capability);
+        return (role == FacilityRole.None || building.SupportsFacilityRole(role))
+            && (!isolation || building.BuildingData.Abilities.OfType<ISurgicalFacilityAbility>()
+                .Any(ability => (ability.FacilityTags & SurgeryFacilityTag.IsolationRecovery)
+                    == SurgeryFacilityTag.IsolationRecovery));
+    }
+
+    public static bool IsOperational(BuildableObject building)
     {
         if (building?.BuildingData == null)
         {

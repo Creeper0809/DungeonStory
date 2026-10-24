@@ -100,13 +100,22 @@ namespace DungeonStory.Tests.Architecture
                         .Select(value => new DiploidLocusSaveData { locus = value }).ToList()
                 });
             }
-            Assert.That(state.TryClaimInitialSeedGrant(out IReadOnlyList<SeedLotState> first), Is.True);
+            string[] baseGenomeIds = Enumerable.Range(0, 12)
+                .Select(index => $"genome:test-{index}:base")
+                .ToArray();
+            Assert.That(state.TryClaimInitialSeedGrant(
+                baseGenomeIds,
+                out IReadOnlyList<SeedLotState> first), Is.True);
             Assert.That(first.Count, Is.EqualTo(12));
             Assert.That(first.All(value => value.generation == 0 && value.pathogenLoad == 0f), Is.True);
-            Assert.That(state.TryClaimInitialSeedGrant(out IReadOnlyList<SeedLotState> second), Is.False);
+            Assert.That(state.TryClaimInitialSeedGrant(
+                baseGenomeIds,
+                out IReadOnlyList<SeedLotState> second), Is.False);
             Assert.That(second, Is.Empty);
             CropEcologyAggregateState restored = CropEcologyAggregateState.Restore(state.Capture());
-            Assert.That(restored.TryClaimInitialSeedGrant(out _), Is.False);
+            Assert.That(restored.TryClaimInitialSeedGrant(
+                baseGenomeIds,
+                out _), Is.False);
         }
 
         private static CropEcologyAggregateState CreateState()

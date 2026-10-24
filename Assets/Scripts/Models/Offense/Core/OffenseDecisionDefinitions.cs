@@ -22,7 +22,7 @@ public sealed class OffenseDecisionChoiceDefinition
     public string choiceId = "choice";
     public string label = "선택";
     [TextArea] public string description;
-    public string requiredTag;
+    [ContentReference(ContentReferenceKind.DecisionContextTag)] public string requiredTag;
     public string transformedLabel;
     [TextArea] public string transformedDescription;
     public string directionLabel = "변화";

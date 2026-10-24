@@ -17,7 +17,7 @@ public sealed class ServiceModeProcessContract
     [Min(0f)] public float cleanupSeconds;
     [Min(0)] public int basePrice = 5;
     public float satisfaction = 45f;
-    public string[] requiredFeatureTags = Array.Empty<string>();
+    [ContentReference(ContentReferenceKind.ServiceProcessFeature)] public string[] requiredFeatureTags = Array.Empty<string>();
 }
 
 [CreateAssetMenu(
@@ -29,7 +29,7 @@ public sealed class ServiceProcessSO : ScriptableObject
     [ContentIdentity]
     [SerializeField] private string processId = string.Empty;
     [SerializeField] private ServiceCategory serviceCategory;
-    [SerializeField] private string ownerHubTag = string.Empty;
+    [SerializeField, ContentReference(ContentReferenceKind.ServiceHub)] private string ownerHubTag = string.Empty;
     [SerializeField] private ServiceModeProcessContract[] modeContracts =
         Array.Empty<ServiceModeProcessContract>();
 

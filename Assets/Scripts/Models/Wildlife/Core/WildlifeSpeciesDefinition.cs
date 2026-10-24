@@ -87,8 +87,10 @@ public sealed class WildlifeSpeciesDefinition
             .ToArray();
         PreySpeciesIds = NormalizeIds(preySpeciesIds);
         PredatorSpeciesIds = NormalizeIds(predatorSpeciesIds);
+        // Legacy metadata projection retained for authoring compatibility.
         NestTag = nestTag?.Trim() ?? string.Empty;
         BreedingSeason = breedingSeason;
+        // Legacy metadata projection retained for authoring compatibility.
         MigrationPatternId = migrationPatternId?.Trim() ?? string.Empty;
         if (migrationProfile == null)
         {
@@ -144,8 +146,10 @@ public sealed class WildlifeSpeciesDefinition
     public IReadOnlyList<WildlifeButcherYield> ButcherYields { get; }
     public IReadOnlyList<string> PreySpeciesIds { get; }
     public IReadOnlyList<string> PredatorSpeciesIds { get; }
+    // Legacy metadata only. Gameplay does not consume this value.
     public string NestTag { get; }
     public Season BreedingSeason { get; }
+    // Legacy metadata only. Gameplay does not consume this value.
     public string MigrationPatternId { get; }
     public WildlifeMigrationProfile MigrationProfile { get; }
     public WildlifeCompanionRoleProfile CompanionRoleProfile { get; }

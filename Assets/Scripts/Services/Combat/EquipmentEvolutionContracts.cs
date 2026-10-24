@@ -159,52 +159,33 @@ public interface IAttunementRuntime
 
 public static class EvolutionCatalystItemId
 {
-    private const string CatalystPrefix = "evolution:catalyst:";
-    private const string ResiduePrefix = "evolution:residue:";
+    public static string BuildCatalyst(string family, int progressionLevel) =>
+        EvolutionCatalystItemIdentity.BuildCatalyst(
+            family,
+            progressionLevel);
 
-    public static string BuildCatalyst(string family, int progressionLevel)
-    {
-        EvolutionCatalystProgression.RequireValid(progressionLevel);
-        string normalized = NormalizeFamily(family);
-        return $"{CatalystPrefix}{normalized}:{progressionLevel}";
-    }
-
-    public static string BuildResidue(int progressionLevel)
-    {
-        EvolutionCatalystProgression.RequireValid(progressionLevel);
-        return $"{ResiduePrefix}{progressionLevel}";
-    }
+    public static string BuildResidue(int progressionLevel) =>
+        EvolutionCatalystItemIdentity.BuildResidue(progressionLevel);
 
     public static bool TryParseCatalyst(
         string itemId,
         out EquipmentCatalystDefinition definition)
     {
         definition = null;
-        string normalized = itemId?.Trim() ?? string.Empty;
-        if (!normalized.StartsWith(CatalystPrefix, StringComparison.Ordinal))
+        if (!EvolutionCatalystItemIdentity.TryResolveCatalyst(
+                itemId,
+                out string family,
+                out int progressionLevel,
+                out int potency))
         {
             return false;
         }
-
-        string payload = normalized.Substring(CatalystPrefix.Length);
-        int separator = payload.LastIndexOf(':');
-        if (separator <= 0
-            || !int.TryParse(
-                payload.Substring(separator + 1),
-                out int progressionLevel)
-            || !EvolutionCatalystProgression.IsValid(progressionLevel))
-        {
-            return false;
-        }
-
-        string family = NormalizeFamily(payload.Substring(0, separator));
         definition = new EquipmentCatalystDefinition
         {
-            itemId = normalized,
+            itemId = itemId?.Trim() ?? string.Empty,
             family = family,
             progressionLevel = progressionLevel,
-            potency = EvolutionCatalystProgression.GetPotencyGrade(
-                progressionLevel),
+            potency = potency,
             sourceTags = new List<string> { family }
         };
         return true;
@@ -212,58 +193,9 @@ public static class EvolutionCatalystItemId
 
     public static bool TryParseResidue(
         string itemId,
-        out int progressionLevel)
-    {
-        progressionLevel = 0;
-        string normalized = itemId?.Trim() ?? string.Empty;
-        return normalized.StartsWith(ResiduePrefix, StringComparison.Ordinal)
-            && int.TryParse(
-                normalized.Substring(ResiduePrefix.Length),
-                out progressionLevel)
-            && EvolutionCatalystProgression.IsValid(progressionLevel);
-    }
-
-    private static string NormalizeFamily(string family)
-    {
-        string normalized = family?.Trim().ToLowerInvariant() ?? string.Empty;
-        if (normalized.StartsWith("catalyst:", StringComparison.Ordinal))
-        {
-            normalized = normalized.Substring("catalyst:".Length);
-        }
-
-        return string.IsNullOrWhiteSpace(normalized)
-            ? "universal"
-            : normalized.Replace(':', '-');
-    }
-}
-
-public static class EvolutionCatalystProgression
-{
-    public const int MaximumLevel = 21;
-    public const int MaximumPotencyGrade = 5;
-
-    public static bool IsValid(int progressionLevel)
-    {
-        return progressionLevel >= 1 && progressionLevel <= MaximumLevel;
-    }
-
-    public static void RequireValid(int progressionLevel)
-    {
-        if (!IsValid(progressionLevel))
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(progressionLevel),
-                progressionLevel,
-                $"Evolution catalyst progression must be 1-{MaximumLevel}.");
-        }
-    }
-
-    public static int GetPotencyGrade(int progressionLevel)
-    {
-        RequireValid(progressionLevel);
-        return 1
-            + (progressionLevel - 1)
-            * MaximumPotencyGrade
-            / MaximumLevel;
-    }
+        out int progressionLevel) =>
+        EvolutionCatalystItemIdentity.TryResolveResidue(
+            itemId,
+            out progressionLevel,
+            out _);
 }

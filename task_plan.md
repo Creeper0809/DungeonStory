@@ -1,5 +1,25 @@
 # DungeonStory Current Task Plan
 
+## 현재 Goal — R19-01~20 수정과 실제 검증/main 통합 (2026-10-24)
+
+Status: integration / branch `codex/fix-so-r19`, base main886973b7. R19-01~20 구현, 필요한 실제 실행과 문서/영수증 마감을 완료했다. 작성360초/runtime240초 및 최종 private Inspector260초, r138sr effects1040/core240/character180/world250/crop200초 모두 수용했다. commit/push, PR CI, main 병합과 후속 CI를 마무리한다. 원본 checkout 및 QA를 보존했다.
+
+1. 진행/소비: R01 엔딩 flag 생산과 호환, R02 시설 조건의 단일 평가, R03 실제 counter 생산 및 선택 검증을 우선 수정.
+2. 호환/정의: R04/R16 게시 보호, R05~19의 기존 owner/registry 선택과 조기 거절, 기본 genome/촉매/서비스/작업 정책 권위를 통합. R20 미소비 metadata와 실제 생태 관계 검증을 구분한다.
+3. 동결 뒤 현재 소스 컴파일 및 표적 실제 소비/Inspector/저장/복원/실패 재시도. 통제 fixture와 공식 월드/Play를 구별하고 전수 seed를 실행하지 않는다.
+4. 영향 인덱스 1회 갱신, 필요 Python CI/analyzer/호환 및 증거 검증. commit/push, PR 생성/attach, PR CI, main 병합/후속 CI까지 완료한다.
+
+계약: GUID/게시 기존 identity와 저장 DTO 필드/버전은 유지한다. 신규 snapshot 파생값은 원본에서 재계산한다. 정상 빈 optional/legacy 계약은 보존하며 미등록 키나 실패를 기본값으로 숨기지 않는다. 공용 catalog/drawer/상태/저장은 메인이 통합한다. 에셋 변경 전 영향을 알리고 사용자 수동 재연결 없이 반영한다.
+
+## 현재 작업 — main886973b7 SO 관계 재감사 (2026-10-24)
+
+Status: completed / read-only audit. 원격 main `886973b7e1aa3a3acf8af0de79f26af8a350e50b`, 조사 branch `codex/so-main-reaudit-r19`. 이전 완료 표 대신 현재 직렬화 선언, 작성 UI, 소비자, 실제 에셋과 변경 보호를 대조했다. 조사 완료이며 R19-01~20 수정 완료가 아니다.
+
+1. 완료: 현재 모집단 재추출과 직접 GUID/fileID 대조.
+2. 완료: 전체 SO 영역의 문자열/숫자 관계와 owner 문맥, 선택/거절/소비 및 게시 저장 키 보호 확인.
+3. 완료: 잔여20묶음, 정상 자유 identity/태그, 미확인 실행 경계를 SO_REFERENCE_FULL_AUDIT.md 상단 R19에 구분 기록.
+4. 완료: 새 링크51개/문서 diff와 코드/에셋 무변경 확인. 마지막 fetch도 같은 main이다. Unity 재실행, 생성 인덱스 갱신, 수정/통합은 이번 조사에 포함하지 않는다.
+
 ## 현재 Goal — R18-01~R18-16 수정과 main 통합 (2026-10-24)
 
 Status: implementation_and_execution_complete. main7b5003c6b 기반 codex/so-main-reference-reaudit의 수정과 필요한 실행을 완료했다. 작성250초, runtime190초, Inspector150초 및 effects620/core200/character160/world240/crop200초가 모두 native0/C#0/console0/drift0이다. 현재3544에셋/10721보호키/WorkType31 보존과 Python73개/analyzer/생성 인덱스도 PASS다. Unity0/lockfree/여유10.18GiB로 검증 창을 닫았다. GitHub 통합 완료 여부는 현재 PR과 Goal의 실제 CI/병합 결과를 따른다. 원본 checkout과 기존 QA는 보존했다.

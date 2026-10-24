@@ -1,5 +1,47 @@
 # DungeonStory Current Progress
 
+## 2026-10-24 R19 실행과 문서 마감
+
+r138sr 필수 영향5그룹을 모두 수용했다. effects1040초, core240초, character180초, world250초, crop200초 모두 native0/C#0/consoleErrors0/drift0이다. 공식 GameplayScene104섹션 capture/restore와 원래 baseline의 canonical 동일 복구, 콘솔 warning0/error0을 확인했다. 전수 seed와 장기 밸런스 인증은 하지 않았다.
+
+Artifacts/QA/ImpactCI/verification.json, r19-verification.json, r19-inspector-isolation.json과 world-round-trip.txt에 실제 source-bound 결과를 마감했다. R19 영수증은 r137 작성/runtime의 원래 식별자와 r138 최종 Inspector를 각각 유지하고 입력21674개 중 Editor reader 한 파일의 차이 및 재사용 이유를 기록한다. SO_REFERENCE_FULL_AUDIT.md 상단20행은 이전 감사와 구분해 수정/실행 범위를 명시했다. 문서 링크6434개 오류0이다. Python77/77, 게시3544에셋/10721키/WorkType31, 분석기 및 인덱스 최신성도 PASS다. GitHub 통합은 아직 완료로 세지 않는다.
+
+## 2026-10-24 R19 실제 Inspector 수용과 최종 영향 검증
+
+r138sr 실제 private Inspector260초 native0/C#0/consoleErrors0/drift0을 수용했다. 인증/TCP 차단/private display/window probe와 정상 cleanup을 확인했다. 최종source4b61fd8575a91115682a4a50267930a9d1cd27b997499d82c59df79ca0588b0b, configuration06520602d53b966e38f0a99f33686b51805b2ae9e72c0f7a3e56d13e3c7ad147다. r137 작성360초/runtime240초는 실제 원래 source 식별자를 그대로 보존한다. 전체21674입력 중 차이는 Editor pending reader 한 파일이며 저장/소비/정의/에셋과 fixture는 동일하다. 변경된 managed/pending 경계는 최종 Inspector가 직접 재실행했다. 최종 영향5그룹은 r138 현재 입력으로 새로 실행한다.
+
+두 생성 인덱스를 배치 마감에1회 갱신했고 내용/링크/최신성 failure0이다. 로그는 외부 main-reaudit-r19/knowledge-final.log다. 기존 게시3544에셋/10721키/WorkType31 비교와 Python77/77 및 고정 분석기도 PASS다. r138 Unity0/lockfree 후 PID1459023/start1357892769/session1456585의 소유 compiler만 대조/정리하고 effects/core/character/world/crop 순서의 필수 영향 실행을 시작했다.
+
+## 2026-10-24 R19 진행/복원 수용과 Inspector 보완
+
+r137sr runtime240초 native0/C#0/consoleErrors0/drift0이다. 실제119일 저장→120일 엔딩과 재평가 무중복, 실제 시설 projector/live preflight/장 선택의 거절 무변경/JSON 복원, 실제 방/지원 linker와 service V7 복원 뒤 누락 거절/지원 복구/결제1회를 확인했다. Inspector110초는 exit0이어도 pending formatter mirror 예외와 완료 marker 누락으로 수용하지 않았다.
+
+Unity0/lockfree 뒤 SOURCE_EDIT를 열었다. SerializedReference의 boxedValue가 적용 전 child 입력을 복사하지 않던 문제를 수정한다. 임시 객체의 managed reference를 독립 복제하고 각 pending child를 복사하며 원본에 Apply하지 않는다. 저장/실행 코드와 에셋은 수정하지 않는다. 실패는 r137sr-impact-so-inspector에 보존한다.
+
+## 2026-10-24 R19 작성 실행 수용
+
+r137sr so-authoring360초 native0/C#0/consoleErrors0/drift0이다. R19_DEFINITION_GUARDS, BATTLE_COUNTERS, PRODUCTION_REGISTRY_SCENARIOS, CROP_CATALYST, CONTENT_SELECTIONS를 실제 실행했다. source ca8ff0763ecb0aff4398cbd0d16bec95a3ceb5a9eb12d6c61da2f44c40b3c0d0, configuration842eaf08746be492b8e8f5555170a18b8d6cc523ca3e9f0ba1990961ede0054d다. r136은 전송만 했으며 실행 PASS가 아니다. object selector와 registry key는 명시 계약으로 구분하여 기존 다형 SO 선택도 보존했다.
+
+Unity0/operation.lock free 뒤 완료된 r135/r137 소유 compiler의 PID/start ticks/session/cmd/cwd를 대조하고 해당 helper만 종료했다. 사용자 앱은 건드리지 않았다. CUHA detached-supervisors/r135sr-r137sr-compiler-cleanup.json에 기록했다. runtime과 실제 private Inspector를 현재 동일 입력에서 이어서 실행하며 아직 완료로 세지 않는다.
+
+## 2026-10-24 R19 구현 배치 동결
+
+r135sr은 C# 오류0/drift0, 작성 실행210초 뒤 StartingProficiency를 enum 순번으로 일반 key와 동일시하던 공용 선택기 계약 검사에서 실패했다. 새 enum 순번에 기대지 않고 실제 대상 타입으로 object/key 선택을 구별하며, 시작 proficiency는 등록 SO 타입을 명시했다. room score/metric 중개 kind는 path 문맥 없이 후보를 노출하지 않는다. Unity0/lockfree 후 SOURCE_EDIT에서 수정하고 다시 동결한다. 현재 게시3544에셋/10721키와 WorkType31 보존은 실제 working snapshot 비교 PASS다.
+
+r134sr 첫 컴파일150초는 새 fixture의 Foundation using 누락과 nested fixture private 접근으로 실패했다. runtime DLL의 새 오류가 아니라 검증 코드의 컴파일 오류이며 실제 실행은 아직 미실행이다. Unity0/lock free를 재확인하고 편집 창에서 namespace와 fixture의 한정 조회/설정 포트를 고쳤다. 실패 로그는 r134sr-impact-so-authoring에 보존한다. SCP 전송 실패는 입력을 바꾸지 않고 해시 검증 chunk 전송으로 복구했다.
+
+codex/fix-so-r19에서 20묶음의 국소 수정을 작성했다. 기존 게시 에셋, GUID와 저장 DTO 버전은 변경하지 않았다. 모든 작성자가 READY/FROZEN이며 main이 실제 Unity의 유일한 담당자다. 로컬 및 CUHA Unity0/operation.lock free, CUHA 여유 약10.2GiB를 확인했다. SOURCE_EDIT를 닫고 CUHA UNITY_VERIFY로 전환한다.
+
+Python 게시 보호52개는 PASS다. 첫 호출은 모듈 검색 경로가 잘못되어 import에 실패했으며 올바른 도구 폴더에서 다시 실행했다. Roslyn Editor/Player 구문 분석26819선언 오류0이다. 컴파일과 실제 실행 PASS는 아직 아니다. 필요한 실행은 기존 so-authoring/runtime/private Inspector와 변경 영향 그룹으로 제한한다. 새 진행 fixture는 실제 시설 projector/preflight/명령, 119일 JSON 뒤120일 엔딩, 서비스 fixture는 실제 방/지원 연결과 V7 복원 뒤 실패/재시도/결제1회를 검사한다.
+
+## 2026-10-24 R19 main SO 관계 읽기 전용 감사 완료
+
+기준/마감 origin/main은 모두886973b7e1aa3a3acf8af0de79f26af8a350e50b다. 새142SO/2458선언/879후보/199표식과3544asset을 재추출했고 직접GUID8962/fileID4731의 대상 누락/중복0을 확인했다. actor, leaf, identity와 공용/기타 root를 원본으로 대조해 SO_REFERENCE_FULL_AUDIT.md 상단 R19-01~20에 잔여를 기록했다. 현재 엔딩flag/세력시설조건/counter의 생산-소비 단절을 작성과 호환 보호 위험과 구분했다. 게임 수정 완료 보고가 아니다.
+
+외부 `C:/Users/vulpo/Documents/Codex/2026-10-24/so-full-audit/main-reaudit-r19`에 inventory.json/current-assets.json/asset-groups.json/value-crosscheck.json, actor/leaf/identity-findings.md, main-summary.json/counter-producer-check.json과 identity-guard-repros.py/json을 보존했다. 실제 verify_work_type_protocols와 compare_baselines 메모리 반례2건이 통과함을 확인했다. 새 문서 링크51개 오류0, R19행20/고유20, 금지 문자0, diff whitespace 오류0이다. report-check.json이 이 결과와 문서 hash를 보존한다.
+
+Unity/Refresh/컴파일/Inspector/Play/저장복원은 새로 실행하지 않았고 과거 PASS를 재발급하지 않았다. 생성 인덱스와 게임 코드/에셋 무변경이며 원본 Documents checkout 및 기존 QA를 유지했다. 이번 요청은 조사이므로 Goal 생성, commit/push/PR/main 병합은 진행하지 않았다.
+
 ## 2026-10-24 R18 실행 및 문서 마감
 
 현재 r133sr21660입력과 C# 등4755개를 검증했다. effects620초, core200초, character160초, world240초, crop200초가 모두 native0/C#0/consoleErrors0/drift0이다. runtime retry1의190초와 인증 private Xvfb Inspector150초도 같은 입력이다. r130sr 작성250초의 원래 소스와 설정 식별자를 보존했고, 달라진 입력이 runtime fixture 한 파일뿐임을 전체 manifest로 확인한 재사용을 r18-verification.json에 기록했다.

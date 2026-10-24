@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using DungeonStory.Balance;
 using UnityEngine;
 using VContainer;
 
@@ -42,6 +43,15 @@ public sealed class ResourceEconomyContentCatalog : IResourceEconomyContentCatal
             recipeDefinitions,
             recipe => recipe.RecipeId,
             "production recipe");
+        ProductionMassExplanationCapabilityRegistry massExplanationRegistry =
+            ProductionMassExplanationCapabilityRegistry.CreateDefault();
+        ProductionOutputCostAllocationCapabilityRegistry outputCostAllocationRegistry =
+            ProductionOutputCostAllocationCapabilityRegistry.CreateDefault();
+        foreach (ProductionRecipeSO recipe in recipes)
+        {
+            massExplanationRegistry.ValidateRegistered(recipe.MassExplanation);
+            outputCostAllocationRegistry.ValidateRegistered(recipe.OutputCostAllocation);
+        }
         crops = Normalize(
             cropDefinitions,
             crop => crop.CropId,

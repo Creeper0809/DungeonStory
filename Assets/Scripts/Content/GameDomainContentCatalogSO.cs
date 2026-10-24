@@ -234,6 +234,7 @@ public sealed class AuthoredInvasionPatternRecord
     public float riskTolerance = 0.55f;
     public float routeCommitmentSeconds = 2f;
     public float structureDamageMultiplier = 1f;
+    [HideInInspector, Tooltip("Legacy warning-intel metadata; does not select facility targets.")]
     public List<string> preferredFacilityFamilyIds = new();
 }
 
@@ -313,6 +314,7 @@ public enum AuthoredGameplayEffectKind
 public sealed class AuthoredGameplayEffectRecord
 {
     public AuthoredGameplayEffectKind kind;
+    [ContentReference(ContentReferenceKind.MetaEffectTarget)]
     public string id = string.Empty;
     [ContentReference(ContentReferenceKind.AuthoredEffectText)]
     public string textValue = string.Empty;

@@ -81,11 +81,7 @@ public sealed class ContentRequirementEvaluator : IContentRequirementEvaluator
                 ? facilities.FindOperational(
                     capability,
                     requirement.buildingDefinitionId).Count
-                : world.FacilityCounts.TryGetValue(
-                    V20CampaignRuntime.FacilityRequirementKey(requirement),
-                    out int authoredCount)
-                        ? authoredCount
-                        : 0;
+                : world.CountFacilities(requirement);
             if (count < requirement.minimumCount)
             {
                 failure = new DomainFailure(FailureCode.ServiceFeatureMissing);
@@ -188,6 +184,7 @@ public sealed class ContentRequirementEvaluator : IContentRequirementEvaluator
         if (normalized.Length == 0) return FacilityCapabilityKind.None;
         string leaf = normalized.Split(':', '.', '/').Last();
         return Enum.TryParse(leaf, true, out FacilityCapabilityKind result)
+            && Enum.IsDefined(typeof(FacilityCapabilityKind), result)
             ? result
             : FacilityCapabilityKind.None;
     }
