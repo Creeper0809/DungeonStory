@@ -270,6 +270,7 @@ public struct FacilityEvolutionTokenRequirement
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public struct FacilityEvolutionMaterialRequirement
 {
+    [ContentReference(ContentReferenceKind.StockCategory)]
     public string materialId;
     [Min(1)] public int amount;
 }

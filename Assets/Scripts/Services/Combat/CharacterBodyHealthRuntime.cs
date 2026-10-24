@@ -211,7 +211,8 @@ public sealed class CharacterBodyHealthRuntime :
                         CharacterPerformanceFormulaIds.ManaRecovery)
                     : null;
                 float manaRecoveryMultiplier = manaRecovery?.IsApplicable == true
-                    ? manaRecovery.Value
+                    ? manaRecovery.Value * actor.Stats.GetDetailedStatMultiplier(
+                        GameplayEffectTargetIds.ArcaneManaRecovery)
                     : 0f;
                 state.manaBlockedRemainingSeconds = Mathf.Max(
                     0f,

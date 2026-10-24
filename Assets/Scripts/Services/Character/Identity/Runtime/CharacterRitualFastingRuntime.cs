@@ -72,8 +72,10 @@ public sealed class CharacterRitualFastingRuntime :
     ICharacterIdentityDeathStateRetentionPolicy,
     ITickable
 {
-    public const string NeedId = "need:ritual-fast";
-    public const string StateRuleId = "behavior:ritual-fast";
+    public const string NeedId =
+        CharacterTraitIdentityRuleContract.RitualFastingNeedId;
+    public const string StateRuleId =
+        CharacterTraitIdentityRuleContract.RitualFastingBehaviorRuleId;
     private readonly CharacterIdentityStateStore states;
     private readonly CharacterMoodPolicyService moods;
     private readonly IGameCalendar calendar;

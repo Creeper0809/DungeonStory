@@ -19,14 +19,9 @@ public static class DungeonFactionWarRegistration
             Lifetime.Singleton);
         builder.Register<FactionItemLogisticsDependencies>(Lifetime.Singleton);
         builder.Register<FactionCharacterSpawnDependencies>(Lifetime.Singleton);
-        builder.Register<PaidMarketPurchaseFactionRouteEconomicPolicy>(
-                Lifetime.Singleton)
-            .As<IFactionRouteEconomicPolicy>();
-        builder.Register<AllianceBenefitFactionRouteEconomicPolicy>(
-                Lifetime.Singleton)
-            .As<IFactionRouteEconomicPolicy>();
-        builder.Register<FactionRouteEconomicPolicyRegistry>(Lifetime.Singleton)
-            .As<IFactionRouteEconomicPolicyRegistry>();
+        builder.Register<FactionRouteEconomicPolicyRegistry>(resolver =>
+                FactionRouteEconomicPolicyRegistry.CreateBuiltIns(resolver.Resolve<IDungeonItemCatalogProvider>()),
+                Lifetime.Singleton).AsSelf().As<IFactionRouteEconomicPolicyRegistry>();
         builder.RegisterEntryPoint<FactionRuntimeApplicationAdapter>(Lifetime.Singleton)
             .As<IFactionRuntime>()
             .As<IFactionContractQuery>()

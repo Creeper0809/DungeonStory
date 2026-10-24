@@ -515,6 +515,10 @@ public sealed class CharacterAlarmResponseRuntime :
         return false;
     }
 
+    private static float ResolveResponseDelay(CharacterActor actor, float responseValue) =>
+        BaseResponseDelaySeconds * actor.Stats.GetDetailedStatMultiplier(
+            GameplayEffectTargetIds.AlarmResponseDelay) / Math.Max(0.01f, responseValue);
+
     private void ScheduleEmergencyResponders(
         long epochId,
         bool applyResponseDelay)
@@ -599,8 +603,7 @@ public sealed class CharacterAlarmResponseRuntime :
                 allowedEmergencyWorkType);
             float dueAt = applyResponseDelay
                 ? clock.Time
-                    + BaseResponseDelaySeconds
-                        / Math.Max(0.01f, response.Value)
+                    + ResolveResponseDelay(actor, response.Value)
                 : clock.Time;
             CharacterPerformanceExecutionTrace.Record(
                 CharacterPerformanceFormulaIds.AlarmResponse,

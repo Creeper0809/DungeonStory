@@ -12,7 +12,11 @@ public enum ContentReferenceKind
     AuthoredEffectText, InvasionPattern, EncounterTarget, Equipment,
     WorkerTrait, WorkType, GameplayValueTarget, SkillCapability,
     CampaignTarget, AcquiredTraitBinding, SkillModule, SkillVariant,
-    EquipmentCapability, FacilityCapability
+    EquipmentCapability, FacilityCapability,
+    GameplayEffectTarget, AnatomyFamily, FixedTraitRule, FactionEconomicPolicy,
+    StockCategory, FacilityEvolutionModule, EquipmentEvolutionModule,
+    ProductionWorkstation, ProductionSupport, ServiceHub, ServiceFeature,
+    WildlifeHabitat, FacilityRole, FacilityAnchorPurpose, ProductionBatchSupport
 }
 
 [AttributeUsage(AttributeTargets.Field)]

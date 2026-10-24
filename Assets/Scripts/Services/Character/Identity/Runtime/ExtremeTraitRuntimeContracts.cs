@@ -4,12 +4,18 @@ using UnityEngine;
 
 internal static class ExtremeTraitRuleIds
 {
-    internal const string LastStandRuleId = "extreme:last-stand";
-    internal const string ForbiddenLeapRuleId = "extreme:forbidden-leap";
-    internal const string MiracleSurgeryRuleId = "extreme:miracle-surgery";
-    internal const string GoldenHarvestRuleId = "extreme:golden-harvest";
-    internal const string ProductionLimitBreakRuleId = "extreme:production-limit-break";
-    internal const string ArcaneOverchargeRuleId = "extreme:arcane-overcharge";
+    internal const string LastStandRuleId =
+        CharacterTraitIdentityRuleContract.LastStandRuleId;
+    internal const string ForbiddenLeapRuleId =
+        CharacterTraitIdentityRuleContract.ForbiddenLeapRuleId;
+    internal const string MiracleSurgeryRuleId =
+        CharacterTraitIdentityRuleContract.MiracleSurgeryRuleId;
+    internal const string GoldenHarvestRuleId =
+        CharacterTraitIdentityRuleContract.GoldenHarvestRuleId;
+    internal const string ProductionLimitBreakRuleId =
+        CharacterTraitIdentityRuleContract.ProductionLimitBreakRuleId;
+    internal const string ArcaneOverchargeRuleId =
+        CharacterTraitIdentityRuleContract.ArcaneOverchargeRuleId;
 }
 
 public enum ExtremeRiskOutcome

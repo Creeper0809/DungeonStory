@@ -61,9 +61,36 @@ public class FacilityEvolutionRecipeSO : DataScriptableObject
 
     public IReadOnlyList<string> ValidateDefinition()
     {
-        return string.IsNullOrWhiteSpace(RecipeId)
-            ? new[] { "Facility evolution recipe ID is required." }
-            : Array.Empty<string>();
+        List<string> errors = new();
+        if (string.IsNullOrWhiteSpace(RecipeId))
+            errors.Add("Facility evolution recipe ID is required.");
+
+        FacilityEvolutionMaterialRequirement[] materials =
+            requiredMaterials ?? Array.Empty<FacilityEvolutionMaterialRequirement>();
+        for (int index = 0; index < materials.Length; index++)
+        {
+            if (!StockCategoryPersistenceId.TryParse(
+                    materials[index].materialId,
+                    out _))
+            {
+                errors.Add(
+                    $"Facility recipe '{EffectiveId}' material at index {index} names an unknown stock category '{materials[index].materialId ?? string.Empty}'.");
+            }
+        }
+
+        if (formulaCapabilities is { Count: > 0 })
+        {
+            try
+            {
+                _ = RequireFormulaCapabilities();
+            }
+            catch (InvalidOperationException exception)
+            {
+                errors.Add(exception.Message);
+            }
+        }
+
+        return errors;
     }
 
     public NarrativeFormulaStrengthPolicy RequireFormulaPolicy()
@@ -98,9 +125,26 @@ public class FacilityEvolutionRecipeSO : DataScriptableObject
                 $"Facility recipe '{EffectiveId}' requires distinct formula module definitions.");
         HashSet<string> referenceIds = ReferenceCapabilityIds()
             .ToHashSet(StringComparer.Ordinal);
+        EvolutionModuleRegistry registeredModules = new();
         foreach (FacilityEvolutionFormulaCapabilityDefinition value in values)
         {
             NarrativeFormulaCapabilityDescriptor descriptor = value.ToRuntime();
+            if (!registeredModules.TryGet(
+                    value.evolutionModuleId,
+                    out EvolutionModuleDefinition module))
+            {
+                throw new InvalidOperationException(
+                    $"Facility capability '{descriptor.CapabilityId}' names unregistered evolution module '{value.evolutionModuleId}'.");
+            }
+            if (!FacilityEvolutionModifierApplicability
+                    .IsPositiveModuleEligibleForNewGeneration(
+                        resultBuilding,
+                        module,
+                        out string eligibilityFailure))
+            {
+                throw new InvalidOperationException(
+                    $"Facility capability '{descriptor.CapabilityId}' evolution module '{value.evolutionModuleId}' is unavailable for recipe '{EffectiveId}': {eligibilityFailure}.");
+            }
             string unknown = descriptor.ForbiddenSynergies
                 .FirstOrDefault(id => !referenceIds.Contains(id));
             if (unknown != null)
@@ -193,6 +237,7 @@ public sealed class FacilityEvolutionFormulaCapabilityDefinition
 {
     public string capabilityId = string.Empty;
     [Tooltip("Must resolve through EvolutionModuleRegistry; this is never LLM-selected.")]
+    [ContentReference(ContentReferenceKind.FacilityEvolutionModule)]
     public string evolutionModuleId = string.Empty;
     [Min(0)] public int baseCost;
     [Min(0)] public int triggerFrequencyCostPerUnit;

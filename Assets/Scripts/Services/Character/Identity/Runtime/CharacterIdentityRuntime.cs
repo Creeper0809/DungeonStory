@@ -1629,7 +1629,8 @@ public sealed class ExtremeCraftInspirationRuntimeState
 
 public sealed class ExtremeCraftInspirationRuntime
 {
-    public const string RuleId = "extreme:mythic-inspiration";
+    public const string RuleId =
+        CharacterTraitIdentityRuleContract.MythicInspirationRuleId;
     private readonly CharacterIdentityStateStore states;
     private readonly CharacterMoodPolicyService moods;
 
@@ -1645,15 +1646,11 @@ public sealed class ExtremeCraftInspirationRuntime
         CharacterActor maker,
         out ExtremeCraftInspirationRule rule)
     {
-        rule = maker?.Progression?.ResolveSelectedTraits()
-            .FirstOrDefault(value => value != null
-                && value.id == MythicCraftInspirationRules.SourceTraitId)
-            ?.identityRules?
-            .OfType<ExtremeCraftInspirationRule>()
-            .FirstOrDefault(value => string.Equals(
-                value.ruleId,
-                RuleId,
-                StringComparison.Ordinal));
+        rule = ExtremeTraitRuleAccess.ResolveRule<ExtremeCraftInspirationRule>(
+            maker,
+            CharacterTraitIdentityRuleContract.MythicInspirationTraitId,
+            RuleId,
+            out _);
         return rule != null;
     }
 
@@ -1669,7 +1666,8 @@ public sealed class ExtremeCraftInspirationRuntime
     {
         CharacterTraitSO trait = maker?.Progression?.ResolveSelectedTraits()
             .FirstOrDefault(value => value != null
-                && value.id == MythicCraftInspirationRules.SourceTraitId);
+                && value.id ==
+                    CharacterTraitIdentityRuleContract.MythicInspirationTraitId);
         TryResolveRule(maker, out ExtremeCraftInspirationRule rule);
         string characterId = maker?.Identity?.PersistentId?.Trim() ?? string.Empty;
         string definitionId = productDefinitionId?.Trim() ?? string.Empty;

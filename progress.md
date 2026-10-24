@@ -1,5 +1,55 @@
 # DungeonStory Current Progress
 
+## 2026-10-24 R18 실행 및 문서 마감
+
+현재 r133sr21660입력과 C# 등4755개를 검증했다. effects620초, core200초, character160초, world240초, crop200초가 모두 native0/C#0/consoleErrors0/drift0이다. runtime retry1의190초와 인증 private Xvfb Inspector150초도 같은 입력이다. r130sr 작성250초의 원래 소스와 설정 식별자를 보존했고, 달라진 입력이 runtime fixture 한 파일뿐임을 전체 manifest로 확인한 재사용을 r18-verification.json에 기록했다.
+
+공식 GameplayScene의104섹션을 실제 저장/복원하고 baseline을 canonical 동일하게 복구했다. 건물138개/캐릭터3개/원정1개/침입1개를 포함하며 console warning0/error0이다. 작물 Play 실행도 source/scene drift0과 정상 cleanup을 확인했다. 현재 Artifacts/QA/ImpactCI/verification.json, r18-verification.json, r18-inspector-isolation.json 및 world-round-trip.txt가 수용 증거다. 과거 N01~N07 링크는 main7b5003c6b에 고정해 현재 증거로 오인하지 않게 했다.
+
+Python73/73, 게시3544에셋/10721키/WorkType31 보존, pinned analyzer DSB001~DSB008, 생성 인덱스1회 및 내용/링크/최신성 failure0이다. 생성 색인의 기존 미해소 후보43/87과 수동 검토45는 이번 변경 전후 동일하며 native 참조/소비 검사 결과와 구분한다. SO 감사16행에 변경/실제 실행/코드 대조 경계를 마감했다. Unity0/operation.lock 획득/여유10.18GiB로 검증 창을 닫았으며 원본 Documents checkout과 과거 QA를 보존했다. GitHub 실제 통합 결과는 외부 r18-integration-final.json과 현재 PR/Goal 완료 기록을 따른다.
+
+## 2026-10-24 R18 실제 효과와 복원 검증 통과
+
+r130sr so-authoring250초, r133sr so-runtime-retry1의190초가 native0/C#0/consoleErrors0/drift0이다. R18 실제 전투1.6, 경보 지연0.5, 감지1.15, 부상 작업 손실0.75, 실제 마나 Tick0.5와 identity/body JSON 복원 및 거절/환불 재시도를 확인했다. runtime 입력 source d698fc9aa0bed3cbbf664ea586dfa060132e6f186fddd0bd398d163ddcd2a092, config06a14e16fa1e125a1322b646be49a01566f0a4e5c100dc4c40555f599a693186이다. r133 실제 private Inspector와 필수 영향5그룹을 계속 실행한다.
+
+r130 runtime130초는 trait 준비의 vitals 초기화로 부상 입력이 달랐고, r131/r132 각230초는 분할 health Tick 및 소모 전 시간 정렬을 빠뜨린 마나 측정 준비로 실패했다. 같은 실제 부상도 입력과 대상 방문 관측, 시간 정렬 → 소모 →1초 측정으로 바로잡았다. 생산 계산과 기대값은 바꾸지 않았다. r133 첫 실행130초는 메모리 보호로 중단돼 FAIL이다. Unity0/lockfree와 PID3545843/start1356870875/session3543098/private compiler cmd/cwd를 확인해 소유 helper만 종료했다. 이전 r132 helper는 이미 자연 종료한 상태였다. 여유4.95→10.13GiB 후 소스 불변 retry1을 수용했다. CUHA detached-supervisors/r132sr-r133sr-compiler-cleanup.json과 모든 실패 로그를 보존한다.
+
+## 2026-10-24 R18 게시 보호 수용과 실제 데이터 수정
+
+r124sr-publication300초와 r126sr-publication290초는 native0/C#0/console0/drift0이다. 기존3544개 에셋과10607개 보호값을 보존하여 시설 capability6개 및 특성 저장 rule108개만 추가했다. 현재10721개와 WorkType31개를 실제 YAML/C# 및 main7b5003c6b와 대조해 보존 PASS다. 후보 검토와 적용 기록은 외부 r124sr-publication, r126sr-publication/publication-review.json에 보존한다.
+
+r125sr 작성 검사120초는 구형 빈 정책을 @0으로 취급해 실패했다. 미선택 표현 수정 후 r127sr120초에서 해당6개 구형 세력에 실제 화물이 있어 정책이 필요함을 확인했다. 무화물 가정은 오류였으며 통과시키지 않았다. 현재 등록 정의와 같은 정책12개를 연결했고 기존 YAML prefix 전체/세력 ID/화물 수량을 보존했다. 실제 legacy 견적12개를 포함한 r129sr 작성 검사는 전부 통과했으나 최종 Undo 정리가 실패해 Addressables 설정 source drift1이었다. native0이어도 전체 FAIL로 기록했다.
+
+고정 패키지 ResetHashes의 실제 Undo dirty 부작용을 확인해 관측된 Undo와 전체 JSON/hash 일치일 때 원래 dirty 상태를 복구한다. 알려지지 않은 dirty 변경/실제 JSON 변경/전체 source drift 기준은 유지한다. 변경된 원격 설정은 승인 원본 바이트로 복구했다. 현재 r130sr21660입력 drift0, 모든 작성자 FROZEN, SOURCE_EDIT 종료 및 UNITY_VERIFY다. Python73/73과 analyzer DSB001~DSB008 PASS이며 이전 실패는 외부 및 개별 Artifacts/QA/r125sr/r127sr/r129sr 경로에 보존한다.
+
+## 2026-10-24 R18 r123sr 런타임 컴파일 통과와 Editor fixture 정정
+
+r123sr-publication은140초/native1/compiler3/drift0이다. runtime 소스는 컴파일됐고 Editor fixture의 WorkTypeCatalog.RequireRegistered 호출에서 필수 ownerContext 인자 누락으로 실행 전 실패했다. Unity0/operation.lock을 확인한 뒤 인자를 추가했다. R18-12/13 선택 후보는 실제 SupportsWorkstation/SupportsHub에 맞추고 배치 지원은 BatchProcessor로 한정했다. 독립 fixture도 정상 및 다른 owner 전용 등록값 거절을 보완했다. 모든 작성자가 다시 READY/FROZEN이며 다음 입력은 r124sr다.
+
+메모리4.6GiB는 완료된 두 native 실행의 VBCSCompiler 잔류였다. PID2487695/start1356348082/session2485336과 PID2557607/start1356383205/session2555248을 실제 proc cmd/cwd/session으로 확인했고, operation.lock과 Unity0 재확인 후 두 소유 helper만 종료했다. 기록은 CUHA detached-supervisors/r122sr-r123sr-compiler-cleanup.json이다. 여유10.18GiB로 회복했으며 보호 기준은 변경하지 않았다. 기존 전송 실패와 두 컴파일 실패는 PASS로 바꾸지 않는다.
+
+## 2026-10-24 R18 r122sr 컴파일 실패와 수정
+
+CUHA r122sr-publication은100초/native1/compiler3(같은 타입 오류 반복)/drift0으로 종료했다. ContentReferenceCatalog의 DungeonStory.Factions using 누락이며 실행 단계에 진입하지 않았다. 로그는 외부 so-full-audit/r122sr-publication에 보존했다. Unity0/operation.lock 획득/여유7.52GiB를 다시 확인하여 EDIT_READY 뒤 using을 추가했다. 최종 diff에서 확인한 금식의 신규 trait213 ID 제한도 제거하여 기존 rule 계약 재사용을 보존했다. 상수와 고정213 작성 검증은 유지한다. 작은 수정 배치를 동결하고 r123sr로 재검증한다.
+
+## 2026-10-24 R18 첫 수정 배치 동결
+
+Goal ACTIVE. R18-01~16 구현과 표적 fixture를 작성했고 모든 작성자가 READY/FROZEN을 반환했다. 메인도 SOURCE_EDIT를 닫는다. 현재 소스는 아직 Unity 컴파일/실행 미검증이다. CUHA r122sr로 동기화해 먼저 CaptureContentPublication의 현재 컴파일과 관계 검사를 실행한다. 예상 게시 변경은 기존 시설 recipe6개의 nested capability row 추가뿐이며, candidate의 기존3544개 GUID/보호값 보존을 확인한 뒤 반영한다.
+
+실제 소비는 마법 전투와 원정 동결 배율, 마나 회복 tick, 경보 지연, 위험 감지 반경, 작업의 통증 손실에 연결했다. 통증은 기존 injury 곡선의 손실을 효과에 통과시키며 건강/진통 중에는 중립이다. 밸런스 기준서에 부상 노동의 실제 변화와 범위를 적었다. 새 조립 검증과 선택기, 고정 trait9계약을 추가했고 관련 fixture 실행점은 기존 so-authoring/runtime/Inspector에 연결했다. Python identity 표적45개 PASS이며 새 시설 route와 WorkType 코드 ID rename/remove/membership 거절을 포함한다.
+
+작업 branch는 codex/so-main-reference-reaudit, 원본 Documents checkout과 이전 QA는 보존한다. 실행이 활성화된 동안 소스/에셋 편집은 금지한다. CUHA 외부 도구는 C:/Users/vulpo/Documents/Codex/2026-10-24/so-full-audit, 이전 입력은 r121sn이다.
+
+## 2026-10-24 PR18 이후 main SO 재감사 완료
+
+기준 main과 조사 HEAD는 `7b5003c6b6ee0b2d892edc471e10e0ea009e3432`, tree는 `3479a6b8cb9648b9e09a6f2f705868ff7c88ed29`다. 마지막 원격 main 조회에서도 같은 SHA였다. 현재 원본 추출은 게임 SO142종, 직렬화 선언2458개, 관계 후보879개, 참조 표식180개다. 실제 SO3544개 YAML 및 구문 오류0, 직접 GUID8962개와 .asset fileID4731개 대조에서 대상 누락0이다. 이 결과를 실제 효과 연결이나 Unity 실행 성공으로 해석하지 않았다.
+
+독립 읽기 결과와 메인 소비자 검토를 통합하여 SO_REFERENCE_FULL_AUDIT.md 상단 R18-01~R18-16을 추가했다. 현재 특성4개에 작성된 효과5개의 소비 경로 누락과, 별도 작성/변경 보호15묶음이다. 현재 데이터 오류와 향후 작성 위험, 이미 fail-fast하는 경계, 낮은 우선순위 방어 중복을 구분했다. 기존 N01~N07 구현과 PR18/main 통합 완료 기록은 유지했다.
+
+보고서 전체 로컬 링크6375개 누락0, 새 절 링크 및 행 anchor63개 오류0, 번호16개와 신규 중간 점0을 확인했다. git diff --check 통과. 변경은 감사 문서와 기존 계획/발견/진행 문서4개뿐이다. 게임 소스/에셋, 원본 Documents checkout, QA 증거와 생성 인덱스는 변경하지 않았다. Unity/Inspector/Play 재실행, commit/push는 하지 않았다.
+
+증거 폴더는 `C:/Users/vulpo/Documents/Codex/2026-10-24/so-full-audit/main-reaudit-r18`이다. `inventory.json`, `current-assets.json`, `value-crosscheck.json`, 세 분야 보고서, `effect-target-check.json`, `effect-consumer-gap.json`, `report-check.json`을 보존했다. 과거 실행을 이번 새 발견의 실행 재현으로 표시하지 않았다.
+
 ## 2026-10-24 main SO 원본 재검토 완료 — 읽기 전용
 
 main `1f1f990a26f457611d438eebd5423a92b4e77a51`와 조사 HEAD의 tree 일치를 확인하고 현재 Roslyn 구문·에셋을 새로 추출했다. 142 SO 타입/2459 필드 후보/880 관계 후보/167 표식, 3544 게임 SO asset, 구문·YAML 파싱 오류0이다. nonzero GUID8962건 대상 누락/중복0, .asset fileID4731건 누락0. main→동일 main의 `verify_content_identities.py` 실행 exit0:3544 assets/10607 fields PASS. 이는 현재 게시 목록과 에셋의 정적 일치 검사이며 새 Unity 실행 결과가 아니다.

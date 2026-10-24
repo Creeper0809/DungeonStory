@@ -20,7 +20,8 @@ public sealed class SurgicalProcedureSO : ScriptableObject
         MedicalProcedureFamily.Biological;
     [SerializeField] private MedicalProcedureUrgency urgency =
         MedicalProcedureUrgency.Required;
-    [SerializeField] private List<string> allowedAnatomyFamilies = new();
+    [ContentReference(ContentReferenceKind.AnatomyFamily, IgnoreCase = true), SerializeField]
+    private List<string> allowedAnatomyFamilies = new();
     [ContentReference(ContentReferenceKind.AnatomySpecies, IgnoreCase = true), SerializeField]
     private List<string> allowedSpeciesIds = new();
     [SerializeField] private ProcedureOperatorRequirement operatorRequirement = new();

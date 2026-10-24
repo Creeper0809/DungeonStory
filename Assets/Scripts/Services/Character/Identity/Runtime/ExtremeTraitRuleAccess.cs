@@ -63,11 +63,25 @@ internal static class ExtremeTraitRuleAccess
         out CharacterTraitSO trait)
         where TRule : CharacterIdentityRule
     {
+        if (!CharacterTraitIdentityRuleContract.TryGetExpectedKey(
+                traitId,
+                typeof(TRule),
+                nameof(CharacterIdentityRule.ruleId),
+                out string expectedRuleId)
+            || !string.Equals(ruleId, expectedRuleId, StringComparison.Ordinal))
+        {
+            trait = null;
+            return null;
+        }
+
         trait = actor?.Progression?.ResolveSelectedTraits()
             .FirstOrDefault(value => value != null && value.id == traitId);
         return trait?.identityRules?
             .OfType<TRule>()
-            .FirstOrDefault(value => string.Equals(value.ruleId, ruleId, StringComparison.Ordinal));
+            .FirstOrDefault(value => string.Equals(
+                value.ruleId,
+                expectedRuleId,
+                StringComparison.Ordinal));
     }
 
     internal static string ActorId(CharacterActor actor)

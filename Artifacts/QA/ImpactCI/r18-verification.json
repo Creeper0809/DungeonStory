@@ -1,0 +1,65 @@
+{
+  "schema": "so-audit-remediation-v1",
+  "scope": "R18-01 through R18-16; bounded authoring, actual consumer calculations, JSON restore/retry and actual IMGUI; not exhaustive gameplay or balance certification",
+  "source": {
+    "digest": "d698fc9aa0bed3cbbf664ea586dfa060132e6f186fddd0bd398d163ddcd2a092",
+    "count": 4755,
+    "pathsDigest": "cb6376ee440a71cab613b1c0e0740a84ef0fd0355350c8ec921b7014a01bb1f0"
+  },
+  "configurationDigest": "06a14e16fa1e125a1322b646be49a01566f0a4e5c100dc4c40555f599a693186",
+  "sourceManifest": "r133sr; 21660 input files; complete pre/post SHA verification",
+  "platform": "CUHA Linux headless; Inspector authenticated private Xvfb, no user display",
+  "checks": [
+    {
+      "group": "so-authoring",
+      "method": "V27CiEvidenceBatch.RunSoAuthoringContracts",
+      "sourceLabel": "r130sr",
+      "sourceDigest": "bf77f78fb9b17009670ea5eec7a98921877aa57bf07dd063a5aaba6caf231881",
+      "configurationDigest": "7e1da852fd7833c17866f53537dedc8d5af6961ab449c9dc3d11d5d3e6a8c226",
+      "nativeLabel": "r130sr-impact-so-authoring",
+      "log": "Artifacts/QA/ImpactCI/r18-so-authoring.log",
+      "logSha256": "5a24f246de1b34dee2b4dc033e0a48beeef1dd29b8de1c3bf0d6053bfeb348b1",
+      "summary": "Artifacts/QA/ImpactCI/r18-so-authoring-summary.json",
+      "summarySha256": "766d68164d1a202b9b06dfd98bc3a1947cf8949727a915e4eb463509473045b3"
+    },
+    {
+      "group": "so-runtime",
+      "method": "V27CiEvidenceBatch.RunSoRuntimeContracts",
+      "sourceLabel": "r133sr",
+      "sourceDigest": "d698fc9aa0bed3cbbf664ea586dfa060132e6f186fddd0bd398d163ddcd2a092",
+      "configurationDigest": "06a14e16fa1e125a1322b646be49a01566f0a4e5c100dc4c40555f599a693186",
+      "nativeLabel": "r133sr-impact-so-runtime-retry1",
+      "log": "Artifacts/QA/ImpactCI/r18-so-runtime.log",
+      "logSha256": "33d6915053e2df94a891bf891e9c89c069ff5bbbaabb3aeae57c01da5e8376b8",
+      "summary": "Artifacts/QA/ImpactCI/r18-so-runtime-summary.json",
+      "summarySha256": "0eda3a3e99e81d9e320acb7cb8ebb01104db9f9a8176e95692dbd80e097f3cc2"
+    },
+    {
+      "group": "so-inspector",
+      "method": "V27CiEvidenceBatch.RunSoInspectorContracts",
+      "sourceLabel": "r133sr",
+      "sourceDigest": "d698fc9aa0bed3cbbf664ea586dfa060132e6f186fddd0bd398d163ddcd2a092",
+      "configurationDigest": "06a14e16fa1e125a1322b646be49a01566f0a4e5c100dc4c40555f599a693186",
+      "nativeLabel": "r133sr-impact-so-inspector",
+      "isolation": "Artifacts/QA/ImpactCI/r18-inspector-isolation.json",
+      "isolationSha256": "5f3563c31f6ffea941329eb142ddcdd877e6fde70830ebeba11906eb8f21fb95",
+      "log": "Artifacts/QA/ImpactCI/r18-so-inspector.log",
+      "logSha256": "43d54d2160a69b12d40ceb8ed9723b86ef270f79b39b679f5d1bb95c91689f93",
+      "summary": "Artifacts/QA/ImpactCI/r18-so-inspector-summary.json",
+      "summarySha256": "c45e37d1f4cd0a5bc7be30fb555500f8ac128126eb6095521fbd40f3461ad4cc"
+    }
+  ],
+  "authoringReuse": {
+    "group": "so-authoring",
+    "proofLabel": "r130sr",
+    "acceptedForLabel": "r133sr",
+    "reason": "Only R18 runtime fixture setup changed: reapply equal injury after prepared identity resets vitals, observe the actor visit in the real sliced health scheduler, and prime time before spending mana so warm-up recovery is outside the one-second measurement. Production code/assets and every authoring/Inspector scenario are unchanged. The corrected runtime fixture and every required impact group execute on the final input. The authoring run retains its own actual source and configuration identity.",
+    "differences": [
+      {
+        "path": "Assets/Scripts/Services/Character/Editor/RitualFastingA08DebugScenarios.cs",
+        "beforeSha256": "0ffa644b54fe70e86b8b3e1ec322cde5e50fb89484745337a1da16c38e9100e0",
+        "afterSha256": "24887ae3078b2f966315f38b694644e0e41eecbad53edda03a54a50e84b2945a"
+      }
+    ]
+  }
+}

@@ -50,6 +50,21 @@ public enum GameplayEffectStackingPolicy
 
 public static class GameplayEffectTargetIds
 {
+    public const string ArcanePower = "arcane:power";
+    public const string ArcaneManaRecovery = "arcane:mana-recovery";
+    public const string AlarmResponseDelay = "character:alarm-response-delay";
+    public const string DangerDetection = "character:danger-detection";
+    public const string PainWorkPenalty = "character:pain-work-penalty";
+    public const string CombatStress = "character:combat-stress";
+    public const string MenteeExperience = "character:mentee-xp";
+    public const string SleepRecovery = "character:sleep-recovery";
+    public const string BluntDamageTaken = "damage:blunt-taken";
+    public const string ComfortMinimumOffset = "environment:comfort-minimum-offset";
+    public const string SafeMinimumOffset = "environment:safe-minimum-offset";
+    public const string SpoilageDetection = "food:spoilage-detection";
+    public const string SeedYield = "harvest:seed-yield";
+    public const string MedicalAftermathDuration = "medical:aftermath-duration";
+    public const string Negotiation = "social:negotiation";
     public const string WorkSpeed = "character:work-speed";
     public const string ResearchSpeed = "character:research-speed";
     public const string CombatPower = "character:combat-power";
@@ -111,6 +126,13 @@ public static class GameplayEffectTargetIds
 
     public static IReadOnlyList<string> CharacterPerformanceFormulaTargets { get; } =
         Array.AsReadOnly(CharacterPerformanceFormulaTargetValues);
+
+    // Declared consumer contracts, independent of whichever effect assets exist.
+    public static IReadOnlyList<string> DeclaredTargets { get; } = Array.AsReadOnly(
+        typeof(GameplayEffectTargetIds).GetFields()
+            .Where(field => field.IsLiteral && field.FieldType == typeof(string))
+            .Select(field => (string)field.GetRawConstantValue())
+            .Distinct(StringComparer.Ordinal).OrderBy(value => value, StringComparer.Ordinal).ToArray());
 
     public static bool IsCharacterPerformanceFormulaTarget(string targetId) =>
         CharacterPerformanceFormulaTargetValues.Contains(

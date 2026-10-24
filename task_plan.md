@@ -1,13 +1,34 @@
 # DungeonStory Current Task Plan
 
+## 현재 Goal — R18-01~R18-16 수정과 main 통합 (2026-10-24)
+
+Status: implementation_and_execution_complete. main7b5003c6b 기반 codex/so-main-reference-reaudit의 수정과 필요한 실행을 완료했다. 작성250초, runtime190초, Inspector150초 및 effects620/core200/character160/world240/crop200초가 모두 native0/C#0/console0/drift0이다. 현재3544에셋/10721보호키/WorkType31 보존과 Python73개/analyzer/생성 인덱스도 PASS다. Unity0/lockfree/여유10.18GiB로 검증 창을 닫았다. GitHub 통합 완료 여부는 현재 PR과 Goal의 실제 CI/병합 결과를 따른다. 원본 checkout과 기존 QA는 보존했다.
+
+1. 완료: 효과5개를 계산 소유자에 연결하고 실제 수치/복원/재시도를 확인했다. 대상 의미와 기존 저장 ID를 유지한다. 시설6개/특성 rule108개/WorkType31개의 저장 키 변경 보호를 결합했다.
+2. 완료: 작성 필드를 기존 정의/registry 및 올바른 owner 문맥에서 선택하고 invalid/누락을 거절한다. 구형 세력6개 정책12개를 명시 연결했다. 일반 자유 태그와 신규 identity 작성은 유지한다.
+3. 완료: 실제 Inspector와 필요한 현재 입력 실행5그룹까지 수용했다. 작성 증거는 runtime fixture 한 파일만 달라진 전체21660입력 비교와 원래 source binding을 보존해 재사용했다. 전수 seed/장기 인증은 하지 않았다.
+4. 문서/증거 마감 완료: SO_REFERENCE_FULL_AUDIT.md 상단16행과 실행 영수증을 연결했다. commit/push, PR attach/CI, main 병합 및 main CI의 최종 상태는 Goal과 GitHub 기록에서 확인한다.
+
+호환: SO는 불변 정의, 현재 runtime 소유자가 유일한 상태 권위다. asset GUID/게시 ID/저장 DTO 필드와 버전을 유지한다. Inspector의 기존 문자열 관계를 선택 UI로 바꾸며 사용자 수동 재연결은 요구하지 않는다. 공용 enum/catalog/drawer, 저장 보호와 효과 소비는 메인이 통합한다. 다른 작성자는 배정 파일만 수정한다.
+
+## 현재 작업 — PR18 이후 main SO 관계 재감사 (2026-10-24)
+
+Status: completed / read-only audit. 기준 main `7b5003c6b6ee0b2d892edc471e10e0ea009e3432`, 조사 branch `codex/so-main-reference-reaudit`. 코드와 에셋은 동일 tree이며 기존 사용자 checkout과 QA를 보존했다.
+
+1. 완료: 현재 C# 직렬화 필드와 에셋 모집단을 다시 추출했다. 기존 완료 표는 판정 근거로 사용하지 않았다.
+2. 완료: Inspector 입력 구현, 후보 문맥, 관계 소비, ID 변경 보호와 GUID/fileID를 대조했다. 독립 읽기 결과의 주요 소비 경로를 메인이 확인했다.
+3. 완료: SO_REFERENCE_FULL_AUDIT.md의 R18-01~R18-16에 현재 효과 연결 누락 1묶음과 작성/변경 보호 15묶음, 정상 범위 및 실행 미확인 경계를 기록했다. 정상 authoring에서 이미 보호되는 mana-lightning runtime 방어는 별도 낮은 우선순위로 구분했다.
+4. 완료: 문서 링크와 diff를 확인했다. 게임 코드 변경, Unity 재실행, 생성 인덱스 재생성, commit/push는 이번 감사에 포함하지 않는다. 증거와 마지막 원격 SHA 확인은 progress.md에 기록한다.
+
+
 ## 현재 Goal — N01–N07 수정·표적 실행·main 통합 (2026-10-24)
 
-Status: implementation_verified / GitHub integration in_progress. N01~N07 구현과 필요한 실행을 완료했다. 최종 r121sn에서 so-authoring260초, so-inspector150초, effects560초, core190초, character160초, world250초, crop190초가 모두 native0/C#0/consoleErrors0/drift0이다. 현재 Unity0, operation.lock 획득을 확인해 검증 창을 닫았다. 원본 Documents checkout과 과거 QA는 보존했다. commit/push, PR CI, main 병합과 병합 후 CI를 이어서 완료한다.
+Status: completed. PR18 병합 main7b5003c6b, PR CI40067488575/main CI40067707911 성공과 Goal 완료를 확인했다. N01~N07 구현과 필요한 실행을 완료했다. 최종 r121sn에서 so-authoring260초, so-inspector150초, effects560초, core190초, character160초, world250초, crop190초가 모두 native0/C#0/consoleErrors0/drift0이다. 당시 Unity0, operation.lock 획득을 확인해 검증 창을 닫았다. 원본 Documents checkout과 과거 QA는 보존했다. GitHub 통합도 완료했다.
 
 1. 구현 및 표적 실행 완료: N07 사장 고정 스킬 작성/런타임 정합성, N01 WorkType 선택·등록 거절을 먼저 수정한다. 공용 선택기·catalog·저장 경계는 메인이 통합하며 독립 WorkType 수정과 N05 무소비 작성면 정리는 기존 읽기 담당에게 맡긴다.
 2. 구현 및 표적 실행 완료: N04 소유 문맥별 formula 선택/검증, N06 실제 조합 대상 무결성, N02/N03 로컬 선택기를 기존 경로로 연결한다. N05는 서비스 실행의 기존 권위를 바꾸지 않고 무소비 ID 작성면을 제거한다.
 3. 완료: 현재 소스 컴파일, 실제 실행, Inspector, 저장과 복원, 거절 후 재시도 및 무중복 재시도를 검증했다. 전수 seed, 장기 밸런스, 무관한 확장 인증은 실행하지 않았다.
-4. 진행 중: 현재 입력에 결합된 실행 증거와 N01~N07 완료표, 최종 생성 인덱스를 마감했다. Python 67개, 게시 identity 3544에셋/10607필드, analyzer 검증 결과를 유지하며 commit/push, PR attach와 CI, main 병합과 병합 후 CI를 확인한다. 최종 원격 결과는 외부 so-full-audit/n01-n07-integration-final.json에 실제 SHA와 CI URL로 기록한다.
+4. 완료: 현재 입력에 결합된 실행 증거와 N01~N07 완료표, 최종 생성 인덱스를 마감했다. Python 67개, 게시 identity 3544에셋/10607필드, analyzer 검증 이후 commit16ea432d6/push, PR18 attach와 CI, main7b5003c6b 병합 및 main CI 성공을 확인했다. 외부 so-full-audit/n01-n07-integration-final.json에 실제 SHA와 CI URL을 보존했다.
 
 호환 계약: 기존 asset GUID/게시 ID/DTO 필드명·버전과 저장 키를 유지한다. 새 SO로 분할하지 않고 기존 registry/정의 목록을 선택 권위로 쓴다. owner-fixed의 작성 입력과 생성 snapshot을 구분하되 기존 legacy/formula 저장을 임의 재생성하거나 원본 SO를 runtime에서 변경하지 않는다. 원본 Documents checkout은 수정하지 않는다.
 

@@ -30,9 +30,12 @@ public sealed class ProductionRecipeSO : DataScriptableObject
     [SerializeField] private string displayName = string.Empty;
     [TextArea, SerializeField] private string description = string.Empty;
     [SerializeField] private string facilityTag = string.Empty;
+    [ContentReference(ContentReferenceKind.ProductionWorkstation)]
     [SerializeField] private string workstationTag = string.Empty;
+    [ContentReference(ContentReferenceKind.ProductionSupport)]
     [SerializeField] private List<string> requiredSupportTags =
         new List<string>();
+    [ContentReference(ContentReferenceKind.ProductionBatchSupport)]
     [SerializeField] private string batchSupportTag = string.Empty;
     [SerializeField] private ProductionProcessKind processKind;
     [SerializeField] private ProductionFlowRole flowRole;

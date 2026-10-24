@@ -19,6 +19,13 @@ public static class RitualFastingA08DebugScenarios
         Debug.Log("SO_R22_HERITABLE_PASS; authored effects; real capacities/formulas/mana; saved expression and mana restore; rejected spend and retry");
     }
 
+    public static void RunR18TraitEffectContracts()
+    {
+        using var fixture = new Fixture("Human");
+        fixture.VerifyR18TraitConsumers();
+        Debug.Log("SO_R18_EFFECT_CONSUMERS=PASS; arcane consumer; delay and detection; actual work pain; mana recovery; identity JSON restore; stable retry");
+    }
+
     private const string ActorId = "character:qa-b0-con";
     // CharacterStats.GetConditionMaximum permits hunger above the routine 100.
     private const float HungerMaximum = 115f;
@@ -466,6 +473,7 @@ public static class RitualFastingA08DebugScenarios
         private readonly string stackId;
         private CharacterNarrativeRuntime narrative;
         private CharacterPerformanceQuery performance;
+        private CharacterStatsProjectionService statsProjection;
         private CharacterConsumablesApplicationPorts ports;
         private CharacterConsumablesRuntime consumables;
         internal readonly CharacterActor Actor;
@@ -536,6 +544,137 @@ public static class RitualFastingA08DebugScenarios
 
         private CharacterNarrativeRuntime NewNarrative(DungeonRuntimeAggregateRootStore ownerRoot, CharacterIdentityStateStore store) =>
             new(ownerRoot, new CharacterNarrativeCatalog(content), store, content);
+
+        internal void VerifyR18TraitConsumers()
+        {
+            void Select(params int[] traits) => Actor.Progression.ApplyPreparedIdentity(
+                "R18 consumer", "audit", traits, CharacterPotentialGrade.Ordinary, 1818, autoChooseDrafts: false);
+            float StaticConsumer(Type type, string method, params object[] values) =>
+                (float)type.GetMethod(method, System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic)
+                    .Invoke(null, values);
+            void Near(float actual, float expected, string label) =>
+                Require(Mathf.Abs(actual - expected) < .005f, $"R18 {label}: {actual}, expected {expected}.");
+            void IdentityRoundTrip()
+            {
+                var saved = JsonConvert.DeserializeObject<List<CharacterIdentityRuntimeStateSaveData>>(JsonConvert.SerializeObject(Store.Capture()));
+                Store = new CharacterIdentityStateStore();
+                Store.Restore(saved, Actor.Progression.ResolveSelectedTraits());
+                BindConsumers(JsonUtility.FromJson<DungeonCharacterConsumablesSaveData>(JsonUtility.ToJson(consumables.Capture())));
+            }
+
+            Select();
+            float delay = StaticConsumer(typeof(CharacterAlarmResponseRuntime), "ResolveResponseDelay", Actor, 1f);
+            Select(201);
+            Near(StaticConsumer(typeof(CharacterAlarmResponseRuntime), "ResolveResponseDelay", Actor, 1f) / delay, .5f, "alarm delay");
+            Select();
+            var detection = Actor.Stats.EvaluatePerformance(CharacterPerformanceFormulaIds.RiskDetection);
+            Require(detection.IsApplicable, "R18 risk detection is unavailable.");
+            float radius = StaticConsumer(typeof(DefaultCharacterAiWorldSignalQuery), "ResolveDetectionRadius", Actor, 10f, detection);
+            Select(205);
+            Near(StaticConsumer(typeof(DefaultCharacterAiWorldSignalQuery), "ResolveDetectionRadius", Actor, 10f, detection) / radius,
+                1.15f, "danger detection");
+
+            var body = CharacterAiEditorTestDependencies.BodyHealthRuntime;
+            var originalBody = body.CaptureCombatMutation(Actor);
+            var clockField = typeof(CharacterBodyHealthRuntime).GetField("gameClock",
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+            object originalClock = clockField.GetValue(body);
+            try
+            {
+                Select();
+                Actor.SetInjurySeverity(.5f);
+                float Work() => statsProjection.GetWorkContextMultiplier(new CharacterStatsProjectionContext(
+                    Actor, Actor.Identity, 100f, Actor.Stats.InjurySeverity),
+                    WorkTypeCatalog.RequireRegistered(BuiltInWorkTypeIds.Craft, "R18 work consumer"));
+                float baselineWork = Work();
+                Select(204);
+                // Prepared identity selection resets vitals. Compare equal
+                // injury inputs instead of comparing against a healed actor.
+                Actor.SetInjurySeverity(.5f);
+                Near(Actor.Stats.InjurySeverity, .5f, "scarred injury input");
+                Near(Work() / baselineWork, (1f - .55f * .5f * .75f) / (1f - .55f * .5f), "pain penalty reduction");
+                Actor.SetInjurySeverity(0f);
+                Select();
+                float healthy = Work();
+                Select(204);
+                Near(Work(), healthy, "no healthy pain bonus");
+
+                Select(306);
+                var weapon = content.GetAll<CombatWeaponSO>().First(value =>
+                    CharacterArcaneWeaponRules.IsArcane(value.CreateSnapshot(null))).CreateSnapshot(null);
+                var combat = Consumer<CombatResolutionService>(("characters", world));
+                float Arcane() => (float)InvokeConsumer(combat, "ResolveArcanePowerMultiplier", ActorId, weapon);
+                float arcaneBefore = Arcane();
+                ExtremeTraitRuntime extreme = new(Store);
+                object[] activation = { Actor, "r18:overcharge", 0f, clock.Time, null };
+                Require((bool)typeof(ExtremeTraitRuntime).GetMethod("TryActivateArcaneOvercharge").Invoke(extreme, activation),
+                    "R18 controlled activation capability rejected its valid input.");
+                Near(Arcane() / arcaneBefore, 1.6f, "active arcane power");
+                IdentityRoundTrip();
+                Near(Arcane() / arcaneBefore, 1.6f, "active arcane JSON restore");
+                var rule = Actor.Progression.ResolveSelectedTraits().Single(value => value.id == 306)
+                    .identityRules.OfType<ArcaneOverchargeRule>().Single();
+                clock.Advance(rule.durationSeconds + 1f);
+                Near(Arcane(), arcaneBefore, "active power ended");
+                Near(Actor.Stats.GetDetailedStatMultiplier(GameplayEffectTargetIds.ArcaneManaRecovery), .5f, "aftermath recovery");
+                IdentityRoundTrip();
+                Near(Actor.Stats.GetDetailedStatMultiplier(GameplayEffectTargetIds.ArcaneManaRecovery), .5f, "aftermath JSON restore");
+
+                clockField.SetValue(body, clock);
+                var tickTimes = (Dictionary<CharacterId, float>)typeof(CharacterBodyHealthRuntime)
+                    .GetField("lastTickAt", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
+                    .GetValue(body);
+                void TickActor()
+                {
+                    // The real health scheduler processes a bounded slice. A
+                    // suite may retain states for earlier, now retired actors.
+                    int stateCount = body.Capture().characters.Count;
+                    for (int attempt = 0; attempt <= stateCount; attempt++)
+                    {
+                        body.Tick();
+                        if (tickTimes.TryGetValue(new CharacterId(ActorId), out float at)
+                            && Mathf.Abs(at - clock.Time) < .0001f) return;
+                    }
+                    throw new InvalidOperationException("R18 health scheduler did not visit the live fixture actor within its state count.");
+                }
+                float Recover()
+                {
+                    body.ConfigureVitals(Actor, 100f, true);
+                    var recovery = Actor.Stats.EvaluatePerformance(CharacterPerformanceFormulaIds.ManaRecovery);
+                    Require(recovery.IsApplicable && recovery.Value > 0f,
+                        "R18 mana recovery formula is unavailable: " + recovery.Failure?.Message);
+                    TickActor();
+                    Require(body.TrySpendMana(Actor, 20f, out _), "R18 mana setup spend failed.");
+                    float before = body.GetMana(Actor).Current;
+                    clock.Advance(1f);
+                    TickActor();
+                    float after = body.GetMana(Actor).Current;
+                    Require(after > before,
+                        $"R18 actor tick did not recover mana: before={before}; after={after}; formula={recovery.Value}; time={clock.Time}.");
+                    return after - before;
+                }
+                Select();
+                float normalRecovery = Recover();
+                Select(306);
+                float reducedRecovery = Recover();
+                Require(normalRecovery > 0f, "R18 actual body tick did not recover mana.");
+                Near(reducedRecovery / normalRecovery, .5f, "actual mana recovery tick");
+                var savedBody = JsonUtility.FromJson<DungeonCharacterBodyHealthSaveData>(JsonUtility.ToJson(body.Capture()));
+                body.PublishRestore(body.PrepareRestore(savedBody));
+                Near(Recover() / normalRecovery, .5f, "mana restore did not compound");
+                string beforeFailure = JsonUtility.ToJson(body.Capture());
+                Require(!body.TrySpendMana(Actor, 999f, out _) && beforeFailure == JsonUtility.ToJson(body.Capture()),
+                    "R18 rejected mana spend mutated state.");
+                Require(body.TrySpendMana(Actor, 1f, out _), "R18 valid retry failed.");
+                body.RefundFailedManaSpend(Actor, 1f);
+                Require(beforeFailure == JsonUtility.ToJson(body.Capture()), "R18 refund/retry duplicated state.");
+            }
+            finally
+            {
+                clockField.SetValue(body, originalClock);
+                body.RestoreCombatMutation(Actor, originalBody, "R18 consumer cleanup");
+            }
+        }
 
         internal void VerifyHeritableConsumers()
         {
@@ -715,7 +854,7 @@ public static class RitualFastingA08DebugScenarios
             performance = new CharacterPerformanceQuery(CharacterAiEditorTestDependencies.BodyHealthRuntime,
                 new ResourceAnatomyProfileCatalog(content), narrative, Calendar, shared,
                 new CharacterPerformanceFormulaCatalog(content), new HeritableTraitEffectQuery(narrative, content));
-            var projection = new CharacterStatsProjectionService(new NoStaffDiscontent(), new NoMetaProgression(),
+            var projection = statsProjection = new CharacterStatsProjectionService(new NoStaffDiscontent(), new NoMetaProgression(),
                 NoCharacterDeprivationBoundary.Instance, NeutralCharacterSubstanceRuntime.Instance,
                 NeutralCharacterEnvironmentStatusQuery.Instance, NeutralExternalCombatInfluenceQuery.Instance,
                 NeutralContentWorkDelayQuery.Instance, NeutralDiseaseSymptomEffectQuery.Instance,

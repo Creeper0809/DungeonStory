@@ -678,6 +678,7 @@ public static class ContentIdentityProtection
                 leaves ?? new[] { key }, record, child, childKey, types);
         switch (record.typeName)
         {
+            case nameof(CharacterTraitSO): List("identityRules", "ruleId"); break;
             case nameof(AnatomyProfileSO): List("nodes", "nodeId"); break;
             case nameof(OffenseDecisionCardSO):
             case nameof(FactionChapterDefinitionSO):
@@ -703,6 +704,7 @@ public static class ContentIdentityProtection
                 foreach (string path in new[] { "metaUpgrades", "runVariables", "ownerDoctrines", "invasionPatterns" })
                     List(path, "id"); break;
             case nameof(EquipmentEvolutionFormulaCatalogSO): List("capabilities", "capabilityId"); break;
+            case nameof(FacilityEvolutionRecipeSO): List("formulaCapabilities", "capabilityId"); break;
         }
     }
 

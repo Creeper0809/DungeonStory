@@ -1,5 +1,24 @@
 # DungeonStory Current Findings
 
+## 2026-10-24 R18 수정 계약
+
+target 존재와 실제 소비를 서로 다른 수용 조건으로 둔다. GameplayEffectTarget 후보는 효과 에셋 자체가 아니라 코드 소비 target 상수와 capacity/proficiency 정의에서 얻는다. 경보 효과는 대기 시간에, 마법 효과는 마법 전투력과 원정 동결값에, 통증 효과는 기존 injury 곡선의 손실분에만 적용한다. 통증 전용 작업 보정이 없었던 실제 동작 변화는 밸런스 기준서에 명시했다. 실제 소비/JSON/재시도 fixture는 작성했지만 첫 native 결과 전이다.
+
+R18-03은 C#/Python의 기존 nested route에 시설 recipe를 추가하고 native 게시 candidate에서 기존 보호값을 보존한6개 항목만 수용한다. R18-04는 새 manifest나 저장 형식 대신 Git의 이전/현재 WorkType 선언과 All membership을 비교하여 저장 ID 삭제/rename을 거절한다. 확장은 새 ID 추가로 허용한다.
+
+새 관계는 같은 provider를 Inspector와 게시 검증에서 재사용한다. 시설 module은 실제 owner 적격성, fixed trait는9개 exact 타입/키, 세력 정책은 실제 built-in policy factory에서 capability/version 한 쌍으로 선택한다. anchor 등록 목록은 캐시에서 고정하지 않아 runtime 확장도 반영한다. 원본 에셋의 자기 ID와 자유 provider 태그를 관계로 오인해 선택기로 잠그지 않는다.
+
+## 2026-10-24 main7b5003c6b 재감사 판정
+
+현재 원본 재추출은 게임 SO142종, 직렬화 선언2458개, 넓은 관계 후보879개, 참조 표식180개다. 에셋3544개와 direct GUID8962개, asset fileID4731개를 대조해 파싱/누락/중복0을 확인했다. 이 결과만으로 일반 문자열 관계나 미지정 필수 필드의 안전을 뜻하지 않는다. KB query freshness도 통과했으며 읽기 전용 조사로 생성 인덱스는 갱신하지 않는다.
+
+최종 잔여 판정은 SO_REFERENCE_FULL_AUDIT.md의 R18-01~R18-16이다. 특성4개의 효과5개는 현재 formula/consumer가 다른 target 또는 빈 target을 조회하여 해당 binding의 보정이 도달하지 않는다. GameplayEffectDefinitionSO.targetId는 수기이며 존재/소비 계약 검증이 없고, 대상이 존재하는 것만으로 실제 효과 연결을 보장할 수 없다.
+
+시설 진화 nested capability6개는 C#/Python 게시 수집에서 빠졌고 WorkType31개 코드 ID는 이전 저장 키와의 변경 보호가 없다. 현재 값은 정상이며 향후 rename 보호 누락이다. anatomy family 두 경계, 코드 고정 trait rule/need9계약, 세력 정책 및 진화 module/material, 생산/서비스 실제 태그, habitat/role/anchor의 작성 위험도 현재 잘못된 값과 구분했다. 기존 등록 검사가 충분한 equipment/habitat와 이미 선택/게시 보호되는 mana-lightning runtime 방어는 우선순위를 낮췄다.
+
+원본의 자유 의미 키, 자기 identity, 실제 관계를 소비자 lookup 기준으로 나눴다. research 의미태그21개 차이와 wildlife migration 라벨을 허위 foreign-key 결함으로 세지 않는다. 조사는 source/asset 읽기와 메모리 내 추출에 한정했으며 새로운 Unity/Inspector/Play 성공을 주장하지 않는다. 전체 미래 조합의 무결점 보증도 하지 않는다.
+
+
 ## 2026-10-24 main1f1f990a2 SO 재검토 — 원본 모집단
 
 새 fetch main과 조사 checkout의 tree가 같다. 현재 원본을 Roslyn editor/player로 다시 추출해 게임 SO142종·직렬화 필드2459개·관계 후보880개·ContentReference167개를 확인했다. 현재 asset YAML3544개는 파싱 오류0이며, partial SO의 MonoScript stub까지 포함한 독립 .meta 대조에서도 미게시 게임 SO0개다. 직접 GUID8962개/fileID 대상4731개에 미해결·중복 metadata0개다. 이 수치는 문자열 관계 의미와 Inspector 편집 경로의 완전성을 뜻하지 않는다.
@@ -5743,3 +5762,12 @@ native-destructive-drain-current-r3은 Title/owner selection까지만 PASS하고
 - N02/N03/N04/N06: 기존 공용 선택기에 소유 asset 문맥을 전달한다. campaign/효과 binding은 자기 목록, acquired 수식은 acquired benefit catalog, 장비/시설은 자기 positive 및 실제 지원되는 optional drawback만 선택한다. pending serialized 입력은 임시 객체에서 읽으며 원본에 Apply하지 않는다. invalid catalog는 입력을 지우지 않고 Inspector에 오류를 표시한다.
 - N05: 무소비 ServiceProcess.workTypeId와 builder 인자/5개 YAML 키만 제거했다. 서비스 실행/가격/자원/owner 권위와 GUID는 유지한다.
 - N07: 기존 DTO를 유지하면서 owner-fixed 작성 입력만 편집하고 생성 snapshot은 읽기 전용으로 표시한다. 원본 결손을 필터로 숨기지 않으며 startup와 실제 progression 조회/복원에서 module·variant·formula를 검사한다. 기존 빈 슬롯 기본 스킬/legacy ID 생성 계약은 유지하고 저장에 SO 정의를 복제하지 않는다.
+
+## R18 저장 키와 구형 빈 정의 호환 결정 (2026-10-24)
+
+- 기존 소비 경로를 확인한 결과 identityRules.ruleId는 일반 규칙도 저장 join key다. 코드가 고정하는9개 작성 계약과 별개로 현재108개 저장 키를 기존 C#/Python nested identity 보호에 추가한다. 새 규칙 ID 작성은 허용하고 게시된 키 변경과 제거는 거절한다. GUID, 현재 키와 저장 DTO는 그대로다.
+- 구형 trait13개는 identityRules 자체를 YAML에 생략했고 Unity는 초기화된 빈 목록으로 읽는다. Python도 이 타입의 생략된 해당 목록만 빈 저장 identity 집합으로 해석한다. 기존 게시 rule 필드가 있으면 실제 집합 비교가 제거를 계속 거절한다. 다른 타입/필수 배열 누락의 엄격 검사는 유지한다.
+- inline policy의 빈 ID/version0은 명시적 미선택이며 무화물 경로에만 허용한다. r127sr에서 구형 세력6개에 실제 화물이 있음을 확인했다. 앞선 무화물 가정은 잘못이었고 검사를 완화하지 않는다. 같은 factionId의 현재 등록 정의와 같은 trade/supply 정책12개를 구형 에셋에 연결한다. 원래 YAML 전체 바이트를 prefix로 보존하고 정책6행만 추가한다. 현재 root 등록, 화물 수량, 저장 ID와 경제 계산 값은 바꾸지 않는다.
+- 현재 효과 연결의 수치 영향은 SO_REFERENCE_FULL_AUDIT.md에 기록한다. 과거 V27 인증 입력과 baseline은 그대로 보존하며 현재 효과 검증을 과거 전체 밸런스 인증으로 바꾸지 않는다.
+- r129sr의 R18 작성/정책/구형 견적 검사는 통과했지만 Undo 격리 정리 실패와 Addressables source drift1로 전체 실행은 수용하지 않았다. 고정된 Addressables 패키지 ResetHashes는 캐시가 이미 default여도 Undo 때 persisted settings를 dirty로 만든다. 기존 fixture는 hash 값 변화가 없다는 이유로 원래 dirty 상태 복원을 거부했다. 실제 Undo 발생을 관측한 경우에만 전체 JSON/hash 일치 후 원래 dirty로 되돌린다. 미관측 dirty 변화, 비캐시 JSON 변화와 전체 입력 drift는 계속 실패한다. 원래 action 실패와 정리 실패도 함께 보존한다. 서버의 변경된 설정 파일은 현재 승인된 원본 바이트로 복구하며 검사에서 제외하지 않는다.
+- r130sr 작성250초는 전체 PASS다. runtime130초의 통증 비교는 prepared identity가 체력을 초기화해 부상도가 달랐고 같은0.5를 재적용했다. r131sr230초는 그 검사와 과충전 JSON 경계를 지나 마나 Tick 검사에서 실패했다. 실제 health scheduler가 상태를 분할 처리하므로 캐릭터가 방문된 시각을 관측하고 상태 수 이내의 실제 Tick으로 진행한 후1초 회복량을 비교한다. 생산 계산, 회복량 기대값과 timeout은 바꾸지 않는다. r130 이후에는 runtime fixture 한 파일만 변경되므로 작성 증거의 실제 source binding과 전체 manifest 차이를 보존해 재사용한다.

@@ -36,9 +36,11 @@ public sealed class BuildingServiceHubAbility : BuildingAbility
     public float directSatisfaction = 45f;
 
     [InspectorName("관리형 필수 기능 태그")]
+    [ContentReference(ContentReferenceKind.ServiceFeature)]
     public string[] managedRequiredFeatureTags = Array.Empty<string>();
 
     [InspectorName("자동화 필수 기능 태그")]
+    [ContentReference(ContentReferenceKind.ServiceFeature)]
     public string[] automatedRequiredFeatureTags = Array.Empty<string>();
 
     public string ServiceHubTag => serviceHubTag?.Trim() ?? string.Empty;
@@ -92,6 +94,7 @@ public sealed class BuildingServiceSupportAbility : BuildingAbility
     public string[] featureTags = Array.Empty<string>();
 
     [InspectorName("호환 서비스 허브 태그")]
+    [ContentReference(ContentReferenceKind.ServiceHub)]
     public string[] compatibleHubTags = Array.Empty<string>();
 
     [InspectorName("보정 유형")]

@@ -24,12 +24,20 @@ public static class ContentReferenceSelectionDebugScenarios
         string beforeJson = EditorJsonUtility.ToJson(settings);
         bool beforeDirty = EditorUtility.IsDirty(settings);
         JObject before = ParseAddressableSettings(beforeJson);
-
+        int undoEvents = 0;
+        Exception actionError = null;
+        void ObserveUndo() => undoEvents++;
+        Undo.undoRedoPerformed += ObserveUndo;
         try
         {
             action();
         }
+        catch (Exception error) { actionError = error; }
         finally
+        {
+            Undo.undoRedoPerformed -= ObserveUndo;
+        }
+        try
         {
             settings = AssetDatabase.LoadMainAssetAtPath(AddressableSettingsPath);
             Require(settings != null,
@@ -53,9 +61,12 @@ public static class ContentReferenceSelectionDebugScenarios
                     + changed);
             }
 
-            if (!hashChanged && beforeDirty != afterDirty)
+            // Addressables.ResetHashes always marks persisted settings dirty,
+            // even when m_currentHash was already default. Permit only this
+            // observed Undo case after the complete serialized JSON comparison.
+            if (!hashChanged && beforeDirty != afterDirty && undoEvents == 0)
                 throw new InvalidOperationException(
-                    "Undo changed the Addressables settings dirty state without changing its current-hash cache.");
+                    "Addressables settings dirty state changed without Undo or cache invalidation.");
 
             if (beforeDirty) EditorUtility.SetDirty(settings);
             else EditorUtility.ClearDirty(settings);
@@ -70,7 +81,17 @@ public static class ContentReferenceSelectionDebugScenarios
                 "Addressables settings JSON changed during current-hash restoration.");
             Require(EditorUtility.IsDirty(settings) == beforeDirty,
                 "Addressables settings dirty state did not restore to its original value.");
+            if (undoEvents > 0)
+                Debug.Log($"CONTENT_REFERENCE_UNDO_ISOLATION=PASS; observedUndo={undoEvents}; exactJson=true; exactHash=true; exactDirty=true");
         }
+        catch (Exception cleanupError)
+        {
+            if (actionError != null)
+                throw new AggregateException("Authoring and Undo isolation both failed.", actionError, cleanupError);
+            throw;
+        }
+        if (actionError != null)
+            System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(actionError).Throw();
     }
 
     private static FieldInfo RequireAddressableCurrentHashField(Object settings)
@@ -444,6 +465,18 @@ public static class ContentReferenceSelectionDebugScenarios
             {
                 Require(entries.Select(value => value.Id).SequenceEqual(BuiltInWorkTypeIds.All.Select(value => value.Value)),
                     "Work choices differ from the production work-type registry.");
+                continue;
+            }
+            if ((int)kind >= (int)ContentReferenceKind.GameplayEffectTarget)
+            {
+                // Registry keys and family/tag relationships have no single SO
+                // identity. R18 scenarios compare their exact provider sets.
+                Require(entries.All(entry => entry.Asset == null),
+                    $"{kind} unexpectedly exposed an object reference.");
+                Require(entries.All(entry => !string.IsNullOrWhiteSpace(entry.Id)
+                    && entry.Id == entry.Id.Trim()), $"{kind} contains a non-canonical key.");
+                Require(entries.Select(entry => entry.Id).Distinct(StringComparer.Ordinal).Count()
+                    == entries.Count, $"{kind} contains duplicate keys.");
                 continue;
             }
             Type expectedType = ContentReferenceSelection.AssetType(kind);

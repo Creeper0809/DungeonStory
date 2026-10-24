@@ -789,6 +789,11 @@ public sealed class DefaultCharacterAiWorldSignalQuery : ICharacterAiWorldSignal
         return Mathf.Clamp01(1f - Mathf.Max(0, distance - 4) / 26f);
     }
 
+    private static float ResolveDetectionRadius(CharacterActor actor, float baseRadius,
+        CharacterPerformanceSnapshot detection) => detection?.IsApplicable == true
+            ? baseRadius * detection.Value * actor.Stats.GetDetailedStatMultiplier(GameplayEffectTargetIds.DangerDetection)
+            : 0f;
+
     private float ResolveWildlifeThreat(
         CharacterActor actor,
         Vector2Int actorPosition)
@@ -805,7 +810,7 @@ public sealed class DefaultCharacterAiWorldSignalQuery : ICharacterAiWorldSignal
         CharacterPerformanceSnapshot detection = actor.Stats?.EvaluatePerformance(
             CharacterPerformanceFormulaIds.RiskDetection);
         float baseRadius = radius;
-        radius *= detection?.IsApplicable == true ? detection.Value : 0f;
+        radius = ResolveDetectionRadius(actor, radius, detection);
         CharacterPerformanceExecutionTrace.Record(
             CharacterPerformanceFormulaIds.RiskDetection,
             "CharacterAiNaturalness.ResolveWildlifeThreat",

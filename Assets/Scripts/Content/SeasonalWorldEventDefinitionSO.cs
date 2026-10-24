@@ -15,6 +15,7 @@ public sealed class SeasonalWildlifeArrivalProfile
     [ContentReference("WildlifeSpeciesSO", "SpeciesId")]
     public string speciesId = string.Empty;
     [Min(1)] public int exactCount;
+    [ContentReference(ContentReferenceKind.WildlifeHabitat)]
     public string requiredHabitatId = string.Empty;
     public SeasonalWildlifeArrivalQualification qualification;
 

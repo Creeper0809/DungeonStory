@@ -22,6 +22,7 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[2]
 BASELINE_PATH = "ProjectSettings/PublishedContentIdentities.json"
+WORK_TYPE_SOURCE_PATH = "Assets/Scripts/Models/Work/WorkTypeId.cs"
 ROOT_ASSET_PATH = "Assets/Resources/SO/GameContentCatalog.asset"
 GUID_RE = re.compile(r"[0-9a-f]{32}")
 IDENTIFIER_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
@@ -97,6 +98,9 @@ class NestedRoute:
 
 
 NESTED_ROUTES: dict[str, tuple[NestedRoute, ...]] = {
+    "CharacterTraitSO": (
+        NestedRoute("identityRules", "ruleId", ("ruleId",), managed_reference=True),
+    ),
     "AnatomyProfileSO": (NestedRoute("nodes", "nodeId", ("nodeId",)),),
     "OffenseDecisionCardSO": (NestedRoute("choices", "choiceId", ("choiceId",)),),
     "FactionChapterDefinitionSO": (
@@ -153,6 +157,9 @@ NESTED_ROUTES: dict[str, tuple[NestedRoute, ...]] = {
     ),
     "EquipmentEvolutionFormulaCatalogSO": (
         NestedRoute("capabilities", "capabilityId", ("capabilityId",)),
+    ),
+    "FacilityEvolutionRecipeSO": (
+        NestedRoute("formulaCapabilities", "capabilityId", ("capabilityId",)),
     ),
 }
 
@@ -908,14 +915,16 @@ def _actual_nested_fields(
     if not routes:
         return {}
     root = _load_scripted_yaml(document, asset_path)
-    references = (
-        _managed_reference_table(root, asset_path)
-        if any(route.managed_reference for route in routes)
-        else None
-    )
+    references = None
     result: dict[str, str] = {}
     for route in routes:
+        # Legacy traits omitted their empty, default-initialized rule list.
+        # Published rule keys still cannot disappear: expected_virtual is compared below.
+        if record.type_name == "CharacterTraitSO" and route.path == "identityRules" and "identityRules" not in root:
+            continue
         items = _sequence_at(root, route.path, asset_path)
+        if items and route.managed_reference and references is None:
+            references = _managed_reference_table(root, asset_path)
         _capture_nested_route(
             items,
             route,
@@ -1260,6 +1269,37 @@ def verify_head_assets(snapshot: GitSnapshot, baseline: IdentityBaseline) -> tup
     return assets_checked, fields_checked
 
 
+def work_type_protocol_ids(raw: bytes) -> frozenset[str]:
+    text = raw.decode("utf-8-sig")
+    definitions = dict(re.findall(
+        r"public\s+static\s+readonly\s+WorkTypeId\s+(\w+)\s*=\s*new\s+WorkTypeId\(\s*\"([^\"]+)\"\s*\)\s*;", text
+    ))
+    membership = re.search(r"IReadOnlyList<WorkTypeId>\s+All\s*=\s*new\[\]\s*\{([^}]+)\}", text, re.S)
+    if not definitions or membership is None:
+        raise VerificationError("WorkType protocol declarations or membership cannot be read")
+    names = [value.strip() for value in membership[1].split(",") if value.strip()]
+    if len(names) != len(set(names)) or set(names) != set(definitions):
+        raise VerificationError("WorkType protocol membership disagrees with its declarations")
+    values = list(definitions.values())
+    if len(values) != len(set(values)) or any(re.fullmatch(r"work:[a-z]+(?:-[a-z]+)*", value) is None for value in values):
+        raise VerificationError("WorkType protocol IDs are duplicate or noncanonical")
+    return frozenset(values)
+
+
+def verify_work_type_protocols(base_snapshot: GitSnapshot, head_snapshot: GitSnapshot) -> None:
+    before = base_snapshot.read_blob(WORK_TYPE_SOURCE_PATH)
+    after = head_snapshot.read_blob(WORK_TYPE_SOURCE_PATH)
+    if before is None and after is None:
+        return  # Test or pre-protocol repositories contain no such contract.
+    if after is None:
+        raise VerificationError("Published WorkType protocol source was removed")
+    current = work_type_protocol_ids(after)
+    if before is not None:
+        removed = work_type_protocol_ids(before) - current
+        if removed:
+            raise VerificationError(f"Published WorkType save IDs were removed or renamed: {sorted(removed)}")
+
+
 def verify_revisions(
     base_revision: str,
     head_revision: str = "HEAD",
@@ -1267,6 +1307,7 @@ def verify_revisions(
 ) -> dict[str, object]:
     base_snapshot = GitSnapshot(root, base_revision)
     head_snapshot = GitSnapshot(root, head_revision)
+    verify_work_type_protocols(base_snapshot, head_snapshot)
     head_raw = head_snapshot.read_blob(BASELINE_PATH)
     if head_raw is None:
         raise VerificationError(
