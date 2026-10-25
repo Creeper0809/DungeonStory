@@ -24,7 +24,9 @@ public enum ContentReferenceKind
     ServiceProcessFeature,
     BuildingSemanticTag, ProductionFacilityTag, DiseaseResponse, CharacterNeed,
     IdentityRuleProtocol, FacilityLineageTag, RoomTag, FacilityMutationTag,
-    FacilityPressure, FacilityValueKey
+    FacilityPressure, FacilityValueKey,
+    DefenseFamily, FacilityRecordMetric, SpeciesIncident, EnemyFaction,
+    CampaignRegion, CampaignFaction, EnemyAbilityTarget, EnemyTacticalTarget, EnemyTacticalOverride
 }
 
 [AttributeUsage(AttributeTargets.Field)]

@@ -59,7 +59,7 @@ public sealed class EnemyTacticalDecisionService : IEnemyTacticalDecisionService
         EnemyBossPhaseRecord phase = ResolveActivePhase(archetype, actor.HealthRatio);
         bool desperate = string.Equals(
             phase?.tacticalProfileOverrideTag,
-            "desperate",
+            EnemyTacticalTargetProtocols.Desperate,
             StringComparison.OrdinalIgnoreCase);
         float attackWeight = profile.attackWeight + (desperate ? 2f : 0f);
         float protectWeight = profile.protectWeight + (desperate ? 1f : 0f);
@@ -113,7 +113,6 @@ public sealed class EnemyTacticalDecisionService : IEnemyTacticalDecisionService
                 OffenseBattleCombatant abilityTarget = SelectAbilityTarget(
                     session,
                     actor,
-                    opponents,
                     ability,
                     profile);
                 if (abilityTarget == null)
@@ -212,26 +211,19 @@ public sealed class EnemyTacticalDecisionService : IEnemyTacticalDecisionService
     private static OffenseBattleCombatant SelectAbilityTarget(
         OffenseBattleSession session,
         OffenseBattleCombatant actor,
-        IReadOnlyList<OffenseBattleCombatant> opponents,
         CharacterCombatAbilityDefinition ability,
         EnemyTacticalProfile profile)
     {
-        IEnumerable<OffenseBattleCombatant> candidates = ability.TargetRule switch
-        {
-            OffenseBattleTargetRule.Self => new[] { actor },
-            OffenseBattleTargetRule.Ally => session.Combatants
-                .Where(value => value.Team == actor.Team && !value.IsDead),
-            _ => opponents
-        };
-        candidates = candidates.Where(value =>
-            IsPositionAllowed(value.Formation, ability.TargetPositions));
+        IEnumerable<OffenseBattleCombatant> candidates = session.GetAbilityTargets(actor, ability);
         return ability.TargetRule == OffenseBattleTargetRule.Enemy
             ? candidates
-                .OrderBy(value => TargetScore(session, value, profile))
+                .OrderBy(value => OffenseBattleSession.AbilityTargetPreference(ability, value))
+                .ThenBy(value => TargetScore(session, value, profile))
                 .ThenBy(value => StableTie(session, actor, value))
                 .FirstOrDefault()
             : candidates
-                .OrderBy(value => value.HealthRatio)
+                .OrderBy(value => OffenseBattleSession.AbilityTargetPreference(ability, value))
+                .ThenBy(value => value.HealthRatio)
                 .ThenBy(value => value.PersistentId, StringComparer.Ordinal)
                 .FirstOrDefault();
     }
@@ -345,16 +337,16 @@ public sealed class EnemyTacticalDecisionService : IEnemyTacticalDecisionService
         OffenseBattleCombatant target,
         string tag) => (tag ?? string.Empty).Trim().ToLowerInvariant() switch
         {
-            "nearest" => target.Formation == OffenseFormationSlot.Front,
-            "backline" => target.Formation == OffenseFormationSlot.Rear,
-            "fast" => target.Stats.MoveSpeed >= 6f,
-            "shielded" => target.Shield.IsValid,
-            "armored" => target.Armor?.Count > 0,
-            "guarded" => target.Statuses.Any(value =>
+            EnemyTacticalTargetProtocols.Nearest => target.Formation == OffenseFormationSlot.Front,
+            EnemyTacticalTargetProtocols.Backline => target.Formation == OffenseFormationSlot.Rear,
+            EnemyTacticalTargetProtocols.Fast => target.Stats.MoveSpeed >= 6f,
+            EnemyTacticalTargetProtocols.Shielded => target.Shield.IsValid,
+            EnemyTacticalTargetProtocols.Armored => target.Armor?.Count > 0,
+            EnemyTacticalTargetProtocols.Guarded => target.Statuses.Any(value =>
                 value.Type == OffenseBattleStatusType.Guard
                 || value.Type == OffenseBattleStatusType.SummonedGuard),
-            "low-health" => target.HealthRatio <= 0.35f,
-            "construct" => target.SpeciesTag.IndexOf(
+            EnemyTacticalTargetProtocols.LowHealth => target.HealthRatio <= 0.35f,
+            EnemyTacticalTargetProtocols.Construct => target.SpeciesTag.IndexOf(
                 "golem",
                 StringComparison.OrdinalIgnoreCase) >= 0
                 || target.SpeciesTag.IndexOf(

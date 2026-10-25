@@ -458,7 +458,7 @@ public static class P1DefenseFacilityAssetBuilder
                 string.Empty,
                 StockCategory.General,
                 0);
-            defense.facilityFamilyId = "defense:launcher";
+            defense.facilityFamilyId = DefenseFacilityFamilyIds.Launcher;
             return;
         }
 
@@ -471,7 +471,7 @@ public static class P1DefenseFacilityAssetBuilder
                     "ammo:trap-canister",
                     StockCategory.Ammunition,
                     6);
-                defense.facilityFamilyId = "defense:scatter-trap";
+                defense.facilityFamilyId = DefenseFacilityFamilyIds.ScatterTrap;
                 defense.conditionLossPerActivation = 1f;
                 return;
             case 58:
@@ -481,7 +481,7 @@ public static class P1DefenseFacilityAssetBuilder
                     "ammo:blasting-charge",
                     StockCategory.Ammunition,
                     4);
-                defense.facilityFamilyId = "defense:blast-trap";
+                defense.facilityFamilyId = DefenseFacilityFamilyIds.BlastTrap;
                 defense.conditionLossPerActivation = 1.4f;
                 defense.baseMisfireChance = 0.02f;
                 return;
@@ -493,7 +493,7 @@ public static class P1DefenseFacilityAssetBuilder
                     StockCategory.General,
                     0);
                 defense.range = Mathf.Max(5, defense.range);
-                defense.facilityFamilyId = "defense:detection";
+                defense.facilityFamilyId = DefenseFacilityFamilyIds.Detection;
                 defense.conditionLossPerActivation = 0.2f;
                 return;
             case 1801:
@@ -506,7 +506,7 @@ public static class P1DefenseFacilityAssetBuilder
                 defense.requiresPower = true;
                 defense.powerDemand = 2f;
                 defense.range = Mathf.Max(6, defense.range);
-                defense.facilityFamilyId = "defense:control";
+                defense.facilityFamilyId = DefenseFacilityFamilyIds.Control;
                 defense.conditionLossPerActivation = 0.1f;
                 return;
             case 1802:
@@ -516,7 +516,7 @@ public static class P1DefenseFacilityAssetBuilder
                     string.Empty,
                     StockCategory.Ammunition,
                     0);
-                defense.facilityFamilyId = "defense:supply";
+                defense.facilityFamilyId = DefenseFacilityFamilyIds.Supply;
                 defense.conditionLossPerActivation = 0f;
                 return;
             case 1803:
@@ -526,7 +526,7 @@ public static class P1DefenseFacilityAssetBuilder
                     string.Empty,
                     StockCategory.General,
                     0);
-                defense.facilityFamilyId = "defense:maintenance";
+                defense.facilityFamilyId = DefenseFacilityFamilyIds.Maintenance;
                 defense.conditionLossPerActivation = 0f;
                 return;
             case 1804:
@@ -536,7 +536,7 @@ public static class P1DefenseFacilityAssetBuilder
                     "material:iron-ingot",
                     StockCategory.General,
                     3);
-                defense.facilityFamilyId = "defense:barrier";
+                defense.facilityFamilyId = DefenseFacilityFamilyIds.Barrier;
                 defense.conditionLossPerActivation = 2f;
                 defense.baseJamChance = 0.025f;
                 return;
@@ -547,7 +547,7 @@ public static class P1DefenseFacilityAssetBuilder
                     "ammo:bolt-iron",
                     StockCategory.Ammunition,
                     8);
-                defense.facilityFamilyId = "defense:launcher";
+                defense.facilityFamilyId = DefenseFacilityFamilyIds.Launcher;
                 defense.conditionLossPerActivation = 0.8f;
                 return;
         }
@@ -561,7 +561,7 @@ public static class P1DefenseFacilityAssetBuilder
                     "craft:toxic-trap-coating",
                     StockCategory.Biological,
                     4);
-                defense.facilityFamilyId = "defense:toxin";
+                defense.facilityFamilyId = DefenseFacilityFamilyIds.Toxin;
                 break;
             case DefenseAttackConcept.Fire:
                 SetSupply(
@@ -570,7 +570,7 @@ public static class P1DefenseFacilityAssetBuilder
                     "resource:coal",
                     StockCategory.Fuel,
                     4);
-                defense.facilityFamilyId = "defense:elemental";
+                defense.facilityFamilyId = DefenseFacilityFamilyIds.Elemental;
                 break;
             case DefenseAttackConcept.Lightning:
                 SetPoweredElemental(defense);
@@ -585,7 +585,7 @@ public static class P1DefenseFacilityAssetBuilder
                     "material:iron-ingot",
                     StockCategory.General,
                     3);
-                defense.facilityFamilyId = "defense:guard-post";
+                defense.facilityFamilyId = DefenseFacilityFamilyIds.GuardPost;
                 defense.conditionLossPerActivation = 0.5f;
                 break;
             default:
@@ -605,7 +605,9 @@ public static class P1DefenseFacilityAssetBuilder
                     launcher ? StockCategory.Ammunition : StockCategory.General,
                     launcher ? 8 : 3);
                 defense.facilityFamilyId =
-                    launcher ? "defense:launcher" : "defense:mechanical-trap";
+                    launcher
+                        ? DefenseFacilityFamilyIds.Launcher
+                        : DefenseFacilityFamilyIds.MechanicalTrap;
                 break;
         }
     }
@@ -620,7 +622,7 @@ public static class P1DefenseFacilityAssetBuilder
             0);
         defense.requiresPower = true;
         defense.powerDemand = 3f;
-        defense.facilityFamilyId = "defense:elemental";
+        defense.facilityFamilyId = DefenseFacilityFamilyIds.Elemental;
     }
 
     private static void SetSupply(

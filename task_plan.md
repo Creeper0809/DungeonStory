@@ -1,13 +1,33 @@
 # DungeonStory Current Task Plan
+## 현재 Goal — R21-01~11 및 X01 수정과 main 통합 (2026-10-25)
 
-## 현재 Goal — R20-01~16 및 R20-X01 수정/main 통합 (2026-10-24)
+Status: integration. 기준 main37f07adcefd1b8994929dcf679284d0e0ee1e538, branch codex/fix-so-r21. R21-01~11/X01 구현과 필요한 실제 실행 검증을 마쳤다. r156 R21표적320초/Inspector170초, r157 effects1170/core240/character180/world250/crop200초가 모두 native0/C#0/consoleErrors0/drift0이다. 공식 Gameplay104섹션 복원과 baseline 복구를 완료했다. r156 대비1파일1줄의 무관한 semantic fixture 변경은 전체21712입력 SHA/diff와 원래 증거를 보존해 재사용한다. Unity0/lock free/여유10.12GiB로 검증 창을 닫았다. 원본 Documents checkout 및 기존 QA를 보존했다. commit/push, PR/CI/main 병합과 후속 CI로 Goal을 마감한다.
 
-Status: implementation_and_execution_complete / GitHub integration pending. 기준 main104459911, branch codex/fix-so-r20. R20-01~16 및 X01을 구현하고 필요한 실제 실행을 수용했다. 최종 r147st runtime600초, effects1060초, core240초, character190초, world250초, crop200초가 모두 native0/C#0/consoleErrors0/drift0이다. 작성r142st330초와 Inspectorr145st160초는 원래 입력 식별자 및 전체21700파일 차이를 보존해 재사용한다. 지급 시각 보존, 하루 뒤 복원/재시도와 잘못된 시각 거절을 최종 runtime에서 확인했다. Unity0/lockfree로 검증 창을 닫았다. 원본 checkout과 기존 QA를 보존했고 전수 seed는 실행하지 않았다. commit/push/PR attach/CI/main 병합/후속 CI는 실제 GitHub 결과로 완료 판정한다.
+1. 완료: 적 능력 대상/범위, 종족 사건 소유와 배경의 적 세력 반응을 실제 소비 경로에 연결했다.
+2. 완료: 제공자 보호, 캠페인 쌍 선택, 작성 프로토콜/필수 링크와 명시적 AI 기본 역할을 통합했다. 기존3544에셋/11901키를 보존하고120추가/총12021키를 실제 native 후보와 원본에서 대조했다.
+3. 완료: 현재 소스 컴파일, 표적 실제 명령/AI, 저장/복원/실패 무변경/재시도, private Xvfb Inspector와 필수 영향5그룹을 수용했다. Python91개/analyzer 및 관련 인덱스 검증도 통과했다.
+4. 진행: 결과/입력 영수증과 SO_REFERENCE_FULL_AUDIT.md12행을 마감했다. commit/push, PR attach, CI/main 병합과 후속 CI는 실제 GitHub 상태를 권위로 확인한다.
+
+소유권: 메인이 공용 참조 enum/catalog/drawer, 게시 C#/Python capture와 저장/상태/원정 통합 및 복잡한 fixture를 소유한다. Leaf는 명시 배정 파일만 편집하며 Unity/Git/재위임을 하지 않는다. 공유 SO는 정의이며 runtime/DTO를 두 번째 쓰기 권위로 만들지 않는다. 새 범용 프레임워크/전수 seed/줄 수 분리는 추가하지 않는다.
+
+
+## 현재 작업 — main37f07adce SO 관계 R21 재감사 (2026-10-25)
+
+Status: completed / read-only audit. 시작과 마감 fetch의 main37f07adcefd1b8994929dcf679284d0e0ee1e538가 같다. branch codex/so-main-reaudit-r21에서 원본 선언, 실제 에셋, 선택 문맥, 소비와 게시/저장 키 보호를 대조했다. SO_REFERENCE_FULL_AUDIT.md 상단에 SO11묶음과 별도 이름 참조1묶음을 기록했다. 조사 완료이며 잔여 수정 완료가 아니다. 원본 Documents checkout 및 기존 QA를 보존했다.
+
+1. 완료: SO142종/직렬화2458/관계후보881 및3544에셋을 재추출하고 GUID/fileID/managed reference/게시11901필드를 대조.
+2. 완료: 분야별 원본과 선택/등록/실소비를 검토하고 누락2종10개 및 Foundation5종240개를 후속 대조.
+3. 완료: 실제 의미 유실/미등록과 미래 작성/저장 위험을 구분하고 기존 Python 검사기에 메모리 반례를 실행.
+4. 완료: 기존 SO_REFERENCE_FULL_AUDIT.md 상단에 R21-01~11/X01, 근거와 미실행 경계를 기록. 신규 링크50개와 diff whitespace 검사 통과. 게임 코드/에셋/설정/도구/생성 인덱스 무변경을 확인했다.
+
+## 이전 Goal — R20-01~16 및 R20-X01 수정/main 통합 완료 (2026-10-24)
+
+Status: complete. PR22는 main37f07adce에 병합됐고 PR CI40116969467과 main CI40117245070이 성공했다. 외부 r20-integration-final.json이 실제 결과를 기록한다. 기준 main104459911, branch codex/fix-so-r20. R20-01~16 및 X01을 구현하고 필요한 실제 실행을 수용했다. 최종 r147st runtime600초, effects1060초, core240초, character190초, world250초, crop200초가 모두 native0/C#0/consoleErrors0/drift0이다. 작성r142st330초와 Inspectorr145st160초는 원래 입력 식별자 및 전체21700파일 차이를 보존해 재사용한다. 지급 시각 보존, 하루 뒤 복원/재시도와 잘못된 시각 거절을 최종 runtime에서 확인했다. Unity0/lockfree로 검증 창을 닫았다. 원본 checkout과 기존 QA를 보존했고 전수 seed는 실행하지 않았다. commit/push/PR attach/CI/main 병합/후속 CI도 실제 GitHub 결과로 완료했다.
 
 1. 구현/표적 실행 완료: 숙련도 보상과 특성 프로토콜. 기존 enum/게시 ID/GUID/DTO 버전과 일반 경험치10개를 보존했고 하루 뒤 부분 복구의 승급 중복 방지도 확인했다.
 2. 구현/표적 실행 완료: 직책/장례/생산/질병/제공자 보호/시설 진화/운반/역목록/Sorting Layer. 기존 registry와 owner 문맥, 정상 외부 원천을 유지한다.
 3. 완료: 현재 소스 컴파일, 실제 소비/Inspector, 저장/복원/거절 무변경/재시도와 영향5그룹. 영수증은 Artifacts/QA/ImpactCI/verification.json 및 r20-verification.json, 표는 SO_REFERENCE_FULL_AUDIT.md다. 통제 fixture와 공식 Gameplay 복원을 구별한다.
-4. 진행: 기존3544에셋/10721필드 보존 및1180추가, Python82개/analyzer와 최종 인덱스/링크 검사를 수용했다. 최종 commit의 호환/영향 검사를 확인하고 push/PR attach/CI/main 병합/후속 CI를 마친다.
+4. 완료: 기존3544에셋/10721필드 보존 및1180추가, Python82개/analyzer와 최종 인덱스/링크 검사를 수용했다. 최종 commit28eb0a4b의 호환/영향 검사, push/PR22 attach/CI/main37f07adce 병합/후속 CI를 마쳤다.
 
 소유권: 메인이 효과/특성/직책 상태와 저장, 공용 enum/catalog/drawer, 게시 보호/등록과 최종 조립을 직접 통합한다. Leaf는 확정된 payload/UI/역목록 파일만 소유하며 Unity와 Git을 실행하지 않는다. 씬/프리팹 변경 없이 필요한 에셋값만 고치고 사용자 수동 연결을 요구하지 않는다.
 

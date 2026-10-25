@@ -317,6 +317,9 @@ public sealed class SpeciesIncidentHandlerRegistry :
         handlers = values.ToDictionary(
             value => value.IncidentId,
             StringComparer.Ordinal);
+        if (!handlers.Keys.ToHashSet(StringComparer.Ordinal)
+                .SetEquals(CharacterSpeciesIncidentIds.DiscontentIds))
+            throw new InvalidOperationException("Species discontent handlers disagree with the declared incident owners.");
     }
 
     public bool TryExecute(
@@ -325,6 +328,8 @@ public sealed class SpeciesIncidentHandlerRegistry :
     {
         summary = string.Empty;
         string incidentId = context.Species?.IncidentId ?? string.Empty;
+        if (!CharacterSpeciesIncidentIds.IsDiscontentDriven(incidentId))
+            return false; // Declared external owners do not dispatch through this registry.
         return handlers.TryGetValue(
                 incidentId,
                 out ISpeciesIncidentHandler handler)
@@ -1466,10 +1471,7 @@ public sealed class CharacterSpeciesRuntime :
     {
         if (HasPendingObservation(state.CharacterId)) return;
         string incidentId = species.IncidentId;
-        if (string.IsNullOrWhiteSpace(incidentId)
-            || incidentId is CharacterSpeciesIncidentIds.OrcRampage
-                or CharacterSpeciesIncidentIds.VampireFear
-                or CharacterSpeciesIncidentIds.KoboldPartsHoarding
+        if (!CharacterSpeciesIncidentIds.IsDiscontentDriven(incidentId)
             || state.NextIncidentAt > clock.Time)
         {
             return;

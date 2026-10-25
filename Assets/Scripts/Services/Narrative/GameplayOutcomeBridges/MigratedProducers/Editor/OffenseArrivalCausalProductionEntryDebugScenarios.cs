@@ -1149,6 +1149,7 @@ public static partial class OffenseArrivalCausalProductionEntryDebugScenarios
         private readonly IReadOnlyList<OffenseTargetDefinition> targets;
         internal FixedCampaignCatalog(IEnumerable<OffenseTargetDefinition> targets) =>
             this.targets = targets.Select(value => value.CreateRuntimeCopy()).ToArray();
+        public IReadOnlyList<OffenseCampaignRegionDefinition> Regions => OffenseCampaignCatalogSO.CreateDefaultRegions();
         public IReadOnlyList<OffenseTargetDefinition> Targets => targets;
         public bool TryGet(string targetId, out OffenseTargetDefinition definition)
         {

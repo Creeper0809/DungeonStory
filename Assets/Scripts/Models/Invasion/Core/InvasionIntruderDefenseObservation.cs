@@ -28,10 +28,25 @@ public static class InvasionIntruderDefenseObservation
 
     private static bool IsExposedFamily(string familyId)
     {
-        return string.Equals(familyId, "defense:detection", StringComparison.Ordinal)
-            || string.Equals(familyId, "defense:control", StringComparison.Ordinal)
-            || string.Equals(familyId, "defense:supply", StringComparison.Ordinal)
-            || string.Equals(familyId, "defense:maintenance", StringComparison.Ordinal)
-            || string.Equals(familyId, "defense:launcher", StringComparison.Ordinal);
+        return string.Equals(
+                familyId,
+                DefenseFacilityFamilyIds.Detection,
+                StringComparison.Ordinal)
+            || string.Equals(
+                familyId,
+                DefenseFacilityFamilyIds.Control,
+                StringComparison.Ordinal)
+            || string.Equals(
+                familyId,
+                DefenseFacilityFamilyIds.Supply,
+                StringComparison.Ordinal)
+            || string.Equals(
+                familyId,
+                DefenseFacilityFamilyIds.Maintenance,
+                StringComparison.Ordinal)
+            || string.Equals(
+                familyId,
+                DefenseFacilityFamilyIds.Launcher,
+                StringComparison.Ordinal);
     }
 }

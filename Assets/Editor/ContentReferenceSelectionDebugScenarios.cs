@@ -844,8 +844,15 @@ public static class ContentReferenceSelectionDebugScenarios
             Require(
                 ContentReferenceSelection.ResolveKind(
                     ContentReferenceKind.WeightedTarget,
-                    reaction) == null,
-                "factionReactions was incorrectly treated as an SO reference.");
+                    reaction) == ContentReferenceKind.EnemyFaction
+                    && ContentReferenceCatalog.IsKeyReference(ContentReferenceKind.EnemyFaction),
+                "factionReactions did not resolve to the registered enemy-faction key protocol.");
+            var factionKeys = ContentReferenceSelection.Entries(
+                new ContentReferenceAttribute(ContentReferenceKind.EnemyFaction), reaction);
+            Require(factionKeys.Count > 0 && factionKeys.All(value => value.Asset == null)
+                && factionKeys.Any(value => value.Id == "faction:old-nobility")
+                && factionKeys.Any(value => value.Id == "faction:iron-consortium"),
+                "Enemy-faction key selection lost its registered legacy aliases or became an SO link.");
 
             SerializedProperty effects = RequireProperty(serialized, "startingEffects");
             effects.arraySize = Math.Max(1, effects.arraySize);

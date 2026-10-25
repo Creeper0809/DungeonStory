@@ -29,6 +29,20 @@ PRODUCTION_FEATURE_BETA_PATH = (
     "@nested:abilityModules.items[featureTags=feature%3Abeta;"
     "type=BuildingProductionSupportAbility].featureTags"
 )
+COMBAT_ABILITY_ALPHA_PATH = (
+    "@nested:combatAbilities.abilities[id=ability%3Aalpha].id"
+)
+COMBAT_ABILITY_BETA_PATH = (
+    "@nested:combatAbilities.abilities[id=ability%3Abeta].id"
+)
+AMMUNITION_ARROW_PATH = (
+    "@nested:features[ammunitionKindId=ammo%3Aarrow;"
+    "type=AmmunitionItemFeature].ammunitionKindId"
+)
+SUBSTANCE_TONIC_PATH = (
+    "@nested:features[substanceId=substance%3Atonic;"
+    "type=SubstanceItemFeature].substanceId"
+)
 
 
 class GitIdentityFixture(unittest.TestCase):
@@ -785,17 +799,20 @@ class RevisionVerificationTests(GitIdentityFixture):
     def test_trait_display_rename_is_allowed_but_legacy_alias_removal_is_rejected(self):
         source = self.root / "Assets/Scripts/TestSO.cs"
         source.write_text("public sealed class CharacterTraitSO {}\n", encoding="utf-8")
-        self.write_asset(fields=("traitName: Old Name", "identityRules: []", "legacyPolicyNames:", "- Old Name"))
+        self.write_asset(fields=("traitName: Old Name", "combatAbilities:", "  abilities: []",
+                                 "identityRules: []", "legacyPolicyNames:", "- Old Name"))
         fields = (("@legacy-trait-name:Old%20Name", "Old Name"),)
         self.write_baseline([self.asset_row(fields=fields, type_name="CharacterTraitSO")])
         base = self.commit("publish frozen trait policy alias")
 
-        self.write_asset(fields=("traitName: New Name", "identityRules: []", "legacyPolicyNames:", "- Old Name"))
+        self.write_asset(fields=("traitName: New Name", "combatAbilities:", "  abilities: []",
+                                 "identityRules: []", "legacyPolicyNames:", "- Old Name"))
         renamed = self.commit("rename trait display name")
         result = verifier.verify_revisions(base, renamed, self.root)
         self.assertEqual(1, result["fieldsChecked"])
 
-        self.write_asset(fields=("traitName: New Name", "identityRules: []", "legacyPolicyNames: []"))
+        self.write_asset(fields=("traitName: New Name", "combatAbilities:", "  abilities: []",
+                                 "identityRules: []", "legacyPolicyNames: []"))
         removed = self.commit("remove frozen trait policy alias")
         with self.assertRaisesRegex(verifier.VerificationError, "nested identities do not match"):
             verifier.verify_revisions(base, removed, self.root)
@@ -804,7 +821,8 @@ class RevisionVerificationTests(GitIdentityFixture):
         (self.root / "Assets/Scripts/TestSO.cs").write_text(
             "public sealed class CharacterTraitSO {}\n", encoding="utf-8")
         def rules(key):
-            return ("identityRules:", "- rid: 10", "references:", "  RefIds:",
+            return ("combatAbilities:", "  abilities: []",
+                    "identityRules:", "- rid: 10", "references:", "  RefIds:",
                     "  - rid: 10", "    type: {class: LastStandRule, ns: '', asm: Assembly-CSharp}",
                     "    data:", "      ruleId: " + key)
         self.write_asset(fields=rules("extreme:last-stand"))
@@ -813,7 +831,8 @@ class RevisionVerificationTests(GitIdentityFixture):
             type_name="CharacterTraitSO")])
         base = self.commit("publish saved trait rule")
         verifier.verify_revisions(base, base, self.root)
-        for fields in (rules("extreme:renamed"), ("traitName: Legacy Empty",)):
+        for fields in (rules("extreme:renamed"),
+                       ("traitName: Legacy Empty", "combatAbilities:", "  abilities: []")):
             self.write_asset(fields=fields)
             changed = self.commit("change published trait rules")
             with self.assertRaisesRegex(verifier.VerificationError, "nested identities do not match"):
@@ -865,15 +884,268 @@ class RevisionVerificationTests(GitIdentityFixture):
 
 
 class NestedIdentityExtractionTests(unittest.TestCase):
+    def test_scripted_yaml_accepts_lf_and_crlf_document_markers(self):
+        body = (
+            "%YAML 1.1\n"
+            "%TAG !u! tag:unity3d.com,2011:\n"
+            + self.document(
+                "  combatAbilities:\n"
+                "    abilities:\n"
+                "    - rid: 10\n"
+                "  references:\n"
+                "    RefIds:\n"
+                "    - rid: 10\n"
+                "      type: {class: CharacterCombatAbilityDefinition, ns: '', "
+                "asm: DungeonStory.Combat}\n"
+                "      data: {id: ability:alpha}\n"
+            )
+        )
+        for newline in ("\n", "\r\n"):
+            with self.subTest(newline=repr(newline)):
+                raw = body.replace("\n", newline).encode("utf-8")
+                document, script_guid = verifier._scripted_document(
+                    raw,
+                    "fixture.asset",
+                    SCRIPT_GUID,
+                )
+                self.assertEqual(SCRIPT_GUID, script_guid)
+                self.assertEqual(
+                    {COMBAT_ABILITY_ALPHA_PATH: "ability:alpha"},
+                    verifier._actual_nested_fields(
+                        document,
+                        self.record("CharacterSpeciesSO"),
+                        "fixture.asset",
+                    ),
+                )
+
+    def test_scripted_yaml_still_rejects_malformed_document_markers(self):
+        payload = (
+            "MonoBehaviour:\n"
+            "  m_Script: {fileID: 11500000, guid: " + SCRIPT_GUID + ", type: 3}\n"
+        )
+        for marker in (
+            "--- !u!114 &11400000 ",
+            "--- !u!114 &not-a-file-id",
+            "--- !u!114 &11400000\r\r",
+        ):
+            with self.subTest(marker=repr(marker)), self.assertRaisesRegex(
+                verifier.VerificationError,
+                "document marker is malformed",
+            ):
+                verifier._load_scripted_yaml(marker + "\n" + payload, "fixture.asset")
+
     def test_legacy_trait_without_rule_list_has_no_saved_rule_identity(self):
-        self.assertEqual({}, self.extract("CharacterTraitSO", "  traitName: Legacy Empty\n"))
+        self.assertEqual(
+            {},
+            self.extract(
+                "CharacterTraitSO",
+                "  traitName: Legacy Empty\n"
+                "  combatAbilities:\n"
+                "    abilities: []\n",
+            ),
+        )
 
     def test_trait_saved_rule_identity_is_captured(self):
         actual = self.extract("CharacterTraitSO",
+            "  combatAbilities:\n    abilities: []\n"
             "  identityRules:\n  - rid: 10\n  references:\n    RefIds:\n"
             "    - rid: 10\n      type: {class: LastStandRule, ns: '', asm: Assembly-CSharp}\n"
             "      data:\n        ruleId: extreme:last-stand\n")
         self.assertEqual({"@nested:identityRules[ruleId=extreme%3Alast-stand].ruleId": "extreme:last-stand"}, actual)
+
+    def test_combat_ability_id_is_captured_for_trait_and_species(self):
+        body = (
+            "  combatAbilities:\n"
+            "    abilities:\n"
+            "    - rid: 10\n"
+            "  references:\n"
+            "    RefIds:\n"
+            "    - rid: 10\n"
+            "      type: {class: CharacterCombatAbilityDefinition, ns: '', asm: DungeonStory.Combat}\n"
+            "      data: {id: ability:alpha}\n"
+        )
+        for type_name in ("CharacterTraitSO", "CharacterSpeciesSO"):
+            with self.subTest(type_name=type_name):
+                self.assertEqual(
+                    {COMBAT_ABILITY_ALPHA_PATH: "ability:alpha"},
+                    self.extract(type_name, body),
+                )
+
+    def test_item_provider_ids_are_captured_only_for_matching_managed_types(self):
+        body = (
+            "  features:\n"
+            "  - rid: 10\n"
+            "  - rid: 20\n"
+            "  - rid: 30\n"
+            "  references:\n"
+            "    RefIds:\n"
+            "    - rid: 10\n"
+            "      type: {class: AmmunitionItemFeature, ns: '', asm: DungeonStory.Economy}\n"
+            "      data: {ammunitionKindId: ammo:arrow}\n"
+            "    - rid: 20\n"
+            "      type: {class: SubstanceItemFeature, ns: '', asm: DungeonStory.Economy}\n"
+            "      data: {substanceId: substance:tonic}\n"
+            "    - rid: 30\n"
+            "      type: {class: ProductionItemFeature, ns: '', asm: DungeonStory.Economy}\n"
+            "      data: {ammunitionKindId: ignored:ammo, substanceId: ignored:substance}\n"
+        )
+        expected = {
+            AMMUNITION_ARROW_PATH: "ammo:arrow",
+            SUBSTANCE_TONIC_PATH: "substance:tonic",
+        }
+        for type_name in ("ResourceItemDefinitionSO", "GenericItemDefinitionSO"):
+            with self.subTest(type_name=type_name):
+                self.assertEqual(expected, self.extract(type_name, body))
+                for path in expected:
+                    verifier._parse_nested_identity_path(
+                        type_name,
+                        path,
+                        "baseline",
+                    )
+
+    def test_campaign_region_id_and_faction_provider_are_captured(self):
+        actual = self.extract(
+            "OffenseCampaignCatalogSO",
+            "  targets: []\n"
+            "  regions:\n"
+            "  - id: region:north\n"
+            "    factionId: faction:surface:north\n",
+        )
+        self.assertEqual(
+            {
+                "@nested:regions[id=region%3Anorth].id": "region:north",
+                "@nested:regions[id=region%3Anorth].factionId":
+                    "faction:surface:north",
+            },
+            actual,
+        )
+
+    def test_new_provider_duplicate_and_blank_ids_are_rejected(self):
+        cases = (
+            (
+                "CharacterSpeciesSO",
+                "  combatAbilities:\n"
+                "    abilities:\n"
+                "    - rid: 10\n"
+                "    - rid: 20\n"
+                "  references:\n"
+                "    RefIds:\n"
+                "    - rid: 10\n"
+                "      type: {class: CharacterCombatAbilityDefinition, ns: '', asm: DungeonStory.Combat}\n"
+                "      data: {id: ability:shared}\n"
+                "    - rid: 20\n"
+                "      type: {class: CharacterCombatAbilityDefinition, ns: '', asm: DungeonStory.Combat}\n"
+                "      data: {id: ability:shared}\n",
+                "duplicate nested identity selector",
+            ),
+            (
+                "GenericItemDefinitionSO",
+                "  features:\n"
+                "  - rid: 10\n"
+                "  references:\n"
+                "    RefIds:\n"
+                "    - rid: 10\n"
+                "      type: {class: AmmunitionItemFeature, ns: '', asm: DungeonStory.Economy}\n"
+                "      data: {ammunitionKindId: ' '}\n",
+                "blank or not trimmed",
+            ),
+            (
+                "OffenseCampaignCatalogSO",
+                "  targets: []\n"
+                "  regions:\n"
+                "  - id: region:north\n"
+                "    factionId: ' '\n",
+                "blank or not trimmed",
+            ),
+        )
+        for type_name, body, message in cases:
+            with self.subTest(type_name=type_name), self.assertRaisesRegex(
+                verifier.VerificationError,
+                message,
+            ):
+                self.extract(type_name, body)
+
+    def test_item_provider_baseline_path_requires_matching_managed_type(self):
+        for malformed in (
+            "@nested:features[ammunitionKindId=ammo%3Aarrow].ammunitionKindId",
+            "@nested:features[ammunitionKindId=ammo%3Aarrow;"
+            "type=ProductionItemFeature].ammunitionKindId",
+        ):
+            with self.subTest(path=malformed), self.assertRaises(
+                verifier.VerificationError
+            ):
+                verifier._parse_nested_identity_path(
+                    "GenericItemDefinitionSO",
+                    malformed,
+                    "baseline",
+                )
+
+    def test_nested_provider_rename_delete_and_append_contract(self):
+        base_asset = verifier.PublishedAsset(
+            ASSET_GUID,
+            "CharacterSpeciesSO",
+            SCRIPT_GUID,
+            (verifier.IdentityField(COMBAT_ABILITY_ALPHA_PATH, "ability:alpha"),),
+        )
+        base = verifier.IdentityBaseline((base_asset,))
+        renamed = verifier.IdentityBaseline((verifier.PublishedAsset(
+            ASSET_GUID,
+            "CharacterSpeciesSO",
+            SCRIPT_GUID,
+            (verifier.IdentityField(COMBAT_ABILITY_BETA_PATH, "ability:beta"),),
+        ),))
+        deleted = verifier.IdentityBaseline((verifier.PublishedAsset(
+            ASSET_GUID,
+            "CharacterSpeciesSO",
+            SCRIPT_GUID,
+            (),
+        ),))
+        for candidate in (renamed, deleted):
+            with self.assertRaises(verifier.VerificationError):
+                verifier.compare_baselines(base, candidate)
+
+        appended = verifier.IdentityBaseline((verifier.PublishedAsset(
+            ASSET_GUID,
+            "CharacterSpeciesSO",
+            SCRIPT_GUID,
+            (
+                verifier.IdentityField(COMBAT_ABILITY_ALPHA_PATH, "ability:alpha"),
+                verifier.IdentityField(COMBAT_ABILITY_BETA_PATH, "ability:beta"),
+            ),
+        ),))
+        verifier.compare_baselines(base, appended)
+        self.assertEqual(
+            "ability:alpha",
+            appended.assets[0].fields_by_path()[COMBAT_ABILITY_ALPHA_PATH].value,
+        )
+
+    def test_campaign_region_faction_leaf_change_is_rejected(self):
+        region_id_path = "@nested:regions[id=region%3Anorth].id"
+        faction_id_path = "@nested:regions[id=region%3Anorth].factionId"
+        base = verifier.IdentityBaseline((verifier.PublishedAsset(
+            ASSET_GUID,
+            "OffenseCampaignCatalogSO",
+            SCRIPT_GUID,
+            (
+                verifier.IdentityField(region_id_path, "region:north"),
+                verifier.IdentityField(faction_id_path, "faction:surface:north"),
+            ),
+        ),))
+        changed = verifier.IdentityBaseline((verifier.PublishedAsset(
+            ASSET_GUID,
+            "OffenseCampaignCatalogSO",
+            SCRIPT_GUID,
+            (
+                verifier.IdentityField(region_id_path, "region:north"),
+                verifier.IdentityField(faction_id_path, "faction:surface:south"),
+            ),
+        ),))
+
+        with self.assertRaisesRegex(
+            verifier.VerificationError,
+            "published identity changed",
+        ):
+            verifier.compare_baselines(base, changed)
 
     def test_facility_capability_identity_is_captured(self):
         actual = self.extract("FacilityEvolutionRecipeSO",

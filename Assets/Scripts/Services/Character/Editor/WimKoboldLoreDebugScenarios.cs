@@ -48,6 +48,10 @@ public static class WimKoboldLoreDebugScenarios
             "Kobold lore must not have a live incident handler or notification summary.");
     }
 
+    internal static SpeciesIncidentHandlerRegistry CreateGuardedRegistry() => new(
+        items: null, relocations: null, filth: new FailingFilthSpy(),
+        water: new FailingWaterContaminationSpy(), world: null);
+
     private static void Require(bool condition, string message)
     {
         if (!condition)

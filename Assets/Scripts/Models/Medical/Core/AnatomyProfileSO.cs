@@ -14,7 +14,7 @@ public sealed class AnatomyProfileSO : ScriptableObject
 
     [ContentIdentity, SerializeField] private string profileId = string.Empty;
     [SerializeField] private string displayName = string.Empty;
-    [SerializeField] private string anatomyFamily = "humanoid";
+    [ContentIdentity, SerializeField] private string anatomyFamily = "humanoid";
     [ContentReference(ContentReferenceKind.AnatomySpecies, Aliases = "Goblin|LegacyHumanoid", IgnoreCase = true), SerializeField]
     private List<string> speciesIds = new List<string>();
     // Historical bodies retain their injuries/installed parts. This list only

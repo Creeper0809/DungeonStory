@@ -29,34 +29,9 @@ public sealed class FacilityEvolutionRecordEventRecorder : IFacilityEvolutionRec
     private readonly IFacilityEvolutionRecordComponentService recordComponentService;
     private readonly IFacilityEvolutionRuntime instanceEvolutionRuntime;
     private readonly FacilityEvolutionRecordTokenDefinitionSO[] tokenDefinitions;
-    private static readonly IReadOnlyList<string> ProducedMetricKeyValues =
-        Array.AsReadOnly(new[]
-        {
-            FacilityEvolutionTerms.AverageSatisfaction,
-            FacilityEvolutionTerms.AverageSpend,
-            FacilityEvolutionTerms.CombatVisitorRatio,
-            FacilityEvolutionTerms.CrimeCount,
-            FacilityEvolutionTerms.CriminalVisitorRatio,
-            FacilityEvolutionTerms.FacilityDamageTaken,
-            FacilityEvolutionTerms.HighValueTransactionCount,
-            FacilityEvolutionTerms.IntruderDamageDealt,
-            FacilityEvolutionTerms.IntruderDelayTime,
-            FacilityEvolutionTerms.NegativeMentionCount,
-            FacilityEvolutionTerms.NobleVisitorRatio,
-            FacilityEvolutionTerms.PositiveMentionCount,
-            FacilityEvolutionTerms.ProfitPerVisit,
-            FacilityEvolutionTerms.RepeatVisitorRatio,
-            FacilityEvolutionTerms.StockCostPerVisit,
-            FacilityEvolutionTerms.StockoutCount,
-            FacilityEvolutionTerms.TheftCount,
-            FacilityEvolutionTerms.TotalRevenue,
-            FacilityEvolutionTerms.UniqueVisitorCount,
-            FacilityEvolutionTerms.VisitCount
-        });
-    private static readonly HashSet<string> ProducedMetrics =
-        new HashSet<string>(ProducedMetricKeyValues, StringComparer.Ordinal);
 
-    public static IReadOnlyList<string> ProducedMetricKeys => ProducedMetricKeyValues;
+    public static IReadOnlyList<string> ProducedMetricKeys =>
+        FacilityEvolutionTerms.ProducedRecordMetricKeys;
 
     public FacilityEvolutionRecordEventRecorder(
         IFacilityCandidateCache facilityCandidateCache,
@@ -72,19 +47,11 @@ public sealed class FacilityEvolutionRecordEventRecorder : IFacilityEvolutionRec
         tokenDefinitions = (tokenDefinitionProvider
             ?? throw new ArgumentNullException(nameof(tokenDefinitionProvider))).GetDefinitions().ToArray();
         if (tokenDefinitions.Any(definition => definition == null
-                || string.IsNullOrWhiteSpace(definition.EffectiveId)
+                || definition.ValidateDefinition().Count > 0
                 || !Enum.IsDefined(typeof(FacilityEvolutionRecordTokenGenerationTrigger), definition.generationTrigger))
             || tokenDefinitions.Select(definition => definition.EffectiveId)
                 .Distinct(StringComparer.Ordinal).Count() != tokenDefinitions.Length)
             throw new InvalidOperationException("Facility record token generation definitions are invalid or duplicated.");
-        foreach (FacilityEvolutionRecordTokenDefinitionSO definition in tokenDefinitions.Where(definition =>
-                     definition.generationTrigger == FacilityEvolutionRecordTokenGenerationTrigger.MetricThresholdCrossing))
-        {
-            if (!ProducedMetrics.Contains(definition.sourceMetric ?? string.Empty)
-                || !float.IsFinite(definition.threshold) || definition.threshold <= 0f
-                || !string.Equals(definition.decayPolicy, "long-term", StringComparison.Ordinal))
-                throw new InvalidOperationException($"Token '{definition.EffectiveId}' requires a produced metric, positive threshold and long-term retention.");
-        }
     }
 
     public void RecordVisit(FacilityVisitEvent eventType, int highTurnoverVisitStep)

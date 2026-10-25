@@ -687,7 +687,6 @@ public sealed class CharacterAiFaultRecoveryPlayModeRunner : MonoBehaviour
             if (authoredAction == null && scenario.Label == "SHOPPING")
             {
                 authoredAction = CreateProductionAction<AIShopping>(
-                    "SO/AI/Action/Shopping",
                     CharacterAiBranch.Shopping);
             }
             Check(authoredAction != null,
@@ -716,19 +715,10 @@ public sealed class CharacterAiFaultRecoveryPlayModeRunner : MonoBehaviour
     }
 
     private AIAction CreateProductionAction<T>(
-        string resourcePath,
         CharacterAiBranch branch)
         where T : AIActionSet
     {
-        AIActionSet actionSet = actionAssetCatalog.GetRequiredAction(
-            resourcePath,
-            branch);
-        if (!(actionSet is T))
-        {
-            throw new InvalidOperationException(
-                $"Production action {resourcePath} is {actionSet?.GetType().Name}; "
-                + $"expected {typeof(T).Name}.");
-        }
+        T actionSet = actionAssetCatalog.GetRequiredAction<T>(branch);
         AIAction action = new AIAction { actionset = actionSet };
         action.BindClock(gameClock);
         return action;
@@ -1218,15 +1208,12 @@ public sealed class CharacterAiFaultRecoveryPlayModeRunner : MonoBehaviour
             : new List<AIAction>();
         AddRequiredDestinationlessAction<AILookAround>(
             actions,
-            "SO/AI/Action/LookAround",
             CharacterAiBranch.LookAround);
         AddRequiredDestinationlessAction<AIWait>(
             actions,
-            "SO/AI/Action/Wait",
             CharacterAiBranch.Wait);
         AddRequiredDestinationlessAction<AIExitDungeon>(
             actions,
-            "SO/AI/Action/ExitDungeon",
             CharacterAiBranch.ExitDungeon);
         foreach (AIAction action in actions)
             action.BindClock(gameClock);
@@ -1235,21 +1222,12 @@ public sealed class CharacterAiFaultRecoveryPlayModeRunner : MonoBehaviour
 
     private void AddRequiredDestinationlessAction<T>(
         ICollection<AIAction> actions,
-        string resourcePath,
         CharacterAiBranch branch)
         where T : AIActionSet
     {
-        if (actions.Any(action => action?.actionset is T))
+        T actionSet = actionAssetCatalog.GetRequiredAction<T>(branch);
+        if (actions.Any(action => ReferenceEquals(action?.actionset, actionSet)))
             return;
-        AIActionSet actionSet = actionAssetCatalog.GetRequiredAction(
-            resourcePath,
-            branch);
-        if (!(actionSet is T))
-        {
-            throw new InvalidOperationException(
-                $"Production action {resourcePath} is {actionSet?.GetType().Name}; "
-                + $"expected {typeof(T).Name}.");
-        }
         actions.Add(new AIAction { actionset = actionSet });
     }
 

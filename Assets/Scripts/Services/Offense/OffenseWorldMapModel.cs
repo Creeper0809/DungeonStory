@@ -171,8 +171,10 @@ public class OffenseTargetDefinition
     public string title;
     [TextArea] public string description;
     public OffenseTargetKind kind;
+    [ContentReference(ContentReferenceKind.CampaignRegion)]
     public string regionId;
     public string regionDisplayName;
+    [ContentReference(ContentReferenceKind.CampaignFaction)]
     public string factionId;
     public StrategicPressureAxis strategicPressureAxis;
     [Min(0f)] public float strategicPressureAmount = 15f;

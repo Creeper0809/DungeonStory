@@ -107,7 +107,7 @@ public static class BuildingStructuralIntegrityDefaults
         if (building.Defense != null
             && string.Equals(
                 building.Defense.facilityFamilyId,
-                "defense:barrier",
+                DefenseFacilityFamilyIds.Barrier,
                 StringComparison.Ordinal))
         {
             ability = Create(

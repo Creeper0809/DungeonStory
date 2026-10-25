@@ -36,6 +36,7 @@ public class FacilityEvolutionRecordTokenDefinitionSO : DataScriptableObject
     [Header("Source")]
     public FacilityEvolutionRecordTokenGenerationTrigger generationTrigger;
     [Tooltip("Executable metric and threshold for MetricThresholdCrossing; descriptive provenance for event triggers.")]
+    [ContentReference(ContentReferenceKind.FacilityRecordMetric)]
     public string sourceMetric;
     public float threshold;
     [Tooltip("Historical authoring metadata. Automatic decay is not supported; threshold tokens require long-term retention.")]
@@ -53,9 +54,35 @@ public class FacilityEvolutionRecordTokenDefinitionSO : DataScriptableObject
 
     public IReadOnlyList<string> ValidateDefinition()
     {
-        return string.IsNullOrWhiteSpace(TokenId)
-            ? new[] { "Facility evolution record token ID is required." }
-            : Array.Empty<string>();
+        List<string> errors = new List<string>();
+        if (string.IsNullOrWhiteSpace(TokenId))
+        {
+            errors.Add("Facility evolution record token ID is required.");
+        }
+
+        if (generationTrigger
+            != FacilityEvolutionRecordTokenGenerationTrigger.MetricThresholdCrossing)
+        {
+            return errors;
+        }
+
+        if (!FacilityEvolutionTerms.IsProducedRecordMetric(sourceMetric))
+        {
+            errors.Add(
+                $"Metric-threshold record token source metric '{sourceMetric ?? string.Empty}' is not produced.");
+        }
+        if (!float.IsFinite(threshold) || threshold <= 0f)
+        {
+            errors.Add(
+                "Metric-threshold record token requires a positive finite threshold.");
+        }
+        if (!string.Equals(decayPolicy, "long-term", StringComparison.Ordinal))
+        {
+            errors.Add(
+                "Metric-threshold record token requires long-term retention.");
+        }
+
+        return errors;
     }
 }
 

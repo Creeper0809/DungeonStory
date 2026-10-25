@@ -52,10 +52,6 @@ public sealed class DefenseFacilityNetworkRuntime :
 {
     private const int DefaultSupplyRange = 5;
     private const int DefaultMaintenanceRange = 4;
-    private const string DetectionFamily = "defense:detection";
-    private const string ControlFamily = "defense:control";
-    private const string SupplyFamily = "defense:supply";
-    private const string MaintenanceFamily = "defense:maintenance";
 
     private readonly IBuildingWorldQuery buildings;
     private readonly IPowerInfrastructureQuery power;
@@ -99,22 +95,22 @@ public sealed class DefenseFacilityNetworkRuntime :
 
         DefenseFacility detector = FindNearestLinked(
             facility,
-            DetectionFamily,
+            DefenseFacilityFamilyIds.Detection,
             ResolveRange,
             requirePowered: false);
         DefenseFacility control = FindNearestLinked(
             facility,
-            ControlFamily,
+            DefenseFacilityFamilyIds.Control,
             ResolveRange,
             requirePowered: true);
         DefenseFacility supply = FindNearestLinked(
             facility,
-            SupplyFamily,
+            DefenseFacilityFamilyIds.Supply,
             _ => DefaultSupplyRange,
             requirePowered: false);
         DefenseFacility maintenance = FindNearestLinked(
             facility,
-            MaintenanceFamily,
+            DefenseFacilityFamilyIds.Maintenance,
             _ => DefaultMaintenanceRange,
             requirePowered: false);
         return new DefenseFacilityNetworkSnapshot(
@@ -157,7 +153,7 @@ public sealed class DefenseFacilityNetworkRuntime :
         foreach (DefenseFacility detector in facilities
                      .Where(value => IsFamily(
                          value,
-                         DetectionFamily))
+                         DefenseFacilityFamilyIds.Detection))
                      .OrderBy(value => value.centerPos.y)
                      .ThenBy(value => value.centerPos.x)
                      .ThenBy(value => value.BuildingData?.id ?? 0))

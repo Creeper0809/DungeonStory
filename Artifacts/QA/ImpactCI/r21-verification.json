@@ -1,0 +1,56 @@
+{
+  "schema": "so-audit-remediation-v1",
+  "scope": "R21-01 through R21-11 and R21-X01; actual bounded authoring, AI/commands, JSON restore/retry, provider guards and Inspector",
+  "source": {
+    "digest": "48f177a81bf5a683efe0037822f1a97f6114c46d0dd8d4915b6b813478cba2bf",
+    "count": 4781,
+    "pathsDigest": "7521af20a605d701ff95ee64418352609278cdc3064b3d450d06d73eaf482e00"
+  },
+  "configurationDigest": "4e3b8adbeccfa8f1cd9d29aa33214cf286fddb91c5fa150f7829fd9dab565af1",
+  "sourceManifest": "r157su; 21712 input files; complete pre/post SHA verification",
+  "platform": "CUHA Linux; authenticated private Xvfb Inspector; no user display",
+  "checks": [
+    {
+      "group": "so-r21",
+      "method": "V27CiEvidenceBatch.RunR21Contracts",
+      "nativeLabel": "r156su-impact-so-r21",
+      "sourceLabel": "r156su",
+      "sourceDigest": "6d2b842eb4d7a135decbc08df32ce0bcd3a2fbf574115dcb76605fb3434682e1",
+      "configurationDigest": "f47465ae01bd2729155866fe75449c26f117f51d82339ff8460509f91ea139a1",
+      "seconds": 320,
+      "log": "Artifacts/QA/ImpactCI/r21-so-r21.log",
+      "logSha256": "f161ec6fc48b8e7810fb840720df627540f5c2288328c0d3460cbafc29ebb940",
+      "summary": "Artifacts/QA/ImpactCI/r21-so-r21-summary.json",
+      "summarySha256": "df605a17d14ce82b684c7a923ba04f1e29dd958ef3b94c19bd06a2a9592faef6"
+    },
+    {
+      "group": "so-r21-inspector",
+      "method": "V27CiEvidenceBatch.RunR21InspectorContracts",
+      "nativeLabel": "r156su-impact-so-inspector-r21",
+      "sourceLabel": "r156su",
+      "sourceDigest": "6d2b842eb4d7a135decbc08df32ce0bcd3a2fbf574115dcb76605fb3434682e1",
+      "configurationDigest": "f47465ae01bd2729155866fe75449c26f117f51d82339ff8460509f91ea139a1",
+      "seconds": 170,
+      "log": "Artifacts/QA/ImpactCI/r21-so-r21-inspector.log",
+      "logSha256": "c88dcb7e86deab45bab40943597d4e08bb44ca794f3731edea6e0eef17bdbd91",
+      "summary": "Artifacts/QA/ImpactCI/r21-so-r21-inspector-summary.json",
+      "summarySha256": "5f25dbc8a3570dfd0e605018b1df3fd28d28a985c2445aebedff62411489c18d",
+      "isolation": "Artifacts/QA/ImpactCI/r21-inspector-isolation.json",
+      "isolationSha256": "b61ed49e5a1ea5425e45936004d7d40dc4288b31985b4f90dd54e1e0141e3d1b"
+    }
+  ],
+  "unchangedCoverageReuse": {
+    "sourceLabel": "r156su",
+    "acceptedForLabel": "r157su",
+    "inputFilesCompared": 21712,
+    "reason": "Only the resolved-kind argument inside VerifySemanticKinds changed. R21 runtime and Inspector do not call that method. Their entry points, scenarios, RunWithUndoIsolation body, selection/catalog/drawer logic, production, assets and publication inputs are unchanged. Native outcomes keep their original source/configuration pins; current impact runs also compile the final complete source.",
+    "differences": [
+      {
+        "path": "Assets/Editor/ContentReferenceSelectionDebugScenarios.cs",
+        "beforeSha256": "28d940fd2df96df09116ea3fe849499ea5fa5766fae0ddd1897c34f33818eecf",
+        "afterSha256": "0bd364a684490289ce912fb18fe87905b8caa3f4f2c250740c377acd634c5900",
+        "unifiedDiff": "--- r156su/Assets/Editor/ContentReferenceSelectionDebugScenarios.cs\n+++ r157su/Assets/Editor/ContentReferenceSelectionDebugScenarios.cs\n@@ -848,7 +848,7 @@\n                     && ContentReferenceCatalog.IsKeyReference(ContentReferenceKind.EnemyFaction),\n                 \"factionReactions did not resolve to the registered enemy-faction key protocol.\");\n             var factionKeys = ContentReferenceSelection.Entries(\n-                new ContentReferenceAttribute(ContentReferenceKind.WeightedTarget), reaction);\n+                new ContentReferenceAttribute(ContentReferenceKind.EnemyFaction), reaction);\n             Require(factionKeys.Count > 0 && factionKeys.All(value => value.Asset == null)\n                 && factionKeys.Any(value => value.Id == \"faction:old-nobility\")\n                 && factionKeys.Any(value => value.Id == \"faction:iron-consortium\"),"
+      }
+    ]
+  }
+}

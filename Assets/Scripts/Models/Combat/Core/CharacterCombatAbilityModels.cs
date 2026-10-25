@@ -23,6 +23,30 @@ public enum OffenseBattleTargetRule
     Enemy
 }
 
+public enum CombatAbilityTargetFilter { Any, Front, Rear, Wounded, Construct, Armored, Fast, Arcane, RetreatEligible }
+public enum CombatAbilityTargetPreference { Default, LowestHealth, HighestPower }
+public enum CombatAbilityTargetScope { Single, Team, Formation, IntrinsicTeam }
+
+[Serializable]
+public struct CombatAbilityTargeting
+{
+    [SerializeField] private CombatAbilityTargetFilter filter;
+    [SerializeField] private CombatAbilityTargetPreference preference;
+    [SerializeField] private CombatAbilityTargetScope scope;
+
+    public CombatAbilityTargeting(CombatAbilityTargetFilter filter,
+        CombatAbilityTargetPreference preference = CombatAbilityTargetPreference.Default,
+        CombatAbilityTargetScope scope = CombatAbilityTargetScope.Single)
+    { this.filter = filter; this.preference = preference; this.scope = scope; }
+
+    public CombatAbilityTargetFilter Filter => filter;
+    public CombatAbilityTargetPreference Preference => preference;
+    public CombatAbilityTargetScope Scope => scope;
+    public bool IsValid => Enum.IsDefined(typeof(CombatAbilityTargetFilter), filter)
+        && Enum.IsDefined(typeof(CombatAbilityTargetPreference), preference)
+        && Enum.IsDefined(typeof(CombatAbilityTargetScope), scope);
+}
+
 [Serializable]
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class CharacterCombatAbilityCollection
@@ -54,11 +78,21 @@ public sealed class CharacterCombatAbilityDefinition
         OffenseFormationMask.Any;
     [SerializeField] private OffenseFormationMask targetPositions =
         OffenseFormationMask.Any;
+    [SerializeField] private CombatAbilityTargeting targeting;
     [SerializeReference]
     private List<OffenseCombatEffectModule> effects = new();
 
     public CharacterCombatAbilityDefinition()
     {
+    }
+
+    public CharacterCombatAbilityDefinition(
+        string id, string displayName, string description, int cooldownTurns,
+        OffenseBattleTargetRule targetRule, CombatAbilityTargeting targeting,
+        params OffenseCombatEffectModule[] effects)
+        : this(id, displayName, description, cooldownTurns, targetRule, effects)
+    {
+        this.targeting = targeting;
     }
 
     public CharacterCombatAbilityDefinition(
@@ -109,11 +143,13 @@ public sealed class CharacterCombatAbilityDefinition
         targetPositions == OffenseFormationMask.None
             ? OffenseFormationMask.Any
             : targetPositions;
+    public CombatAbilityTargeting Targeting => targeting;
     public IReadOnlyList<OffenseCombatEffectModule> Effects => effects;
     public bool IsValid => !string.IsNullOrWhiteSpace(id)
         && !string.IsNullOrWhiteSpace(displayName)
         && effects != null
-        && effects.Count > 0;
+        && effects.Count > 0
+        && targeting.IsValid;
 }
 
 [Serializable]

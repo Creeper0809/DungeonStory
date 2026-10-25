@@ -1,5 +1,21 @@
 # DungeonStory Current Progress
 
+## 2026-10-25 R21 수정 및 검증 진행
+
+실행 검증 마감: r157 effects1170/core240/character180/world250/crop200초 모두 native0/C#0/consoleErrors0/drift0이다. Gameplay104섹션 저장/복원과 baseline 복구, 건물138/캐릭터3/원정1/침입1 상태 및 방어/침입 롤백 재시도를 확인했다. r156 표적320초/Inspector170초와 입력1파일1줄 차이의 정확한 재사용 증거는 Artifacts/QA/ImpactCI/r21-verification.json, 최종 영향5그룹은 verification.json, 게시120키 추가는 r21-publication-review.json에 있다. Unity0/lock free/여유10.12GiB로 닫았다. SO_REFERENCE_FULL_AUDIT.md 상단12행을 완료 결과로 갱신했고 GitHub 통합을 진행한다.
+
+r148su native 컴파일/실제 root 에셋 로딩370초에서 기존3544에셋/11901필드를 보존하고98키를 추가했다. Resource 탄약21개 외 Generic 호환 탄약2개도 확인했다. r153su AI 기본 지정 보완의 native350초에서 예상22키 추가만 확인해 총12021키를 게시했다. 독립 Python이 실제3544에셋의12021필드를 대조했다. CI 도구91개와 고정 분석기도 통과했다.
+
+r156su 표적 R21 실행320초와 격리 Inspector170초는 native0/C#0/consoleErrors0/drift0이다. 실제 전투 AI/대상/범위/실패 무변경/새 JSON 복원/중복 명령, 기존 충성도 보존과 지역 복원/재시도, 탄약 codec, 실제 게시 목록의 제공자12사례와 AI 역할 변경 거절을 확인했다. AI19개 이름 변경, 같은 타입의 root 설정 variant 수용과 기본 중복 거절, 기존 설정 보존도 통과했다. Inspector는 인증된 TCP 비활성 private Xvfb의 실제 Layout/Repaint 및 원본 JSON/dirty/asset bytes 보존을 확인했다. 증거는 Artifacts/QA/r156su-impact-so-r21 및 r156su-impact-so-inspector-r21에 있다.
+
+r151의 구형 무참조 전제, r155의 불완전한 전체 정의 테스트 입력과 r156의 해석 전 Entries 인수 실패는 로그를 보존했다. 각 수정 전 Unity0/lock free를 확인했다. 최종 r157은 r156과 전체21712입력 중 기존 semantic fixture의1파일1줄만 다르다. R21/Inspector가 호출하지 않는 부분이며 실제 source/configuration과 정확한 SHA/diff를 외부 r156-unchanged-coverage.json에 기록했다. r157의 참조 선택/추가 콘텐츠/복원 경계는 통과했고 현재 효과 복구 및 영향5그룹의 나머지를 실행 중이다. 현재 Source의 생성 인덱스/stale 검사도 통과했으며 GitHub 통합은 남아 있다. 전수 seed는 실행하지 않았다.
+
+## 2026-10-25 R21 main 원본 재감사 완료
+
+시작/마감 fetch의 main은37f07adcefd1b8994929dcf679284d0e0ee1e538로 동일하다. 조사 branch는 codex/so-main-reaudit-r21이다. 게임 SO142종/중첩 직렬화2458개/관계후보881개와 실제124종3544에셋을 대조했다. GUID8962/외부 asset fileID4731/동일 파일 fileID18의 오류0, managed reference6116/타입170/assembly 조합175의 미해결0이다. 기존 게시 검사기는 현재 main의 에셋3544/필드11901을 통과했다.
+
+SO_REFERENCE_FULL_AUDIT.md 상단에 R21-01~11 및 X01을 현재 기능/저장/향후 작성 문제로 나눠 기록했다. 분야별 원본 검토 후 누락 종류 FacilitySynthesisRecipeSO9개, StatChange1개와 Foundation5종240개도 추가 대조했다. 외부 증거는 C:/Users/vulpo/Documents/Codex/2026-10-25/so-main-reaudit-r21이다. 메모리 게시 검사 반례와 배경 세력 정규화 대조를 실제 실행했으며 Unity 컴파일/Inspector/Play/전투/저장복원은 새로 실행하지 않았다. 원본 checkout 및 기존 QA를 보존했고 게임 코드/에셋/설정/도구/인덱스를 수정하지 않았다. 신규 문서 링크50개와 줄 범위, 금지 문자0 및 diff whitespace 검사를 통과했다.
+
 ## 2026-10-25 R20 최종 실행 마감
 
 R20-01~16 및 X01을 처리했다. 최종 r147st runtime600초와 effects1060/core240/character190/world250/crop200초가 모두 native0/C#0/consoleErrors0/drift0이다. 실제 GameCalendarRuntime의 다음 날 새 JSON 복원/재시도에서 숙련도와 승급 영수증이 각1회이고 누락/음수 시각을 거절한다. 공식 Gameplay 월드는104섹션 저장/복원과 baseline 복구를 완료했다. Unity0/lockfree/여유 약10.1GiB로 검증 창을 닫았다.

@@ -1,0 +1,750 @@
+{
+  "schema": "r21-publication-appends-v1",
+  "preservedAssets": 3544,
+  "preservedFields": 11901,
+  "addedFields": 120,
+  "currentFields": 12021,
+  "actualCaptureSteps": [
+    {
+      "label": "r148su",
+      "assets": 3544,
+      "preservedFields": 11901,
+      "addedFields": 98,
+      "categories": {
+        "anatomyFamily": 18,
+        "ammunition": 23,
+        "enemyFaction": 36,
+        "speciesAbility": 6,
+        "substance": 9,
+        "campaignRegion": 6
+      },
+      "added": [
+        {
+          "guid": "01f0a0505f4944118eb8efc7e4c22cbe",
+          "path": "anatomyFamily",
+          "value": "ethereal",
+          "category": "anatomyFamily"
+        },
+        {
+          "guid": "03e0affce608d1349a05f5d45d3b84d9",
+          "path": "@nested:features[ammunitionKindId=ammo%3Amana-disruptor-bolt;type=AmmunitionItemFeature].ammunitionKindId",
+          "value": "ammo:mana-disruptor-bolt",
+          "category": "ammunition"
+        },
+        {
+          "guid": "07c0dee218cb4fb49ac9f0693711c92f",
+          "path": "factionId",
+          "value": "truth:guardian",
+          "category": "enemyFaction"
+        },
+        {
+          "guid": "088b7a32d9bea3a48b280251c337d937",
+          "path": "@nested:features[ammunitionKindId=ammo%3Ascatter-cartridge;type=AmmunitionItemFeature].ammunitionKindId",
+          "value": "ammo:scatter-cartridge",
+          "category": "ammunition"
+        },
+        {
+          "guid": "16eb92fdbe3fb1c4582bf275bb062fc2",
+          "path": "@nested:features[ammunitionKindId=ammo%3Asmoke-cartridge;type=AmmunitionItemFeature].ammunitionKindId",
+          "value": "ammo:smoke-cartridge",
+          "category": "ammunition"
+        },
+        {
+          "guid": "17b29ebc23230bc40b7d710b7467dc46",
+          "path": "@nested:features[ammunitionKindId=ammo%3Ablasting-charge;type=AmmunitionItemFeature].ammunitionKindId",
+          "value": "ammo:blasting-charge",
+          "category": "ammunition"
+        },
+        {
+          "guid": "17c6f543f5d8ffc46a3fa658723b762a",
+          "path": "factionId",
+          "value": "human:inquisition",
+          "category": "enemyFaction"
+        },
+        {
+          "guid": "231853fbce8a13140b6e052646bf9972",
+          "path": "anatomyFamily",
+          "value": "humanoid",
+          "category": "anatomyFamily"
+        },
+        {
+          "guid": "23b3bdb812c683d40925cebba53b2137",
+          "path": "@nested:combatAbilities.abilities[id=species-active%3Abeastkin].id",
+          "value": "species-active:beastkin",
+          "category": "speciesAbility"
+        },
+        {
+          "guid": "24aa26cbc6a5de144aada34c2a0c5c5a",
+          "path": "@nested:features[substanceId=substance%3Avitality-tonic;type=SubstanceItemFeature].substanceId",
+          "value": "substance:vitality-tonic",
+          "category": "substance"
+        },
+        {
+          "guid": "2552e45463938584ca44ddf98e881665",
+          "path": "factionId",
+          "value": "rival:dungeon",
+          "category": "enemyFaction"
+        },
+        {
+          "guid": "2c6050349a90d414181b783648880899",
+          "path": "factionId",
+          "value": "human:legion",
+          "category": "enemyFaction"
+        },
+        {
+          "guid": "315ceba44d111fa489ad8572a42d1732",
+          "path": "@nested:features[substanceId=substance%3Anight-wine;type=SubstanceItemFeature].substanceId",
+          "value": "substance:night-wine",
+          "category": "substance"
+        },
+        {
+          "guid": "32ed230a3ebcbcc479523a97c2d53593",
+          "path": "factionId",
+          "value": "human:settler",
+          "category": "enemyFaction"
+        },
+        {
+          "guid": "33073ace8b07fa54f93e463d536d9824",
+          "path": "@nested:features[ammunitionKindId=ammo%3Abolt-iron;type=AmmunitionItemFeature].ammunitionKindId",
+          "value": "ammo:bolt-iron",
+          "category": "ammunition"
+        },
+        {
+          "guid": "338dae54d8073794f9e94d67bfb98eb2",
+          "path": "@nested:features[substanceId=substance%3Atwilight-beer;type=SubstanceItemFeature].substanceId",
+          "value": "substance:twilight-beer",
+          "category": "substance"
+        },
+        {
+          "guid": "3c5ecefc2e5e43ccb6efc5a24f9e0e9c",
+          "path": "anatomyFamily",
+          "value": "vermiform",
+          "category": "anatomyFamily"
+        },
+        {
+          "guid": "4035a5943238e6b48b5351a14678f167",
+          "path": "factionId",
+          "value": "truth:guardian",
+          "category": "enemyFaction"
+        },
+        {
+          "guid": "41bd94e67480a4e45a87d4992a1fefd5",
+          "path": "@nested:features[ammunitionKindId=ammo%3Aarrow-iron;type=AmmunitionItemFeature].ammunitionKindId",
+          "value": "ammo:arrow-iron",
+          "category": "ammunition"
+        },
+        {
+          "guid": "43fdbba056b62d34cb7bae16fd381a71",
+          "path": "@nested:features[ammunitionKindId=ammo%3Atrap-canister;type=AmmunitionItemFeature].ammunitionKindId",
+          "value": "ammo:trap-canister",
+          "category": "ammunition"
+        },
+        {
+          "guid": "48afe38b6689c25469938d8b27b17aaa",
+          "path": "@nested:combatAbilities.abilities[id=species-active%3Ademon].id",
+          "value": "species-active:demon",
+          "category": "speciesAbility"
+        },
+        {
+          "guid": "4ef04935a390a804a95843d1089d9cd6",
+          "path": "@nested:combatAbilities.abilities[id=species-active%3Akobold].id",
+          "value": "species-active:kobold",
+          "category": "speciesAbility"
+        },
+        {
+          "guid": "4f35b61f671163946bdfeae8105eeb15",
+          "path": "factionId",
+          "value": "human:crown",
+          "category": "enemyFaction"
+        },
+        {
+          "guid": "516493746b25a2045b0dfacb1c4f6239",
+          "path": "@nested:features[ammunitionKindId=ammo%3Asignal-flare;type=AmmunitionItemFeature].ammunitionKindId",
+          "value": "ammo:signal-flare",
+          "category": "ammunition"
+        },
+        {
+          "guid": "52194b5d60425e946b303386da144573",
+          "path": "@nested:features[ammunitionKindId=ammo%3Aarrow-steel;type=AmmunitionItemFeature].ammunitionKindId",
+          "value": "ammo:arrow-steel",
+          "category": "ammunition"
+        },
+        {
+          "guid": "57c23f6280635054d8e86bebe184b559",
+          "path": "anatomyFamily",
+          "value": "aberrant",
+          "category": "anatomyFamily"
+        },
+        {
+          "guid": "58faa22dcc4575f4b9e28adee0f957cd",
+          "path": "factionId",
+          "value": "human:legion",
+          "category": "enemyFaction"
+        },
+        {
+          "guid": "5aab69dbd4bb471b902944c9ef10e8eb",
+          "path": "anatomyFamily",
+          "value": "winged-insect",
+          "category": "anatomyFamily"
+        },
+        {
+          "guid": "5c67e1276c93d77439e29d49fd26a5be",
+          "path": "factionId",
+          "value": "human:inquisition",
+          "category": "enemyFaction"
+        },
+        {
+          "guid": "61eef72735950874f8d6142b7cd6e27d",
+          "path": "factionId",
+          "value": "human:merchant",
+          "category": "enemyFaction"
+        },
+        {
+          "guid": "69440b4546b2ddb4680a1c26d3a508c6",
+          "path": "@nested:features[ammunitionKindId=ammo%3Aarrow-rune;type=AmmunitionItemFeature].ammunitionKindId",
+          "value": "ammo:arrow-rune",
+          "category": "ammunition"
+        },
+        {
+          "guid": "6b15bffcd9ef82d47bbe545cca8ca410",
+          "path": "@nested:features[substanceId=substance%3Amoonflower-tea;type=SubstanceItemFeature].substanceId",
+          "value": "substance:moonflower-tea",
+          "category": "substance"
+        },
+        {
+          "guid": "6c7825052b9e874479d37d67c921c321",
+          "path": "factionId",
+          "value": "human:merchant",
+          "category": "enemyFaction"
+        },
+        {
+          "guid": "7221e9a986e5c6c4e891c08cf6dd1c1d",
+          "path": "@nested:features[substanceId=substance%3Amana-awakener;type=SubstanceItemFeature].substanceId",
+          "value": "substance:mana-awakener",
+          "category": "substance"
+        },
+        {
+          "guid": "75240f585e7835d45b53306f765e7f3c",
+          "path": "anatomyFamily",
+          "value": "avian",
+          "category": "anatomyFamily"
+        },
+        {
+          "guid": "76b63d21e86fcae468364e4146a8f657",
+          "path": "@nested:features[ammunitionKindId=ammo%3Aincendiary-arrow;type=AmmunitionItemFeature].ammunitionKindId",
+          "value": "ammo:incendiary-arrow",
+          "category": "ammunition"
+        },
+        {
+          "guid": "789fe4e6e6e44b698e055f0a0a167cda",
+          "path": "anatomyFamily",
+          "value": "drake",
+          "category": "anatomyFamily"
+        },
+        {
+          "guid": "7a45b08510521454faf80701433c4373",
+          "path": "anatomyFamily",
+          "value": "humanoid",
+          "category": "anatomyFamily"
+        },
+        {
+          "guid": "7fb20b4ebf5f63a4f965adc33e65dd46",
+          "path": "@nested:features[ammunitionKindId=ammo%3Abolt-bone;type=AmmunitionItemFeature].ammunitionKindId",
+          "value": "ammo:bolt-bone",
+          "category": "ammunition"
+        },
+        {
+          "guid": "829b3b76c9ccb88499711677ae3ad356",
+          "path": "factionId",
+          "value": "neutral:construct",
+          "category": "enemyFaction"
+        },
+        {
+          "guid": "83e14f4cfb1fdeb458e4a59ee20eb5b6",
+          "path": "@nested:features[substanceId=substance%3Anight-spirit;type=SubstanceItemFeature].substanceId",
+          "value": "substance:night-spirit",
+          "category": "substance"
+        },
+        {
+          "guid": "85eddc7ef45f1a84d8c7912ab6de51a2",
+          "path": "factionId",
+          "value": "human:settler",
+          "category": "enemyFaction"
+        },
+        {
+          "guid": "8637565a9d2189d4b976f45a33e0dd63",
+          "path": "factionId",
+          "value": "human:settler",
+          "category": "enemyFaction"
+        },
+        {
+          "guid": "8b6c46f85e66a0c42ab19431a749e955",
+          "path": "@nested:features[substanceId=substance%3Ahallucinogenic;type=SubstanceItemFeature].substanceId",
+          "value": "substance:hallucinogenic",
+          "category": "substance"
+        },
+        {
+          "guid": "98c08de9d071829449eefa792db19e1f",
+          "path": "@nested:features[ammunitionKindId=ammo%3Arune-cartridge;type=AmmunitionItemFeature].ammunitionKindId",
+          "value": "ammo:rune-cartridge",
+          "category": "ammunition"
+        },
+        {
+          "guid": "9a766884810292d428e7c5fdb975f037",
+          "path": "factionId",
+          "value": "human:settler",
+          "category": "enemyFaction"
+        },
+        {
+          "guid": "9cf6d808d51df2e40b896395baaa7f76",
+          "path": "factionId",
+          "value": "human:merchant",
+          "category": "enemyFaction"
+        },
+        {
+          "guid": "9dc010297cc5f974389dee1c608c2e93",
+          "path": "factionId",
+          "value": "rival:dungeon",
+          "category": "enemyFaction"
+        },
+        {
+          "guid": "9dd506fec83642899bb9d48868ba93d0",
+          "path": "anatomyFamily",
+          "value": "arachnid",
+          "category": "anatomyFamily"
+        },
+        {
+          "guid": "a32d4cb13214da742ace7b3bb69839c4",
+          "path": "anatomyFamily",
+          "value": "humanoid",
+          "category": "anatomyFamily"
+        },
+        {
+          "guid": "a52966f6a0223334d91e048b6daeeffa",
+          "path": "@nested:features[ammunitionKindId=ammo%3Aincendiary-bolt;type=AmmunitionItemFeature].ammunitionKindId",
+          "value": "ammo:incendiary-bolt",
+          "category": "ammunition"
+        },
+        {
+          "guid": "a562f96c8cdc2ee42ae892f925b77feb",
+          "path": "@nested:combatAbilities.abilities[id=species-active%3Agolem].id",
+          "value": "species-active:golem",
+          "category": "speciesAbility"
+        },
+        {
+          "guid": "a8d9242d9d63f844b9716c7bac737b27",
+          "path": "factionId",
+          "value": "rival:dungeon",
+          "category": "enemyFaction"
+        },
+        {
+          "guid": "aa68ac4074dad0149ac2fe4e7a44050d",
+          "path": "anatomyFamily",
+          "value": "construct",
+          "category": "anatomyFamily"
+        },
+        {
+          "guid": "abf1b52d42ce7ed478e99947a7d2aa07",
+          "path": "factionId",
+          "value": "human:crown",
+          "category": "enemyFaction"
+        },
+        {
+          "guid": "ac13a5bc30b1f624d9519acbb678c0d4",
+          "path": "factionId",
+          "value": "human:merchant",
+          "category": "enemyFaction"
+        },
+        {
+          "guid": "ac386ac7eb5c86a4191d5f617b43ad07",
+          "path": "factionId",
+          "value": "truth:guardian",
+          "category": "enemyFaction"
+        },
+        {
+          "guid": "ac5d590e33e6c514096d5b00e92e1f60",
+          "path": "@nested:features[ammunitionKindId=ammo%3Atranquilizer-dart;type=AmmunitionItemFeature].ammunitionKindId",
+          "value": "ammo:tranquilizer-dart",
+          "category": "ammunition"
+        },
+        {
+          "guid": "acbb09e89e236934586696491634224d",
+          "path": "factionId",
+          "value": "human:legion",
+          "category": "enemyFaction"
+        },
+        {
+          "guid": "b0910611fb162bd4283d9c4aca2d41cf",
+          "path": "factionId",
+          "value": "human:inquisition",
+          "category": "enemyFaction"
+        },
+        {
+          "guid": "b16ea963b482e164cb9e27f0e6dcc84a",
+          "path": "factionId",
+          "value": "rival:dungeon",
+          "category": "enemyFaction"
+        },
+        {
+          "guid": "b64f96111d91d7442b3b0bba99521dbb",
+          "path": "factionId",
+          "value": "human:settler",
+          "category": "enemyFaction"
+        },
+        {
+          "guid": "b8a33618c44eec34792937776a8c616e",
+          "path": "@nested:regions[id=sealed-zone].id",
+          "value": "sealed-zone",
+          "category": "campaignRegion"
+        },
+        {
+          "guid": "b8a33618c44eec34792937776a8c616e",
+          "path": "@nested:regions[id=sealed-zone].factionId",
+          "value": "seal",
+          "category": "campaignRegion"
+        },
+        {
+          "guid": "b8a33618c44eec34792937776a8c616e",
+          "path": "@nested:regions[id=rival-outpost].id",
+          "value": "rival-outpost",
+          "category": "campaignRegion"
+        },
+        {
+          "guid": "b8a33618c44eec34792937776a8c616e",
+          "path": "@nested:regions[id=border-trade].factionId",
+          "value": "human",
+          "category": "campaignRegion"
+        },
+        {
+          "guid": "b8a33618c44eec34792937776a8c616e",
+          "path": "@nested:regions[id=border-trade].id",
+          "value": "border-trade",
+          "category": "campaignRegion"
+        },
+        {
+          "guid": "b8a33618c44eec34792937776a8c616e",
+          "path": "@nested:regions[id=rival-outpost].factionId",
+          "value": "rival",
+          "category": "campaignRegion"
+        },
+        {
+          "guid": "bdc9f460475dad444a95572bbfa403fa",
+          "path": "anatomyFamily",
+          "value": "humanoid",
+          "category": "anatomyFamily"
+        },
+        {
+          "guid": "bf1961b589e7a214285e2406ffa679e1",
+          "path": "factionId",
+          "value": "neutral:specialist",
+          "category": "enemyFaction"
+        },
+        {
+          "guid": "bfc41be8d7724724ab7ec1a8436f2818",
+          "path": "@nested:features[ammunitionKindId=ammo%3Apaper-cartridge;type=AmmunitionItemFeature].ammunitionKindId",
+          "value": "ammo:paper-cartridge",
+          "category": "ammunition"
+        },
+        {
+          "guid": "c12dbba4adff9e640b02b8c108516114",
+          "path": "@nested:features[substanceId=substance%3Ablood-stimulant;type=SubstanceItemFeature].substanceId",
+          "value": "substance:blood-stimulant",
+          "category": "substance"
+        },
+        {
+          "guid": "c982f29e653dbc7458aab634cdcbcb29",
+          "path": "@nested:combatAbilities.abilities[id=species-active%3Amyconid].id",
+          "value": "species-active:myconid",
+          "category": "speciesAbility"
+        },
+        {
+          "guid": "c9ce776f1cbfd3f498ad8051018bc4f3",
+          "path": "@nested:features[ammunitionKindId=ammo%3Aarmor-piercing-cartridge;type=AmmunitionItemFeature].ammunitionKindId",
+          "value": "ammo:armor-piercing-cartridge",
+          "category": "ammunition"
+        },
+        {
+          "guid": "cd05846500c7aa949a49628f5af0ce52",
+          "path": "factionId",
+          "value": "human:inquisition",
+          "category": "enemyFaction"
+        },
+        {
+          "guid": "ce420df56a608f64cbccf0f2fb079913",
+          "path": "anatomyFamily",
+          "value": "humanoid",
+          "category": "anatomyFamily"
+        },
+        {
+          "guid": "ceb081e6fa9069841b322b1e703b3da6",
+          "path": "@nested:features[ammunitionKindId=ammo%3Abolt-steel;type=AmmunitionItemFeature].ammunitionKindId",
+          "value": "ammo:bolt-steel",
+          "category": "ammunition"
+        },
+        {
+          "guid": "d27cb7fa6c23f16448ac3e11addf694a",
+          "path": "factionId",
+          "value": "human:legion",
+          "category": "enemyFaction"
+        },
+        {
+          "guid": "d285212a63b820745bab525d638e79ec",
+          "path": "factionId",
+          "value": "human:legion",
+          "category": "enemyFaction"
+        },
+        {
+          "guid": "d30ab06ac256f1c4cbcb0a73d883e75f",
+          "path": "@nested:features[ammunitionKindId=ammo%3Aarrow;type=AmmunitionItemFeature].ammunitionKindId",
+          "value": "ammo:arrow",
+          "category": "ammunition"
+        },
+        {
+          "guid": "d37586032acbe304f917bd6c49639744",
+          "path": "factionId",
+          "value": "human:crown",
+          "category": "enemyFaction"
+        },
+        {
+          "guid": "d6114a61f3f197645bc69590b2992baf",
+          "path": "@nested:combatAbilities.abilities[id=species-active%3Aharpy].id",
+          "value": "species-active:harpy",
+          "category": "speciesAbility"
+        },
+        {
+          "guid": "d755f335e61eeeb4ab97c9a90f21e2bf",
+          "path": "@nested:features[ammunitionKindId=ammo%3Ablacksteel-bolt;type=AmmunitionItemFeature].ammunitionKindId",
+          "value": "ammo:blacksteel-bolt",
+          "category": "ammunition"
+        },
+        {
+          "guid": "d86f1b30aa8f9c14abee5449ff25b7d3",
+          "path": "factionId",
+          "value": "human:crown",
+          "category": "enemyFaction"
+        },
+        {
+          "guid": "d884dd73b72f53142922f5a7d568c820",
+          "path": "factionId",
+          "value": "human:inquisition",
+          "category": "enemyFaction"
+        },
+        {
+          "guid": "dbb8e61a505f0e94695e43494291f467",
+          "path": "@nested:features[ammunitionKindId=ammo%3Abolt;type=AmmunitionItemFeature].ammunitionKindId",
+          "value": "ammo:bolt",
+          "category": "ammunition"
+        },
+        {
+          "guid": "dcaff2c363b4d5e469b565180ff33e33",
+          "path": "anatomyFamily",
+          "value": "humanoid",
+          "category": "anatomyFamily"
+        },
+        {
+          "guid": "dd0d441d827036a48a4a50d0fc1a81a1",
+          "path": "factionId",
+          "value": "neutral:mercenary",
+          "category": "enemyFaction"
+        },
+        {
+          "guid": "dd458eed1c19fce499b69a9bb05558b9",
+          "path": "anatomyFamily",
+          "value": "humanoid",
+          "category": "anatomyFamily"
+        },
+        {
+          "guid": "e1a4c97b47907b44c84ee4b22529a5d4",
+          "path": "factionId",
+          "value": "rival:dungeon",
+          "category": "enemyFaction"
+        },
+        {
+          "guid": "e23366b7a96f7bd40b459eff0298e70a",
+          "path": "@nested:features[ammunitionKindId=ammo%3Aarrow-bone;type=AmmunitionItemFeature].ammunitionKindId",
+          "value": "ammo:arrow-bone",
+          "category": "ammunition"
+        },
+        {
+          "guid": "e9430f30eaaa46e18c56a1372d25df8b",
+          "path": "anatomyFamily",
+          "value": "insect",
+          "category": "anatomyFamily"
+        },
+        {
+          "guid": "f2ace772dd8bec04f93c752af5456f8c",
+          "path": "@nested:features[substanceId=substance%3Adreamleaf-analgesic;type=SubstanceItemFeature].substanceId",
+          "value": "substance:dreamleaf-analgesic",
+          "category": "substance"
+        },
+        {
+          "guid": "f9013e1a09c59d0418560f0568ff6d98",
+          "path": "anatomyFamily",
+          "value": "quadruped",
+          "category": "anatomyFamily"
+        },
+        {
+          "guid": "fa866b4bb52c1824980889e96a13b8e6",
+          "path": "factionId",
+          "value": "human:merchant",
+          "category": "enemyFaction"
+        },
+        {
+          "guid": "fc0b69b7cd1f7bf4ab8e4a5522476909",
+          "path": "anatomyFamily",
+          "value": "fungal",
+          "category": "anatomyFamily"
+        },
+        {
+          "guid": "fe256041a90f80d42898882fdd04b521",
+          "path": "@nested:features[ammunitionKindId=ammo%3Abolt-rune;type=AmmunitionItemFeature].ammunitionKindId",
+          "value": "ammo:bolt-rune",
+          "category": "ammunition"
+        },
+        {
+          "guid": "ff6cf719b3755624a85ef21815e6adc1",
+          "path": "factionId",
+          "value": "human:crown",
+          "category": "enemyFaction"
+        }
+      ],
+      "candidateSha256": "81417ff87ac42bd3a683eebc691153af4215dd59bff1fd0a3aaa7e5e1bc41db2",
+      "applied": true,
+      "captureSourceDigest": "a463a23dabdcd7ce28d8c8dc37615392aa5aa164a7ccc3d0cd39e4aeb52ca9ba",
+      "captureConfigurationDigest": "428ec41367429309e96213d3db88e141baa77e59b206d01598d05ee786f89379",
+      "captureLog": "Artifacts/QA/ImpactCI/r21-publication-r148su.log",
+      "captureLogSha256": "2b69e47ab471539f3b1eec95ccaf6b3029bb6ac132ff6ae4e631a48726cb4ee4"
+    },
+    {
+      "label": "r153su",
+      "assets": 3544,
+      "preservedFields": 11999,
+      "addedFields": 22,
+      "added": [
+        {
+          "guid": "0bb9a6c0e38a60949a3d7ef1630a4a3f",
+          "path": "compositionRole",
+          "value": "1"
+        },
+        {
+          "guid": "0c97c16e3b3bc7840b250866f792b75d",
+          "path": "compositionRole",
+          "value": "1"
+        },
+        {
+          "guid": "1e9be18b3b8179558b2b3115fb04d54d",
+          "path": "compositionRole",
+          "value": "1"
+        },
+        {
+          "guid": "261e307bbe509ce46896abe55e0130d2",
+          "path": "compositionRole",
+          "value": "1"
+        },
+        {
+          "guid": "29e7acad52f53e34eb58f5d523cecd91",
+          "path": "compositionRole",
+          "value": "1"
+        },
+        {
+          "guid": "2b4f9e930da5291409692757d49e5a0d",
+          "path": "compositionRole",
+          "value": "1"
+        },
+        {
+          "guid": "354847a5295b48319bfb4e1f01a31a24",
+          "path": "compositionRole",
+          "value": "1"
+        },
+        {
+          "guid": "52e2bd468f987124db5b0d2132e7d13a",
+          "path": "compositionRole",
+          "value": "1"
+        },
+        {
+          "guid": "687fc4ae8cf6f614aa19e7fb7c3f4671",
+          "path": "compositionRole",
+          "value": "1"
+        },
+        {
+          "guid": "7135b8e3960399447af8f4e294df54af",
+          "path": "compositionRole",
+          "value": "1"
+        },
+        {
+          "guid": "7348bf09bed06514db1a42e5fa42af95",
+          "path": "compositionRole",
+          "value": "1"
+        },
+        {
+          "guid": "85ba6ae06cb04bffaa050df89d4cdb19",
+          "path": "compositionRole",
+          "value": "1"
+        },
+        {
+          "guid": "a4c5b50ddfce40828ab57ce13bbf782b",
+          "path": "role",
+          "value": "128"
+        },
+        {
+          "guid": "a4c5b50ddfce40828ab57ce13bbf782b",
+          "path": "compositionRole",
+          "value": "1"
+        },
+        {
+          "guid": "b871db888e09a6b48bdfa9a9c6768a8d",
+          "path": "compositionRole",
+          "value": "1"
+        },
+        {
+          "guid": "c0434ea4f7c719248b7f1cffaf491e6e",
+          "path": "compositionRole",
+          "value": "1"
+        },
+        {
+          "guid": "c047e143e6b498f4b964a9acde02e27e",
+          "path": "role",
+          "value": "2048"
+        },
+        {
+          "guid": "c047e143e6b498f4b964a9acde02e27e",
+          "path": "compositionRole",
+          "value": "1"
+        },
+        {
+          "guid": "cb7d9a73d635e0444bcd9283c7544733",
+          "path": "compositionRole",
+          "value": "1"
+        },
+        {
+          "guid": "e4c3c69b221b2814c9558ac87d89e60e",
+          "path": "compositionRole",
+          "value": "1"
+        },
+        {
+          "guid": "fd01bb41852c4b40ad3cfec2282acfc0",
+          "path": "role",
+          "value": "256"
+        },
+        {
+          "guid": "fd01bb41852c4b40ad3cfec2282acfc0",
+          "path": "compositionRole",
+          "value": "1"
+        }
+      ],
+      "candidateSha256": "9cdb10872461f084ec799d6c4987a522b52ff8f70d4b4d543bade2ac19bf54ff",
+      "applied": true,
+      "captureSourceDigest": "e9875a2f95999da1037f2ab10b1c8e50a700ba387a2c45218782cb09d1421545",
+      "captureConfigurationDigest": "548a1fafced70e535db171d25276f40dddcb182bb329b51343708c9c44e7a056",
+      "captureLog": "Artifacts/QA/ImpactCI/r21-publication-r153su.log",
+      "captureLogSha256": "41a28e941a72d151e906e4f48fd32de6bfdc42b0a7f96723aae41834e344325d"
+    }
+  ],
+  "currentWorkingAssetValidation": {
+    "workingTree": "r157su",
+    "assets": 3544,
+    "fields": 12021,
+    "passed": true
+  },
+  "note": "Each append retains its actual native input. Final source uses the same identity definitions and field values; current native guards load the real published file and Python verifies every recorded current asset field."
+}

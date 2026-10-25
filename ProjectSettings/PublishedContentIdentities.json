@@ -636,6 +636,10 @@
                     "value": "mana-envelope"
                 },
                 {
+                    "path": "anatomyFamily",
+                    "value": "ethereal"
+                },
+                {
                     "path": "profileId",
                     "value": "anatomy:ethereal"
                 }
@@ -1074,6 +1078,10 @@
             "scriptGuid": "05066ab4c677e98479a259133da49fde",
             "typeName": "ResourceItemDefinitionSO",
             "fields": [
+                {
+                    "path": "@nested:features[ammunitionKindId=ammo%3Amana-disruptor-bolt;type=AmmunitionItemFeature].ammunitionKindId",
+                    "value": "ammo:mana-disruptor-bolt"
+                },
                 {
                     "path": "id",
                     "value": "9035"
@@ -1915,6 +1923,10 @@
             "typeName": "EnemyArchetypeDefinitionSO",
             "fields": [
                 {
+                    "path": "factionId",
+                    "value": "truth:guardian"
+                },
+                {
                     "path": "stableId",
                     "value": "enemy:truth-null-warden"
                 }
@@ -2012,6 +2024,10 @@
             "scriptGuid": "05066ab4c677e98479a259133da49fde",
             "typeName": "ResourceItemDefinitionSO",
             "fields": [
+                {
+                    "path": "@nested:features[ammunitionKindId=ammo%3Ascatter-cartridge;type=AmmunitionItemFeature].ammunitionKindId",
+                    "value": "ammo:scatter-cartridge"
+                },
                 {
                     "path": "id",
                     "value": "9030"
@@ -2566,7 +2582,12 @@
             "guid": "0bb9a6c0e38a60949a3d7ef1630a4a3f",
             "scriptGuid": "3bc060fdd9bd16f42b82ddfc97b09526",
             "typeName": "AISubstanceUse",
-            "fields": []
+            "fields": [
+                {
+                    "path": "compositionRole",
+                    "value": "1"
+                }
+            ]
         },
         {
             "guid": "0bbcc9aa811fd5e4c840444868ba8a4b",
@@ -2662,7 +2683,12 @@
             "guid": "0c97c16e3b3bc7840b250866f792b75d",
             "scriptGuid": "4b1ab429eb08ad946bb6098e578fffca",
             "typeName": "AIWork",
-            "fields": []
+            "fields": [
+                {
+                    "path": "compositionRole",
+                    "value": "1"
+                }
+            ]
         },
         {
             "guid": "0c9f57ffb98d33a4e86097f101c6dc4e",
@@ -4996,6 +5022,10 @@
             "typeName": "ResourceItemDefinitionSO",
             "fields": [
                 {
+                    "path": "@nested:features[ammunitionKindId=ammo%3Asmoke-cartridge;type=AmmunitionItemFeature].ammunitionKindId",
+                    "value": "ammo:smoke-cartridge"
+                },
+                {
                     "path": "id",
                     "value": "9028"
                 },
@@ -5181,6 +5211,10 @@
             "typeName": "ResourceItemDefinitionSO",
             "fields": [
                 {
+                    "path": "@nested:features[ammunitionKindId=ammo%3Ablasting-charge;type=AmmunitionItemFeature].ammunitionKindId",
+                    "value": "ammo:blasting-charge"
+                },
+                {
                     "path": "id",
                     "value": "8920"
                 },
@@ -5218,6 +5252,10 @@
             "scriptGuid": "8080a982ba741ff4e8ae644f419d70cb",
             "typeName": "EnemyArchetypeDefinitionSO",
             "fields": [
+                {
+                    "path": "factionId",
+                    "value": "human:inquisition"
+                },
                 {
                     "path": "stableId",
                     "value": "enemy:inquisition-purifier"
@@ -7199,7 +7237,12 @@
             "guid": "1e9be18b3b8179558b2b3115fb04d54d",
             "scriptGuid": "a1000000000000000000000000000005",
             "typeName": "AIRest",
-            "fields": []
+            "fields": [
+                {
+                    "path": "compositionRole",
+                    "value": "1"
+                }
+            ]
         },
         {
             "guid": "1ec65696517536c4a86e92c758f27aeb",
@@ -8173,6 +8216,10 @@
                     "value": "torso"
                 },
                 {
+                    "path": "anatomyFamily",
+                    "value": "humanoid"
+                },
+                {
                     "path": "profileId",
                     "value": "anatomy:human"
                 }
@@ -8294,6 +8341,10 @@
             "scriptGuid": "af4061a25738a28e7b9dbb8593dd53e7",
             "typeName": "CharacterSpeciesSO",
             "fields": [
+                {
+                    "path": "@nested:combatAbilities.abilities[id=species-active%3Abeastkin].id",
+                    "value": "species-active:beastkin"
+                },
                 {
                     "path": "speciesTag",
                     "value": "Beastkin"
@@ -8508,6 +8559,10 @@
             "typeName": "ResourceItemDefinitionSO",
             "fields": [
                 {
+                    "path": "@nested:features[substanceId=substance%3Avitality-tonic;type=SubstanceItemFeature].substanceId",
+                    "value": "substance:vitality-tonic"
+                },
+                {
                     "path": "id",
                     "value": "8093"
                 },
@@ -8664,6 +8719,10 @@
             "scriptGuid": "8080a982ba741ff4e8ae644f419d70cb",
             "typeName": "EnemyArchetypeDefinitionSO",
             "fields": [
+                {
+                    "path": "factionId",
+                    "value": "rival:dungeon"
+                },
                 {
                     "path": "stableId",
                     "value": "enemy:rival-spore-shepherd"
@@ -8989,7 +9048,12 @@
             "guid": "261e307bbe509ce46896abe55e0130d2",
             "scriptGuid": "d6a19ed85a286e147aa2dcff5ddf9f46",
             "typeName": "AIHaul",
-            "fields": []
+            "fields": [
+                {
+                    "path": "compositionRole",
+                    "value": "1"
+                }
+            ]
         },
         {
             "guid": "26290d25ab8ff2d4aa51afefbb9fd30d",
@@ -9617,7 +9681,12 @@
             "guid": "29e7acad52f53e34eb58f5d523cecd91",
             "scriptGuid": "709e2e4b0435d674fba0f462e476b9e2",
             "typeName": "AIHunt",
-            "fields": []
+            "fields": [
+                {
+                    "path": "compositionRole",
+                    "value": "1"
+                }
+            ]
         },
         {
             "guid": "2a5a023347d5f6147844823cc940b802",
@@ -9835,7 +9904,12 @@
             "guid": "2b4f9e930da5291409692757d49e5a0d",
             "scriptGuid": "c4984c5bd51ce2c4d949edf04b491769",
             "typeName": "AIPrimitiveFloorRest",
-            "fields": []
+            "fields": [
+                {
+                    "path": "compositionRole",
+                    "value": "1"
+                }
+            ]
         },
         {
             "guid": "2b5c4c2b8b9b43d479d44520e9d863df",
@@ -9936,6 +10010,10 @@
             "scriptGuid": "8080a982ba741ff4e8ae644f419d70cb",
             "typeName": "EnemyArchetypeDefinitionSO",
             "fields": [
+                {
+                    "path": "factionId",
+                    "value": "human:legion"
+                },
                 {
                     "path": "stableId",
                     "value": "enemy:legion-pikeman"
@@ -11132,6 +11210,10 @@
             "typeName": "ResourceItemDefinitionSO",
             "fields": [
                 {
+                    "path": "@nested:features[substanceId=substance%3Anight-wine;type=SubstanceItemFeature].substanceId",
+                    "value": "substance:night-wine"
+                },
+                {
                     "path": "id",
                     "value": "8097"
                 },
@@ -11458,6 +11540,10 @@
             "typeName": "EnemyArchetypeDefinitionSO",
             "fields": [
                 {
+                    "path": "factionId",
+                    "value": "human:settler"
+                },
+                {
                     "path": "stableId",
                     "value": "enemy:settler-hunter"
                 }
@@ -11498,6 +11584,10 @@
             "scriptGuid": "05066ab4c677e98479a259133da49fde",
             "typeName": "ResourceItemDefinitionSO",
             "fields": [
+                {
+                    "path": "@nested:features[ammunitionKindId=ammo%3Abolt-iron;type=AmmunitionItemFeature].ammunitionKindId",
+                    "value": "ammo:bolt-iron"
+                },
                 {
                     "path": "id",
                     "value": "8104"
@@ -11646,6 +11736,10 @@
             "scriptGuid": "05066ab4c677e98479a259133da49fde",
             "typeName": "ResourceItemDefinitionSO",
             "fields": [
+                {
+                    "path": "@nested:features[substanceId=substance%3Atwilight-beer;type=SubstanceItemFeature].substanceId",
+                    "value": "substance:twilight-beer"
+                },
                 {
                     "path": "id",
                     "value": "8306"
@@ -12192,7 +12286,12 @@
             "guid": "354847a5295b48319bfb4e1f01a31a24",
             "scriptGuid": "a1000000000000000000000000000008",
             "typeName": "AIWait",
-            "fields": []
+            "fields": [
+                {
+                    "path": "compositionRole",
+                    "value": "1"
+                }
+            ]
         },
         {
             "guid": "354c16f8bfba09445b6197ed111d26e6",
@@ -13762,6 +13861,10 @@
                     "value": "sensory-head"
                 },
                 {
+                    "path": "anatomyFamily",
+                    "value": "vermiform"
+                },
+                {
                     "path": "profileId",
                     "value": "anatomy:vermiform"
                 }
@@ -14602,6 +14705,10 @@
             "typeName": "EnemyArchetypeDefinitionSO",
             "fields": [
                 {
+                    "path": "factionId",
+                    "value": "truth:guardian"
+                },
+                {
                     "path": "stableId",
                     "value": "enemy:truth-sealkeeper"
                 }
@@ -14949,6 +15056,10 @@
             "scriptGuid": "05066ab4c677e98479a259133da49fde",
             "typeName": "ResourceItemDefinitionSO",
             "fields": [
+                {
+                    "path": "@nested:features[ammunitionKindId=ammo%3Aarrow-iron;type=AmmunitionItemFeature].ammunitionKindId",
+                    "value": "ammo:arrow-iron"
+                },
                 {
                     "path": "id",
                     "value": "8100"
@@ -15604,6 +15715,10 @@
             "scriptGuid": "05066ab4c677e98479a259133da49fde",
             "typeName": "ResourceItemDefinitionSO",
             "fields": [
+                {
+                    "path": "@nested:features[ammunitionKindId=ammo%3Atrap-canister;type=AmmunitionItemFeature].ammunitionKindId",
+                    "value": "ammo:trap-canister"
+                },
                 {
                     "path": "id",
                     "value": "8921"
@@ -16549,6 +16664,10 @@
             "scriptGuid": "af4061a25738a28e7b9dbb8593dd53e7",
             "typeName": "CharacterSpeciesSO",
             "fields": [
+                {
+                    "path": "@nested:combatAbilities.abilities[id=species-active%3Ademon].id",
+                    "value": "species-active:demon"
+                },
                 {
                     "path": "speciesTag",
                     "value": "Demon"
@@ -17799,6 +17918,10 @@
             "typeName": "CharacterSpeciesSO",
             "fields": [
                 {
+                    "path": "@nested:combatAbilities.abilities[id=species-active%3Akobold].id",
+                    "value": "species-active:kobold"
+                },
+                {
                     "path": "speciesTag",
                     "value": "Kobold"
                 }
@@ -17850,6 +17973,10 @@
             "scriptGuid": "8080a982ba741ff4e8ae644f419d70cb",
             "typeName": "EnemyArchetypeDefinitionSO",
             "fields": [
+                {
+                    "path": "factionId",
+                    "value": "human:crown"
+                },
                 {
                     "path": "stableId",
                     "value": "enemy:crown-marshal"
@@ -18253,6 +18380,10 @@
             "typeName": "ResourceItemDefinitionSO",
             "fields": [
                 {
+                    "path": "@nested:features[ammunitionKindId=ammo%3Asignal-flare;type=AmmunitionItemFeature].ammunitionKindId",
+                    "value": "ammo:signal-flare"
+                },
+                {
                     "path": "id",
                     "value": "9031"
                 },
@@ -18402,6 +18533,10 @@
             "scriptGuid": "05066ab4c677e98479a259133da49fde",
             "typeName": "ResourceItemDefinitionSO",
             "fields": [
+                {
+                    "path": "@nested:features[ammunitionKindId=ammo%3Aarrow-steel;type=AmmunitionItemFeature].ammunitionKindId",
+                    "value": "ammo:arrow-steel"
+                },
                 {
                     "path": "id",
                     "value": "8101"
@@ -18599,7 +18734,12 @@
             "guid": "52e2bd468f987124db5b0d2132e7d13a",
             "scriptGuid": "f5edff95c3142a54c89c5d89a487af7b",
             "typeName": "AIRescue",
-            "fields": []
+            "fields": [
+                {
+                    "path": "compositionRole",
+                    "value": "1"
+                }
+            ]
         },
         {
             "guid": "52f307425859cb548841ec6d5663885f",
@@ -19695,6 +19835,10 @@
                     "value": "sensory-gel"
                 },
                 {
+                    "path": "anatomyFamily",
+                    "value": "aberrant"
+                },
+                {
                     "path": "profileId",
                     "value": "anatomy:slime"
                 }
@@ -19874,6 +20018,10 @@
             "scriptGuid": "8080a982ba741ff4e8ae644f419d70cb",
             "typeName": "EnemyArchetypeDefinitionSO",
             "fields": [
+                {
+                    "path": "factionId",
+                    "value": "human:legion"
+                },
                 {
                     "path": "stableId",
                     "value": "enemy:legion-surgeon"
@@ -20358,6 +20506,10 @@
                 {
                     "path": "@nested:nodes[nodeId=wing%3Aright].nodeId",
                     "value": "wing:right"
+                },
+                {
+                    "path": "anatomyFamily",
+                    "value": "winged-insect"
                 },
                 {
                     "path": "profileId",
@@ -20879,6 +21031,10 @@
             "scriptGuid": "8080a982ba741ff4e8ae644f419d70cb",
             "typeName": "EnemyArchetypeDefinitionSO",
             "fields": [
+                {
+                    "path": "factionId",
+                    "value": "human:inquisition"
+                },
                 {
                     "path": "stableId",
                     "value": "enemy:inquisition-ward-knight"
@@ -22067,6 +22223,10 @@
             "scriptGuid": "8080a982ba741ff4e8ae644f419d70cb",
             "typeName": "EnemyArchetypeDefinitionSO",
             "fields": [
+                {
+                    "path": "factionId",
+                    "value": "human:merchant"
+                },
                 {
                     "path": "stableId",
                     "value": "enemy:merchant-alchemist"
@@ -23496,7 +23656,12 @@
             "guid": "687fc4ae8cf6f614aa19e7fb7c3f4671",
             "scriptGuid": "3c42a82bddfd86b4d836de6c35609968",
             "typeName": "AIPrimitiveFieldMeal",
-            "fields": []
+            "fields": [
+                {
+                    "path": "compositionRole",
+                    "value": "1"
+                }
+            ]
         },
         {
             "guid": "6889af14c53fe364bb84c3588c735b94",
@@ -23647,6 +23812,10 @@
             "scriptGuid": "05066ab4c677e98479a259133da49fde",
             "typeName": "ResourceItemDefinitionSO",
             "fields": [
+                {
+                    "path": "@nested:features[ammunitionKindId=ammo%3Aarrow-rune;type=AmmunitionItemFeature].ammunitionKindId",
+                    "value": "ammo:arrow-rune"
+                },
                 {
                     "path": "id",
                     "value": "8102"
@@ -24062,6 +24231,10 @@
             "typeName": "ResourceItemDefinitionSO",
             "fields": [
                 {
+                    "path": "@nested:features[substanceId=substance%3Amoonflower-tea;type=SubstanceItemFeature].substanceId",
+                    "value": "substance:moonflower-tea"
+                },
+                {
                     "path": "id",
                     "value": "8092"
                 },
@@ -24355,6 +24528,10 @@
             "scriptGuid": "8080a982ba741ff4e8ae644f419d70cb",
             "typeName": "EnemyArchetypeDefinitionSO",
             "fields": [
+                {
+                    "path": "factionId",
+                    "value": "human:merchant"
+                },
                 {
                     "path": "stableId",
                     "value": "enemy:merchant-hired-bulwark"
@@ -25590,7 +25767,12 @@
             "guid": "7135b8e3960399447af8f4e294df54af",
             "scriptGuid": "a1000000000000000000000000000002",
             "typeName": "AIEat",
-            "fields": []
+            "fields": [
+                {
+                    "path": "compositionRole",
+                    "value": "1"
+                }
+            ]
         },
         {
             "guid": "713b3437be0a8064ca3ea470bec05f4f",
@@ -25773,6 +25955,10 @@
             "typeName": "ResourceItemDefinitionSO",
             "fields": [
                 {
+                    "path": "@nested:features[substanceId=substance%3Amana-awakener;type=SubstanceItemFeature].substanceId",
+                    "value": "substance:mana-awakener"
+                },
+                {
                     "path": "id",
                     "value": "8096"
                 },
@@ -25952,7 +26138,12 @@
             "guid": "7348bf09bed06514db1a42e5fa42af95",
             "scriptGuid": "a1000000000000000000000000000003",
             "typeName": "AIExitDungeon",
-            "fields": []
+            "fields": [
+                {
+                    "path": "compositionRole",
+                    "value": "1"
+                }
+            ]
         },
         {
             "guid": "73626235116cce945ab4f8a1f5541568",
@@ -26437,6 +26628,10 @@
                     "value": "wing:right"
                 },
                 {
+                    "path": "anatomyFamily",
+                    "value": "avian"
+                },
+                {
                     "path": "profileId",
                     "value": "anatomy:avian"
                 }
@@ -26809,6 +27004,10 @@
             "scriptGuid": "05066ab4c677e98479a259133da49fde",
             "typeName": "ResourceItemDefinitionSO",
             "fields": [
+                {
+                    "path": "@nested:features[ammunitionKindId=ammo%3Aincendiary-arrow;type=AmmunitionItemFeature].ammunitionKindId",
+                    "value": "ammo:incendiary-arrow"
+                },
                 {
                     "path": "id",
                     "value": "9026"
@@ -27359,6 +27558,10 @@
                     "value": "wing:right"
                 },
                 {
+                    "path": "anatomyFamily",
+                    "value": "drake"
+                },
+                {
                     "path": "profileId",
                     "value": "anatomy:drake"
                 }
@@ -27849,6 +28052,10 @@
                 {
                     "path": "@nested:nodes[nodeId=tusk%3Aright].nodeId",
                     "value": "tusk:right"
+                },
+                {
+                    "path": "anatomyFamily",
+                    "value": "humanoid"
                 },
                 {
                     "path": "profileId",
@@ -29335,6 +29542,10 @@
             "typeName": "ResourceItemDefinitionSO",
             "fields": [
                 {
+                    "path": "@nested:features[ammunitionKindId=ammo%3Abolt-bone;type=AmmunitionItemFeature].ammunitionKindId",
+                    "value": "ammo:bolt-bone"
+                },
+                {
                     "path": "id",
                     "value": "8103"
                 },
@@ -30003,6 +30214,10 @@
             "typeName": "EnemyArchetypeDefinitionSO",
             "fields": [
                 {
+                    "path": "factionId",
+                    "value": "neutral:construct"
+                },
+                {
                     "path": "stableId",
                     "value": "enemy:neutral-clockwork"
                 }
@@ -30291,6 +30506,10 @@
             "scriptGuid": "05066ab4c677e98479a259133da49fde",
             "typeName": "ResourceItemDefinitionSO",
             "fields": [
+                {
+                    "path": "@nested:features[substanceId=substance%3Anight-spirit;type=SubstanceItemFeature].substanceId",
+                    "value": "substance:night-spirit"
+                },
                 {
                     "path": "id",
                     "value": "8307"
@@ -30635,7 +30854,12 @@
             "guid": "85ba6ae06cb04bffaa050df89d4cdb19",
             "scriptGuid": "a1000000000000000000000000000007",
             "typeName": "AILookAround",
-            "fields": []
+            "fields": [
+                {
+                    "path": "compositionRole",
+                    "value": "1"
+                }
+            ]
         },
         {
             "guid": "85c08d0af6bf70e4b8105de542211fa2",
@@ -30700,6 +30924,10 @@
             "typeName": "EnemyArchetypeDefinitionSO",
             "fields": [
                 {
+                    "path": "factionId",
+                    "value": "human:settler"
+                },
+                {
                     "path": "stableId",
                     "value": "enemy:settler-trapper"
                 }
@@ -30725,6 +30953,10 @@
             "scriptGuid": "8080a982ba741ff4e8ae644f419d70cb",
             "typeName": "EnemyArchetypeDefinitionSO",
             "fields": [
+                {
+                    "path": "factionId",
+                    "value": "human:settler"
+                },
                 {
                     "path": "stableId",
                     "value": "enemy:settler-ranger-chief"
@@ -32216,6 +32448,10 @@
             "scriptGuid": "05066ab4c677e98479a259133da49fde",
             "typeName": "ResourceItemDefinitionSO",
             "fields": [
+                {
+                    "path": "@nested:features[substanceId=substance%3Ahallucinogenic;type=SubstanceItemFeature].substanceId",
+                    "value": "substance:hallucinogenic"
+                },
                 {
                     "path": "id",
                     "value": "8098"
@@ -35350,6 +35586,10 @@
             "typeName": "ResourceItemDefinitionSO",
             "fields": [
                 {
+                    "path": "@nested:features[ammunitionKindId=ammo%3Arune-cartridge;type=AmmunitionItemFeature].ammunitionKindId",
+                    "value": "ammo:rune-cartridge"
+                },
+                {
                     "path": "id",
                     "value": "9033"
                 },
@@ -35776,6 +36016,10 @@
             "scriptGuid": "8080a982ba741ff4e8ae644f419d70cb",
             "typeName": "EnemyArchetypeDefinitionSO",
             "fields": [
+                {
+                    "path": "factionId",
+                    "value": "human:settler"
+                },
                 {
                     "path": "stableId",
                     "value": "enemy:settler-herbalist"
@@ -36304,6 +36548,10 @@
             "typeName": "EnemyArchetypeDefinitionSO",
             "fields": [
                 {
+                    "path": "factionId",
+                    "value": "human:merchant"
+                },
+                {
                     "path": "stableId",
                     "value": "enemy:merchant-factor"
                 }
@@ -36409,6 +36657,10 @@
             "typeName": "EnemyArchetypeDefinitionSO",
             "fields": [
                 {
+                    "path": "factionId",
+                    "value": "rival:dungeon"
+                },
+                {
                     "path": "stableId",
                     "value": "enemy:rival-pactbinder"
                 }
@@ -36511,6 +36763,10 @@
                 {
                     "path": "@nested:nodes[nodeId=torso].nodeId",
                     "value": "torso"
+                },
+                {
+                    "path": "anatomyFamily",
+                    "value": "arachnid"
                 },
                 {
                     "path": "profileId",
@@ -37813,6 +38069,10 @@
                     "value": "torso"
                 },
                 {
+                    "path": "anatomyFamily",
+                    "value": "humanoid"
+                },
+                {
                     "path": "profileId",
                     "value": "anatomy:humanoid"
                 }
@@ -38160,7 +38420,16 @@
             "guid": "a4c5b50ddfce40828ab57ce13bbf782b",
             "scriptGuid": "a1000000000000000000000000000004",
             "typeName": "AIFacilityRoleAction",
-            "fields": []
+            "fields": [
+                {
+                    "path": "compositionRole",
+                    "value": "1"
+                },
+                {
+                    "path": "role",
+                    "value": "128"
+                }
+            ]
         },
         {
             "guid": "a4c8f12d2e082a444adeddfe45929e75",
@@ -38264,6 +38533,10 @@
             "typeName": "ResourceItemDefinitionSO",
             "fields": [
                 {
+                    "path": "@nested:features[ammunitionKindId=ammo%3Aincendiary-bolt;type=AmmunitionItemFeature].ammunitionKindId",
+                    "value": "ammo:incendiary-bolt"
+                },
+                {
                     "path": "id",
                     "value": "9027"
                 },
@@ -38354,6 +38627,10 @@
             "scriptGuid": "af4061a25738a28e7b9dbb8593dd53e7",
             "typeName": "CharacterSpeciesSO",
             "fields": [
+                {
+                    "path": "@nested:combatAbilities.abilities[id=species-active%3Agolem].id",
+                    "value": "species-active:golem"
+                },
                 {
                     "path": "speciesTag",
                     "value": "Golem"
@@ -39212,6 +39489,10 @@
             "typeName": "EnemyArchetypeDefinitionSO",
             "fields": [
                 {
+                    "path": "factionId",
+                    "value": "rival:dungeon"
+                },
+                {
                     "path": "stableId",
                     "value": "enemy:rival-packbreaker"
                 }
@@ -39649,6 +39930,10 @@
                     "value": "torso"
                 },
                 {
+                    "path": "anatomyFamily",
+                    "value": "construct"
+                },
+                {
                     "path": "profileId",
                     "value": "anatomy:construct"
                 }
@@ -39920,6 +40205,10 @@
             "typeName": "EnemyArchetypeDefinitionSO",
             "fields": [
                 {
+                    "path": "factionId",
+                    "value": "human:crown"
+                },
+                {
                     "path": "stableId",
                     "value": "enemy:crown-chaplain"
                 }
@@ -39930,6 +40219,10 @@
             "scriptGuid": "8080a982ba741ff4e8ae644f419d70cb",
             "typeName": "EnemyArchetypeDefinitionSO",
             "fields": [
+                {
+                    "path": "factionId",
+                    "value": "human:merchant"
+                },
                 {
                     "path": "stableId",
                     "value": "enemy:merchant-caravan-blade"
@@ -39956,6 +40249,10 @@
             "scriptGuid": "8080a982ba741ff4e8ae644f419d70cb",
             "typeName": "EnemyArchetypeDefinitionSO",
             "fields": [
+                {
+                    "path": "factionId",
+                    "value": "truth:guardian"
+                },
                 {
                     "path": "stableId",
                     "value": "enemy:truth-archivist"
@@ -39998,6 +40295,10 @@
             "scriptGuid": "05066ab4c677e98479a259133da49fde",
             "typeName": "ResourceItemDefinitionSO",
             "fields": [
+                {
+                    "path": "@nested:features[ammunitionKindId=ammo%3Atranquilizer-dart;type=AmmunitionItemFeature].ammunitionKindId",
+                    "value": "ammo:tranquilizer-dart"
+                },
                 {
                     "path": "id",
                     "value": "9034"
@@ -40047,6 +40348,10 @@
             "scriptGuid": "8080a982ba741ff4e8ae644f419d70cb",
             "typeName": "EnemyArchetypeDefinitionSO",
             "fields": [
+                {
+                    "path": "factionId",
+                    "value": "human:legion"
+                },
                 {
                     "path": "stableId",
                     "value": "enemy:legion-captain"
@@ -40682,6 +40987,10 @@
             "typeName": "EnemyArchetypeDefinitionSO",
             "fields": [
                 {
+                    "path": "factionId",
+                    "value": "human:inquisition"
+                },
+                {
                     "path": "stableId",
                     "value": "enemy:inquisition-censor"
                 }
@@ -40846,6 +41155,10 @@
             "scriptGuid": "8080a982ba741ff4e8ae644f419d70cb",
             "typeName": "EnemyArchetypeDefinitionSO",
             "fields": [
+                {
+                    "path": "factionId",
+                    "value": "rival:dungeon"
+                },
                 {
                     "path": "stableId",
                     "value": "enemy:rival-stormcaller"
@@ -41681,6 +41994,10 @@
             "scriptGuid": "8080a982ba741ff4e8ae644f419d70cb",
             "typeName": "EnemyArchetypeDefinitionSO",
             "fields": [
+                {
+                    "path": "factionId",
+                    "value": "human:settler"
+                },
                 {
                     "path": "stableId",
                     "value": "enemy:settler-barricadier"
@@ -46451,7 +46768,12 @@
             "guid": "b871db888e09a6b48bdfa9a9c6768a8d",
             "scriptGuid": "c5cd7a6dc8afc8542871ad3d994a1976",
             "typeName": "AIDrink",
-            "fields": []
+            "fields": [
+                {
+                    "path": "compositionRole",
+                    "value": "1"
+                }
+            ]
         },
         {
             "guid": "b878d263fd9463541b554e7c3e6b95be",
@@ -46488,6 +46810,30 @@
             "scriptGuid": "995ab4c5feb449c29c02636f13af8048",
             "typeName": "OffenseCampaignCatalogSO",
             "fields": [
+                {
+                    "path": "@nested:regions[id=border-trade].factionId",
+                    "value": "human"
+                },
+                {
+                    "path": "@nested:regions[id=border-trade].id",
+                    "value": "border-trade"
+                },
+                {
+                    "path": "@nested:regions[id=rival-outpost].factionId",
+                    "value": "rival"
+                },
+                {
+                    "path": "@nested:regions[id=rival-outpost].id",
+                    "value": "rival-outpost"
+                },
+                {
+                    "path": "@nested:regions[id=sealed-zone].factionId",
+                    "value": "seal"
+                },
+                {
+                    "path": "@nested:regions[id=sealed-zone].id",
+                    "value": "sealed-zone"
+                },
                 {
                     "path": "@nested:targets[id=food_farm].id",
                     "value": "food_farm"
@@ -47545,6 +47891,10 @@
                     "value": "torso"
                 },
                 {
+                    "path": "anatomyFamily",
+                    "value": "humanoid"
+                },
+                {
                     "path": "profileId",
                     "value": "anatomy:kobold"
                 }
@@ -47820,6 +48170,10 @@
             "typeName": "EnemyArchetypeDefinitionSO",
             "fields": [
                 {
+                    "path": "factionId",
+                    "value": "neutral:specialist"
+                },
+                {
                     "path": "stableId",
                     "value": "enemy:neutral-smoke-sapper"
                 }
@@ -48063,6 +48417,10 @@
             "typeName": "ResourceItemDefinitionSO",
             "fields": [
                 {
+                    "path": "@nested:features[ammunitionKindId=ammo%3Apaper-cartridge;type=AmmunitionItemFeature].ammunitionKindId",
+                    "value": "ammo:paper-cartridge"
+                },
+                {
                     "path": "id",
                     "value": "8923"
                 },
@@ -48147,7 +48505,12 @@
             "guid": "c0434ea4f7c719248b7f1cffaf491e6e",
             "scriptGuid": "f44e4d95b8cb523498a534959860bb6b",
             "typeName": "AIPrimitiveBucketWash",
-            "fields": []
+            "fields": [
+                {
+                    "path": "compositionRole",
+                    "value": "1"
+                }
+            ]
         },
         {
             "guid": "c043d93829614d240aa97c532942bf60",
@@ -48179,7 +48542,16 @@
             "guid": "c047e143e6b498f4b964a9acde02e27e",
             "scriptGuid": "a1000000000000000000000000000004",
             "typeName": "AIFacilityRoleAction",
-            "fields": []
+            "fields": [
+                {
+                    "path": "compositionRole",
+                    "value": "1"
+                },
+                {
+                    "path": "role",
+                    "value": "2048"
+                }
+            ]
         },
         {
             "guid": "c049eeedbba24da4296bcacfd82f9d54",
@@ -48355,6 +48727,10 @@
             "scriptGuid": "05066ab4c677e98479a259133da49fde",
             "typeName": "ResourceItemDefinitionSO",
             "fields": [
+                {
+                    "path": "@nested:features[substanceId=substance%3Ablood-stimulant;type=SubstanceItemFeature].substanceId",
+                    "value": "substance:blood-stimulant"
+                },
                 {
                     "path": "id",
                     "value": "8095"
@@ -49916,6 +50292,10 @@
             "typeName": "CharacterSpeciesSO",
             "fields": [
                 {
+                    "path": "@nested:combatAbilities.abilities[id=species-active%3Amyconid].id",
+                    "value": "species-active:myconid"
+                },
+                {
                     "path": "speciesTag",
                     "value": "Myconid"
                 }
@@ -49986,6 +50366,10 @@
             "scriptGuid": "05066ab4c677e98479a259133da49fde",
             "typeName": "ResourceItemDefinitionSO",
             "fields": [
+                {
+                    "path": "@nested:features[ammunitionKindId=ammo%3Aarmor-piercing-cartridge;type=AmmunitionItemFeature].ammunitionKindId",
+                    "value": "ammo:armor-piercing-cartridge"
+                },
                 {
                     "path": "id",
                     "value": "9029"
@@ -60184,7 +60568,12 @@
             "guid": "cb7d9a73d635e0444bcd9283c7544733",
             "scriptGuid": "e9d516466d1226c48984d856b021a37e",
             "typeName": "AIPrimitiveLatrine",
-            "fields": []
+            "fields": [
+                {
+                    "path": "compositionRole",
+                    "value": "1"
+                }
+            ]
         },
         {
             "guid": "cb9cfa7066f7ccb44b6ac0c18ffe400e",
@@ -60525,6 +60914,10 @@
             "typeName": "EnemyArchetypeDefinitionSO",
             "fields": [
                 {
+                    "path": "factionId",
+                    "value": "human:inquisition"
+                },
+                {
                     "path": "stableId",
                     "value": "enemy:inquisition-high-judge"
                 }
@@ -60847,6 +61240,10 @@
                     "value": "torso"
                 },
                 {
+                    "path": "anatomyFamily",
+                    "value": "humanoid"
+                },
+                {
                     "path": "profileId",
                     "value": "anatomy:vampire"
                 }
@@ -60898,6 +61295,10 @@
             "scriptGuid": "05066ab4c677e98479a259133da49fde",
             "typeName": "ResourceItemDefinitionSO",
             "fields": [
+                {
+                    "path": "@nested:features[ammunitionKindId=ammo%3Abolt-steel;type=AmmunitionItemFeature].ammunitionKindId",
+                    "value": "ammo:bolt-steel"
+                },
                 {
                     "path": "id",
                     "value": "8105"
@@ -61858,6 +62259,10 @@
             "typeName": "EnemyArchetypeDefinitionSO",
             "fields": [
                 {
+                    "path": "factionId",
+                    "value": "human:legion"
+                },
+                {
                     "path": "stableId",
                     "value": "enemy:legion-arquebus"
                 }
@@ -61883,6 +62288,10 @@
             "scriptGuid": "8080a982ba741ff4e8ae644f419d70cb",
             "typeName": "EnemyArchetypeDefinitionSO",
             "fields": [
+                {
+                    "path": "factionId",
+                    "value": "human:legion"
+                },
                 {
                     "path": "stableId",
                     "value": "enemy:legion-pavise"
@@ -61954,6 +62363,10 @@
             "scriptGuid": "4cb4b1f490bee1344a1002cabb362d7a",
             "typeName": "GenericItemDefinitionSO",
             "fields": [
+                {
+                    "path": "@nested:features[ammunitionKindId=ammo%3Aarrow;type=AmmunitionItemFeature].ammunitionKindId",
+                    "value": "ammo:arrow"
+                },
                 {
                     "path": "id",
                     "value": "0"
@@ -62085,6 +62498,10 @@
             "scriptGuid": "8080a982ba741ff4e8ae644f419d70cb",
             "typeName": "EnemyArchetypeDefinitionSO",
             "fields": [
+                {
+                    "path": "factionId",
+                    "value": "human:crown"
+                },
                 {
                     "path": "stableId",
                     "value": "enemy:crown-levy"
@@ -62740,6 +63157,10 @@
             "typeName": "CharacterSpeciesSO",
             "fields": [
                 {
+                    "path": "@nested:combatAbilities.abilities[id=species-active%3Aharpy].id",
+                    "value": "species-active:harpy"
+                },
+                {
                     "path": "speciesTag",
                     "value": "Harpy"
                 }
@@ -63054,6 +63475,10 @@
             "typeName": "ResourceItemDefinitionSO",
             "fields": [
                 {
+                    "path": "@nested:features[ammunitionKindId=ammo%3Ablacksteel-bolt;type=AmmunitionItemFeature].ammunitionKindId",
+                    "value": "ammo:blacksteel-bolt"
+                },
+                {
                     "path": "id",
                     "value": "9032"
                 },
@@ -63355,6 +63780,10 @@
             "typeName": "EnemyArchetypeDefinitionSO",
             "fields": [
                 {
+                    "path": "factionId",
+                    "value": "human:crown"
+                },
+                {
                     "path": "stableId",
                     "value": "enemy:crown-longbow"
                 }
@@ -63365,6 +63794,10 @@
             "scriptGuid": "8080a982ba741ff4e8ae644f419d70cb",
             "typeName": "EnemyArchetypeDefinitionSO",
             "fields": [
+                {
+                    "path": "factionId",
+                    "value": "human:inquisition"
+                },
                 {
                     "path": "stableId",
                     "value": "enemy:inquisition-rune-sniper"
@@ -63941,6 +64374,10 @@
             "typeName": "GenericItemDefinitionSO",
             "fields": [
                 {
+                    "path": "@nested:features[ammunitionKindId=ammo%3Abolt;type=AmmunitionItemFeature].ammunitionKindId",
+                    "value": "ammo:bolt"
+                },
+                {
                     "path": "id",
                     "value": "0"
                 },
@@ -64211,6 +64648,10 @@
                     "value": "torso"
                 },
                 {
+                    "path": "anatomyFamily",
+                    "value": "humanoid"
+                },
+                {
                     "path": "profileId",
                     "value": "anatomy:demon"
                 }
@@ -64258,6 +64699,10 @@
             "scriptGuid": "8080a982ba741ff4e8ae644f419d70cb",
             "typeName": "EnemyArchetypeDefinitionSO",
             "fields": [
+                {
+                    "path": "factionId",
+                    "value": "neutral:mercenary"
+                },
                 {
                     "path": "stableId",
                     "value": "enemy:neutral-mercenary"
@@ -64404,6 +64849,10 @@
                 {
                     "path": "@nested:nodes[nodeId=torso].nodeId",
                     "value": "torso"
+                },
+                {
+                    "path": "anatomyFamily",
+                    "value": "humanoid"
                 },
                 {
                     "path": "profileId",
@@ -65344,6 +65793,10 @@
             "typeName": "EnemyArchetypeDefinitionSO",
             "fields": [
                 {
+                    "path": "factionId",
+                    "value": "rival:dungeon"
+                },
+                {
                     "path": "stableId",
                     "value": "enemy:rival-siege-frame"
                 }
@@ -65484,6 +65937,10 @@
             "scriptGuid": "05066ab4c677e98479a259133da49fde",
             "typeName": "ResourceItemDefinitionSO",
             "fields": [
+                {
+                    "path": "@nested:features[ammunitionKindId=ammo%3Aarrow-bone;type=AmmunitionItemFeature].ammunitionKindId",
+                    "value": "ammo:arrow-bone"
+                },
                 {
                     "path": "id",
                     "value": "8099"
@@ -66120,7 +66577,12 @@
             "guid": "e4c3c69b221b2814c9558ac87d89e60e",
             "scriptGuid": "a1000000000000000000000000000006",
             "typeName": "AIShopping",
-            "fields": []
+            "fields": [
+                {
+                    "path": "compositionRole",
+                    "value": "1"
+                }
+            ]
         },
         {
             "guid": "e4da876c3c3360e4c9128800b610cae0",
@@ -67076,6 +67538,10 @@
                 {
                     "path": "@nested:nodes[nodeId=torso].nodeId",
                     "value": "torso"
+                },
+                {
+                    "path": "anatomyFamily",
+                    "value": "insect"
                 },
                 {
                     "path": "profileId",
@@ -69112,6 +69578,10 @@
             "typeName": "ResourceItemDefinitionSO",
             "fields": [
                 {
+                    "path": "@nested:features[substanceId=substance%3Adreamleaf-analgesic;type=SubstanceItemFeature].substanceId",
+                    "value": "substance:dreamleaf-analgesic"
+                },
+                {
                     "path": "id",
                     "value": "8094"
                 },
@@ -70756,6 +71226,10 @@
                     "value": "torso"
                 },
                 {
+                    "path": "anatomyFamily",
+                    "value": "quadruped"
+                },
+                {
                     "path": "profileId",
                     "value": "anatomy:quadruped"
                 }
@@ -71084,6 +71558,10 @@
             "scriptGuid": "8080a982ba741ff4e8ae644f419d70cb",
             "typeName": "EnemyArchetypeDefinitionSO",
             "fields": [
+                {
+                    "path": "factionId",
+                    "value": "human:merchant"
+                },
                 {
                     "path": "stableId",
                     "value": "enemy:merchant-crossbow"
@@ -71499,6 +71977,10 @@
                     "value": "torso"
                 },
                 {
+                    "path": "anatomyFamily",
+                    "value": "fungal"
+                },
+                {
                     "path": "profileId",
                     "value": "anatomy:fungal"
                 }
@@ -71769,7 +72251,16 @@
             "guid": "fd01bb41852c4b40ad3cfec2282acfc0",
             "scriptGuid": "a1000000000000000000000000000004",
             "typeName": "AIFacilityRoleAction",
-            "fields": []
+            "fields": [
+                {
+                    "path": "compositionRole",
+                    "value": "1"
+                },
+                {
+                    "path": "role",
+                    "value": "256"
+                }
+            ]
         },
         {
             "guid": "fd16544de2a2ce246b8b5641d95ccf46",
@@ -71900,6 +72391,10 @@
             "scriptGuid": "05066ab4c677e98479a259133da49fde",
             "typeName": "ResourceItemDefinitionSO",
             "fields": [
+                {
+                    "path": "@nested:features[ammunitionKindId=ammo%3Abolt-rune;type=AmmunitionItemFeature].ammunitionKindId",
+                    "value": "ammo:bolt-rune"
+                },
                 {
                     "path": "id",
                     "value": "8106"
@@ -72236,6 +72731,10 @@
             "scriptGuid": "8080a982ba741ff4e8ae644f419d70cb",
             "typeName": "EnemyArchetypeDefinitionSO",
             "fields": [
+                {
+                    "path": "factionId",
+                    "value": "human:crown"
+                },
                 {
                     "path": "stableId",
                     "value": "enemy:crown-tower-guard"

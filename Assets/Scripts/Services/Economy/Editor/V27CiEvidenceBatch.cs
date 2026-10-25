@@ -151,6 +151,21 @@ public static class V27CiEvidenceBatch
             R19InspectorDebugScenarios.VerifyInspectorGUI();
             R20InspectorDebugScenarios.VerifyInspectorGUI();
         }));
+    public static void RunR21Contracts() => RunImpact("so-r21", () =>
+        ContentReferenceSelectionDebugScenarios.RunWithUndoIsolation(() =>
+        {
+            R21BattleTargetingDebugScenarios.RunAll();
+            R21SaveRecoveryDebugScenarios.RunAll();
+            R21ReferenceAuthoringDebugScenarios.RunAll();
+            R21DefenseRecordProtocolDebugScenarios.RunAll();
+            R21PublishedProviderDebugScenarios.RunAll();
+            R21CharacterAiActionAssetCatalogDebugScenarios.RunAll();
+        }));
+
+    public static void RunR21InspectorContracts() => RunImpact("so-r21-inspector", () =>
+        ContentReferenceSelectionDebugScenarios.RunWithUndoIsolation(
+            R21ReferenceAuthoringDebugScenarios.VerifyInspectorGUI));
+
     public static void CaptureContentPublication() => RunImpact("content-publication", () =>
     {
         Directory.CreateDirectory("Artifacts/QA/ContentReferenceIntegrity");
