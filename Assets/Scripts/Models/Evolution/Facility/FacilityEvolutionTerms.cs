@@ -100,6 +100,55 @@ public static class FacilityEvolutionTerms
     public const string PositiveMentionCount = "PositiveMentionCount";
     public const string NegativeMentionCount = "NegativeMentionCount";
 
+    private static readonly IReadOnlyList<string> ProducedRecordMetricKeyValues =
+        Array.AsReadOnly(new[]
+        {
+            AverageSatisfaction,
+            AverageSpend,
+            CombatVisitorRatio,
+            CrimeCount,
+            CriminalVisitorRatio,
+            FacilityDamageTaken,
+            HighValueTransactionCount,
+            IntruderDamageDealt,
+            IntruderDelayTime,
+            NegativeMentionCount,
+            NobleVisitorRatio,
+            PositiveMentionCount,
+            ProfitPerVisit,
+            RepeatVisitorRatio,
+            StockCostPerVisit,
+            StockoutCount,
+            TheftCount,
+            TotalRevenue,
+            UniqueVisitorCount,
+            VisitCount
+        });
+
+    public static IReadOnlyList<string> ProducedRecordMetricKeys =>
+        ProducedRecordMetricKeyValues;
+
+    public static bool IsProducedRecordMetric(string key)
+    {
+        if (string.IsNullOrWhiteSpace(key))
+        {
+            return false;
+        }
+
+        for (int index = 0; index < ProducedRecordMetricKeyValues.Count; index++)
+        {
+            if (string.Equals(
+                    ProducedRecordMetricKeyValues[index],
+                    key,
+                    StringComparison.Ordinal))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public const string MercenaryHangout = "MercenaryHangout";
     public const string HighMeatConsumption = "HighMeatConsumption";
     public const string FrequentBrawls = "FrequentBrawls";

@@ -18,7 +18,7 @@ public class AIFacilityRoleAction : AIActionSet
         "시설 이용",
         CharacterAiActionTags.SelfCare);
 
-    [SerializeField] private FacilityRole role;
+    [ContentIdentity, SerializeField] private FacilityRole role;
 
     public override CharacterAiActionDescriptor Descriptor => role switch
     {

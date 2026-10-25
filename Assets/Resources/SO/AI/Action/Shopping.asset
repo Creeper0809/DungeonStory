@@ -22,5 +22,6 @@ MonoBehaviour:
     PrefabModifications: []
     SerializationNodes: []
   actionName: "\uAD6C\uB9E4"
+  compositionRole: 1
   <considerations>k__BackingField:
   - {fileID: 11400000, guid: 1b58d6a3d1f5e72f0b65e66219c3fbd7, type: 2}

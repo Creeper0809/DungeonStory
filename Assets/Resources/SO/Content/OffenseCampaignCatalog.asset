@@ -12,6 +12,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 995ab4c5feb449c29c02636f13af8048, type: 3}
   m_Name: OffenseCampaignCatalog
   m_EditorClassIdentifier: Assembly-CSharp::OffenseCampaignCatalogSO
+  regions:
+  - id: border-trade
+    displayName: 변경 교역권
+    factionId: human
+  - id: rival-outpost
+    displayName: 경쟁 던전 전초권
+    factionId: rival
+  - id: sealed-zone
+    displayName: 봉인 지대
+    factionId: seal
   targets:
   - id: food_farm
     title: "\uC678\uACFD \uC2DD\uC7AC\uB8CC \uB18D\uC7A5"

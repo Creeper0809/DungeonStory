@@ -376,6 +376,7 @@ public static class OffenseWorldMapDebugScenarios
             }
         }
 
+        public IReadOnlyList<OffenseCampaignRegionDefinition> Regions => OffenseCampaignCatalogSO.CreateDefaultRegions();
         public IReadOnlyList<OffenseTargetDefinition> Targets => targets;
 
         public bool TryGet(

@@ -686,15 +686,27 @@ public static class ContentIdentityProtection
             string child = null, string childKey = null, string[] types = null) =>
             CaptureNestedList(source.FindProperty(path), path, key,
                 leaves ?? new[] { key }, record, child, childKey, types);
+        if (source.targetObject is ItemDefinitionSO)
+        {
+            List("features", "ammunitionKindId", types: new[] { nameof(AmmunitionItemFeature) });
+            List("features", "substanceId", types: new[] { nameof(SubstanceItemFeature) });
+        }
         switch (record.typeName)
         {
-            case nameof(CharacterTraitSO): List("identityRules", "ruleId"); break;
+            case nameof(CharacterTraitSO):
+                List("identityRules", "ruleId");
+                List("combatAbilities.abilities", "id");
+                break;
+            case nameof(CharacterSpeciesSO): List("combatAbilities.abilities", "id"); break;
             case nameof(AnatomyProfileSO): List("nodes", "nodeId"); break;
             case nameof(OffenseDecisionCardSO):
             case nameof(FactionChapterDefinitionSO):
             case nameof(LifeEventDefinitionSO): List("choices", "choiceId"); break;
             case nameof(ServiceIncidentDefinitionSO): List("responses", "choiceId"); break;
-            case nameof(OffenseCampaignCatalogSO): List("targets", "id"); break;
+            case nameof(OffenseCampaignCatalogSO):
+                List("targets", "id");
+                List("regions", "id", new[] { "id", "factionId" });
+                break;
             case nameof(ProductionRecipeSO): List("outputs", "outputLineId"); break;
             case nameof(CharacterSkillSystemSettingsSO):
                 List("modules", "id", new[] { "id", "capabilityId" }, "variants", "id");

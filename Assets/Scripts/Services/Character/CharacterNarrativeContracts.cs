@@ -186,6 +186,22 @@ public sealed class CharacterNarrativeSnapshot
 
 public static class BackgroundFactionReactionRules
 {
+    private static readonly IReadOnlyDictionary<string, string> LegacyFactionAliases =
+        new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["faction:human-crown"] = "human:crown",
+            ["faction:human-legion"] = "human:legion",
+            ["faction:merchant-league"] = "human:merchant",
+            ["faction:free-settlers"] = "human:settler",
+            ["faction:truth-keepers"] = "human:inquisition",
+            ["faction:archive-conclave"] = "truth:guardian",
+            // Historical origin labels retain their political/trade meaning in
+            // the active enemy faction namespace. Stored background rows and
+            // already generated loyalty values are not rewritten on restore.
+            ["faction:old-nobility"] = "human:crown",
+            ["faction:iron-consortium"] = "human:merchant"
+        };
+    public static IEnumerable<string> LegacyAliases => LegacyFactionAliases.Keys;
     public static float GetMultiplier(
         CharacterBackgroundDefinitionSO background,
         string gameplayFactionId)
@@ -214,21 +230,12 @@ public static class BackgroundFactionReactionRules
             100f);
     }
 
-    private static string CanonicalFactionId(string id)
+    public static string CanonicalFactionId(string id)
     {
         string normalized = (id ?? string.Empty).Trim().ToLowerInvariant();
-        return normalized switch
-        {
-            "faction:human-crown" => "human:crown",
-            "faction:human-legion" => "human:legion",
-            "faction:merchant-league" => "human:merchant",
-            "faction:free-settlers" => "human:settler",
-            "faction:truth-keepers" => "human:inquisition",
-            "faction:archive-conclave" => "truth:guardian",
-            _ when normalized.StartsWith("faction:", StringComparison.Ordinal) =>
-                normalized.Substring("faction:".Length),
-            _ => normalized
-        };
+        if (LegacyFactionAliases.TryGetValue(normalized, out string canonical)) return canonical;
+        return normalized.StartsWith("faction:", StringComparison.Ordinal)
+            ? normalized.Substring("faction:".Length) : normalized;
     }
 }
 

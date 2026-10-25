@@ -5,6 +5,25 @@ using UnityEngine;
 public enum EnemyCombatRole { Vanguard, Defender, Marksman, Support, Controller, Boss }
 public enum EnemyTacticalIntentKind { Attack, Move, Protect, UseAbility, Retreat }
 
+public static class EnemyTacticalTargetProtocols
+{
+    public const string Nearest = "nearest";
+    public const string Backline = "backline";
+    public const string Fast = "fast";
+    public const string Shielded = "shielded";
+    public const string Armored = "armored";
+    public const string Guarded = "guarded";
+    public const string LowHealth = "low-health";
+    public const string Construct = "construct";
+    public const string None = "none";
+    public const string Desperate = "desperate";
+    public static readonly IReadOnlyList<string> TargetTags = System.Array.AsReadOnly(new[]
+        { Nearest, Backline, Fast, Shielded, Armored, Guarded, LowHealth, Construct, None });
+    public static bool IsTargetTag(string value) => TargetTags.Contains(value, System.StringComparer.OrdinalIgnoreCase);
+    public static bool IsOverride(string value) => string.IsNullOrEmpty(value)
+        || string.Equals(value, Desperate, System.StringComparison.OrdinalIgnoreCase);
+}
+
 [System.Serializable]
 public sealed class EnemyTacticalProfile
 {
@@ -13,7 +32,9 @@ public sealed class EnemyTacticalProfile
     [Range(0f, 10f)] public float abilityWeight = 1f;
     [Range(0f, 10f)] public float retreatWeight;
     [Range(0f, 1f)] public float retreatHealthFraction = 0.15f;
+    [ContentReference(ContentReferenceKind.EnemyTacticalTarget, IgnoreCase = true)]
     public List<string> preferredTargetTags = new();
+    [ContentReference(ContentReferenceKind.EnemyTacticalTarget, IgnoreCase = true)]
     public List<string> avoidedTargetTags = new();
     public string formationTag = string.Empty;
 
@@ -40,6 +61,7 @@ public sealed class EnemyBossPhaseRecord
     [Range(0.05f, 1f)] public float healthThreshold = 0.5f;
     [ContentReference(ContentReferenceKind.EnemyAbility)]
     public List<string> abilityIds = new();
+    [ContentReference(ContentReferenceKind.EnemyTacticalOverride, IgnoreCase = true)]
     public string tacticalProfileOverrideTag = string.Empty;
 }
 
@@ -84,6 +106,7 @@ public sealed class EnemyArchetypeDefinitionSO : ScriptableObject
     [TextArea] public string description = string.Empty;
     [Min(1)] public int authoringRevision = 1;
     [TextArea] public string sourceNote = string.Empty;
+    [ContentIdentity]
     public string factionId = string.Empty;
     [ContentReference(ContentReferenceKind.Species, Aliases = "Truth|Construct")]
     public string speciesTag = string.Empty;
@@ -118,6 +141,10 @@ public sealed class EnemyArchetypeDefinitionSO : ScriptableObject
             errors.Add($"'{stableId}' requires unique ability ids.");
         if (tacticalProfile == null || !tacticalProfile.IsValid)
             errors.Add($"'{stableId}' requires a valid tactical profile.");
+        else if ((tacticalProfile.preferredTargetTags ?? new())
+                     .Concat(tacticalProfile.avoidedTargetTags ?? new())
+                     .Any(value => !EnemyTacticalTargetProtocols.IsTargetTag(value)))
+            errors.Add($"'{stableId}' contains an unknown tactical target tag.");
         if (counterTags == null || counterTags.Count == 0 || counterTags.Any(string.IsNullOrWhiteSpace))
             errors.Add($"'{stableId}' requires counter tags.");
         else
@@ -148,6 +175,8 @@ public sealed class EnemyArchetypeDefinitionSO : ScriptableObject
                     errors.Add($"'{stableId}' boss phase {index} is missing.");
                     continue;
                 }
+                if (!EnemyTacticalTargetProtocols.IsOverride(phase.tacticalProfileOverrideTag))
+                    errors.Add($"'{stableId}' boss phase {index} has an unknown tactical override.");
 
                 List<string> phaseAbilityIds = phase.abilityIds;
                 if (phaseAbilityIds == null

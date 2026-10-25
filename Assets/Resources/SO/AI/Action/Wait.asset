@@ -22,5 +22,6 @@ MonoBehaviour:
     PrefabModifications: []
     SerializationNodes: []
   actionName: "\uB300\uAE30"
+  compositionRole: 1
   minDuration: 0.5
   maxDuration: 1.2

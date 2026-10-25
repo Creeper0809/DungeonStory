@@ -147,7 +147,8 @@ public static class DungeonProgressionOffenseRegistration
             .As<IOffenseApplication>();
         builder.Register<OffenseExpeditionMemberQuery>(Lifetime.Singleton)
             .As<IOffenseExpeditionMemberQuery>();
-        builder.Register<OffenseRegionRuntime>(Lifetime.Singleton)
+        builder.Register(resolver => new OffenseRegionRuntime(
+                resolver.Resolve<IOffenseCampaignCatalog>().Regions), Lifetime.Singleton)
             .As<IOffenseRegionRuntime>()
             .As<IOffenseRegionMemoryErasureSealAwardAuthority>()
             .As<IDungeonRestoreTransactionParticipant>();

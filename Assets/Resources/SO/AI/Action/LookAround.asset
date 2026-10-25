@@ -38,5 +38,6 @@ MonoBehaviour:
       Entry: 8
       Data: 
   actionName: "\uAD6C\uACBD"
+  compositionRole: 1
   minWaitDuration: 0.5
   maxWaitDuration: 1.2

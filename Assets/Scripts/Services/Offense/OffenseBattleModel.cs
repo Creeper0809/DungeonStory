@@ -619,9 +619,9 @@ public sealed class OffenseBattleSession
         if (bestAbility != null
             && OffenseBattleSessionRules.EstimateAbilityDamageMultiplier(bestAbility) > 1.05f)
         {
-            OffenseBattleCombatant abilityTarget = combatants
-                .Where(candidate => IsAbilityTargetValid(actor, candidate, bestAbility))
-                .OrderBy(candidate => IsProtectedObjectiveTarget(candidate) ? 0 : 1)
+            OffenseBattleCombatant abilityTarget = GetAbilityTargets(actor, bestAbility)
+                .OrderBy(candidate => AbilityTargetPreference(bestAbility, candidate))
+                .ThenBy(candidate => IsProtectedObjectiveTarget(candidate) ? 0 : 1)
                 .ThenBy(candidate => candidate.HealthRatio)
                 .ThenBy(candidate => candidate.PersistentId, StringComparer.Ordinal)
                 .First();
@@ -1348,7 +1348,11 @@ public sealed class OffenseBattleSession
             return false;
         }
 
-        OffenseBattleEffectContext context = new OffenseBattleEffectContext(this, actor, target);
+        var affected = ability.Targeting.Scope is CombatAbilityTargetScope.Team or CombatAbilityTargetScope.Formation
+            ? GetAbilityTargets(actor, ability).Where(value => value.Team == target.Team
+                && (ability.Targeting.Scope != CombatAbilityTargetScope.Formation
+                    || value.Formation == target.Formation)).OrderBy(value => value.PersistentId, StringComparer.Ordinal).ToArray()
+            : new[] { target };
         if (ability.Effects.Any(effect => effect is OffenseDamageEffect
                 or OffenseDamageOverTimeEffect
                 or OffenseConditionalAmplifyEffect
@@ -1356,15 +1360,19 @@ public sealed class OffenseBattleSession
         {
             ConsumePoweredEquipment(actor.Weapon, 5f);
         }
-        foreach (OffenseCombatEffectModule effect in ability.Effects)
+        float damageDealt = 0f;
+        foreach (OffenseBattleCombatant affectedTarget in affected)
         {
-            OffenseCombatEffectRuntime.Apply(effect, context);
+            var context = new OffenseBattleEffectContext(this, actor, affectedTarget);
+            foreach (OffenseCombatEffectModule effect in ability.Effects)
+                OffenseCombatEffectRuntime.Apply(effect, context);
+            damageDealt += context.DamageDealt;
         }
         RefreshCombatantEquipment(actor);
 
         actor.SetCooldown(ability.Id, ability.CooldownTurns);
         AddLog($"{actor.DisplayName}이(가) {ability.DisplayName}을(를) 사용했습니다.");
-        result = new OffenseBattleCommandResult(true, ability.DisplayName, context.DamageDealt);
+        result = new OffenseBattleCommandResult(true, ability.DisplayName, damageDealt);
         return true;
     }
 
@@ -1619,8 +1627,38 @@ public sealed class OffenseBattleSession
     {
         return ability != null
             && IsValidTarget(actor, target, ability.TargetRule)
-            && IsPositionAllowed(ability.TargetPositions, target.Formation);
+            && IsPositionAllowed(ability.TargetPositions, target.Formation)
+            && MatchesAbilityTarget(ability.Targeting.Filter, target);
     }
+
+    public IReadOnlyList<OffenseBattleCombatant> GetAbilityTargets(
+        OffenseBattleCombatant actor, CharacterCombatAbilityDefinition ability) =>
+        combatants.Where(target => IsAbilityTargetValid(actor, target, ability)).ToArray();
+
+    internal static float AbilityTargetPreference(CharacterCombatAbilityDefinition ability, OffenseBattleCombatant target) =>
+        ability.Targeting.Preference switch
+        {
+            CombatAbilityTargetPreference.LowestHealth => target.HealthRatio,
+            // Use the current offensive stats, not a stored second power value.
+            CombatAbilityTargetPreference.HighestPower =>
+                -(Math.Max(target.Stats.Attack, target.Stats.Shooting) + target.Stats.Strength) * target.ArcanePowerMultiplier,
+            _ => 0f
+        };
+
+    private static bool MatchesAbilityTarget(CombatAbilityTargetFilter filter, OffenseBattleCombatant target) => filter switch
+    {
+        CombatAbilityTargetFilter.Any => true,
+        CombatAbilityTargetFilter.Front => target.Formation == OffenseFormationSlot.Front,
+        CombatAbilityTargetFilter.Rear => target.Formation == OffenseFormationSlot.Rear,
+        CombatAbilityTargetFilter.Wounded => target.HealthRatio < 1f,
+        CombatAbilityTargetFilter.Construct => target.SpeciesTag.IndexOf("golem", StringComparison.OrdinalIgnoreCase) >= 0
+            || target.SpeciesTag.IndexOf("construct", StringComparison.OrdinalIgnoreCase) >= 0,
+        CombatAbilityTargetFilter.Armored => target.Armor.Count > 0,
+        CombatAbilityTargetFilter.Fast => target.Stats.MoveSpeed >= 6f,
+        CombatAbilityTargetFilter.Arcane => CharacterArcaneWeaponRules.IsArcane(target.Weapon) || target.ArcanePowerMultiplier > 1f,
+        CombatAbilityTargetFilter.RetreatEligible => target.RetreatEligible,
+        _ => throw new InvalidOperationException($"Unknown combat target filter '{filter}'.")
+    };
 
     private bool IsReachableByBasicAttack(
         OffenseBattleCombatant source,

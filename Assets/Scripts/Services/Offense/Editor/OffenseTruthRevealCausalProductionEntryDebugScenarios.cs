@@ -737,6 +737,7 @@ public static class OffenseTruthRevealCausalProductionEntryDebugScenarios
                         nameof(definitions)))
                 .ToArray();
 
+        public IReadOnlyList<OffenseCampaignRegionDefinition> Regions => OffenseCampaignCatalogSO.CreateDefaultRegions();
         public IReadOnlyList<OffenseTargetDefinition> Targets => targets;
 
         public bool TryGet(

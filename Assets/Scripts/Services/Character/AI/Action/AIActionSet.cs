@@ -5,6 +5,12 @@ using System.Linq;
 using Unity.Profiling;
 using UnityEngine;
 
+public enum CharacterAiActionCompositionRole
+{
+    ConfiguredOnly = 0,
+    RequiredDefault = 1
+}
+
 [DrawWithUnity]
 public abstract class AIActionSet : SerializedScriptableObject
 {
@@ -18,6 +24,8 @@ public abstract class AIActionSet : SerializedScriptableObject
         new Dictionary<Type, ProfilerMarker>();
 
     public string actionName;
+    [ContentIdentity, SerializeField]
+    private CharacterAiActionCompositionRole compositionRole;
     [SerializeField] private int defaultInterruptPriority;
 
     [field: SerializeField]
@@ -29,6 +37,7 @@ public abstract class AIActionSet : SerializedScriptableObject
     public virtual bool AllowsSurvivalEmergencyInterrupt => true;
     public virtual CharacterAiActionDescriptor Descriptor => CharacterAiActionDescriptor.None;
     public CharacterAiBranch Branch => Descriptor?.Branch ?? CharacterAiBranch.None;
+    public CharacterAiActionCompositionRole CompositionRole => compositionRole;
 
     public bool HasSemanticTag(string tag)
     {

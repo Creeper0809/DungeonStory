@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 [Serializable]
@@ -38,7 +39,8 @@ public class DefenseFacilityData
     [Min(0f)] public float conditionLossPerActivation = 1f;
     [Range(0f, 1f)] public float baseJamChance;
     [Range(0f, 1f)] public float baseMisfireChance;
-    public string facilityFamilyId = "defense:general";
+    [ContentReference(ContentReferenceKind.DefenseFamily)]
+    public string facilityFamilyId = DefenseFacilityFamilyIds.General;
     public DefenseFacilityGrowthData growth = new DefenseFacilityGrowthData();
 
     public bool IsDefenseFacility => enabled && concept != DefenseAttackConcept.None;
@@ -51,5 +53,18 @@ public class DefenseFacilityData
     public bool SupportsTrigger(DefenseTriggerTiming timing)
     {
         return timing != DefenseTriggerTiming.None && (triggerTimings & timing) != 0;
+    }
+
+    public IReadOnlyList<string> ValidateDefinition()
+    {
+        if (!enabled || DefenseFacilityFamilyIds.IsKnown(facilityFamilyId))
+        {
+            return Array.Empty<string>();
+        }
+
+        return new[]
+        {
+            $"Enabled defense facility has unknown facility family '{facilityFamilyId ?? string.Empty}'."
+        };
     }
 }

@@ -102,6 +102,20 @@ class NestedRoute:
 NESTED_ROUTES: dict[str, tuple[NestedRoute, ...]] = {
     "CharacterTraitSO": (
         NestedRoute("identityRules", "ruleId", ("ruleId",), managed_reference=True),
+        NestedRoute(
+            "combatAbilities.abilities",
+            "id",
+            ("id",),
+            managed_reference=True,
+        ),
+    ),
+    "CharacterSpeciesSO": (
+        NestedRoute(
+            "combatAbilities.abilities",
+            "id",
+            ("id",),
+            managed_reference=True,
+        ),
     ),
     "AnatomyProfileSO": (NestedRoute("nodes", "nodeId", ("nodeId",)),),
     "OffenseDecisionCardSO": (NestedRoute("choices", "choiceId", ("choiceId",)),),
@@ -112,7 +126,10 @@ NESTED_ROUTES: dict[str, tuple[NestedRoute, ...]] = {
     "ServiceIncidentDefinitionSO": (
         NestedRoute("responses", "choiceId", ("choiceId",)),
     ),
-    "OffenseCampaignCatalogSO": (NestedRoute("targets", "id", ("id",)),),
+    "OffenseCampaignCatalogSO": (
+        NestedRoute("targets", "id", ("id",)),
+        NestedRoute("regions", "id", ("id", "factionId")),
+    ),
     "ProductionRecipeSO": (
         NestedRoute("outputs", "outputLineId", ("outputLineId",)),
     ),
@@ -164,6 +181,38 @@ NESTED_ROUTES: dict[str, tuple[NestedRoute, ...]] = {
                     managed_reference=True, managed_types=("BuildingEvolutionAbility",), array_path="settings.scores", array_value="key"),
         NestedRoute("abilityModules.items", "settings.metrics.key", ("settings.metrics.key",),
                     managed_reference=True, managed_types=("BuildingEvolutionAbility",), array_path="settings.metrics", array_value="key"),
+    ),
+    "ResourceItemDefinitionSO": (
+        NestedRoute(
+            "features",
+            "ammunitionKindId",
+            ("ammunitionKindId",),
+            managed_reference=True,
+            managed_types=("AmmunitionItemFeature",),
+        ),
+        NestedRoute(
+            "features",
+            "substanceId",
+            ("substanceId",),
+            managed_reference=True,
+            managed_types=("SubstanceItemFeature",),
+        ),
+    ),
+    "GenericItemDefinitionSO": (
+        NestedRoute(
+            "features",
+            "ammunitionKindId",
+            ("ammunitionKindId",),
+            managed_reference=True,
+            managed_types=("AmmunitionItemFeature",),
+        ),
+        NestedRoute(
+            "features",
+            "substanceId",
+            ("substanceId",),
+            managed_reference=True,
+            managed_types=("SubstanceItemFeature",),
+        ),
     ),
     "GameDomainContentCatalogSO": (
         NestedRoute("metaUpgrades", "id", ("id",)),
@@ -778,6 +827,8 @@ _StrictUnityLoader.yaml_implicit_resolvers = {}
 
 def _load_scripted_yaml(document: str, path: str) -> dict[str, object]:
     marker, separator, body = document.partition("\n")
+    if marker.endswith("\r"):
+        marker = marker[:-1]
     if not separator or re.fullmatch(r"--- !u!\d+ &[+-]?\d+", marker) is None:
         raise VerificationError(f"Unity scripted document marker is malformed: {path}")
     try:

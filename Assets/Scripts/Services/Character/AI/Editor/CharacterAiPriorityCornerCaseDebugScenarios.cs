@@ -317,12 +317,10 @@ public static class CharacterAiPriorityCornerCaseDebugScenarios
                 catalog,
                 clock);
 
-            AIActionSet baselineWork = catalog.GetRequiredAction(
-                "SO/AI/Action/Work",
-                CharacterAiBranch.Work);
-            AIActionSet baselineWait = catalog.GetRequiredAction(
-                "SO/AI/Action/Wait",
-                CharacterAiBranch.Wait);
+            AIActionSet baselineWork =
+                catalog.GetRequiredAction<AIWork>(CharacterAiBranch.Work);
+            AIActionSet baselineWait =
+                catalog.GetRequiredAction<AIWait>(CharacterAiBranch.Wait);
             int facilityMealIndex = Array.FindIndex(actions, action =>
                 action?.actionset?.Branch == CharacterAiBranch.Eat
                 && action.actionset is not AIPrimitiveSurvivalAction);

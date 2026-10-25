@@ -164,10 +164,18 @@ public sealed class OffenseRegionRuntime :
 
     private const float FactionSpilloverWeight = 0.25f;
     private List<OffenseRegionState> regions = new List<OffenseRegionState>();
+    private readonly IReadOnlyDictionary<string, OffenseCampaignRegionDefinition> regionDefinitions;
     private readonly DungeonRestorePublication restorePublication = new();
 
-    public OffenseRegionRuntime()
+    public OffenseRegionRuntime() : this(OffenseCampaignCatalogSO.CreateDefaultRegions()) { }
+
+    public OffenseRegionRuntime(IEnumerable<OffenseCampaignRegionDefinition> definitions)
     {
+        var declared = definitions?.Select(value => value?.Copy()).ToArray();
+        var errors = OffenseCampaignCatalogSO.ValidateRegions(declared);
+        if (errors.Count != 0)
+            throw new InvalidOperationException(string.Join(" | ", errors));
+        regionDefinitions = declared.ToDictionary(value => value.id, StringComparer.Ordinal);
         EnsureDefaultRegions();
     }
 
@@ -191,10 +199,11 @@ public sealed class OffenseRegionRuntime :
             return false;
         }
 
-        OffenseRegionState region = GetOrCreateRegion(
-            target.regionId,
-            target.regionDisplayName,
-            target.factionId);
+        if (!regionDefinitions.TryGetValue(target.regionId, out var definition)
+            || !string.Equals(definition.factionId, target.factionId, StringComparison.Ordinal))
+            return false;
+        OffenseRegionState region = regions.FirstOrDefault(value => value.regionId == definition.id)
+            ?? throw new InvalidOperationException($"Registered campaign region '{definition.id}' has no runtime state.");
         requestedAmount = Mathf.Clamp(
             Mathf.Max(0f, target.strategicPressureAmount)
             * Mathf.Max(1, rewardMultiplier),
@@ -534,6 +543,20 @@ public sealed class OffenseRegionRuntime :
                 "Offense region payload is missing a required authored region.");
         }
 
+        // Previously saved regions retain their values and names. A newly
+        // declared region starts empty when loading an older save, while retired
+        // historical regions remain readable and cannot authorize new targets.
+        foreach (var definition in regionDefinitions.Values)
+            if (!candidate.Any(value => value.regionId == definition.id))
+                candidate.Add(new OffenseRegionState
+                {
+                    regionId = definition.id, displayName = definition.displayName,
+                    factionId = definition.factionId
+                });
+        foreach (var saved in candidate)
+            if (regionDefinitions.TryGetValue(saved.regionId, out var definition)
+                && saved.factionId != definition.factionId)
+                throw new InvalidOperationException($"Saved region '{saved.regionId}' has a different registered faction.");
         return new OffenseRegionRestoreCandidate(candidate);
     }
 
@@ -612,34 +635,10 @@ public sealed class OffenseRegionRuntime :
         return Mathf.Clamp(localDamage + spillover, 0f, 100f);
     }
 
-    private OffenseRegionState GetOrCreateRegion(
-        string regionId,
-        string displayName,
-        string factionId)
-    {
-        OffenseRegionState region = regions.FirstOrDefault(candidate =>
-            candidate != null
-            && string.Equals(candidate.regionId, regionId, StringComparison.Ordinal));
-        if (region != null)
-        {
-            return region;
-        }
-
-        region = new OffenseRegionState
-        {
-            regionId = regionId ?? string.Empty,
-            displayName = displayName ?? string.Empty,
-            factionId = factionId ?? string.Empty
-        };
-        regions.Add(region);
-        return region;
-    }
-
     private void EnsureDefaultRegions()
     {
-        EnsureRegion(BorderTradeRegionId, "변경 교역권", HumanFactionId);
-        EnsureRegion(RivalOutpostRegionId, "경쟁 던전 전초권", RivalFactionId);
-        EnsureRegion(SealedZoneRegionId, "봉인 지대", SealFactionId);
+        foreach (var definition in regionDefinitions.Values)
+            EnsureRegion(definition.id, definition.displayName, definition.factionId);
     }
 
     private void EnsureRegion(string regionId, string displayName, string factionId)

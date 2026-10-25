@@ -1,4 +1,30 @@
 # DungeonStory Current Findings
+## 2026-10-25 R21 수정 계약
+
+전체 참조 검사의 입력은 ContentReferenceCatalog.FromRoot와 같은 제공자 집합이어야 한다. ResourceGameContentCatalog.GetAll<ScriptableObject>()는 Domain 뷰라 item/domain 소유 키/skill settings가 빠진다. r155의 새 root-variant fixture는 이 불완전한 입력 때문에 실패했고 r156에서 실제 FromRoot 제공자 집합으로 고쳐 전체 오류0 조건을 유지했다. r156 표적/Inspector는 실제 PASS다. 이후 effects의 semantic fixture는 해석 전 WeightedTarget 대신 해석된 EnemyFaction을 Entries에 넘기도록1줄 수정했다. r157은 이1줄 외 전체21712입력이 동일하다. r156의 원래 source/configuration과 정확한 파일 SHA/diff를 보존해 관련 없는 PASS를 다시 실행하거나 새 실행으로 바꾸지 않는다.
+
+대상 태그 교정은 효과 계수/지속/재사용 대기/명령당 비용을 유지하지만 실제 영향을 받는 전투원과 결과를 바꿀 수 있다. 배경의 기존 가중치는 새 개체 생성에 연결하고 저장된 충성도는 재계산하지 않는다. 이 영향은 R21 구현 보고에 기록한다. 변경하지 않은 승인된 전역 밸런스 기준서는 보존하며, CI가 그 파일 변경을 별도 release balance certification으로 분류하는 규칙을 완화하지 않는다. 이번에는 현재 변경의 실제 명령/저장/복원과 기존 영향5그룹을 검증하고 전역 균형 동일성을 주장하지 않는다.
+
+AI 기본 조회의 Type/Branch 유일성만으로는 같은 타입의 새 root 설정 variant가 기본 조회를 막는 회귀가 있다. 기존 stable ID/default 표시가 없어 같은 AIActionSet base에 ConfiguredOnly0/RequiredDefault1 enum metadata를 두고 현재19개만1로 지정했다. 기본 조회는 명시된 기본만 선택하고 root의 설정 전용 peer와 actor가 고른 variant를 유지한다. 공유 SO의 runtime 상태는 추가하지 않는다. AIFacilityRoleAction의 role3개도 Branch를 만드는 제공 키라 게시 보호한다. 기존19에셋 diff는 각각 compositionRole:1 한 줄 추가뿐이고 나머지 수치/연결/GUID와 role128/256/2048은 보존했다. native 후보에서 예상22필드를 추가 대조한다.
+
+r151su effects의 실패는 ContentReferenceSelectionDebugScenarios가 factionReactions의 ResolveKind를 null로 요구한 구형 전제였다. R21은 이를 실제 적 세력 key protocol로 연결하므로 EnemyFaction, key-only, 두 실제 legacy 별칭과 SO 링크 없음까지 검사하도록 바꿨다. 적 능력과 배경의 표적 fixture는 사례의 존재와 동작을 확인하며 전체 콘텐츠 행 수가 늘었다는 이유로 실패하지 않게 한다. r152su 변경은 이3개 Editor fixture뿐이며 Inspector/생산 구현/에셋/게시 목록은 r151su와 같다.
+
+SO 원본/게시 ID/GUID와 기존 DTO 버전을 보존한다. 적 능력의 대상 조건/선호/범위는 기존 CharacterCombatAbilityDefinition에 typed 정의로 전달하고 실제 battle session의 단일 대상 검사에 연결한다. cluster는 동일 진형 구역, all-allies는 같은 팀의 유효 대상이며 기존 smoke/summon의 내재 효과 범위는 중복 실행하지 않는다. retreating-ally는 해당 적 정의의 실제 후퇴 체력/weight 조건을 재사용하며 정의에서 파생되는 값은 새 저장 권위로 만들지 않는다. 기존 효과 계수/지속 시간/쿨다운/가격/작업량은 바꾸지 않는다.
+
+Human 적응은 에셋이 명시한 일반 환경 적응 경로, Adventurer 침입은 외부 invasion 경로가 소유한다. 일반 종족 불만 dispatch의6 handler와 외부 소유5개를 명시해 현재 미등록 취소 반복을 제거하며 새 불만 피해나 사건 효과를 임의 추가하지 않는다. 알 수 없는 incident는 선택/시작 검사에서 거절한다.
+
+배경의 기존 정치/교역 별칭 old-nobility와 iron-consortium은 각각 현재 human:crown/human:merchant에 명시적으로 정규화한다. 기존12개 가중치와 저장된 배경 문자열/이미 생성된 loyalty는 그대로 두며 신규 개체의 반응만 실제 연결된다. 적 factionId와 종족 능력, 아이템 capability, anatomyFamily 제공 키를 게시 보호에 추가한다.
+
+캠페인 SO에 기존3지역/세력 선언을 같은 값으로 추가한다. 신규 지역은 그 목록에서 명시 등록하고 target은 같은 owner의 region/faction 쌍만 선택한다. runtime은 오타로 새 region을 만들지 않는다. 기존 저장의 역사적 추가 지역은 보존하고, 새로 등록한 지역은 구형 저장 복원 때0상태로 추가한다. 새 target의 압력 명령은 등록된 지역만 허용한다. 실제 native 게시 후보는98필드다. 최초 예상96에는 Resource 탄약21개만 집계했고 Generic 호환 탄약2개를 빠뜨렸다. 두 원본 ammo:arrow/bolt를 대조했으며 구현은 ItemDefinitionSO 전체를 이미 포함한다. 기존11901필드와3544에셋을 보존하고 확인한98필드만 추가한다.
+
+
+## 2026-10-25 R21 main 재감사 판단
+
+main37f07adce의 원본/에셋 재대조에서 SO 잔여11묶음과 별도 AI 이름 참조1묶음을 확인했다. 현재 잘못 연결된 경계는 적 능력 targetTag 17행의 실행 투영 유실, Human/Adventurer 사건2개의 미등록 dispatch, 배경 세력 반응3행의 제공자 부재다. EnemyArchetype.factionId는 originFactionId 저장과도 연결되므로 적 세력 제공 키와 배경 소비 문맥을 함께 다뤄야 한다. 이 세력 namespace는 DungeonFactionDefinitionSO와 다르다.
+
+종족 전투 능력 id, 탄약 capability key와 anatomyFamily는 실제 저장 소비가 있으나 게시 baseline에 없다. 기록된11901필드가 맞는 것과 기록되지 않은 키까지 안전한 것은 다르다. 기존 Python 검사기의 메모리 에셋 입력에서 이 값, 캠페인 region, 적 origin faction과 AI m_Name 변경이 통과함을 확인했다. C# 플레이 영향은 분기/동등 계산으로 대조했으며 Unity 실행 PASS로 표현하지 않는다.
+
+캠페인 region/faction, defense family, CharacterSO 필수 species null, 적 전술 태그/보스 override와 조건부 threshold sourceMetric은 현재 값 정상인 작성 보호 공백이다. 정상 빈 optional, none sentinel, 별도 open namespace 및 미소비 metadata는 분리했다. R20 완료 범위를 확대해 전체 무결성을 주장하지 않는다. 이번 범위는 읽기 전용 감사이며 수정/통합 Goal을 새로 만들지 않는다.
 
 ## 2026-10-24 R20 수정 계약
 

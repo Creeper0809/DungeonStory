@@ -547,7 +547,8 @@ public sealed class OffenseBattleCombatant
         IEnumerable<CharacterCombatAbilityDefinition> abilities = null,
         int portraitDataId = -1,
         OffenseFormationSlot formation = OffenseFormationSlot.Front,
-        bool participatesInInitiative = true)
+        bool participatesInInitiative = true,
+        float retreatHealthFraction = 0f)
     {
         PersistentId = string.IsNullOrWhiteSpace(persistentId)
             ? throw new ArgumentException("A combatant requires a persistent ID.", nameof(persistentId))
@@ -569,6 +570,9 @@ public sealed class OffenseBattleCombatant
         PortraitDataId = portraitDataId;
         Formation = formation;
         ParticipatesInInitiative = participatesInInitiative;
+        if (!float.IsFinite(retreatHealthFraction) || retreatHealthFraction < 0f || retreatHealthFraction > 1f)
+            throw new ArgumentOutOfRangeException(nameof(retreatHealthFraction));
+        RetreatHealthFraction = retreatHealthFraction;
     }
 
     public string PersistentId { get; }
@@ -582,6 +586,8 @@ public sealed class OffenseBattleCombatant
     public bool IsDowned { get; private set; }
     public bool CanTakeTurn => !IsDead && !IsDowned && !PinnedThisTurn;
     public bool ParticipatesInInitiative { get; }
+    public float RetreatHealthFraction { get; }
+    public bool RetreatEligible => RetreatHealthFraction > 0f && HealthRatio <= RetreatHealthFraction;
     public float InitiativePenalty { get; private set; }
     public float Initiative => Mathf.Max(
         0f,

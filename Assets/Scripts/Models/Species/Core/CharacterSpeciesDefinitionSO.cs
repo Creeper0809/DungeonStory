@@ -199,6 +199,7 @@ public sealed class SpeciesEnvironmentProfile
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class SpeciesIncidentDefinition
 {
+    [ContentReference(ContentReferenceKind.SpeciesIncident)]
     public string incidentId = string.Empty;
     public string displayName = string.Empty;
     [TextArea] public string description = string.Empty;
@@ -232,6 +233,35 @@ public static class CharacterSpeciesIncidentIds
     public const string MyconidSporeBloom = "species-incident:myconid-spore-bloom";
     public const string HarpyGaleCommotion = "species-incident:harpy-gale-commotion";
     public const string GolemCoreOverload = "species-incident:golem-core-overload";
+    public const string HumanAdjustment = "species-incident:human-adjustment";
+    public const string AdventurerIncursion = "species-incident:adventurer-incursion";
+
+    // The generic discontent runner does not own ordinary exposure, invasion,
+    // or the separate physiology/hoarding commands. These keys describe their
+    // existing owners; they must never enter an unregistered incident retry.
+    private static readonly IReadOnlyDictionary<string, string> Owners =
+        new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            [SlimeContamination] = "discontent",
+            [BeastkinCommotion] = "discontent",
+            [DemonContractCurse] = "discontent",
+            [MyconidSporeBloom] = "discontent",
+            [HarpyGaleCommotion] = "discontent",
+            [GolemCoreOverload] = "discontent",
+            [OrcRampage] = "orc-physiology",
+            [VampireFear] = "vampire-physiology",
+            [KoboldPartsHoarding] = "kobold-hoarding",
+            [HumanAdjustment] = "environment-exposure",
+            [AdventurerIncursion] = "invasion"
+        };
+
+    public static IEnumerable<string> DeclaredIds => Owners.Keys;
+    public static IEnumerable<string> DiscontentIds => Owners
+        .Where(pair => pair.Value == "discontent").Select(pair => pair.Key);
+    public static bool IsDeclared(string id) => id != null && Owners.ContainsKey(id);
+    public static string RequireOwner(string id) => id != null && Owners.TryGetValue(id, out string owner)
+        ? owner : throw new InvalidOperationException($"Unknown species incident '{id}'.");
+    public static bool IsDiscontentDriven(string id) => RequireOwner(id) == "discontent";
 }
 
 [DrawWithUnity]
@@ -374,7 +404,7 @@ public static class CharacterSpeciesDefinitionCatalogRequirements
                 || species.reproduction.ValidateDefinition().Count > 0
                 || string.IsNullOrWhiteSpace(species.anatomyProfileId)
                 || species.incident == null
-                || string.IsNullOrWhiteSpace(species.incident.StableId)
+                || !CharacterSpeciesIncidentIds.IsDeclared(species.incident.StableId)
                 || species.incident.mitigatingRoles == FacilityRole.None)
             {
                 throw new InvalidOperationException(

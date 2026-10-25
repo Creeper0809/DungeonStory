@@ -6,47 +6,27 @@ using UnityEngine;
 
 internal static class AIBrainActionConfiguration
 {
-    private const string WaitActionPath = "SO/AI/Action/Wait";
-    private const string WorkActionPath = "SO/AI/Action/Work";
-    private const string EatActionPath = "SO/AI/Action/Eat";
-    private const string RestActionPath = "SO/AI/Action/Rest";
-    private const string ToiletActionPath = "SO/AI/Action/Toilet";
-    private const string HygieneActionPath = "SO/AI/Action/Hygiene";
-    private const string RecreationActionPath = "SO/AI/Action/Recreation";
-    private const string ShoppingActionPath = "SO/AI/Action/Shopping";
-    private const string LookAroundActionPath = "SO/AI/Action/LookAround";
-    private const string ExitDungeonActionPath = "SO/AI/Action/ExitDungeon";
-    private const string HaulActionPath = "SO/AI/Action/Haul";
-    private const string RescueActionPath = "SO/AI/Action/Rescue";
-    private const string HuntActionPath = "SO/AI/Action/Hunt";
-    private const string SubstanceUseActionPath = "SO/AI/Action/SubstanceUse";
-    private const string DrinkActionPath = "SO/AI/Action/Drink";
-    private const string PrimitiveFieldMealActionPath = "SO/AI/Action/PrimitiveFieldMeal";
-    private const string PrimitiveFloorRestActionPath = "SO/AI/Action/PrimitiveFloorRest";
-    private const string PrimitiveLatrineActionPath = "SO/AI/Action/PrimitiveLatrine";
-    private const string PrimitiveBucketWashActionPath = "SO/AI/Action/PrimitiveBucketWash";
-
     public static AIAction[] ConfigureOwner(
         ICharacterAiActionAssetCatalog catalog,
         IGameClock clock)
     {
         List<AIAction> actions = new List<AIAction>();
-        AddRequiredAction(actions, catalog, WorkActionPath, CharacterAiBranch.Work);
-        AddSpecialAction<AIRescue>(actions, catalog, RescueActionPath, CharacterAiBranch.Work);
-        AddSpecialAction<AIHaul>(actions, catalog, HaulActionPath, CharacterAiBranch.Work);
-        AddSpecialAction<AIHunt>(actions, catalog, HuntActionPath, CharacterAiBranch.Work);
-        AddSpecialAction<AISubstanceUse>(actions, catalog, SubstanceUseActionPath, CharacterAiBranch.Work);
-        AddSpecialAction<AIDrink>(actions, catalog, DrinkActionPath, CharacterAiBranch.Drink);
-        AddRequiredAction(actions, catalog, EatActionPath, CharacterAiBranch.Eat);
-        AddSpecialAction<AIPrimitiveFieldMeal>(actions, catalog, PrimitiveFieldMealActionPath, CharacterAiBranch.Eat);
-        AddRequiredAction(actions, catalog, RestActionPath, CharacterAiBranch.Rest);
-        AddSpecialAction<AIPrimitiveFloorRest>(actions, catalog, PrimitiveFloorRestActionPath, CharacterAiBranch.Rest);
-        AddRequiredAction(actions, catalog, ToiletActionPath, CharacterAiBranch.Toilet);
-        AddSpecialAction<AIPrimitiveLatrine>(actions, catalog, PrimitiveLatrineActionPath, CharacterAiBranch.Toilet);
-        AddRequiredAction(actions, catalog, HygieneActionPath, CharacterAiBranch.Hygiene);
-        AddSpecialAction<AIPrimitiveBucketWash>(actions, catalog, PrimitiveBucketWashActionPath, CharacterAiBranch.Hygiene);
-        AddRequiredAction(actions, catalog, RecreationActionPath, CharacterAiBranch.LeisureVisit);
-        AddRequiredAction(actions, catalog, WaitActionPath, CharacterAiBranch.Wait);
+        AddRequiredAction<AIWork>(actions, catalog, CharacterAiBranch.Work);
+        AddRequiredAction<AIRescue>(actions, catalog, CharacterAiBranch.Work);
+        AddRequiredAction<AIHaul>(actions, catalog, CharacterAiBranch.Work);
+        AddRequiredAction<AIHunt>(actions, catalog, CharacterAiBranch.Work);
+        AddRequiredAction<AISubstanceUse>(actions, catalog, CharacterAiBranch.Work);
+        AddRequiredAction<AIDrink>(actions, catalog, CharacterAiBranch.Drink);
+        AddRequiredAction<AIEat>(actions, catalog, CharacterAiBranch.Eat);
+        AddRequiredAction<AIPrimitiveFieldMeal>(actions, catalog, CharacterAiBranch.Eat);
+        AddRequiredAction<AIRest>(actions, catalog, CharacterAiBranch.Rest);
+        AddRequiredAction<AIPrimitiveFloorRest>(actions, catalog, CharacterAiBranch.Rest);
+        AddRequiredAction<AIFacilityRoleAction>(actions, catalog, CharacterAiBranch.Toilet);
+        AddRequiredAction<AIPrimitiveLatrine>(actions, catalog, CharacterAiBranch.Toilet);
+        AddRequiredAction<AIFacilityRoleAction>(actions, catalog, CharacterAiBranch.Hygiene);
+        AddRequiredAction<AIPrimitiveBucketWash>(actions, catalog, CharacterAiBranch.Hygiene);
+        AddRequiredAction<AIFacilityRoleAction>(actions, catalog, CharacterAiBranch.LeisureVisit);
+        AddRequiredAction<AIWait>(actions, catalog, CharacterAiBranch.Wait);
         return BindClocks(actions, clock);
     }
 
@@ -79,25 +59,25 @@ internal static class AIBrainActionConfiguration
                     && action.actionset.Branch != CharacterAiBranch.ExitDungeon)
                 .ToList()
             : new List<AIAction>();
-        AddRequiredAction(actions, catalog, WorkActionPath, CharacterAiBranch.Work);
-        AddRequiredAction(actions, catalog, WaitActionPath, CharacterAiBranch.Wait);
-        AddRequiredAction(actions, catalog, EatActionPath, CharacterAiBranch.Eat);
-        AddSpecialAction<AIPrimitiveFieldMeal>(actions, catalog, PrimitiveFieldMealActionPath, CharacterAiBranch.Eat);
-        AddRequiredAction(actions, catalog, RestActionPath, CharacterAiBranch.Rest);
-        AddSpecialAction<AIPrimitiveFloorRest>(actions, catalog, PrimitiveFloorRestActionPath, CharacterAiBranch.Rest);
-        AddRequiredAction(actions, catalog, ToiletActionPath, CharacterAiBranch.Toilet);
-        AddSpecialAction<AIPrimitiveLatrine>(actions, catalog, PrimitiveLatrineActionPath, CharacterAiBranch.Toilet);
-        AddRequiredAction(actions, catalog, HygieneActionPath, CharacterAiBranch.Hygiene);
-        AddSpecialAction<AIPrimitiveBucketWash>(actions, catalog, PrimitiveBucketWashActionPath, CharacterAiBranch.Hygiene);
-        AddRequiredAction(actions, catalog, RecreationActionPath, CharacterAiBranch.LeisureVisit);
-        AddSpecialAction<AIRescue>(actions, catalog, RescueActionPath, CharacterAiBranch.Work);
-        AddSpecialAction<AIHaul>(actions, catalog, HaulActionPath, CharacterAiBranch.Work);
-        AddSpecialAction<AIHunt>(actions, catalog, HuntActionPath, CharacterAiBranch.Work);
-        AddSpecialAction<AISubstanceUse>(actions, catalog, SubstanceUseActionPath, CharacterAiBranch.Work);
-        AddSpecialAction<AIDrink>(actions, catalog, DrinkActionPath, CharacterAiBranch.Drink);
+        AddRequiredAction<AIWork>(actions, catalog, CharacterAiBranch.Work);
+        AddRequiredAction<AIWait>(actions, catalog, CharacterAiBranch.Wait);
+        AddRequiredAction<AIEat>(actions, catalog, CharacterAiBranch.Eat);
+        AddRequiredAction<AIPrimitiveFieldMeal>(actions, catalog, CharacterAiBranch.Eat);
+        AddRequiredAction<AIRest>(actions, catalog, CharacterAiBranch.Rest);
+        AddRequiredAction<AIPrimitiveFloorRest>(actions, catalog, CharacterAiBranch.Rest);
+        AddRequiredAction<AIFacilityRoleAction>(actions, catalog, CharacterAiBranch.Toilet);
+        AddRequiredAction<AIPrimitiveLatrine>(actions, catalog, CharacterAiBranch.Toilet);
+        AddRequiredAction<AIFacilityRoleAction>(actions, catalog, CharacterAiBranch.Hygiene);
+        AddRequiredAction<AIPrimitiveBucketWash>(actions, catalog, CharacterAiBranch.Hygiene);
+        AddRequiredAction<AIFacilityRoleAction>(actions, catalog, CharacterAiBranch.LeisureVisit);
+        AddRequiredAction<AIRescue>(actions, catalog, CharacterAiBranch.Work);
+        AddRequiredAction<AIHaul>(actions, catalog, CharacterAiBranch.Work);
+        AddRequiredAction<AIHunt>(actions, catalog, CharacterAiBranch.Work);
+        AddRequiredAction<AISubstanceUse>(actions, catalog, CharacterAiBranch.Work);
+        AddRequiredAction<AIDrink>(actions, catalog, CharacterAiBranch.Drink);
         // Off-duty staff can visit Training/Research/Mana under the existing
         // visitor policy. Fresh staff must not depend on a customer catalog.
-        AddRequiredAction(actions, catalog, ShoppingActionPath, CharacterAiBranch.Shopping);
+        AddRequiredAction<AIShopping>(actions, catalog, CharacterAiBranch.Shopping);
         return BindClocks(actions, clock);
     }
 
@@ -142,56 +122,35 @@ internal static class AIBrainActionConfiguration
         List<AIAction> actions = configured != null
             ? configured.ToList()
             : new List<AIAction>();
-        AddRequiredAction(actions, catalog, EatActionPath, CharacterAiBranch.Eat);
-        AddSpecialAction<AIPrimitiveFieldMeal>(actions, catalog, PrimitiveFieldMealActionPath, CharacterAiBranch.Eat);
-        AddRequiredAction(actions, catalog, RestActionPath, CharacterAiBranch.Rest);
-        AddSpecialAction<AIPrimitiveFloorRest>(actions, catalog, PrimitiveFloorRestActionPath, CharacterAiBranch.Rest);
-        AddRequiredAction(actions, catalog, ToiletActionPath, CharacterAiBranch.Toilet);
-        AddSpecialAction<AIPrimitiveLatrine>(actions, catalog, PrimitiveLatrineActionPath, CharacterAiBranch.Toilet);
-        AddRequiredAction(actions, catalog, HygieneActionPath, CharacterAiBranch.Hygiene);
-        AddSpecialAction<AIPrimitiveBucketWash>(actions, catalog, PrimitiveBucketWashActionPath, CharacterAiBranch.Hygiene);
-        AddRequiredAction(actions, catalog, RecreationActionPath, CharacterAiBranch.LeisureVisit);
-        AddSpecialAction<AIDrink>(actions, catalog, DrinkActionPath, CharacterAiBranch.Drink);
-        AddRequiredAction(actions, catalog, ShoppingActionPath, CharacterAiBranch.Shopping);
-        AddRequiredAction(actions, catalog, LookAroundActionPath, CharacterAiBranch.LookAround);
-        AddRequiredAction(actions, catalog, ExitDungeonActionPath, CharacterAiBranch.ExitDungeon);
+        AddRequiredAction<AIEat>(actions, catalog, CharacterAiBranch.Eat);
+        AddRequiredAction<AIPrimitiveFieldMeal>(actions, catalog, CharacterAiBranch.Eat);
+        AddRequiredAction<AIRest>(actions, catalog, CharacterAiBranch.Rest);
+        AddRequiredAction<AIPrimitiveFloorRest>(actions, catalog, CharacterAiBranch.Rest);
+        AddRequiredAction<AIFacilityRoleAction>(actions, catalog, CharacterAiBranch.Toilet);
+        AddRequiredAction<AIPrimitiveLatrine>(actions, catalog, CharacterAiBranch.Toilet);
+        AddRequiredAction<AIFacilityRoleAction>(actions, catalog, CharacterAiBranch.Hygiene);
+        AddRequiredAction<AIPrimitiveBucketWash>(actions, catalog, CharacterAiBranch.Hygiene);
+        AddRequiredAction<AIFacilityRoleAction>(actions, catalog, CharacterAiBranch.LeisureVisit);
+        AddRequiredAction<AIDrink>(actions, catalog, CharacterAiBranch.Drink);
+        AddRequiredAction<AIShopping>(actions, catalog, CharacterAiBranch.Shopping);
+        AddRequiredAction<AILookAround>(actions, catalog, CharacterAiBranch.LookAround);
+        AddRequiredAction<AIExitDungeon>(actions, catalog, CharacterAiBranch.ExitDungeon);
         return BindClocks(actions, clock);
     }
 
-    private static void AddRequiredAction(
+    private static void AddRequiredAction<T>(
         List<AIAction> actions,
         ICharacterAiActionAssetCatalog catalog,
-        string resourcePath,
-        CharacterAiBranch branch)
-    {
-        if (actions.Any(action => action?.actionset != null && action.actionset.Branch == branch))
-        {
-            return;
-        }
-
-        actions.Add(new AIAction
-        {
-            actionset = RequireCatalog(catalog).GetRequiredAction(resourcePath, branch)
-        });
-    }
-
-    private static void AddSpecialAction<T>(
-        List<AIAction> actions,
-        ICharacterAiActionAssetCatalog catalog,
-        string resourcePath,
         CharacterAiBranch branch)
         where T : AIActionSet
     {
-        if (actions.Any(action => action?.actionset is T))
+        if (actions.Any(action => action?.actionset is T
+            && action.actionset.Branch == branch))
         {
             return;
         }
 
-        AIActionSet actionSet = RequireCatalog(catalog)
-            .GetRequiredAction(resourcePath, branch);
-        T required = actionSet as T
-            ?? throw new InvalidOperationException(
-                $"Required AI action '{resourcePath}' has type {actionSet.GetType().Name}; expected {typeof(T).Name}.");
+        T required = RequireCatalog(catalog).GetRequiredAction<T>(branch);
         actions.Add(new AIAction { actionset = required });
     }
 

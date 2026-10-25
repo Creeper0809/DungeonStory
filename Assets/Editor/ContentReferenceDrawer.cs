@@ -143,6 +143,7 @@ public static class ContentReferenceSelection
         {
             if (property.propertyPath.Contains("relatedEventWeights.")) return ContentReferenceKind.LifeEvent;
             if (property.propertyPath.Contains("otherCultureAttitudes.")) return ContentReferenceKind.Culture;
+            if (property.propertyPath.Contains("factionReactions.")) return ContentReferenceKind.EnemyFaction;
             return null;
         }
         if (kind != ContentReferenceKind.EffectTarget) return kind;
@@ -162,6 +163,16 @@ public static class ContentReferenceSelection
 
     public static ContentReferenceAttribute ResolveReference(ContentReferenceAttribute reference, SerializedProperty property)
     {
+        if (reference.Kind == ContentReferenceKind.DefenseFamily)
+            return Sibling(property, "enabled")?.boolValue == false ? null : reference;
+        if (reference.Kind == ContentReferenceKind.FacilityRecordMetric)
+        {
+            var trigger = property.serializedObject.FindProperty("generationTrigger");
+            return trigger == null || trigger.hasMultipleDifferentValues
+                || (FacilityEvolutionRecordTokenGenerationTrigger)trigger.intValue
+                    != FacilityEvolutionRecordTokenGenerationTrigger.MetricThresholdCrossing
+                ? null : reference;
+        }
         if (reference.Kind == ContentReferenceKind.MetaEffectTarget)
         {
             var kind = ContextKind(property);
@@ -223,6 +234,9 @@ public static class ContentReferenceSelection
 
     public static bool HasMixedContext(ContentReferenceAttribute reference, SerializedProperty property) =>
         ContentReferenceCatalog.RequiresOwnerContext(reference.Kind) && property.serializedObject.isEditingMultipleObjects
+            || reference.Kind == ContentReferenceKind.FacilityRecordMetric
+                && property.serializedObject.FindProperty("generationTrigger")?.hasMultipleDifferentValues == true
+            || reference.Kind == ContentReferenceKind.DefenseFamily && Sibling(property, "enabled")?.hasMultipleDifferentValues == true
             || reference.Kind == ContentReferenceKind.SkillVariant && Sibling(property, "moduleId")?.hasMultipleDifferentValues == true
             || (reference.Kind == ContentReferenceKind.EncounterTarget
             ? property.serializedObject.FindProperty("objective")?.hasMultipleDifferentValues == true

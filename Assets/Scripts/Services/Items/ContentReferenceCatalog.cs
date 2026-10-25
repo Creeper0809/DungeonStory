@@ -61,7 +61,12 @@ public sealed class ContentReferenceCatalog
         or ContentReferenceKind.DiseaseResponse or ContentReferenceKind.CharacterNeed
         or ContentReferenceKind.IdentityRuleProtocol or ContentReferenceKind.FacilityLineageTag
         or ContentReferenceKind.RoomTag or ContentReferenceKind.FacilityMutationTag
-        or ContentReferenceKind.FacilityPressure or ContentReferenceKind.FacilityValueKey;
+        or ContentReferenceKind.FacilityPressure or ContentReferenceKind.FacilityValueKey
+        or ContentReferenceKind.DefenseFamily or ContentReferenceKind.FacilityRecordMetric
+        or ContentReferenceKind.SpeciesIncident or ContentReferenceKind.EnemyFaction
+        or ContentReferenceKind.CampaignRegion or ContentReferenceKind.CampaignFaction
+        or ContentReferenceKind.EnemyAbilityTarget or ContentReferenceKind.EnemyTacticalTarget
+        or ContentReferenceKind.EnemyTacticalOverride;
 
     public static Type AssetType(ContentReferenceKind kind) => kind switch
     {
@@ -137,12 +142,23 @@ public sealed class ContentReferenceCatalog
         or ContentReferenceKind.SkillBehavior or ContentReferenceKind.FormulaMirror
         or ContentReferenceKind.MetaEffectTarget or ContentReferenceKind.EquipmentStat
         or ContentReferenceKind.RoomProfileKey or ContentReferenceKind.DiseaseResponse
-        or ContentReferenceKind.IdentityRuleProtocol or ContentReferenceKind.FacilityValueKey;
+        or ContentReferenceKind.IdentityRuleProtocol or ContentReferenceKind.FacilityValueKey
+        or ContentReferenceKind.CampaignRegion or ContentReferenceKind.CampaignFaction;
 
     // Local relationships are scoped to their owning asset. They must never use
     // the global cache: two catalogs may intentionally publish the same local ID.
     public IReadOnlyList<Entry> Entries(ContentReferenceAttribute reference, ScriptableObject root, object owner = null)
     {
+        if (reference.Kind is ContentReferenceKind.CampaignRegion or ContentReferenceKind.CampaignFaction)
+        {
+            if (root is not OffenseCampaignCatalogSO campaign) return Array.Empty<Entry>();
+            return (campaign.Regions ?? Array.Empty<OffenseCampaignRegionDefinition>()).Where(value => value != null
+                    && (reference.Kind == ContentReferenceKind.CampaignRegion
+                        || owner is OffenseTargetDefinition target && target.regionId == value.id))
+                .Select(value => new Entry(campaign,
+                    reference.Kind == ContentReferenceKind.CampaignRegion ? value.id : value.factionId,
+                    value.displayName)).ToArray();
+        }
         if (reference.Kind == ContentReferenceKind.DiseaseResponse)
             return root is DiseaseDefinitionSO disease
                 ? DiseaseFieldResponseRuntime.AvailableResponseIds(disease.stableId, disease.vaccineAllowed)
@@ -291,6 +307,26 @@ public sealed class ContentReferenceCatalog
             .SelectMany(building => building.Abilities).Where(value => value != null);
         switch (kind)
         {
+            case ContentReferenceKind.DefenseFamily:
+                return KeyEntries(DefenseFacilityFamilyIds.Values).ToArray();
+            case ContentReferenceKind.FacilityRecordMetric:
+                return KeyEntries(FacilityEvolutionTerms.ProducedRecordMetricKeys).ToArray();
+            case ContentReferenceKind.SpeciesIncident:
+                return CharacterSpeciesIncidentIds.DeclaredIds.Select(id =>
+                    new Entry(null, id, id + " / " + CharacterSpeciesIncidentIds.RequireOwner(id))).ToArray();
+            case ContentReferenceKind.EnemyFaction:
+                var factions = assets.OfType<EnemyArchetypeDefinitionSO>()
+                    .Select(value => BackgroundFactionReactionRules.CanonicalFactionId(value.factionId))
+                    .ToHashSet(StringComparer.Ordinal);
+                var factionAliases = BackgroundFactionReactionRules.LegacyAliases.Where(alias =>
+                    factions.Contains(BackgroundFactionReactionRules.CanonicalFactionId(alias)));
+                return KeyEntries(factions.Concat(factionAliases)).ToArray();
+            case ContentReferenceKind.EnemyAbilityTarget:
+                return KeyEntries(EnemyAbilityTargetContract.Keys).ToArray();
+            case ContentReferenceKind.EnemyTacticalTarget:
+                return KeyEntries(EnemyTacticalTargetProtocols.TargetTags).ToArray();
+            case ContentReferenceKind.EnemyTacticalOverride:
+                return KeyEntries(new[] { EnemyTacticalTargetProtocols.Desperate }).ToArray();
             case ContentReferenceKind.BuildingSemanticTag:
             case ContentReferenceKind.ProductionFacilityTag:
                 return KeyEntries(abilities.OfType<BuildingSemanticTagsAbility>().SelectMany(value => value.tags ?? Array.Empty<string>())
@@ -523,7 +559,8 @@ public sealed class ContentReferenceCatalog
                 ? ContentReferenceKind.EnemyArchetype : null;
         if (kind == ContentReferenceKind.WeightedTarget)
             return path.Contains("relatedEventWeights.") ? ContentReferenceKind.LifeEvent
-                : path.Contains("otherCultureAttitudes.") ? ContentReferenceKind.Culture : null;
+                : path.Contains("otherCultureAttitudes.") ? ContentReferenceKind.Culture
+                : path.Contains("factionReactions.") ? ContentReferenceKind.EnemyFaction : null;
         if (kind != ContentReferenceKind.EffectTarget) return kind;
         if (owner is not V20ContentEffect effect) return null;
         return effect.kind switch
@@ -543,6 +580,12 @@ public sealed class ContentReferenceCatalog
         if (reference.Kind == ContentReferenceKind.IdentityRuleProtocol)
             return new ContentReferenceAttribute(ContentReferenceKind.IdentityRuleProtocol)
                 { ContextMember = path.Substring(path.LastIndexOf('.') + 1) };
+        if (reference.Kind == ContentReferenceKind.DefenseFamily)
+            return owner is DefenseFacilityData { enabled: false } ? null : reference;
+        if (reference.Kind == ContentReferenceKind.FacilityRecordMetric)
+            return owner is FacilityEvolutionRecordTokenDefinitionSO token
+                && token.generationTrigger == FacilityEvolutionRecordTokenGenerationTrigger.MetricThresholdCrossing
+                ? reference : null;
         if (reference.Kind == ContentReferenceKind.FacilityValueKey)
             return path.Contains("identityPressureWeights")
                 ? new ContentReferenceAttribute(ContentReferenceKind.FacilityPressure) : null;
@@ -588,6 +631,11 @@ public sealed class ContentReferenceCatalog
         foreach (var trait in assets.OfType<HeritableTraitDefinitionSO>())
             if (traitKeys.ContainsKey(trait.traitId))
                 errors.Add($"Heritable trait '{trait.traitId}' conflicts with a worker trait identity/legacy alias.");
+        foreach (var duplicate in assets.OfType<AIActionSet>()
+                     .Where(value => value.CompositionRole == CharacterAiActionCompositionRole.RequiredDefault)
+                     .GroupBy(value => (Type: value.GetType(), value.Branch))
+                     .Where(group => group.Count() > 1))
+            errors.Add($"Required AI default '{duplicate.Key.Type.Name}/{duplicate.Key.Branch}' occurs more than once.");
         var visited = new HashSet<object>(ReferenceEqualityComparer.Instance);
         foreach (var root in roots.Where(value => value != null)) Visit(root, root.name, root, visited, errors);
         return errors;
@@ -613,6 +661,20 @@ public sealed class ContentReferenceCatalog
         }
         if (value is EnemyArchetypeDefinitionSO enemy)
             errors.AddRange(enemy.ValidateDefinition().Select(error => path + ": " + error));
+        if (value is EnemyAbilityDefinitionSO enemyAbility)
+            errors.AddRange(enemyAbility.ValidateDefinition().Select(error => path + ": " + error));
+        if (value is AIActionSet aiAction
+            && !Enum.IsDefined(typeof(CharacterAiActionCompositionRole), aiAction.CompositionRole))
+            errors.Add(path + ": AI action composition role is not declared.");
+        if (value is AIActionSet { CompositionRole: CharacterAiActionCompositionRole.RequiredDefault,
+                Branch: CharacterAiBranch.None })
+            errors.Add(path + ": required AI default needs an executable branch.");
+        if (value is CharacterCombatAbilityDefinition combatAbility && !combatAbility.IsValid)
+            errors.Add(path + ": combat ability identity, effects or targeting are invalid.");
+        if (value is DefenseFacilityData defense)
+            errors.AddRange(defense.ValidateDefinition().Select(error => path + ": " + error));
+        if (value is FacilityEvolutionRecordTokenDefinitionSO recordToken)
+            errors.AddRange(recordToken.ValidateDefinition().Select(error => path + ": " + error));
         if (value is HeritableTraitDefinitionSO heritable)
             errors.AddRange(heritable.ValidateDefinition().Select(error => path + ": " + error));
         if (value is CharacterAcquiredTraitModuleSO acquiredModule)
@@ -663,6 +725,8 @@ public sealed class ContentReferenceCatalog
             catch (Exception exception) when (exception is InvalidOperationException or ArgumentException)
             { errors.Add(path + ": " + exception.Message); }
         }
+        if (value is CharacterSO { species: null })
+            errors.Add($"{path}: a character archetype requires a registered phenotype species.");
         if (value is CharacterSO character && character.species != null)
         {
             if (!Entries(new ContentReferenceAttribute(ContentReferenceKind.Species)).Any(entry => entry.Asset == character.species)

@@ -22,5 +22,6 @@ MonoBehaviour:
     PrefabModifications: []
     SerializationNodes: []
   actionName: "\uC57D\uBB3C \uBCF5\uC6A9"
+  compositionRole: 1
   defaultInterruptPriority: 0
   <considerations>k__BackingField: []

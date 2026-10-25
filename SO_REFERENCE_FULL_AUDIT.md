@@ -1,4 +1,124 @@
-# SO 관계 전수 감사 — 2026-10-24
+# SO 관계 전수 감사 — 2026-10-25
+
+## R21-01~11 및 X01 수정과 필요한 실행 검증 완료
+
+main37f07adce에서 분류한 SO11묶음과 AI 이름 참조1묶음을 처리했다. 아래는 현재 수정과 실제 검증의 범위다. 상태/저장 권위를 새로 나누거나 줄 수를 위한 구조 분리를 하지 않았다.
+
+| ID | 수정 | 확인한 경계 |
+|---|---|---|
+| R21-01 | [적 능력 대상 계약](Assets/Scripts/Models/Offense/Core/EnemyAbilityDefinitionSO.cs#L30)을 실제 전투 능력에 전달한다. AI와 명령이 같은 필터/우선순위/아군 전체 및 같은 진형 범위를 사용한다. | 실제 AI 선택과 전투 명령, 잘못된 대상 거절/재시도, 새 JSON 복원 후 중복 명령 거절 |
+| R21-02 | [종족 사건 소유](Assets/Scripts/Models/Species/Core/CharacterSpeciesDefinitionSO.cs#L236)를 명시한다. Human/Adventurer는 기존 환경/침입 경로에 두고 일반 불만 dispatch의 취소 반복을 막는다. Kobold의 기존 lore-only 계약도 유지한다. | 선택/시작의 미등록 ID 거절, 실제 registry 외부 사건 무변경, Kobold 기존 계약 |
+| R21-03 | [배경 세력 별칭](Assets/Scripts/Services/Character/CharacterNarrativeContracts.cs#L189) 두 개를 현재 왕권/상인 세력에 연결하고 세력 선택을 등록 목록으로 제한한다. 적36종의 출신 세력 키를 보호한다. | 실제 개체 생성의 기존3가중치 적용, 과거 충성도 JSON 복원/반복 등록과 실패 재시도 |
+| R21-04 | [종족/특성 능력 ID](Assets/Editor/ContentIdentityProtection.cs#L700)를 기존 게시 검사에 포함한다. 현재 종족 능력6개와 저장 cooldown 키를 유지한다. | 실제 게시 목록에 대한 능력 ID 변경/삭제 거절, 전투 cooldown/명령 JSON 복원 |
+| R21-05 | [아이템 제공 키](Assets/Editor/ContentIdentityProtection.cs#L691)를 보호한다. Resource 탄약21개, Generic 호환 탄약2개와 물질9개를 포함한다. | 제공 키 변경/feature 제거 거절, 실제 탄약 codec payload/fingerprint JSON 및 손상 거절 후 재시도 |
+| R21-06 | [해부학 family](Assets/Scripts/Models/Medical/Core/AnatomyProfileSO.cs#L17)18개 profile/12종의 제공 키를 보호한다. 저장 장기의 기존 family 값과 계산을 바꾸지 않는다. | 게시 family 변경 거절과 실제 해부학 profile/호환 계산 |
+| R21-07 | [같은 캠페인 SO의 지역 선언](Assets/Scripts/Services/Offense/OffenseCampaignCatalogSO.cs#L7)에서 region/faction 쌍을 선택한다. 오타로 새 지역을 만들지 않고 과거 저장 지역을 보존하며 새 명시 지역은0으로 복원한다. | 실제 압력 명령의 거절/복구, 새 JSON 복원, 손상 복원 무변경과 재시도, pending owner 선택 |
+| R21-08 | [방어 family13종](Assets/Scripts/Models/Defense/Core/DefenseDomain.cs#L98)을 실행 dispatch와 공유한다. 활성 시설의 미등록 family를 조기 거절하고 비활성 설정은 유지한다. | 실제 제어 네트워크/장벽 소비와 오타 거절/수정 |
+| R21-09 | [필수 Character 종족 연결](Assets/Scripts/Services/Items/ContentReferenceCatalog.cs#L717)을 root 시작 검사에서 확인한다. 기존16개 종족 연결은 유지한다. | 실제 root Character clone의 null 거절과 연결 복구, 공식 Gameplay 초기화/복원 |
+| R21-10 | [전술 태그와 override](Assets/Scripts/Models/Offense/Core/EnemyArchetypeDefinitionSO.cs#L8)를 실제 소비 프로토콜에서 선택하고 미등록 값을 거절한다. 빈 optional/none과 기존 desperate는 유지한다. | 선호/회피/보스 오타 거절 및 복구, 실제 Inspector와 전투 AI |
+| R21-11 | [threshold metric](Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionRecordTokens.cs#L55)만 실제 생산20종에서 선택하고 수치/정책도 조기 검증한다. 현재9개 event token의 설명용 metric은 유지한다. | 실제 recorder 생성, threshold 오타/복구와 event metadata 호환, 실제 Inspector |
+| R21-X01 | [AI 기본 조회](Assets/Scripts/Services/Infrastructure/CharacterAiActionAssetCatalog.cs#L19)는 이름 대신 타입/branch/명시된 기본 역할을 사용한다. 기존19개만 RequiredDefault로 지정하고 같은 타입의 설정 전용 root variant를 허용한다. 기본 지정과 시설 역할3개도 보호한다. | 기본19개 이름 변경, root variant/기존 설정 보존, 기본 누락/중복 거절 및 실제 게시 파일의 역할 변경 거절 |
+
+검증은 [현재 R21 실행/Inspector 영수증](Artifacts/QA/ImpactCI/r21-verification.json), [변경 영향5그룹](Artifacts/QA/ImpactCI/verification.json), [공식 월드 저장/복원](Artifacts/QA/ImpactCI/world-round-trip.txt)과 [게시 추가 대조](Artifacts/QA/ImpactCI/r21-publication-review.json)에 기록한다. 각 수용 실행은 native0, C# 오류0, consoleErrors0과 입력 drift0이다. Inspector는 인증된 TCP 비활성 private Xvfb에서 실제 Layout/Repaint와 입력, 원본 JSON/dirty/asset bytes 보존을 확인했다. 과거 실패 로그는 별도 원본 경로에 보존하며 성공으로 바꾸지 않았다.
+
+R21 표적과 Inspector는 실제 r156su 입력의 결과를 유지한다. 이후 차이는 해당 두 검사가 호출하지 않는 기존 semantic fixture의 Entries 인수1줄이다. 전체21712입력의1파일 SHA/diff와 원래 source/configuration을 영수증에 보존했다. 생산 코드, 선택/catalog/drawer, 에셋/게시 목록, 두 진입점과 검사 소스는 바뀌지 않았다. 현재 소스의 컴파일과 영향5그룹은 최종 입력에서 실행했다.
+
+기존3544에셋/11901게시 필드를 보존하고120키를 추가해12021필드를 보호한다. 탄약은 최초 예상21개 외 Generic 호환2개도 실제 native 후보와 원본에서 확인했다. AI19개 에셋의 변화는 각각 compositionRole:1 한 줄 추가이며 수치/연결/GUID와 시설 role128/256/2048은 그대로다. 캠페인에는 기존3쌍의 같은 값을 제공자 목록으로 명시했다. 기존 저장 DTO 필드와 버전은 유지했다.
+
+대상 교정은 효과 계수/지속/대기/명령당 비용을 유지하지만 실제로 영향을 받는 전투원과 결과는 달라질 수 있다. 배경의 기존 가중치는 새 개체 생성에 연결하며 과거 저장 충성도는 재계산하지 않는다. 이 검증은 변경 경로의 통제된 실제 명령과 공식 Gameplay 복원이며 모든 자연 발동/조합이나 전역 균형을 인증한 결과는 아니다. Python CI91개, 고정 분석기와 관련 생성 인덱스 검증도 통과했다. GitHub 통합의 현재 상태는 해당 PR과 Actions 결과를 따른다.
+
+실행 source `48f177a81bf5a683efe0037822f1a97f6114c46d0dd8d4915b6b813478cba2bf`, configuration `4e3b8adbeccfa8f1cd9d29aa33214cf286fddb91c5fa150f7829fd9dab565af1`.
+
+---
+
+## 수정 전 main37f07adce 재감사 — 당시 SO11묶음과 이름 참조1묶음
+
+**아래는 수정 전 판정이다.** 아래는 R20 완료 표시를 읽어 내린 판정이 아니라, main `37f07adcefd1b8994929dcf679284d0e0ee1e538`의 실제 C#, 에셋과 소비 경로를 다시 대조한 결과다. 시작과 마감 fetch의 main이 같다. R20에서 지정한 17개 수정은 반영됐지만, 그것을 SO 관계 전체가 안전하다는 뜻으로 확대하면 안 된다. R21은 조사 완료이며 아래 잔여의 수정 완료가 아니다.
+
+### 확인 범위와 판정 기준
+
+- 게임 SO 선언 142종과 그 상속 및 중첩 직렬화 선언 2,458개를 다시 추출했다. 넓은 관계 후보는 881개, 참조 표식은 245개다. 실제 에셋은 124종 3,544개이며 나머지 18종은 추상 기반형 또는 현재 에셋이 없는 선언이다. 표식이 있어도 문맥 해석이 빠지거나 소비자가 읽지 않으면 완료로 세지 않았다.
+- GUID 참조 8,962개, 외부 `.asset` 대상 fileID 4,731개, 같은 파일 내부 fileID 18개를 원본과 대조했다. 누락 GUID, 중복 meta, 잘못된 대상 fileID와 미게시 게임 에셋은 0이다.
+- 실제 managed reference 6,116개와 170종을 대조했다. rid 누락/중복과 현재 선언이 없는 타입은 0이다. 타입/assembly 조합 175개 중 현재 assembly 일치 159개, 명시된 `MovedFrom` 호환 16개이며 미해결 조합은 0이다.
+- 기존 `verify_content_identities.py`를 현재 main 대 현재 main으로 실행해 실제 3,544개 에셋과 기록된 11,901개 게시 필드의 일치를 확인했다. 이 검사는 **기록되지 않은 키까지 보호한다는 증거가 아니다.** 아래 메모리 반례에서는 기록 밖 키 변경이 같은 검사기를 통과했다.
+- 현재 연결 누락, 저장된 키와의 호환 위험, 현재 값은 정상인 작성 보호 공백을 구분했다. P1은 현재 의미가 탈락하거나 실제 저장 소비가 있는 계약, P2는 현재 에셋은 정상인 작성/변경 보호 문제다. 새 P0는 확인하지 않았다.
+- 이번에는 Unity 컴파일, 실제 Inspector, Play, 전투 또는 저장/복원을 새로 실행하지 않았다. Roslyn 파싱 오류 0, 정적 에셋 대조와 기존 Python 검사기의 메모리 반례를 실행했다. 게임 코드, 에셋, 저장 형식과 생성 인덱스는 변경하지 않았다.
+
+### 우선순위별 전체 잔여
+
+| ID | 우선순위 | 남은 계약 | 현재 상태와 실제 영향 |
+|---|---|---|---|
+| R21-01 | P1 | 적 능력의 `targetTag`가 실행 투영에서 탈락 | 18행 중 `Delay + backline` 1행만 투영에 영향. 나머지 17행의 대상 조건/범위를 전달하지 않음 |
+| R21-02 | P1 | 종족 사건 ID와 실행 등록부가 불일치 | 현재 Human/Adventurer 2개는 처리기도 명시적 우회도 없어 실행 시 취소됨 |
+| R21-03 | P1 | 배경의 적 세력 반응 관계와 적 출신 세력 변경 보호 누락 | 배경 12행 중 3행은 현재 적 세력 10종과 연결되지 않음. 적 36종의 세력 문자열 변경은 기존 개체 복원도 거절시킬 수 있음 |
+| R21-04 | P1 | 종족 전투 능력의 중첩 ID 게시 보호 누락 | 현재 6개 ID는 정상. ID 변경 뒤 복원된 예전 cooldown 키가 새 능력과 매칭되지 않음 |
+| R21-05 | P1 | 아이템의 중첩 capability 제공 키 게시 보호 누락 | 탄약 21개와 물질 별칭 9개는 현재 정상. 탄약 키 변경은 저장된 prepared output의 payload 복원을 깨뜨릴 수 있음 |
+| R21-06 | P1 | 해부학 `anatomyFamily` 제공 키 변경 보호 누락 | 현재 18개 profile/12개 family는 정상. 제공자와 소비자를 함께 바꿔도 저장된 장기의 예전 family는 남음 |
+| R21-07 | P2 | 캠페인의 `regionId/factionId`가 수기이고 오타를 새 지역으로 수용 | 현재 6개 target의 3쌍은 정상. `rival-outpsot`도 검증을 통과해 제4 region으로 생성될 수 있음 |
+| R21-08 | P2 | 방어 시설 family의 실제 dispatch 프로토콜이 수기 | 현재 active defense 16개는 정상. `defense:contorl` 오타는 제어 시설을 네트워크에서 사라지게 함 |
+| R21-09 | P2 | 필수 CharacterSO 종족 연결을 지운 상태를 시작 검사가 수용 | 현재 16개는 정상. Inspector에서 null과 빈 tag로 지울 수 있고 실제 생성 명령은 이후 예외를 던짐 |
+| R21-10 | P2 | 적 전술 선호/회피 태그와 보스 override가 수기 | 현재 36개 및 보스 `desperate` 4행은 정상. 미등록 값은 기본 분기로 빠져 조용히 효과가 없어짐 |
+| R21-11 | P2 | threshold 기록 토큰의 `sourceMetric` 선택과 조기 검사 누락 | 현재 9개는 event trigger이며 metric은 설명용이다. 새 threshold trigger 작성 때만 실제 metric 관계이며 실행 객체 생성에서 뒤늦게 실패함 |
+| R21-X01 | P2 | 필수 AI 행동을 SO 이름으로 찾고 이름 변경은 보호하지 않음 | 현재 19개 이름은 정상. `Wait` 이름만 바꿔도 게시 ID 검사는 통과하고 필수 행동 조회는 0건이 됨 |
+
+### R21-01 실제 적 능력의 대상 의미가 전달되지 않는다
+
+[정의](Assets/Scripts/Models/Offense/Core/EnemyAbilityDefinitionSO.cs#L20)의 `targetTag`는 자유 문자열이며 검증은 ID, 표시명과 효과 수치만 확인한다. [투영](Assets/Scripts/Services/Offense/EnemyEncounterFactory.cs#L513)은 `targetRule`과 효과 모듈을 만들고, `Delay + backline` 한 조합에서만 문자열을 읽는다. 다른 tag는 새 능력에 남지 않는다. [대상 선택](Assets/Scripts/Services/Offense/EnemyTacticalDecisionService.cs#L212)은 아군을 체력 비율로 고르고 적군은 별도의 archetype 전술 점수로 고른다.
+
+현재 [core-repair](Assets/Resources/SO/V20/Combat/Abilities/enemy-ability_core-repair.asset)는 `construct` 치유를 지정하지만, 체력 10%인 Human과 50%인 construct가 있으면 앞의 Human이 선택된다. [rally](Assets/Resources/SO/V20/Combat/Abilities/enemy-ability_rally.asset)의 `all-allies`도 단일 대상 Guard로 투영된다. 전체 18행에는 대상/범위 문자열 16종이 있다. `construct`, `armored`, `all-allies`, `cluster`, `battlefield` 등을 무조건 같은 단일 대상 태그로 바꾸면 안 된다. 의도한 대상 조건과 범위를 명확히 하고 실제 투영, 선택과 실행까지 연결해야 한다. 개별 tag의 정확한 게임 규칙은 구현할 때 확정해야 하며 이번에 전투 실행으로 인증한 것은 아니다.
+
+### R21-02 종족 사건 두 개는 현재 등록된 실행 경로가 없다
+
+[종족 사건 필드](Assets/Scripts/Models/Species/Core/CharacterSpeciesDefinitionSO.cs#L200)는 raw `incidentId`이고, 종족 검증은 비어 있지 않은지만 확인한다. [실제 등록부](Assets/Scripts/Services/Character/SpeciesRuntime.cs#L308)는 처리기 6개를 가진다. [발동](Assets/Scripts/Services/Character/SpeciesRuntime.cs#L1462)은 Orc/Vampire/Kobold 3종만 명시적으로 제외한다.
+
+현재 [Human](Assets/Resources/SO/Character/Species/Species_Human.asset#L74)의 `species-incident:human-adjustment`와 [Adventurer](Assets/Resources/SO/Character/Species/Species_Adventurer.asset#L73)의 `species-incident:adventurer-incursion`은 어느 집합에도 없다. `Tick`은 살아 있는 모든 등록 캐릭터를 순회한다. 낮은 기분과 결정적 추첨을 통과해도 [미등록 처리](Assets/Scripts/Services/Character/SpeciesRuntime.cs#L1523)에서 상태를 되돌리고 취소한다. 사건 횟수와 다음 시각도 진행되지 않아 같은 조건에서 재시도할 수 있다. 실행할 사건과 의도적으로 이 경로를 쓰지 않는 사건을 명시적으로 분류하고 선택/등록 검사와 맞춰야 한다. 이 조사만으로 새로운 사건 효과를 임의로 발명할 수는 없다.
+
+### R21-03 배경의 세력 가중치 일부가 연결되지 않고 출신 세력도 가변이다
+
+[배경의 factionReactions](Assets/Scripts/Content/CharacterBackgroundDefinitionSO.cs#L10)는 `V20WeightedId`를 쓰지만, [공용 문맥 해석](Assets/Scripts/Services/Items/ContentReferenceCatalog.cs#L524)은 `relatedEventWeights`와 `otherCultureAttitudes`만 처리한다. 이 세 번째 사용처는 선택/참조 검사가 작동하지 않는다. [실제 반응 계산](Assets/Scripts/Services/Character/CharacterNarrativeContracts.cs#L187)은 6개 호환 별칭을 정규화한 뒤 적 archetype의 세력 문자열과 비교한다.
+
+현재 적 36개에는 세력 키 10종이 있다. 배경 12개 중 [exiled-heir](Assets/Resources/SO/V20/Narrative/Backgrounds/background_exiled-heir.asset)의 `faction:old-nobility`와 [guild-apprentice](Assets/Resources/SO/V20/Narrative/Backgrounds/background_guild-apprentice.asset), [mine-bondworker](Assets/Resources/SO/V20/Narrative/Backgrounds/background_mine-bondworker.asset)의 `faction:iron-consortium`은 정규화 후에도 일치하는 제공자가 없다. 세 가중치 2.2/2.4/0.1은 현재 적 생성에서 반응 대상이 될 수 없다. 36개 모두 허용 배경 목록이 비어 있어 [실제 생성](Assets/Scripts/Services/Offense/EnemyIndividualRuntime.cs#L292)은 전체 배경을 표본으로 쓰므로 배경 자체가 비활성인 경우도 아니다.
+
+또 [EnemyArchetypeDefinitionSO.factionId](Assets/Scripts/Models/Offense/Core/EnemyArchetypeDefinitionSO.cs#L87)는 게시 보호 밖이다. 이 값은 개체의 `originFactionId`로 저장되고 [RequireBlueprint](Assets/Scripts/Services/Offense/EnemyIndividualRuntime.cs#L344)는 현재 정의와 동일할 것을 요구한다. 메모리에서 `human:crown`만 바꾼 에셋은 기존 게시 검사기를 통과했다. 예전 개체는 이후 정의와 불일치해 원정 재구성/귀환에서 거절될 수 있다. 적 세력의 제공 키와 배경의 소비 선택/별칭을 함께 정리하고 저장 호환을 보존해야 한다. 이 네임스페이스를 던전 외교의 `faction:dungeon:*` 선택기로 바꾸면 안 되며, 누락된 세 가중치를 어느 실제 세력에 연결할지도 근거 없이 추정하면 안 된다.
+
+### R21-04부터 R21-06 저장된 제공 키가 게시 보호 밖에 있다
+
+**R21-04.** [종족 전투 능력 id](Assets/Scripts/Models/Combat/Core/CharacterCombatAbilityModels.cs#L45)는 일반 직렬화 문자열이다. Beastkin/Demon/Golem/Harpy/Kobold/Myconid의 6개 ID는 현재 유효하지만 게시된 종족 행은 `speciesTag`만 보호한다. [전투 저장/복원](Assets/Scripts/Services/Offense/OffenseBattleModel.cs#L210)은 cooldown을 ability ID로 저장하고, [실제 조회](Assets/Scripts/Models/Offense/Core/OffenseBattleContracts.cs#L655)는 새 키가 없으면 0을 반환한다. Beastkin ID에 `-v2`를 붙인 메모리 에셋은 기존 게시 검사를 통과했으며, 예전 키에 남은 2턴은 새 키 조회에서 0이 된다. 향후 trait 능력도 같은 중첩 정의를 쓰므로 실제 제공 경로를 함께 보호해야 한다.
+
+**R21-05.** [탄약 키](Assets/Scripts/Models/Economy/Content/ItemDefinitionSO.cs#L453) 21개는 현재 모두 owner `itemId`와 같다. 그러나 [prepared output](Assets/Scripts/Services/Economy/CombatAmmunitionPreparedOutputMaterializer.cs#L29)은 `ammunitionKindId` 자체를 payload에 넣고, 복원할 때 현재 값으로 다시 만든 payload/fingerprint와 같아야 한다. `ammo:arrow-iron-v2` 변경은 게시 검사를 통과하지만 예전 출력 payload는 거절된다. [SubstanceItemFeature.substanceId](Assets/Scripts/Models/Economy/Content/ItemDefinitionSO.cs#L305) 9개도 게시 보호 밖이며 [문자열 조회 별칭](Assets/Scripts/Services/Survival/CharacterConsumablesApplicationAdapters.cs#L719)이다. 물질 상태의 저장 권위는 `itemDefinitionId`이므로 이 별칭 변경을 물질 저장 손상으로 과장하지 않는다. 탄약의 중복 ID를 기존 보호 ID에서 유도하거나 필요한 중첩 제공 키를 보호하고 별칭 호환을 명시하는 범위면 충분하다.
+
+**R21-06.** [anatomyFamily](Assets/Scripts/Models/Medical/Core/AnatomyProfileSO.cs#L15)는 18개 profile이 공급하는 12종 키다. 현재 lexicon 7개와 procedure 47개는 유효한 family를 사용하지만 이 제공 필드는 게시하지 않는다. 제공자와 소비자를 함께 `humanoid`에서 `bipedal`로 바꾸면 현재 관계만으로는 이상이 없고 게시 검사도 변경을 감지하지 못한다. [저장 장기](Assets/Scripts/Models/Medical/Core/SurgeryModels.cs#L729)에는 예전 `anatomyFamily`가 남는다. 다른 종족 간 이식의 [동일 family 비교](Assets/Scripts/Services/Medical/SurgeryOrderPlanningService.cs#L464)는 호환도를 0.75 대신 0.45로 계산할 수 있다. 같은 종족이면 앞의 별도 분기로 빠지므로 반례는 다른 종족 간 이식이다. 제공 키 보호 또는 명시적 저장 별칭 이행이 필요하다.
+
+### R21-07부터 R21-11 현재 정상인 값과 향후 작성 공백
+
+**R21-07.** [캠페인 target](Assets/Scripts/Services/Offense/OffenseWorldMapModel.cs#L168)의 region/faction은 raw 문자열이며 [catalog 검증](Assets/Scripts/Services/Offense/OffenseCampaignCatalogSO.cs#L31)은 target ID/순서/선행 관계만 확인한다. 현재 6행은 `border-trade/human`, `rival-outpost/rival`, `sealed-zone/seal`로 정상이다. `old_armory`의 region 한 곳을 `rival-outpsot`으로 바꿔도 게시 검사를 통과했다. 실제 [압력 적용](Assets/Scripts/Services/Offense/OffenseRegionRuntime.cs#L176)은 [GetOrCreateRegion](Assets/Scripts/Services/Offense/OffenseRegionRuntime.cs#L615)에서 오타를 제4 지역으로 만든다. 반면 [현재 세계의 지역 생산](Assets/Scripts/Services/Offense/Strategic/OffenseHexWorldSimulation.cs#L1110)은 기존 세 키만 쓴다. 지역/세력의 명시적 등록과 선택, 쌍 검증 및 저장 키 호환이 필요하다. 새 지역을 계속 추가할 수 있는 등록 경로는 유지해야 하며 오늘의 세 키만 영구 허용하는 식으로 고치면 안 된다.
+
+**R21-08.** [DefenseFacilityData.facilityFamilyId](Assets/Scripts/Services/Defense/DefenseFacilityData.cs#L41)는 수기지만 [네트워크](Assets/Scripts/Services/Defense/DefenseFacilityNetworkRuntime.cs#L55)는 detection/control/supply/maintenance를 exact 비교한다. [가시성](Assets/Scripts/Models/Invasion/Core/InvasionIntruderDefenseObservation.cs#L29)도 5개 이름을 별도로 비교한다. 현재 16개는 정상이나 [제어대](Assets/Resources/SO/Building/P1/DefenseControlDesk.asset)의 `defense:control`을 `defense:contorl`로 바꾸면 nonblank 검사는 통과하고 제어 링크를 잃는다. 일반 category와 실제 기능 프로토콜을 구분하면서 생산자, 선택과 소비자가 같은 등록 어휘를 사용해야 한다.
+
+**R21-09.** [실제 CharacterSO Inspector](Assets/Editor/CharacterSOEditor.cs#L150)는 종족을 지우는 선택을 수용하고 tag도 지운다. [시작 참조 검사](Assets/Scripts/Services/Items/ContentReferenceCatalog.cs#L666)는 `species != null`일 때만 확인한다. 그러나 [실제 생성](Assets/Scripts/Services/Character/SO/CharacterSpawnRequest.cs#L60)은 direct species가 필수다. 현재 16개 에셋은 모두 정상이다. 불완전한 draft 편집을 허용하는 것과 그런 에셋을 유효한 게임 콘텐츠로 통과시키는 것은 구분해야 한다. 선택 없음의 의미와 필수 등록 검증을 일치시키는 보완이 필요하다.
+
+**R21-10.** [EnemyTacticalProfile](Assets/Scripts/Models/Offense/Core/EnemyArchetypeDefinitionSO.cs#L9)의 preferred/avoided 태그와 보스의 `tacticalProfileOverrideTag`는 수기다. [실제 matcher](Assets/Scripts/Services/Offense/EnemyTacticalDecisionService.cs#L344)는 8개 token 외에는 false를 반환하고 보스 override는 `desperate`만 읽는다. 현재 preferred는 nearest23/backline6/fast7, avoided는 의도된 none30/shielded6이며 보스 desperate는 4행이다. 새 `backlien` 오타는 현재 검증을 통과하고 선호 효과가 사라진다. 빈 목록과 builder가 쓰는 `none`의 의도된 no-op은 유지하고, 미등록 입력에는 선택/조기 거절을 제공해야 한다. 이는 능력 효과의 `targetTag` 유실인 R21-01과 다른 소비 경로다.
+
+**R21-11.** [record token](Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionRecordTokens.cs#L28)의 `sourceMetric`은 trigger에 따라 설명 또는 실행 관계가 된다. 현재 9개는 event trigger 0~8이라 기존 문자열을 잘못된 참조로 세지 않았다. 새 `MetricThresholdCrossing`에서는 [ProducedMetricKeys](Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionRecordEventRecorder.cs#L32)의 20종을 선택해야 하지만 수기이고, 정의 검증은 token ID만 확인한다. `VisitCounnt`를 써도 이 검사를 통과한 뒤 [실행 recorder 생성](Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionRecordEventRecorder.cs#L80)에서 예외가 난다. 해당 trigger일 때만 선택/필수 검증을 연결하면 된다. 다른 trigger의 설명 metadata를 일괄 제한하면 안 된다.
+
+### R21-X01 SO 에셋 이름이 보호되지 않는 필수 조회 키다
+
+[AIBrainActionConfiguration](Assets/Scripts/Services/Character/AI/AIBrainActionConfiguration.cs#L9)은 필수 행동 경로 19개를 문자열로 갖는다. [ResourceCharacterAiActionAssetCatalog](Assets/Scripts/Services/Infrastructure/CharacterAiActionAssetCatalog.cs#L19)는 경로의 basename을 `AIActionSet.name`과 비교한다. `actionName` 표시 문자열과도 다른 값이다.
+
+현재 등록된 행동 에셋은 정확히 한 번씩 매칭된다. 하지만 [Wait](Assets/Resources/SO/AI/Action/Wait.asset)의 게시 행은 보호 필드가 0개다. 저장소 파일은 그대로 두고 메모리에서 `m_Name`만 `WaitRenamed`로 바꿔 기존 게시 검사기를 실행하면 에셋1/게시필드0으로 통과한다. 동시에 필수 이름 `Wait`의 매칭은 0개가 된다. GUID 보존만으로 해결되지 않으며 실제 초기화가 이 조회를 요구한다. 기존 등록/종류 또는 안정된 제공 키를 기준으로 연결하거나, 반드시 이름을 유지해야 한다면 그 계약을 명시적으로 보호해야 한다.
+
+### 정상 분류와 남겨 둔 경계
+
+- 연구 180개와 unlock bundle 180개, 선행 관계가 있는 166개 연구의 direct object/숨긴 ID/순서가 일치한다. crop 12개의 baseGenome도 등록 및 crop ID가 일치한다. facility evolution 직접 시설 참조 22개와 synthesis recipe 9개의 시설 참조 27개는 등록돼 있다.
+- R20에서 바꾼 출력 원가 payload 3개는 owner output ID 집합과 일치한다. 종족의 life/reproduction/funeral 직접 링크, skill/capability 및 공용 효과/조건/계산식 참조도 원본과 게시/등록 경계를 대조했다. 별도 누락으로 확인된 종류를 과거 완료 표시로 대신하지 않았다.
+- Faction shadow 6개는 실제 builder의 명시적 제외 대상이다. wildlife nest/migration과 일부 icon/VFX, narrative branch 문자열은 현재 미소비 또는 설명 metadata다. 정상 자기 ID와 단순 표시 문자열을 수기 외래 참조로 세지 않았다.
+- 계절 원정의 `hostile`, `truth:guardian`은 현재 site/fact에 전달되는 별도 분류 문자열이며 pressure가 None이다. 이를 근거 없이 던전 외교 세력 SO의 끊어진 참조로 단정하지 않았다. 향후 이 문자열을 외교 lookup에 연결하려면 먼저 namespace 계약을 정해야 한다.
+- 이번 direct fileID 대조는 게임 SO가 가진 정적 참조에 대한 것이다. third-party SO 구현 전체, 모든 Unity import 결과, Inspector의 실제 렌더링과 실제 전투/복원은 이번 실행 범위가 아니다. 과거 R20 실행 PASS를 R21 실행 증거로 재사용하지 않았다.
+
+외부 재현 자료는 `C:/Users/vulpo/Documents/Codex/2026-10-25/so-main-reaudit-r21`에 보존했다. `inventory.json`, `asset-groups.json`, `current-assets.json`, `asset-graph-check.json`, `managed-assembly-check.json`, `published-identity-check.json`, `common-repros.json`, `published-edit-probes.json`, `background-faction-references.json`과 분야별 검토 기록 3개가 있다. 메모리 반례의 게시 검사 통과는 실제 Python 검사기 결과이며, 그 뒤의 플레이 영향은 해당 C# 분기와 동등 계산으로 설명했다. 실제 Unity에서 실행한 결과로 표현하지 않는다.
+
+---
+
 
 ## R20-01~16 및 R20-X01 수정과 필요한 실행 검증 완료
 

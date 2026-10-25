@@ -95,6 +95,47 @@ public enum DefenseSupplyKind
     Treasury = 6
 }
 
+public static class DefenseFacilityFamilyIds
+{
+    public const string General = "defense:general";
+    public const string Detection = "defense:detection";
+    public const string Control = "defense:control";
+    public const string Supply = "defense:supply";
+    public const string Maintenance = "defense:maintenance";
+    public const string Barrier = "defense:barrier";
+    public const string Launcher = "defense:launcher";
+    public const string ScatterTrap = "defense:scatter-trap";
+    public const string BlastTrap = "defense:blast-trap";
+    public const string MechanicalTrap = "defense:mechanical-trap";
+    public const string Toxin = "defense:toxin";
+    public const string Elemental = "defense:elemental";
+    public const string GuardPost = "defense:guard-post";
+
+    private static readonly IReadOnlyList<string> KnownValues =
+        Array.AsReadOnly(new[]
+        {
+            General,
+            Detection,
+            Control,
+            Supply,
+            Maintenance,
+            Barrier,
+            Launcher,
+            ScatterTrap,
+            BlastTrap,
+            MechanicalTrap,
+            Toxin,
+            Elemental,
+            GuardPost
+        });
+
+    public static IReadOnlyList<string> Values => KnownValues;
+
+    public static bool IsKnown(string value) =>
+        !string.IsNullOrWhiteSpace(value)
+        && KnownValues.Contains(value, StringComparer.Ordinal);
+}
+
 public sealed class DefenseFacilityGrowthState
 {
     public int capacityLevel;

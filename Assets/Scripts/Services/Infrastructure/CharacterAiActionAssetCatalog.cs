@@ -1,10 +1,10 @@
 using System;
-using System.IO;
 using System.Linq;
 
 public interface ICharacterAiActionAssetCatalog
 {
-    AIActionSet GetRequiredAction(string resourcePath, CharacterAiBranch expectedBranch);
+    T GetRequiredAction<T>(CharacterAiBranch expectedBranch)
+        where T : AIActionSet;
 }
 
 public sealed class ResourceCharacterAiActionAssetCatalog : ICharacterAiActionAssetCatalog
@@ -16,32 +16,61 @@ public sealed class ResourceCharacterAiActionAssetCatalog : ICharacterAiActionAs
         this.content = content ?? throw new ArgumentNullException(nameof(content));
     }
 
-    public AIActionSet GetRequiredAction(string resourcePath, CharacterAiBranch expectedBranch)
+    public T GetRequiredAction<T>(CharacterAiBranch expectedBranch)
+        where T : AIActionSet
     {
-        if (string.IsNullOrWhiteSpace(resourcePath))
+        Type requiredType = typeof(T);
+        if (requiredType.IsAbstract)
         {
-            throw new ArgumentException("AI action resource path is required.", nameof(resourcePath));
+            throw new ArgumentException(
+                $"Required AI action type must be concrete; received {requiredType.Name}.",
+                nameof(T));
+        }
+        if (expectedBranch == CharacterAiBranch.None
+            || !Enum.IsDefined(typeof(CharacterAiBranch), expectedBranch))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(expectedBranch),
+                expectedBranch,
+                "Required AI action branch must be a declared non-None branch.");
         }
 
-        string assetName = Path.GetFileName(resourcePath.Trim());
-        AIActionSet[] matches = content.GetAll<AIActionSet>()
+        T[] registered = content.GetAll<T>()
             .Where(candidate => candidate != null
-                && string.Equals(candidate.name, assetName, StringComparison.Ordinal))
+                && candidate.GetType() == requiredType)
             .ToArray();
-        if (matches.Length != 1)
+        T[] branchMatches = registered
+            .Where(candidate => candidate.Branch == expectedBranch)
+            .ToArray();
+        if (registered.Length == 0)
         {
             throw new InvalidOperationException(
-                $"Required AI action '{assetName}' must occur exactly once in the root content catalog; found {matches.Length}.");
+                $"Required AI action type {requiredType.Name} is not registered in the root content catalog.");
+        }
+        if (branchMatches.Length == 0)
+        {
+            string actualBranches = string.Join(
+                ", ",
+                registered.Select(candidate => candidate.Branch)
+                    .Distinct()
+                    .OrderBy(branch => branch));
+            throw new InvalidOperationException(
+                $"Required AI action type {requiredType.Name} has wrong branch; "
+                + $"expected={expectedBranch} registered=[{actualBranches}].");
         }
 
-        AIActionSet actionSet = matches[0];
-        if (actionSet.Branch != expectedBranch)
+        T[] requiredDefaults = branchMatches
+            .Where(candidate => candidate.CompositionRole
+                == CharacterAiActionCompositionRole.RequiredDefault)
+            .ToArray();
+        if (requiredDefaults.Length != 1)
         {
             throw new InvalidOperationException(
-                $"Required AI action asset has wrong branch: Resources/{resourcePath} "
-                + $"expected={expectedBranch} actual={actionSet.Branch}");
+                $"Required AI action type {requiredType.Name} with branch {expectedBranch} "
+                + "must have exactly one RequiredDefault in the root content catalog; "
+                + $"found {requiredDefaults.Length} among {branchMatches.Length} matching assets.");
         }
 
-        return actionSet;
+        return requiredDefaults[0];
     }
 }

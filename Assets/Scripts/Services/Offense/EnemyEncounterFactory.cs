@@ -256,7 +256,9 @@ public sealed class EnemyEncounterFactory : IEnemyEncounterFactory
                     archetype.moveSpeed * personal * encounterScale),
                 maxHealth,
                 authoredAbilities,
-                formation: FormationFor(archetype.role, index));
+                formation: FormationFor(archetype.role, index),
+                retreatHealthFraction: archetype.tacticalProfile.retreatWeight > 0f
+                    ? archetype.tacticalProfile.retreatHealthFraction : 0f);
             if (combatEquipment != null)
             {
                 combatEquipment.TryGetActiveWeapon(
@@ -518,6 +520,7 @@ public sealed class EnemyEncounterFactory : IEnemyEncounterFactory
             definition.description,
             definition.cooldownRounds,
             definition.targetRule,
+            EnemyAbilityTargetContract.Resolve(definition.effects, definition.targetRule),
             definition.effects.SelectMany(ProjectEffects).ToArray());
 
     private static IEnumerable<OffenseCombatEffectModule> ProjectEffects(
@@ -577,7 +580,7 @@ public sealed class EnemyEncounterFactory : IEnemyEncounterFactory
                 new OffenseSummonEffect(
                     Mathf.Max(1f, effect.magnitude * 20f),
                     Math.Max(3, effect.durationRounds)),
-            _ => new OffenseDamageEffect(Mathf.Max(0.1f, effect.magnitude))
+            _ => throw new InvalidOperationException($"Unknown enemy ability effect '{effect.kind}'.")
         };
 
     private static float ShootingAptitude(
