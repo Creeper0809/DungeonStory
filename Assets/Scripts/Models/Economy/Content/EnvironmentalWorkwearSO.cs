@@ -15,7 +15,7 @@ public sealed class EnvironmentalWorkwearSO : DataScriptableObject
     [ContentIdentity]
     [SerializeField] private string workwearId = string.Empty;
     [ContentReference(ContentReferenceKind.Item)]
-    [SerializeField] private string itemDefinitionId = string.Empty;
+    [ContentIdentity, SerializeField] private string itemDefinitionId = string.Empty;
     [SerializeField] private string displayName = string.Empty;
     [TextArea, SerializeField] private string description = string.Empty;
     [ContentReference(ContentReferenceKind.Species, IgnoreCase = true)]

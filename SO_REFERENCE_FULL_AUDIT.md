@@ -1,4 +1,582 @@
-# SO 관계 전수 감사 — 2026-10-25
+# SO 관계 전수 감사 — 2026-10-26
+
+## R26 — 게임 SO 보완 수정 결과
+
+작업 사본은 `codex/fix-game-so-r26`, 시작 main은 `21b381a665a3cb2ffe9418064d4de6524f2e1ed5`다. **R25의23묶음 중22묶음을 수정했고, R23-10은 기존 구현으로 해결된 감사 오분류임을 정정했다. 표적 계약과 실제 GameplayScene 첫 진행에 더해, 후속 시설 material pending 새 component 복원/retry와 별도 프로세스의 실제 저장 파일 로드도 PASS했다. 최종 소스는 r186r26이다.** SDK 내부와 선택적 공유 vocabulary 개선은 제외한다. 이 절이 아래 R25의 미수정 분류보다 우선한다. 모든 미래 코드/콘텐츠 변경이나 게임 전체의 무결점 보증은 아니다.
+
+| 원래 항목 | 처리 | 현재 증거 |
+|---|---|---|
+| R24-07 | 서비스 supportIds는 정의 집합으로 생성. 인스턴스 capacity/speed 보정과 복원 중복 거절 유지 | 생산 builder/begin, JSON 복원, 손상 거절, 완료 중복 retry PASS |
+| R24-04 | 전체 run catalog와 spawner 임시 index에서 숫자 ID 충돌 거절. 부적격 TestCharacter의 두 씬 수동 배열 참조 제거 | 전체 catalog/실패 원자성/수정 후 retry PASS. 실제씬의 준비 인구와 부팅 PASS |
+| R24-01/02/03 | module/procedure/project/blueprint/reward의 모호한 owner 거절. 같은 project의 의도된 reward 중복은 유지 | 현재 등록 catalog, blank/duplicate/다중 owner 반례 PASS |
+| R23-06/07, R24-05/06 | lexicon species-condition, survival need/pressure, weapon range, rarity/potential key, trait/species binding 검증 | 현재 등록11 species/149 bindings와 관련 정의 정상. 표적 반례 PASS |
+| R23-01/02/04 | structural/cover module과 physical mapping 게시 보호. 장비/아이템의 역방향 owner 검사 | 기존 게시 값 변경0/삭제0. 실제 structural 및 physical 변경 저장 거절 PASS |
+| R23-03/08 | 같은 profile의 node 선택으로 pair 양쪽 원자적 작성. 다중 owner parent/boss 후보 조회와 할당 거절 | 새 pair/ID 보존/clear/잘못된 owner/중복/불명확 group/reorder 반례 PASS |
+| R23-05/09/11 | effective workstation producer, process hub/category, StockInfo의 Shop owner 검사와 후보 제한 | root 관계 오류0, 역방향 불일치/잘못된 owner/pending picker 반례 PASS |
+| R24-08, R25-01/02 | 공개 공식 policy와 의존 canonical hash 보호. 제자리 교체 저장 거절 | 공식9개 stored/native canonical hash 일치. 세 policy 및 의존 module 변경 거절 PASS. 장비 material ACK/rollback/retry, 후천 특성 pending 복원/중복 callback, 시설 formula 복원과 material pending 새 component 복원/retry PASS |
+| R23-X01 | runtime conveyor 목적지 seed의 이름/타입/직렬화를 유지하고 일반 Inspector에서 숨김 | 기존29개 authored seed는 empty. 프로그램식 descriptor/route와 persistence JSON 복원 PASS |
+| R24-X01 | building marker만 연결 대상으로 인정. None은-1, 실제 복도 ID0은 허용 | JSON의 기존0 유지, 등록 Corridor0, fake movement0 거절 및 building0 연결 PASS |
+| R23-10 | main에 이미 있던 R20 전용 drawer가 raw payload를 숨기고 pending owner output 사용 | 현재3 payload/9키 일치. 기존 표적 재실행 PASS. 중복 UI 구현 없음 |
+
+### 실행 증거와 영향
+
+- **현재 소스 표적 계약:** [r182 결과](<C:/Users/vulpo/Documents/Codex/2026-10-26/so-remediation-r26/r182r26-impact-so-inspector-r26-contracts/so-remediation.txt>)와 [실행 요약](<C:/Users/vulpo/Documents/Codex/2026-10-26/so-remediation-r26/r182r26-impact-so-inspector-r26-contracts/run-summary.json>).270초 정상 종료, compiler errors0, managed console errors0, input drift0. Inspector6 surfaces는 실제 Layout/Repaint 및 원본 JSON/dirty 불변을 확인했다. 장치 입력으로 모든 UI를 조작하거나 픽셀 렌더링을 인증한 것은 아니다.
+- **시설 pending 직접 복원:** [r183 결과](<C:/Users/vulpo/Documents/Codex/2026-10-26/so-remediation-r26/r183r26-impact-so-inspector-r26-facility-pending/facility-pending-persistence.txt>).150초 정상 종료, compile0/console0/input drift0. 실제 formula authority로 만든 pending과 finalized JSON, 손상/중복 evidence의 무변경 거절, material result 복원을 확인했다. r182에서 r183으로 바뀐 입력은 이 기존 검사를 호출하는 `Assets/Editor/R26SoRemediationBatch.cs`의 독립 entry 한 파일뿐이다. SO 구현/런타임/씬/기존 단언은 동일하며 [입력 연속성](<C:/Users/vulpo/Documents/Codex/2026-10-26/so-remediation-r26/relevant-source-continuity.json>)으로 기존 증거의 재사용 범위를 제한했다.
+- **후속 시설 material pending 복원/retry:** [r186 결과](<C:/Users/vulpo/Documents/Codex/2026-10-26/so-remediation-r26/r186r26-impact-so-inspector-r26-material-restart/facility-material-restart.txt>).150초 정상 종료, compile0/console0/input drift0. 실패 후 pending 및 DomainApplied ACK 대기를 저장하고 이전 component를 폐기한 뒤 새 component에 정확히 복원했다. 같은 batch의 재시도로 재료 단일 차감, 교체/ACK 횟수, 완료 후 추가 resume 거절과 변조 저장의 상태불변을 확인했다. 이 fixture는 같은 물리 receipt authority를 유지하며 상태 component를 재생성한다.
+- **후속 실제 저장 파일 cold load:** [r186 결과](<C:/Users/vulpo/Documents/Codex/2026-10-26/so-remediation-r26/r186r26-impact-so-inspector-r26-cold-load/cold-scene-restore.json>).100초 정상 종료, compile0/console0/input drift0. 저장을 만든 Unity PID1680145와 다른 PID2724424의 새 프로세스에서 Title LoadGame으로 기존104-section sealed checkpoint를 불러왔다. 파일 SHA3ab8bd4f...와 원본 바이트를 유지했고 같은 slot을 다시 로드해23개 검사를 통과했다. 저장 영역 집합, world/run lineage, 돈, 물품 ID/수량, 연구 상태와 closed drain 영수증을 대조했고 지연 Destroy 후 실제 인물 ID도 중복 없이 일치했다. 원본 게임/씬/저장 DTO는 후속 검증에서 변경하지 않았다. [두 경계 마감 증거](<C:/Users/vulpo/Documents/Codex/2026-10-26/so-remediation-r26/remaining-restore-completion.json>).
+- **실제씬:** [첫 진행 결과](<C:/Users/vulpo/Documents/Codex/2026-10-26/so-remediation-r26/r182r26-impact-so-inspector-r26-first-play/first-run-progression.txt>).140초 정상 종료, compiler0/console errors0/warnings0/input drift0. 통제된 준비 캐릭터로 실제 GameplayScene 부팅, UI raycast/구매와 중복 거절, AI 운반, 연구 작업/완료, 기본 시설 재구매를 확인했다. 연구 장비 terminal receipt의 수량1/질량1300g/phase와104-section preflight/sealed JSON도 PASS했다. [실제 checkpoint](<C:/Users/vulpo/Documents/Codex/2026-10-26/so-remediation-r26/r182r26-impact-so-inspector-r26-first-play/first-run-durable-drain-checkpoint.json>)를 보존했다. 모델 추론과 스크린샷은 실행 범위가 아니다.
+- **게시 목록:** 기존3544 asset/GUID/script/type 및 기존 필드/값은 변경0/삭제0이고489개 보호 필드/지문만 추가했다. [비교 결과](<C:/Users/vulpo/Documents/Codex/2026-10-26/so-remediation-r26/publication-review.json>), [공식9개 일치](<C:/Users/vulpo/Documents/Codex/2026-10-26/so-remediation-r26/formula-canonical-review.json>). gameplay asset 값은 두 씬의 수동 배열 외 무변경이며 저장 DTO 필드/버전/alias를 바꾸지 않았다. 새 연결 조건은 미선택-1을 쓰고 이전0은 그대로 지원한다. 사용자 수동 에셋 작업은 없다.
+- **검증 fixture 정정:** 시설 참조를 개인 경험으로 채점하던 구형 synthetic 예제를 실제 policy-v3 actor/health/mood 형식으로 바꿨다. 소비자 없는 capability는 무변경 거절하고, 유효한 능력으로 기존 burden/same-axis/dedup 단언을 유지했다. 실제씬 검증은 원래24초 haul deadline 안에서 domain-owned action ACK를 기다리고, terminal row가 checkpoint GC되기 전 같은 프레임에 저장을 관측하도록 했다. 게임 경험/Save/GC 기준이나 timeout을 완화하지 않았다.
+- **보존/안전:** 원본 Documents checkout의 사용자 변경과 과거 QA 증거는 유지했다. Windows는 noninteractive station/desktop probe 이후 메모리 보호로 자체 job만 중단했고, 최종 검증은 CUHA의 인증된 private Xvfb/TCP 비활성/창 probe에서 직렬 실행했다. 종료된 검증의 orphan compiler만 exe/cwd/startTicks/실행 시간으로 식별해 정리했다. 다른 앱이나 사용자 포커스/입력은 조작하지 않았다. 과거 partial/실패/메모리 중단은 PASS로 바꾸지 않았다.
+- **마감 대조:** [항목별23개 처리 원장](<C:/Users/vulpo/Documents/Codex/2026-10-26/so-remediation-r26/remediation-tracking.json>)과 [완료 검증](<C:/Users/vulpo/Documents/Codex/2026-10-26/so-remediation-r26/completion-audit.json>)에서 미처리0을 확인했다. 최종 변경/신규 Unity 입력63개는 r186 manifest와 일치하고21730개 native 입력은 실행 전후 drift0이다. r183 이후 변경은 검증 코드4입력뿐이고 게임 런타임/SO/씬/저장 schema는 동일하다. 원본9개 사용자 변경도 보존했다. 후속 입력을 반영한 인덱스 내용과 freshness는 두 생성물 모두 실패0이며 [후속 인덱스 기록](<C:/Users/vulpo/Documents/Codex/2026-10-26/so-remediation-r26/index-restore-validation.txt>) 및 [최종 freshness](<C:/Users/vulpo/Documents/Codex/2026-10-26/so-remediation-r26/index-freshness.json>)에 보존했다.
+
+공식 보호는 **공개 정의 불변 정책**이다. 공개된 장비/시설/후천 특성 공식 또는 그 의존 모듈을 바꾸려면 기존 정의와 저장 pending의 권위를 보존하는 명시적인 버전 이행이 필요하다. 임의 old-hash 허용이나 fallback은 추가하지 않았다. SDK 내부, 공유 라벨의 SO화, 무관한 전수 조합/seed/성능 인증은 수행하지 않았다. 이 작업은 해당 branch의 코드/에셋/문서 수정이며 main 통합은 이번 Goal의 완료 조건에 포함되지 않았다.
+
+### 완료 주장 재검토 이력 — 후속 실행 전
+
+완료 표시 대신 현재 diff, 생산 진입점, 실행 manifest와 테스트 호출/단언을 다시 검토했다. 새로 확정한 생산 코드 결함은0이다. ResourceGameContentCatalog의 실제 부팅은 root 관계 검증을 호출하고, publisher 저장 훅도 표적 반례가 사용한 같은 validator를 호출한다. 최종 소스와 기존 게시 값, 원본 사용자 변경의 보존도 다시 일치했다.
+
+다음 검증 경계를 명확히 정정한다. 시설 r183은 formula presentation pending/finalized 복원과 중첩 material resolved-result JSON을 확인했으며 전체 material pending의 재시작/복원/retry 시나리오는 호출하지 않았다. 서비스의 malformed restore는 정적 복원 생성자의 거절을 증명하며 기존 객체를 대상으로 한 in-place restore 원자성 검사는 아니다. 실제씬 r182는104-section save capture/preflight/sealed JSON을 확인했지만 씬 재시작 후 그 파일을 로드하지 않았다. 외부 first-play-autosave-evidence.json은 r180 역사 진단이며 r182 PASS 근거로 쓰지 않는다.
+
+수정 대상23개 처리와 위 검증 범위는 별개다. 처리 원장의 옛 `current` 관측은 `baselineObservationBeforeR26`으로 명칭을 바로잡아 수정 전 결과를 현재 결함으로 오인하지 않게 했다. 재검토 당시 게임 코드/에셋/인덱스 변경과 새 Unity 실행은 없었다. 증거: [재검토 결과](<C:/Users/vulpo/Documents/Codex/2026-10-26/so-remediation-r26/completion-recheck.json>). 이후 사용자가 두 검증의 실행을 승인했고 위 r186으로 시설 material 복원/retry와 실제 저장 파일 cold load를 완료했다. 서비스 static restore 거절과 in-place 복원 구분 및 r180 역사 진단 경계는 그대로 유지한다.
+
+## R25 — 게임 SO만 대상으로 원본 대조한 현재 결과
+
+기준 main은 `21b381a665a3cb2ffe9418064d4de6524f2e1ed5`다. **SDK 내부를 제외하고 게임 SO 선언142종, 실제 persistent 에셋3544개, 필드2470개를 대조했다. 기존19묶음만으로 남은 문제를 전부 담았다고 볼 수 없었고, 저장 호환 보호2묶음과 기존 항목의 누락된 진입 경계를 보완했다.** 이 절과 game-only 원장이 아래 과거 완료 문구와 SDK 조사 이력보다 우선한다. 조사 결과를 정리한 것이며 게임 수정 완료가 아니다.
+
+### 실제 코드와 에셋을 맞춘 범위
+
+| 대상 | 현재 대조 결과 | 의미 |
+|---|---|---|
+| 게임 SO 선언 | 142타입, 138파일/143선언 | editor/player 문법 원본에서 상속을 독립 계산. partial과 기반형 포함 |
+| 실제 게임 SO 에셋 | 3544파일/124구체타입 | 모든 YAML을 다시 파싱해 이전 현재-source 원장과 값 불일치0, metaGUID/native identity 불일치0 |
+| 씬에 포함된 SO | Recovery의 CharacterSO6개 별도 | source-bearing 현재 payload/객체 pointer multiset 일치. 개별 native instance identity를 증명한 것은 아님 |
+| 게임 직렬화 필드 | 2470개 | actor829/world585/economy598/main458의 서로 겹치지 않는 원장과 현재 선언/소비를 대조 |
+| 직접 객체 참조 | native game-owner pointer27735개 | missing0. SO 밖 대상 내부의 모든 기능이 정상이라는 뜻은 아님 |
+| 출하 정의 외 기반형 | OnBuyItemSO 필드0 | 빈 기반형도 선언 목록에 포함. SDK/Editor fixture로 숫자를 늘리지 않음 |
+| 현재 코드 결속 | PDB source4503개 SHA 일치 | 기존 native 증거가 현재 소스와 대응함을 재확인. 새로운 실행 PASS는 아님 |
+
+GameContent 포인터 그래프에는3518개가 도달하고26개는 밖에 있다. **root 밖이라는 이유로 비활성이나 미사용으로 판단하지 않았다.** GameData는 실제 GameManager 설정이며 TestCharacter는 enabled GameplayScene/SampleScene의 CharacterSpawner 수동 배열에 연결돼 있다. 나머지24개는 미등록 trait13, legacy faction6/festival4, retired guest request1로 분리했다. 테스트 캐릭터의 부적격 연결은 아래 R24-04에 포함했다.
+
+### 새로 보완한 핵심 경계
+
+1. **R25-01: 시설 진화의 저장 pending 공식 호환.** [공식 생성/동결](<C:/Users/vulpo/.codex/worktrees/so-reference-authoring/DungeonStory/Assets/Scripts/Services/FacilityEvolution/FacilityFormulaEvolutionAuthority.cs:95>)은 version/hash를 저장 node에 넣고 [확정 검증](<C:/Users/vulpo/.codex/worktrees/so-reference-authoring/DungeonStory/Assets/Scripts/Services/FacilityEvolution/FacilityFormulaEvolutionAuthority.cs:874>)은 현재 recipe와 정확히 비교한다. [게시 수집](<C:/Users/vulpo/.codex/worktrees/so-reference-authoring/DungeonStory/Assets/Editor/ContentIdentityProtection.cs:738>)은 capabilityId를 보존하지만 이 pair를 보존하지 않는다. 현재6개 recipe는 version3과 서로 다른64자 hash를 기록한다. 이번 검토는 형식/관계/계약의 정적 대조이며 C# canonical hash 재계산이나 변경 후 Unity 복원을 새로 실행한 것은 아니다.
+2. **R25-02: 후천 특성의 저장 pending 공식 호환.** [모듈 선택 재구성](<C:/Users/vulpo/.codex/worktrees/so-reference-authoring/DungeonStory/Assets/Scripts/Services/Character/Core/CharacterAcquiredTraitManifestationRuntime.cs:626>)은 frozen pair를 현재 settings와만 비교한다. 현재 설정은 version3이다. 게시 후 공식이 바뀌면 저장된 대기 요청의 복원/재시도가 거절될 수 있다. CharacterSkill은 별도로 historical v2~v5와 current 경로가 있어 같은 결함으로 세지 않았다. 두 경계 모두 버전별 authority 보존 또는 명시적인 변경/호환 정책이 필요하며 모든 밸런스 수치를 일괄 잠그라는 결론은 아니다.
+3. **R24-04 보완: 실제 씬의 부적격 수동 스폰 후보.** GameplayScene:14601과 SampleScene:13472의 수동 배열에 TestCharacter가 남는다. [병합](<C:/Users/vulpo/.codex/worktrees/so-reference-authoring/DungeonStory/Assets/Scripts/Services/Character/CharacterSpawner.cs:167>)은 수동 배열을 먼저 두고 숫자ID별 첫 항목을 고르며 실제 스폰 시도에 포함한다. 그러나 [population 조회](<C:/Users/vulpo/.codex/worktrees/so-reference-authoring/DungeonStory/Assets/Scripts/Services/Character/Core/CharacterPopulationService.cs:118>)는 root에서 준비된 profile만 찾는다. id0/stable archetype 미기록의 이 후보는 null로 거절되고 다음 후보로 진행한다. 현재 잘못 연결된 후보이며 미사용 판정과 전체 진행 차단 판정을 모두 피한다.
+4. **R24-06 보완: 종족 Effects의 owner 검증.** [실제 source 수집](<C:/Users/vulpo/.codex/worktrees/so-reference-authoring/DungeonStory/Assets/Scripts/Services/Effects/Runtime/CharacterDerivedStatsSnapshot.cs:767>)은 Species를 투영에 전달한다. Trait/AcquiredTrait/Item과 달리 Species에는 같은 사전 IsValidFor/중복 검사가 없고, [projector](<C:/Users/vulpo/.codex/worktrees/so-reference-authoring/DungeonStory/Assets/Scripts/Services/Effects/Runtime/CharacterGameplayEffectProjector.cs:44>)는 invalid/duplicate를 suppression한다. 현재11종족/149binding은 정상이다. 새 종족 변경 반례 실행은 없고 이전 native 중복 반례는 Trait에 한정된다.
+
+### 현재 남은 게임 보완 목록 전체
+
+아래21묶음은 현재 잘못된 값21건이라는 뜻이 아니다. 현재 실행 계약 충돌, 현재 부적격 씬 연결, 게시/작성 보호와 조건부 품질 개선을 각 행에서 구분한다.
+
+| ID | 우선순위 | 남은 보완 | 현재 값과 검증 경계 |
+|---|---|---|---|
+| R24-07 | P1, 먼저 | 여러 지원 설비의 같은 정의 ID가 세션의 unique 지원 ID와 충돌 | 이전 현재-source 생산 builder/aggregate 실행에서 예외 재현. 이번 소스와 에셋은 동일하며 새 실제 방 배치 실행은 없음 |
+| R24-04 | P1 | 캐릭터 숫자 ID 중복 및 씬 수동 후보의 등록 적격성 | 등록15개 숫자ID는 정상. 실제 두 씬에 TestCharacter(id0, stable archetype 미기록)가 남아 준비된 population profile을 못 찾아 거절됨. 전체 스폰 중단은 아님 |
+| R25-01 | P1, 신규 | 시설 진화 공식 변경 후 저장 pending의 version/hash 호환 | recipe6개는 version3/64자 hash. 저장 node와 현재 recipe만 비교하며 게시 보호/과거 authority 경로가 없음. 변경 후 Unity 복원 반례는 미실행 |
+| R25-02 | P1, 신규 | 후천 특성 공식 변경 후 저장 pending의 복원/재시도 호환 | 현재 설정 version3. frozen pair를 현재 settings와만 비교. CharacterSkill에는 historical authority가 있어 같은 결함으로 세지 않음 |
+| R24-08 | P1 | 게시된 장비 공식 catalog의 버전 provider 변경 보호 | 현재 등록 catalog 버전3/4는 정상. 버전으로 저장 node의 catalog를 고르지만 게시 identity에 버전이 없음 |
+| R23-01 | P1 | structural/cover의 저장 module ID 변경 보호 | 현재15개 정상. 기존 게시 후 변경 수용 반례와 소스 경계 유지 |
+| R23-02 | P1 | 물리 item 매핑과 genome owner의 저장 연결 보호 | 현재128필드 값 정상. 존재 여부와 게시 후 매핑 보존은 별개 |
+| R23-03 | P1 | 해부도 안의 pairedGroupId 작성과 변경 보호 | 현재57그룹/114멤버 정상. 소유 해부도 안의 쌍 계약으로 처리할 대상 |
+| R23-04 | P1 | 장비 정의와 물리 item의 양방향 owner 대응 | 현재61쌍 일치. 존재하는 다른 ID를 선택해도 대응 모순을 거절하지 못하는 경계 |
+| R23-05 | P1 | workstation 대체값의 실제 producer 검증 | 현재 Transform15개 정상. tag가 있다는 것과 실제 producer가 있다는 것을 구별해야 함 |
+| R23-08 | P1 | 다중 owner Inspector의 후보 범위 | 기존 두 특수 경로에서 부적합 후보 선택 수용/후속 거절을 확인. 전체 popup/Undo 검증과 구별 |
+| R23-09 | P1 | 서비스 hub/category와 process owner의 조합 검증 | 현재 hub8개/process5개 정상. 개별 참조가 유효해도 조합이 부적격일 수 있음 |
+| R23-11 | P1 | StockInfo.shopId의 수기 BuildingSO 숫자 연결 | 현재1012는 Shop owner이고 상품4개 정상. 적격 SO 선택과 owner 유일성 필요 |
+| R24-01 | P1 | 물리 equipment module ID 중복 거절 | 현재20개 중복0. 생산 catalog의 GroupBy/First 수용 경계 유지 |
+| R24-02 | P1 | 수술 procedure 중복 검사와 생산 생성 경계 | 현재47개 중복0. first-wins 생성자와 별도 Validate 호출을 구별 |
+| R24-03 | P1 | 연구 project/blueprint/reward authority의 중복 거절 | 현재180프로젝트/7blueprint claim/1137보상은 조인 정상. 같은 권위의 의도된89중복 제거를 결함으로 세지 않음 |
+| R23-06 | P2 | lexicon species owner와 condition 행 중복 검증 | 현재 충돌0. 공유 anatomyFamily 자체를 전역 중복 ID 결함으로 다루지 않음 |
+| R23-07 | P2 | survival/weapon의 owner-local keyed 행 중복 | 현재 need6/pressure3/무기31개와59행 정상. 소유 목록의 중복 보호 대상 |
+| R23-10 | P2 | 출력 배분 JSON의 owner-local 참조 직접 작성 | 현재 payload3개/outputLineId9개 정상이며 실패를 거절함. 작성 표면 보완 대상 |
+| R24-05 | P2, 소비 경계 구분 | 희귀도 budget/잠재력 profile 중복 | getter의 순서 의존 반례는 유효하나 GetBudget의 현재 생산 호출은 찾지 못함. 실제 소비 경로에 맞춰 필요한 범위만 처리 |
+| R24-06 | P2, 범위 보완 | 특성/종족 effect binding의 중복 및 owner 적격성 | 현재 종족11개/149binding의 중복/정의누락/AllowedSources 위반0. Species에 사전 owner 검증이 없고 runtime은 invalid/duplicate를 억제함 |
+
+별도 runtime 목적지2묶음도 유지한다.
+
+| ID | 표면 | 현재 값과 처리 경계 |
+|---|---|---|
+| R23-X01 | BuildingConveyorPortAbility.destinationId | 현재29개 기본값은 모두 빈 값. 실제 runtime 목적지 선택/payload와 join하므로 일반 BuildingSO FK로 바꾸는 대상은 아님 |
+| R24-X01 | ConditionNeedToConnect.associatedId | 현재 작성된 조건 instance0. 건물 definition ID와 actor/wildlife runtime ID가 섞일 수 있어 대상 범위부터 정할 필요가 있음 |
+
+### 오류로 부풀리지 않은 항목과 남은 확인 경계
+
+후속 표적 점검에서는 기존 원장의 정적 미소비/비활성54필드 중 문자열 키 후보와 게임 소유 reflection 조회 및 저장 경계를 다시 확인했다. content identity의 명시적 member 조회, 코드 상수의 target 목록, SO를 저장 대상으로 거절하는 DTO codec, wildlife/서사/종족의 legacy metadata를 구별했으며 기존21묶음 밖에 새로 확정할 관계 결함은 찾지 못했다. 이 결과로 동적 소비 부재나 전체 실행 정상까지 증명한 것은 아니다. 근거는 game-only-followup.json에 남긴다.
+
+- HeritableTraitConsequence.targetId는 owner-local 코드 키이며 [전용 종류별 선택기](<C:/Users/vulpo/.codex/worktrees/so-reference-authoring/DungeonStory/Assets/Editor/ContentReferenceDrawer.cs:478>)와 거절 검증이 이미 있다. 현재31개 결과의 종류/대상 쌍이 정상이다. 분류 정정은 반영하되 미구현 선택기로 세지 않았다.
+- incompatibilityGroup/conflictGroups/affinityKeys는 실제 비교에 쓰는 공유 vocabulary다. 현재 값은 canonical하며 외래 SO provider가 없는 것을 참조 단절로 만들지 않았다. 기존 키 선택이나 변경 영향 경고는 편의 후보이며 새 SO를 만들거나 필수 수정 수에 더하지 않았다.
+- visualVariantId/militaryTrainingId/formationTag는 현재 소비에서 SO provider lookup이 아닌 전달/형식/서사 protocol이다. 관계가 있다고 추측한 후보를 철회했다. 실제 lookup의 다른 인자와 같은 줄에 있다는 이유만으로 FK라고 판단하지 않았다.
+- 직접 production read를 관측하지 못한 필드는 field 원장에서 따로 표시했다. reflection/동적 소비 부재나 삭제 안전을 증명한 것이 아니다. 일반 수치/컨테이너는 공유 소스 근거로 분류하며 각 필드가 실제 실행됐다고 주장하지 않는다.
+- 사용하지 않는 타일/scene-template, SDK 설정/샘플과 Editor singleton은 게임 필수 보완 목록에서 제외한다. 실제 게임 연결이 확인되는 경우 해당 연결만 다시 다룬다. 기존 자료는 삭제하지 않았다.
+- 새 Unity 실행, Inspector popup/Undo/저장/reimport, 정책 변경 뒤 실제 복원/재시도와 실제 방 배치는 이번 조사에서 실행하지 않았다. 기존 source-bound 실행 결과와 이번 정적 대조를 구분한다.
+
+### 게임 기준 근거
+
+- [게임 선언/에셋 원본 범위](<C:/Users/vulpo/Documents/Codex/2026-10-26/so-full-audit-r24/game-only-scope.json>) 및 [3544개 현재 YAML/meta 대조](<C:/Users/vulpo/Documents/Codex/2026-10-26/so-full-audit-r24/game-only-assets.json>)
+- [게임 필드2470개 원장](<C:/Users/vulpo/Documents/Codex/2026-10-26/so-full-audit-r24/game-only-field-ledger.json>) 및 [검색 CSV](<C:/Users/vulpo/Documents/Codex/2026-10-26/so-full-audit-r24/game-only-field-ledger.csv>)
+- [남은21묶음/runtime2/선택 후보를 구분한 원장](<C:/Users/vulpo/Documents/Codex/2026-10-26/so-full-audit-r24/game-only-issues.json>)
+- [캐릭터/AI 검토](<C:/Users/vulpo/Documents/Codex/2026-10-26/so-full-audit-r24/game-only-actor-review.json>), [월드/의료 검토](<C:/Users/vulpo/Documents/Codex/2026-10-26/so-full-audit-r24/game-only-world-review.json>), [경제/생산 검토](<C:/Users/vulpo/Documents/Codex/2026-10-26/so-full-audit-r24/game-only-economy-review.json>), [공통/서비스/저장 검토](<C:/Users/vulpo/Documents/Codex/2026-10-26/so-full-audit-r24/game-only-main-review.json>)
+
+이번에 게임 소유 선언과 실제 에셋의 대응, 필드별 판정과 현재 확인된 잔여 항목을 다시 정리했다. 모든 미래 콘텐츠/동적 경로/플레이에서 문제가 없다는 보증은 아니다. 게임 소스/에셋/인덱스와 기존 사용자 변경을 보존했고 commit/push/main 변경은 하지 않았다.
+
+## 현재 적용 범위 — 우리 게임의 SO와 실제 콘텐츠 연결
+
+사용자 정정에 따라 이 감사의 대상은 DungeonStory가 직접 작성한 SO, 그 안의 중첩 데이터와 ID 관계, 실제 게임에서 사용하는 에셋 연결 및 저장 호환 경로다. SDK 자체의 모든 SO 타입, Editor singleton, 플러그인 설정과 샘플을 전수 검토하는 것은 범위에서 제외한다. 게임이 SDK나 엔진 에셋을 실제로 참조하는 경우에는 해당 연결과 게임 동작에 필요한 경계만 확인한다.
+
+직전 보고의 SDK singleton63개와 Editor 설정/캐시 SO3개는 우리 게임 SO 감사의 미완료 항목이나 게임 결함으로 세지 않는다. 이를 근거로 게임 조사가 덜 끝났다고 설명한 것은 조사 범위를 과도하게 확대한 판단이었다. SDK의 전체 타입 합집합과 모든 내부 필드 의미 검토는 게임 SO 감사의 완료 조건이 아니다. 아래 SDK 조사 기록은 참고 이력이며 게임 수정 요구 목록으로 읽지 않는다.
+
+게임 쪽에서 확인한 장비 공식 버전/hash2필드의 분류 정정과 게시 버전 변경 보호 공백R24-08은 별개로 유효하다. 현재 R25의 게임 작성/변경 보호와 계약 보완 목록21묶음은 SDK63개와 Editor 설정3개를 포함하지 않는다. 현재 사용하지 않는 타일/템플릿/복구 자료도 활성 게임 결함과 분리하며 실제 게임 연결이나 재사용 계획이 있을 때만 우선순위를 판단한다. SDK 항목을 제외했다는 이유만으로 게임의 나머지 모든 관계를 검증 완료했다고 새로 단정하지 않는다.
+
+## R24 재검증 — 이전의 전체 조사 완료 주장을 정정 (2026-10-26)
+
+**이전 R24를 모든 SO가 빠짐없이 조사된 상태라고 말한 것은 부정확했다.** 완료 표시나 수량이 아니라 수집기 제외 규칙, 원본 파일, 실제 소비 코드와 실행 스크립트를 재검토해 범위 누락, 필드 분류 오류와 증거 표현 오류를 확인했다. 이 절과 아래 정정 원장이 기존 완료 manifest 및 독립 검토의 `필수 미확인0` 판정보다 우선한다. 현재 fetch한 main은 `21b381a665a3cb2ffe9418064d4de6524f2e1ed5`로 같다.
+
+### 새로 확인한 게임 보완 항목
+
+**R24-08, P1: 게시된 장비 진화 공식 catalog의 버전 키가 변경 보호에서 빠졌다.** [공식 catalog 조회](<C:/Users/vulpo/.codex/worktrees/so-reference-authoring/DungeonStory/Assets/Scripts/Services/Combat/EquipmentEvolutionFormulaCatalogs.cs:19>)는 저장된 node의 버전으로 정확히 하나의 SO를 찾는다. 현재 등록된 두 에셋의 버전은3/4이고 게시 manifest에도 들어 있지만 [게시 identity 수집](<C:/Users/vulpo/.codex/worktrees/so-reference-authoring/DungeonStory/Assets/Editor/ContentIdentityProtection.cs:737>)은 capabilityId만 담으며 formulaPolicy의 버전은 담지 않는다. 기존 버전 번호를 바꾸면 예전 저장 node의 provider 조회가 실패할 수 있다.
+
+이것은 현재 에셋의 값이 끊어진 오류가 아니라 게시 후 변경에 대한 정적 보호 공백이다. 현재 소스/에셋/게시 manifest로 확인했으며 버전을 바꾼 Unity 복원 반례는 새로 실행하지 않았다. 수정 시 version publication과 과거 catalog 유지 계약을 함께 맞춰야 한다. 파생 hash와 모든 수치의 일괄 잠금을 요구한 것이 아니다.
+
+따라서 현재 게임 작성/변경 보호와 계약 보완은 **기존18묶음에서19묶음**이다. 별도 runtime 목적지2묶음과 Assets 객체 단절2원인은 유지한다. 이번 검토에서 새 활성 SO 외래키 값 단절은 확인하지 않았다.
+
+### 조사에서 실제 빠졌던 범위
+
+| 누락 또는 잘못된 의미 | 재검증 결과 | 현재 영향과 경계 |
+|---|---|---|
+| AssetDatabase 밖의 SO 파일 | ProjectSettings의 URPProjectSettings.asset/ShaderGraphSettings.asset2개와 ignored UserSettings의 DragAndDropCache.asset1개가 기존 원본/native 목록 밖이었다 | main 버전관리2개와 로컬 캐시1개를 분리했다. 실제 필드/loader를 정적으로 보완했으며 native 신규 load는 하지 않았다 |
+| 패키지 SO 타입 상속 | active package의 ScriptableSingleton 파생 선언63개가 source SO 후보473개에서 빠졌다 | closed62개와 open generic abstract1개다. 63개 활성 객체 또는 게임 결함을 뜻하지 않는다. 타입 및 현재 backing 파일 경계는 별도 원장에 남긴다 |
+| 장비 진화 공식2필드 | formulaVersion은 plain-value에서 versioned catalog provider로, catalogSha256은 metadata에서 저장 호환 integrity protocol로 정정했다 | 값과 타입을 바꾸지 않고 조사 분류만 정정했다 |
+| SDK2121필드의 의미 | native 반사 필드 범위는 맞지만 전부 개별 관계 의미를 검토한 증거는 아니었다 | 새로 renderer/blend-style/RuleTile/SpriteShape/APV/RID/type/label 조인을 원본과 대조했고 현재 정상 또는 비활성이었다. 모든 SDK branch의 실행 PASS는 아니다 |
+| R171의 fileID 부재 | GUID 경로가 비어 object 열거 및 fileID 비교 분기가 실행되지 않았다 | path-backed provider 미확립까지만 확인했다. built-in 또는 모든 native object에서 해당 fileID가 없다고 증명하지 않았다 |
+
+URP 설정의 현재 두 필드는 material upgrade version과 생성 폴더 설정이다. ShaderGraph의 customHeatmapValues는0이며 SDK getter가 명시적으로 package default를 쓰도록 설계돼 있다. DragAndDropCache의 entries는 비어 있다. 세 파일의 현재 값에서 새 끊어진 게임 참조를 확인한 것은 아니다. `Assets/Packages`로 한정한 수집기에서 이 파일들을 발견하지 못한 원인 자체는 남긴다.
+
+SDK의 미개별분류 UXML92필드도92개의 위험한 수기 ID가 아니다. 생성 attribute flag46개와 값46개이며, 실제 관계 후보인 mapType/PropertyField bindingPath/local option-index/object type의 현재 값은 정의와 일치하거나 기본값이었다. SDK 내부 생성 프로토콜과 게임 작성자가 입력하는 content ID를 혼동하지 않는다.
+
+### 유지되는 증거와 좁힌 해석
+
+- 게임 소스/PDB 문서4503개를 현재 바이트로 다시 해시해 불일치0이었다. 별도 checkout의 게임 코드/에셋/생성 인덱스를 바꾸지 않았다.
+- 24551개 AssetDatabase 경로와5964개 native persistent SO 관측은 유지한다. 이것은 ProjectSettings/UserSettings를 포함한 모든 SO 파일 수가 아니다. 원본114문서10960개도 기존 Assets/active Packages 경계의 수다.
+- r164 앞두범위와 r168 나머지범위는 서로 다른 진단 수집기다. 생산21712입력은 같지만 동일 수집기의 단일 성공 실행으로 포장하지 않는다. r164 managed1940회는 scene API 오류 메시지301/1639회와 각각 일치하며 실패 영수증은 유지한다.
+- mainReview256의 마감은 타입/역할/read 개수에 따른 그룹 규칙으로도 만들어진다. 개별 필드 의미 검토의 완전성이나 runtime PASS 증명이 아니다.
+- Recovery6개는 기존5scalar fingerprint를 넘어 현재 source-bearing payload와 외부 object pointer의 전체 multiset을 대조해 일치했다. 옛 baseStats6개/statId54회는 현재 CharacterSO schema와 native JSON에 없는 비활성 직렬화 이력이다. 개별 source fileID/native instance identity 또는 incoming component alias 동등성은 증명하지 않았다.
+- r169의9반례와 r170의3대조군은 실제 생산 메서드를 호출했다. 다만 GetBudget의 현재 gameplay 도달은 미증명이고 blueprint 행의 validator 오류0은 Validate를 호출하지 않은 기본값이다. custom container도 실제 저수준 load API를 호출했으며 정상 Editor 자동 적용 경로 전체의 실행은 아니다.
+
+### 현재 우선 근거
+
+- [정정된 잔여19묶음과 별도 항목 원장](<C:/Users/vulpo/Documents/Codex/2026-10-26/so-full-audit-r24/r24-issues-rechecked.json>)
+- [2470개 게임 필드 정정 JSON](<C:/Users/vulpo/Documents/Codex/2026-10-26/so-full-audit-r24/r24-field-ledger-rechecked.json>) 및 [검색 CSV](<C:/Users/vulpo/Documents/Codex/2026-10-26/so-full-audit-r24/r24-field-ledger-rechecked.csv>)
+- [범위/loader 반증 검토](<C:/Users/vulpo/Documents/Codex/2026-10-26/so-full-audit-r24/completeness-recheck-scope.md>), [SDK 의미 검토 보완](<C:/Users/vulpo/Documents/Codex/2026-10-26/so-full-audit-r24/completeness-recheck-sdk.md>), [실행 원본 재검토](<C:/Users/vulpo/Documents/Codex/2026-10-26/so-full-audit-r24/completeness-recheck-execution.md>)
+- [새 게임 계약 근거와2필드 정정](<C:/Users/vulpo/Documents/Codex/2026-10-26/so-full-audit-r24/completeness-recheck-main.json>), [Recovery payload 대조](<C:/Users/vulpo/Documents/Codex/2026-10-26/so-full-audit-r24/completeness-recheck-recovery.json>), [현재4503소스 checksum](<C:/Users/vulpo/Documents/Codex/2026-10-26/so-full-audit-r24/completeness-recheck-current-source.json>)
+
+**재검증 결과는 “기존 조사가 완벽했다”가 아니다. 확인한 누락과 분류/근거 오류를 정정한 것이다.** 게임 수정이나 새 Unity 실행, commit/push/main 변경은 하지 않았다. arbitrary DLL의 미생성 SO subtype, 외부 preferences와 동적 loader, Windows Editor 및 전체 Inspector/Play를 전수 증명했다고 말하지 않는다. 아래 R24와 이전 절은 이 정정과 경계 안에서 읽는다.
+
+## R24 — 원본, 실제 소비와 Unity 객체를 독립 대조한 최종 감사 (2026-10-26)
+
+상태: 기존 감사 결과를 상단 재검증으로 정정 / 게임 수정 미실행. 기준 main은 `21b381a665a3cb2ffe9418064d4de6524f2e1ed5`다. **게임 작성/변경 보호와 계약 문제19묶음, 별도 런타임 목적지2묶음이 남아 있다.** 현재 등록된 SO ID 값의 새 중복은 확인하지 않았으며, 작성자가 잘못된 값을 넣었을 때의 거절 누락과 정상 instance 배치에서 생기는 ID 계약 충돌을 구분했다. 기존 완료 표시를 정답으로 삼지 않고 원본 코드, 에셋과 현재 소스의 실행 결과로 판정했다. 이 보고서는 조사 결과이며 게임 수정 완료 보고가 아니다.
+
+### 가장 먼저 처리할 실제 계약 충돌
+
+**R24-07: 같은 SO의 지원 설비가 둘 연결되면 서비스 시작이 예외로 막힐 수 있다.** [연결 생산자](<C:/Users/vulpo/.codex/worktrees/so-reference-authoring/DungeonStory/Assets/Scripts/Services/ServiceRooms/ServiceRoomLinkRuntime.cs:232>)는 배치된 지원 설비마다 같은 정의 `SupportId`를 복사한다. [계약 생성](<C:/Users/vulpo/.codex/worktrees/so-reference-authoring/DungeonStory/Assets/Scripts/Services/ServiceRooms/ServiceSessionRuntime.cs:1212>)도 이를 그대로 배열로 만들지만 [시작/복원 권위](<C:/Users/vulpo/.codex/worktrees/so-reference-authoring/DungeonStory/Assets/Scripts/Models/ServiceRooms/Core/ServiceSessionAggregate.cs:870>)는 중복을 거절한다.
+
+r170에서 실제 private 계약 생성 메서드와 public aggregate를 호출했다. 단일 지원과 서로 다른 정의2개는 시작 및 JSON capture/restore에 성공했다. 동일 정의2개는 `Duplicate service support ID` 예외가 났고 실패 전후 version은1, active session은0으로 유지됐다. 중복을 제거한 통제 입력으로 재시도는 성공했다. 정의 ID를 definition 집합으로 저장할지, instance identity를 담을지 생산자와 저장 계약을 맞춰야 한다. 검증 입력은 통제된 link descriptor이며 실제 방 배치와 렌더링 Play를 실행한 것으로 확대하지 않는다. [실행 원본](<C:/Users/vulpo/Documents/Codex/2026-10-26/so-full-audit-r24/native-r170audit/r24-service-contract.json>)에 세 대조군과 실패의 원자성을 보존했다.
+
+### 남은 게임 항목 전체
+
+| ID | 우선순위 | 보완할 구조 | 현재 값과 근거 경계 |
+|---|---|---|---|
+| R24-07 | P1, 먼저 | 지원 SO 정의 ID와 여러 instance의 세션 ID 계약 충돌 | 생산 builder와 begin/capture/restore 반례 및 대조군 확인 |
+| R24-08 | P1 | 게시된 장비 공식 catalog version provider 변경 보호 | 현재 버전3/4 정상, 소스/게시 manifest 정적 대조. 변경 후 Unity 복원 반례 미실행 |
+| R23-01 | P1 | structural/cover 저장 module ID 변경 보호 | 현재15개 정상, 게시 후 변경 수용 반례 유지 |
+| R23-02 | P1 | 물리 item 매핑과 genome owner의 저장 연결 보호 | 현재128필드 값 정상, 변경 보호 공백 |
+| R23-03 | P1 | anatomy pairedGroupId 수기 작성과 변경 보호 | 현재57그룹/114멤버 정상, owner 안의 pair 계약 필요 |
+| R23-04 | P1 | 장비와 물리 item의 양방향 대응 검사 | 현재61쌍 일치, 존재하는 다른 ID 선택의 모순 수용 |
+| R23-05 | P1 | workstation 대체값의 실제 제공자 검사 | Transform15개 정상, tag 존재와 실제 제공자 존재가 다름 |
+| R23-08 | P1 | 다중 owner Inspector의 후보 범위 | 두 특수 경로의 부적합 후보 수용 반례 유지 |
+| R23-09 | P1 | service hub/category와 process owner 적합성 | hub8개/process5개 현재 정상, 조합 모순 보호 필요 |
+| R23-11 | P1 | StockInfo.shopId의 수기 BuildingSO 숫자 FK | 현재1012와 상품4개 정상, 적격 Shop SO 선택/유일성 필요 |
+| R24-01 | P1 | 물리 equipment module ID 중복 거절 | 현재20개 중복0, 생산 catalog는 복제2개를1개로 선택 |
+| R24-02 | P1 | procedure ID 중복 검사 호출 경계 | 현재47개 중복0, 생성자 first-wins와 별도 Validate 분리 |
+| R24-03 | P1 | research project/blueprint/reward authority 중복 | 현재180프로젝트/7blueprint claim/1137보상 composite 충돌0, 세 경계 반례 |
+| R24-04 | P1 | CharacterSO legacy 숫자 ID의 유일성 | 현재 등록15개 중복0, 서로 다른 stable archetype의 같은 숫자 ID 수용 |
+| R23-06 | P2 | lexicon species owner와 condition 행 중복 | 현재 owner overlap/condition 중복0, 공유 anatomyFamily 자체는 중복 결함이 아님 |
+| R23-07 | P2 | survival/weapon 설정의 owner-local keyed 행 | 현재 need6/pressure3/무기31개와59행 정상, 중복 guard 공백 |
+| R23-10 | P2 | 출력 배분 payload JSON의 owner-local 참조 | payload3개/outputLineId9개 정상, 직접 문자열 작성 경계 |
+| R24-05 | P2 | rarity budget와 potential profile 중복 | getter가 행 순서에 따라3→99 및 rarity0→1로 변하는 반례 |
+| R24-06 | P2 | trait의 같은 target/binding ID 중복 검증 | validator 오류0인데 projector가 한 효과를 duplicate source binding으로 억제 |
+
+R24-01~06의9개 관측은 [r169 계약 원본](<C:/Users/vulpo/Documents/Codex/2026-10-26/so-full-audit-r24/native-r169audit/r24-scenes.json>)과 [catalog 경계 조사](<C:/Users/vulpo/Documents/Codex/2026-10-26/so-full-audit-r24/catalog-identity-review.md>)에 있다. 생성자 반례를 전체 앱 시작이 항상 수용한다는 주장으로 바꾸지 않았다. 공용 FK 검사가 실제로 선택된 중복 provider를 거절할 수 있다. 별도 validator는 class/interface 양쪽의 현재 정적 호출도 대조했다. 연구 보상의89행은 같은 권위의 의도된 중복 제거이며 결함 수에 넣지 않았다.
+
+별도 런타임 목적지는2개다. R23-X01 `BuildingConveyorPortAbility.destinationId`는 실제 runtime 선택/payload와 join하는 authored seed이며 현재29개 기본값은 모두 비어 있다. R24-X01 `ConditionNeedToConnect.associatedId`는 수기 숫자로 `IGridOccupant.GridId`를 찾으며 건물은 정의 ID, actor/wildlife는 runtime ID를 사용한다. 현재 작성된 조건 instance는0이다. 대상 범위를 먼저 정해야 하며 두 필드를 일반 BuildingSO FK로 바꾸는 것으로 끝낼 수 없다.
+
+### 현재 객체 단절과 비활성/외부 SDK 자료
+
+- Assets의 기존 단절은 Tile sprite7개와 scene-template dependency1개다. 실제 native pointer 미해결8개를 유지한다. 현재 플레이의 실패8건으로 확대하지 않는다.
+- Package native pointer 미해결7개는 렌즈 플레어6개와 obsolete XR data1개다. 현재 렌즈 element는 Circle/Polygon이라 texture 소비가 비활성이고 해당 renderer도 프로젝트에서 미선택이다. [원본/소비/등록 대조](<C:/Users/vulpo/Documents/Codex/2026-10-26/so-full-audit-r24/package-missing-relations.md>)에 분리했다.
+- SDK Indoors template은 실제 preview에서 missing script3개다. 현재 프로젝트 SampleScene의 missing script는0이다.
+- TMP shadergraph4개의 encoded default texture GUID1개가16slot에 남는다. r171에서 GUIDToAssetPath가 빈 값임을 확인했다. 경로가 없어 fileID 열거 분기는 실행되지 않았으며 path-backed provider 미확립까지만 말할 수 있다. 모두 upstream edge가 있어 생성 값으로는 쓰이지 않지만 dependency/export bookkeeping에서는 읽힌다. 네 graph의 현재 프로젝트 등록은0이며 native dependency의 missing0으로 이 GUID를 유효하다고 판단하지 않았다. [구체적 slot/edge/소비 경계](<C:/Users/vulpo/Documents/Codex/2026-10-26/so-full-audit-r24/sdk-extra-relations.md>)와 [표적 GUID 조회](<C:/Users/vulpo/Documents/Codex/2026-10-26/so-full-audit-r24/native-r171audit/r24-guid-query.json>)를 연결한다.
+- Addressables serialization baseline17문서는 실제로 로드되며 그 안의 미해결 pointer47회는 현재 등록 게임 설정과 분리한다. URP profile의 detached9문서는 active component 목록 밖이며 native 객체로 노출되지 않는다.
+- Odin Editor 설정4개는 DLL 타입/fileID와 원본 목적을 확인했지만 현재 native domain의 SO로 읽히지 않는다. Windows Editor 동작은 미검증이다. `InitFixture1`은 `UNITY_INCLUDE_TESTS`와 `autoReferenced:false`의 SDK 테스트 SO다.
+- retired trait13개의 legacy behavior/event key는 수기 문자열 관계가 남은 비활성 자료다. 현재 root와 non-meta Assets 참조가0이고 재등록 전 migration/producer 연결이 필요하다. 제3자 Editor recommendation/questionnaire의 last-wins/first-match guard 공백도 게임 코드 항목과 구분했다. PackageCache를 임의 수정하지 않았다.
+
+### 전수 범위와 빠짐을 확인한 방식
+
+| 단위 | 확인 수 | 의미 |
+|---|---:|---|
+| 등록 package | 78개 | 현재 실제 resolve된 버전만 사용, 다른 cache47버전 제외 근거 기록 |
+| imported 경로 | 24,551/24,551 | 상호 중복/누락0, 동일 universe digest의 직렬 범위7개 |
+| native persistent SO | 5,964객체 | main/subasset을 GUID:fileID로 대조, 중복 key0 |
+| 원본 class114 | 10,960문서 | 실제 MonoBehaviour와 SO, 씬, test/disabled/detached 예외를 모두 판정 |
+| non-YAML importer 후보 | 895경로 | 전부 현재 native import 결과와 대조 |
+| 게임 생산 필드 | 2,470개 | source/IL/PDB와 소비, owner/provider, 저장/프로토콜 분류 |
+| 별도 Editor probe | 20개 | 생산 필드 수에 더하지 않음 |
+| 소스 합집합 추가 | DNP140필드 | 66preset의 실제 Apply/IsApplied/runtime 소비까지 검토, assembly filter로 자동 제외하지 않음 |
+| Roslyn 합집합 | 2,630후보/165root | native 목록을 정답으로 쓰지 않고 상속 재계산, player 전용 누락0 |
+| 직접 object leaf | 게임60필드 | 배열/generic 전체 인자를 확인, container-only 오분류7개 보완 |
+| compiled 소비 | 51DLL/51PDB | 현재 원본4503문서 checksum 일치, game call resolution 미해결0 |
+
+DefaultImporter도 SO가 담긴 YAML일 수 있다. overlay/recommendations/questionnaire3개를 실제 생산 `LoadSerializedFileAndForget` 경로로 읽고 원본 hash 보존과 내부 조인을 확인했다. 씬23 SO문서도19개 preview 장면에서 보완했다. Recovery의6개 SO는 transient라 native GlobalObjectId가0이며, 구체적 타입과 payload fingerprint/multiplicity로 연결했다. 개별 source fileID와 native instance identity가 같다고 주장하지 않는다.
+
+필드 역할의 자동 이름 추정도 정정했다. 캠페인 faction은 owner-local provider, enemy faction은 공유 vocabulary와 게시 assignment, typed enum은 코드 키, 생성 skill/evidence ID는 versioned/frozen runtime 계약으로 구분한다. `seasonalOccurrenceInstanceId`, capability version과 conveyor 목적지는 실제 foreign join이 있어 단순 protocol로 제외하지 않았다. mainReview256의 마감은 분류 검토 routing의 마감이며 runtime PASS 수가 아니다.
+
+### 실행 결과의 정확한 경계
+
+r168은 managed reference의 반복 노드를 한 번씩 읽고 alias edge를 보존하도록 수집기를 고친 뒤 완주했다. 두 노드 순환과 두 대상 참조를 자기검사했고 실제 UIElements SO2095속성/54노드/27alias를 읽었다. r164의 잘못된 scene API managed 오류1940회, resource-stop와 실패 실행은 그대로 남겼다. 과거/부분 증거를 현재 PASS로 바꾸지 않았다.
+
+r169는19preview/3custom-container/9국소 생산 반례를 완료했고 Run 구간 managed 오류0, 현재 소스 컴파일 오류0이었다. 원본 SO7개의 JSON/dirty와 생산21712파일 SHA를 보존했다. r170도 동일 소스에서 서비스 시작/capture/restore/실패 원자성/통제 재시도를 확인했다. 결함을 발견한 최종 gate의 exit1을 성공으로 표시하지 않는다. 전체 콘솔 오류0, 전체 Inspector popup/Undo/저장/reimport, 모든 실제 플레이와 Windows 실행을 증명한 것은 아니다.
+
+### 근거 원장
+
+- [정규화된 전체 잔여 항목](<C:/Users/vulpo/Documents/Codex/2026-10-26/so-full-audit-r24/r24-issues-rechecked.json>)
+- [생산2470필드 JSON](<C:/Users/vulpo/Documents/Codex/2026-10-26/so-full-audit-r24/r24-field-ledger-rechecked.json>) 및 [검색 CSV](<C:/Users/vulpo/Documents/Codex/2026-10-26/so-full-audit-r24/r24-field-ledger-rechecked.csv>)
+- [원본 후보/native 최종 대조](<C:/Users/vulpo/Documents/Codex/2026-10-26/so-full-audit-r24/candidate-coverage-final.json>) 및 [native 원본 집계](<C:/Users/vulpo/Documents/Codex/2026-10-26/so-full-audit-r24/native-aggregate.json>)
+- [소스 합집합](<C:/Users/vulpo/Documents/Codex/2026-10-26/so-full-audit-r24/source-union-coverage.md>), [DNP140필드](<C:/Users/vulpo/Documents/Codex/2026-10-26/so-full-audit-r24/sdk-dnp-fields.json>), [18개 의미 독립 재검토](<C:/Users/vulpo/Documents/Codex/2026-10-26/so-full-audit-r24/closure18-review.md>)
+- [SDK 내부 키 조인](<C:/Users/vulpo/Documents/Codex/2026-10-26/so-full-audit-r24/sdk-relations-report.md>), [추가 SDK 관계](<C:/Users/vulpo/Documents/Codex/2026-10-26/so-full-audit-r24/sdk-extra-relations.md>), [custom container](<C:/Users/vulpo/Documents/Codex/2026-10-26/so-full-audit-r24/custom-container-review.md>)
+- [최종 독립 완료 감사](<C:/Users/vulpo/Documents/Codex/2026-10-26/so-full-audit-r24/final-completeness-review.json>) 및 [문서/원본 보존 마감 검사](<C:/Users/vulpo/Documents/Codex/2026-10-26/so-full-audit-r24/closeout-checks.json>)
+
+게임 소스/에셋/인덱스 수정, commit/push/main 변경은 하지 않았다. 원본 Documents checkout과 과거 QA 자료를 보존했다. 아래 기록은 각 시점의 이력이며 현재 범위와 판정은 이 R24 절을 따른다.
+
+## R23 재검증 — 조사 누락과 과장된 검증 표현 정정 (2026-10-26)
+
+**R23을 완벽한 전수조사라고 판단할 수 없다.** 완료 문구와 기존 집계를 근거로 통과시키지 않고 추출기, 원본 YAML, DLL 타입, 실제 소비 코드와 native 프로브를 재검토한 결과 아래 누락과 판정 오류를 확인했다. 이 절이 아래 기존 R23의 수량/분류/검증 범위보다 우선한다. 당시 원장과 영수증은 바꾸지 않고 정정 원장을 따로 보존한다.
+
+### 확인된 조사 오류
+
+| 항목 | 이전 주장 또는 판정 | 재검토 결과 |
+|---|---|---|
+| 전체 SO 범위 | 4,517개가 전체 SO 파일 | 현재 Linux Unity의 타입 필터가 식별한 4,517경로다. 별도 Odin Editor 설정 SO YAML 4개가 누락됐다. `Assets`의 조사 대상 YAML은 4,521경로/4,523개의 SO 문서로 대조했다. Package 내부 에셋과 모든 바이너리 subasset의 전수 판정은 아니다. |
+| subasset | 4,519개 SO 문서를 함께 다뤘으므로 native 객체 검사도 완결된 것으로 읽힘 | Addressables schema subasset 2개는 native 필드 순회 대상이 아니었다. 원래 SDK 스키마 추출기도 한 파일의 첫 문서만 저장했다. 이번에 세 문서를 분리해 필드와 로컬 schema 연결을 정적으로 확인했으며 새 native 로드로 바꾸지 않는다. |
+| generic 필드 | `StockInfo.stocks`가 일반 값 | `List<Tuple<SaleItem,int>>`의 마지막 `int`만 보면 앞의 SO 참조가 사라진다. 현재 Tuple 4개의 `SaleItem` 연결과 Odin 외부 참조 인덱스는 정상이다. 직접 SO 참조로 정정했다. 다중 인자 generic 선언은 전체 원장에서 2개였고 나머지 `Dictionary<BuildingTilemapLayer,Tile>`도 양쪽 인자를 확인했다. |
+| 관계 의미 | `StockInfo.shopId`가 provider 자체 ID | 실제로는 `BuildingSO.id`를 맞추는 수기 숫자 외래키다. 아래 R23-11로 추가했다. 기존 근거 `Shop.cs:785`는 이 join을 보여주지 않았고 경로/줄 범위 검사가 이를 잡지 못했다. |
+| 저장 호환성 식별자 | catalog SHA 문자열 3개가 일반 튜닝 값 | 획득 특성 정책 SHA, 스킬 정책 SHA, 저장 스킬의 formula catalog SHA는 버전별 authority 선택과 복원 호환 프로토콜이다. `runtime_protocol`로 정정했다. 외래 SO 키 단절을 새로 발견한 것은 아니다. |
+| 근거 오류 0 | 의미 검토까지 자동 검증된 것으로 읽힐 수 있음 | 기존 `evidenceErrors=0`은 경로 존재와 줄 범위 검사다. 인용 줄이 실제 필드의 소비를 증명하는지까지 검사한 결과가 아니다. |
+| console 오류 0 | r158 전체 로그가 오류 0 | Run 안의 managed 오류 카운터가 0이다. native 라이선스 클라이언트 오류 3건은 실제 로그에 있다. 컴파일 오류 0과 exit 0은 유지되지만 전체 로그 오류 0으로 표현하지 않는다. |
+| Inspector 실제 검증 | 사용자 Inspector 편집 전체를 검증한 듯한 표현 | custom EditorWindow에서 실제 drawer를 Layout/Repaint한 뒤 생산 선택 helper를 직접 호출했다. 후보/적용/후속 검사 결과는 유효하지만 popup 클릭, Undo, 에셋 저장과 재import는 검증하지 않았다. |
+| 원본 보존 | 모든 객체의 JSON/dirty를 비교한 것으로 읽힐 수 있음 | clone 대상 원본만 JSON/dirty를 비교했다. 전체 생산 파일 바이트 보존은 별도의 21,712입력 재해시와 cleanup 영수증으로 확인됐다. |
+
+위 분류 오류는 총 **5필드**다. 정정 후 원장도 2,467필드이며 관계 263, provider ID 78, 로컬 ID 24, 런타임 프로토콜 112, 직접 엔진 참조 52, 중첩 233, 값 1,473, 메타데이터 185, 미소비 메타데이터 47이다. 미분류 0은 목록의 판정 칸이 채워졌다는 뜻이며 의미적 완전성의 증명이 아니다.
+
+### R23-11 — 상점 재고의 수기 건물 ID 연결 (P1)
+
+[StockInfo.shopId](<C:/Users/vulpo/.codex/worktrees/so-reference-authoring/DungeonStory/Assets/Scripts/Services/Buildings/SO/StockInfo.cs:11>)는 `[ContentIdentity]`가 붙어 있어도 순수 자체 ID가 아니다. [건물 초기화](<C:/Users/vulpo/.codex/worktrees/so-reference-authoring/DungeonStory/Assets/Scripts/Services/Buildings/BuildableObject.cs:396>)가 `id = buildingSO.id`로 설정하고, [상점 owner](<C:/Users/vulpo/.codex/worktrees/so-reference-authoring/DungeonStory/Assets/Scripts/Services/Infrastructure/ShopInventoryRuntimeAdapter.cs:359>)가 이를 ShopId로 넘기며, [실제 조회](<C:/Users/vulpo/.codex/worktrees/so-reference-authoring/DungeonStory/Assets/Scripts/Services/Infrastructure/ShopStockCatalogService.cs:36>)가 `candidate.shopId == shopId`로 찾는다.
+
+[현재 Identity Inspector](<C:/Users/vulpo/.codex/worktrees/so-reference-authoring/DungeonStory/Assets/Editor/ContentIdentityProtection.cs:993>)는 게시 전 정수 입력과 게시 뒤 값 잠금을 제공한다. 대상 건물 SO를 선택하거나 Shop 적격성과 owner 중복을 검사하는 선택기는 아니다. 조회는 FirstOrDefault라 같은 shopId를 가진 다른 재고 정의가 있어도 뒤 항목을 거절하지 않는다. [재고 초기화](<C:/Users/vulpo/.codex/worktrees/so-reference-authoring/DungeonStory/Assets/Scripts/Models/Buildings/Core/ShopInventoryRuntime.cs:596>)는 재고 정의가 없으면 누락을 보고하고 초기화를 거절한다.
+
+현재 `S01_SalesCounterStock`의 자체 ID는 3000, 연결된 shopId는 1012다. 원본 건물 정의에서 1012는 Shop archetype이고 연결 1개와 상품 참조 4개는 모두 정상이다. 현재 상점이 막혔다고 보고하지 않는다. 건물 SO 선택으로 기존 숫자 ID를 기록하고 대상 적격성/유일성을 검사할 보완 항목이다. 기존 게시 값의 저장 호환 보호는 유지해야 한다. 이번 새 항목은 생산 소스와 현재 에셋을 대조했으며 상점 Play나 새 native 반례는 실행하지 않았다.
+
+### census에서 빠졌던 Editor 설정 4개
+
+| 에셋 | `m_Script` DLL fileID |
+|---|---|
+| [OdinPathLookup.asset](<C:/Users/vulpo/.codex/worktrees/so-reference-authoring/DungeonStory/Assets/Plugins/Sirenix/Odin Inspector/Assets/Editor/OdinPathLookup.asset>) | `-262940062` |
+| [GeneralDrawerConfig.asset](<C:/Users/vulpo/.codex/worktrees/so-reference-authoring/DungeonStory/Assets/Plugins/Sirenix/Odin Inspector/Config/Editor/GeneralDrawerConfig.asset>) | `-645759843` |
+| [InspectorConfig.asset](<C:/Users/vulpo/.codex/worktrees/so-reference-authoring/DungeonStory/Assets/Plugins/Sirenix/Odin Inspector/Config/Editor/InspectorConfig.asset>) | `1137305049` |
+| [OdinModuleConfig.asset](<C:/Users/vulpo/.codex/worktrees/so-reference-authoring/DungeonStory/Assets/Plugins/Sirenix/Odin Inspector/Config/Editor/OdinModuleConfig.asset>) | `-228747253` |
+
+네 GUID는 모두 현재 `Sirenix.OdinInspector.Editor.dll` metadata에 존재하며 fileID도 DLL의 ScriptableObject 파생 타입과 일치한다. DLL importer는 Any/Editor 비활성과 Linux 제외 설정이다. 이는 현재 CUHA 타입 census에서 빠진 상태의 근거다. **해당 설정의 의도, Windows 직접 로드 결과와 실제 게임 영향은 미확인**이다. 네 파일의 다른 외부 객체 참조는 없으므로 기존 끊어진 sprite/dependency 8건에 새 foreign GUID 누락을 더하지 않는다. 임의로 plugin을 활성화하거나 설정을 삭제하지 않았다.
+
+### 유지되는 결과와 현재 잔여 목록
+
+- 현재 확인된 끊어진 객체 참조 8필드/2원인과 기존 R23-01~10 및 X01의 반례는 철회할 근거가 없었다. R23-11을 더한 확인 목록은 게임 작성/보호/편의 11묶음, 별도 런타임 목적지 1묶음, 엔진 객체 단절 2묶음이다. Editor 설정 4개의 플랫폼별 상태는 별도 미확인 경계다.
+- 기존 19개 프로브는 단순 참값 단언이 아니다. 실제 생산 계산/조회 5개, 작성 보호와 참조 검사 12개, drawer 렌더와 선택 helper 2개로 구분된다. 대표 반례의 존재를 증명하며 19개의 전체 플레이/저장 시험을 의미하지 않는다.
+- r159/r160 exit 1과 미해결 0개 최종 gate의 실패는 그대로 보존돼 있다. `completed=true`를 PASS로 바꾸지 않았다.
+- 현재 `Assets/Scripts` 생산 SO에서 추가 저장 에셋 누락은 입증되지 않았다. DLL 기반 외부 BehaviorTree의 소스 상속 추출 예외는 실제 에셋 census에서 보완됐다. 고정 define 두 조합, package 에셋, 바이너리 SO subasset과 모든 동적 경로의 보편 검증으로 확대하지 않는다.
+
+### 정정 근거와 이번 완료 범위
+
+[정정 필드 원장 JSON](<C:/Users/vulpo/Documents/Codex/2026-10-25/so-main-r23-selfcheck/corrected-field-dispositions.json>), [정정 CSV](<C:/Users/vulpo/Documents/Codex/2026-10-25/so-main-r23-selfcheck/corrected-field-dispositions.csv>), [정정 잔여 항목](<C:/Users/vulpo/Documents/Codex/2026-10-25/so-main-r23-selfcheck/corrected-r23-issues.json>), [5필드 원본 대조](<C:/Users/vulpo/Documents/Codex/2026-10-25/so-main-r23-selfcheck/field-decision-review.json>), [독립 범위 재검토](<C:/Users/vulpo/Documents/Codex/2026-10-25/so-main-r23-selfcheck/scope-review-memo.md>), [독립 스캔](<C:/Users/vulpo/Documents/Codex/2026-10-25/so-main-r23-selfcheck/scope-review-scan.json>), [누락 설정과 3개 SDK 문서 보완](<C:/Users/vulpo/Documents/Codex/2026-10-25/so-main-r23-selfcheck/coverage-supplement.json>), [실행 증거 재검토](<C:/Users/vulpo/Documents/Codex/2026-10-25/so-main-r23-selfcheck/native-evidence-review.md>)에 상세 근거를 보존했다.
+
+이번에는 **조사 자체의 누락과 과장된 판정을 확인하고 문서를 정정했다. 완벽 인증은 하지 않는다.** 게임 코드/에셋/인덱스를 바꾸지 않았고 Unity를 새로 실행하지 않았다. 원본 Documents checkout과 과거 QA를 보존했으며 push/main 변경은 없다. 아래 기존 R23과 이전 단계는 당시 기록으로 유지한다.
+
+## R23 — Goal 기반 전체 SO 관계 감사 완료 (2026-10-25)
+
+기준은 시작과 마감 fetch가 같은 `main 21b381a665a3cb2ffe9418064d4de6524f2e1ed5`다. **이전 R22의 범위는 부족했다.** 게임이 정의한 SO 3,544개만으로 전체 SO의 참조가 정상이라고 읽힐 결론을 내렸다. R23은 Unity가 실제로 읽은 엔진과 플러그인 SO 973개를 추가해 **총 4,517개 파일**을 대조했다. 아래 R22와 과거 기록은 당시 범위의 이력으로 보존하며 현재 판정은 이 R23을 따른다.
+
+**현재 끊어진 객체 참조는 8개이며 원인은 2묶음이다.** 게임 정의의 현재 외래 ID 값에서 새 단절은 확정하지 않았다. 그러나 게임 SO의 작성/변경 보호 또는 작성 편의 공백 10묶음과 별도 런타임 목적지 1묶음이 남는다. 이 11묶음을 현재 저장 손상이나 플레이 실패 11건이라고 세지 않는다. 조사와 반례 재현을 완료했으며 게임 코드와 에셋 수정은 이번 Goal의 범위가 아니다.
+
+### 완결된 조사 범위와 증거
+
+| 대상 | 확인 결과 | 경계 |
+|---|---|---|
+| 게임 SO 선언 | 142종, 실제 에셋 타입 124종 | 기반형 또는 현재 에셋 없는 18종도 선언 검토에 포함 |
+| 직렬화 필드 | 2,467개 전부 판정, 중복/미분류/근거 경로 오류 0개 | 174개 선언 소스의 SHA를 마감 재확인. 상속, 중첩 목록, generic과 managed/Odin 파생형을 포함 |
+| 필드 분류 | 관계 262, provider ID 79, 로컬 ID 24, 런타임 프로토콜 109, 직접 엔진 참조 51, 중첩 233, 값 1,477, 메타데이터 185, 미소비 메타데이터 47 | 값/메타데이터 제외는 모든 수치가 실제 플레이에 소비된다는 뜻이 아님 |
+| 실제 Unity 직렬화 | 선언 2,284개를 실제 값에서 관측, 자동 속성 backing field 1개 추가 연결 | 나머지 182개는 현재 비어 있는 목록/선택형/에셋 없는 정의 등에 실체가 없어 소스 계약으로 검토. 해당 실행 상태의 PASS로 바꾸지 않음 |
+| 전체 SO 파일과 내부 객체 | 4,517파일, SO YAML 객체 4,519개 | 차이 2개는 Addressables 템플릿의 schema subasset. 별도 게임 정의 2개로 부풀리지 않음 |
+| 객체 참조 그래프 | 참조 기록 11,849개, 프로젝트와 imported package metadata 30,020개 대조 | Unity 미해결 8필드와 원본의 미존재 GUID 8개가 일치. 필수 null의 의미는 게임 필드별 계약으로 별도 판단 |
+| SDK 추가 범위 | 32타입/973파일의 native 로드와 객체 필드 검사 | 파일별 타입, SHA, 결과와 제외 이유는 [엔진/플러그인 원장](<C:/Users/vulpo/Documents/Codex/2026-10-25/so-main-full-audit-r23/engine-file-dispositions.json>)에 기록 |
+| 문자열로 인코딩된 SDK 관계 | 언어 2개, shared table 9개/1,191키, string table 18개/2,382행, Addressables 5그룹/29항목 | locale/shared-key/target GUID/address 중복과 누락 0개. Addressables profile 1개/변수 5개/경로 참조 14개, active/default owner와 builder index 정상. BehaviorDesigner JSON 2개 해석, 사용 task 22타입 전부 현재 소스와 일치 |
+| 게임의 특수 직렬화 | managed reference 6,116개, assembly/type 175조합; Odin node table 404개/외부 인덱스 12개 | 같은 main 원본의 R22 추출과 native 로드를 대조. 미해석 binary payload 0개 |
+| 게시 identity | 현재 3,544에셋/12,021필드의 기존 보호 검사 통과 | 아래 누락 관계의 보호까지 증명하지 않음. 보호를 우회하는 native 반례를 별도로 실행 |
+
+전체 필드는 [필드별 근거 원장 JSON](<C:/Users/vulpo/Documents/Codex/2026-10-25/so-main-full-audit-r23/full-field-dispositions.json>)과 [검색용 CSV](<C:/Users/vulpo/Documents/Codex/2026-10-25/so-main-full-audit-r23/full-field-dispositions.csv>)에 있다. 각 선언의 정확한 파일/줄/소유형/필드, 분류, provider, 실제 소비/검증 경로, 저장 경계, 제외 이유와 현재 native 관측 여부를 연결했다. [정규화된 잔여 항목](<C:/Users/vulpo/Documents/Codex/2026-10-25/so-main-full-audit-r23/r23-issues.json>)은 분야별 후보를 아래 원인 묶음에 대응한다. 후보 888개만 검토하고 나머지를 생략한 방식이 아니다.
+
+### 남은 항목 전체와 우선순위
+
+| ID | 우선순위 | 남은 문제 | 현재 값 또는 관측 |
+|---|---|---|---|
+| R23-01 | P1 | 구조물과 엄폐 능력의 저장 module ID 보호 | structural 12개와 cover 3개 |
+| R23-02 | P1 | 물리 아이템 매핑과 유전체 owner의 저장 연결 보호 | 총 128개 필드 값 |
+| R23-03 | P1 | 해부 pairedGroupId의 수기 작성과 변경 보호 | 15프로필, 57그룹, 114멤버 |
+| R23-04 | P1 | 장비 정의와 물리 아이템의 양방향 대응 | 61쌍 |
+| R23-05 | P1 | 생산에서 실제 사용하는 workstation 대체값 검증 | Transform 15개 |
+| R23-06 | P2 | 해부 렉시콘 소유와 condition 중복 | 종족 소유 10개, condition 49개 |
+| R23-07 | P2 | 생존 설정과 무기 사거리의 중복 키 | need 6개, pressure 3개, 무기 31개/59행 |
+| R23-08 | P1 | 다중 owner Inspector의 잘못된 후보 허용 | 두 특수 경로 재현 |
+| R23-09 | P1 | 서비스 허브와 프로세스의 owner/category 불일치 허용 | 허브 8개, 프로세스 5개 |
+| R23-10 | P2 | 출력 배분 JSON 안의 owner-local 참조 직접 작성 | payload 3개, outputLineId 9개 |
+| R23-X01 | P2 | 컨베이어 기본 목적지의 런타임 문자열 | 현재 29개 기본값은 모두 비어 있음 |
+| R23-E01 | P2 | Tile의 끊어진 Sprite 참조 | 현재 7개 필드 미해결 |
+| R23-E02 | P2 | 씬 템플릿의 끊어진 dependency | 현재 1개 필드 미해결 |
+
+#### R23-01 저장 module 키 변경 보호
+
+[abilityId](<C:/Users/vulpo/.codex/worktrees/so-reference-authoring/DungeonStory/Assets/Scripts/Models/Buildings/Core/BuildingAbilityContracts.cs:214>)를 [구조물](<C:/Users/vulpo/.codex/worktrees/so-reference-authoring/DungeonStory/Assets/Scripts/Services/Buildings/BuildingStructuralIntegrityRuntime.cs:167>)과 [엄폐](<C:/Users/vulpo/.codex/worktrees/so-reference-authoring/DungeonStory/Assets/Scripts/Services/Combat/CombatCoverDurability.cs:87>)가 저장 module ID로 사용하고 [복원](<C:/Users/vulpo/.codex/worktrees/so-reference-authoring/DungeonStory/Assets/Scripts/Services/Buildings/BuildingStateModule.cs:181>)은 exact join한다. [현재 캡처](<C:/Users/vulpo/.codex/worktrees/so-reference-authoring/DungeonStory/Assets/Editor/ContentIdentityProtection.cs:722>)는 production/security 키를 보호하지만 이 두 종류를 놓친다. native에서 현재 실제 에셋의 두 ID를 각각 변경해도 게시 검사가 수용했다. 현재 15개는 정상이다. 실제 저장 키의 변경을 막거나 명시적 migration 계약으로 처리해야 하며 모든 능력 필드를 무조건 동결할 이유는 없다.
+
+#### R23-02 물리 아이템과 유전체 owner의 저장 연결
+
+현재 값은 의류 56, 직물 12, 환경 작업복 4, 작물 harvest 12, seed 12, 유전체 crop owner 32로 총 128개다. [의류](<C:/Users/vulpo/.codex/worktrees/so-reference-authoring/DungeonStory/Assets/Scripts/Models/Economy/Content/ApparelDefinitionSO.cs:230>), [직물](<C:/Users/vulpo/.codex/worktrees/so-reference-authoring/DungeonStory/Assets/Scripts/Models/Economy/Content/TextileMaterialDefinitionSO.cs:14>), [작업복](<C:/Users/vulpo/.codex/worktrees/so-reference-authoring/DungeonStory/Assets/Scripts/Models/Economy/Content/EnvironmentalWorkwearSO.cs:18>), [작물](<C:/Users/vulpo/.codex/worktrees/so-reference-authoring/DungeonStory/Assets/Scripts/Models/Economy/Content/CropDefinitionSO.cs:78>), [유전체](<C:/Users/vulpo/.codex/worktrees/so-reference-authoring/DungeonStory/Assets/Scripts/Models/Economy/Content/CropGenomeDefinitionSO.cs:13>)의 선택 필드가 존재하는 다른 SO를 가리키도록 바뀌어도 관계 쌍은 게시 보호되지 않는다. [장착 의류](<C:/Users/vulpo/.codex/worktrees/so-reference-authoring/DungeonStory/Assets/Scripts/Services/Infrastructure/Environment/CharacterApparelRuntime.cs:1783>), [작업복](<C:/Users/vulpo/.codex/worktrees/so-reference-authoring/DungeonStory/Assets/Scripts/Services/Infrastructure/Environment/EnvironmentalWorkwearRuntime.cs:461>), [직물 주문](<C:/Users/vulpo/.codex/worktrees/so-reference-authoring/DungeonStory/Assets/Scripts/Services/Infrastructure/Environment/ApparelWorkOrderRuntime.cs:1901>), [작물 물리 복원](<C:/Users/vulpo/.codex/worktrees/so-reference-authoring/DungeonStory/Assets/Scripts/Services/Economy/CropPlotPhysicalSaveValidator.cs:135>), [유전체 복원](<C:/Users/vulpo/.codex/worktrees/so-reference-authoring/DungeonStory/Assets/Scripts/Services/Infrastructure/Save/DungeonCropSaveReferenceValidation.cs:248>)이 이 현재 매핑을 저장값과 대조한다. native 6개 반례가 기존 검사 수용을 재현했다. 작업복의 apparel 대상 적격성도 함께 확인할 경계다. 기존 저장과 연결되는 매핑을 보호하거나 migration으로 변경해야 한다. 이번 조사에서 사용자 저장 파일 복원을 새로 실행한 것은 아니다.
+
+#### R23-03 해부 pairedGroupId
+
+[pairedGroupId](<C:/Users/vulpo/.codex/worktrees/so-reference-authoring/DungeonStory/Assets/Scripts/Models/Medical/Core/AnatomyModels.cs:87>)는 실제로 수기로 맞추는 owner-local 관계 키다. [생산 수술 호환 검사](<C:/Users/vulpo/.codex/worktrees/so-reference-authoring/DungeonStory/Assets/Scripts/Services/Medical/SurgeryOrderPlanningService.cs:607>)를 직접 실행해 한쪽 키 변경으로 호환이 true에서 false로 바뀌지만 게시 검사는 통과함을 재현했다. [현재 프로필 검사](<C:/Users/vulpo/.codex/worktrees/so-reference-authoring/DungeonStory/Assets/Scripts/Services/Medical/AnatomyProfileCatalog.cs:130>)가 node/parent/vital을 다루는 것과 달리 이 그룹의 변경과 모순은 보호하지 않는다. 현재 57그룹/114멤버는 정상이다. 프로필 내부에서 기존 그룹을 선택/작성하는 방식과 유효성/변경 보호면 충분하며 그룹마다 새 SO를 만들 필요는 없다.
+
+#### R23-04 장비와 물리 아이템 대응
+
+[장비 itemId](<C:/Users/vulpo/.codex/worktrees/so-reference-authoring/DungeonStory/Assets/Scripts/Models/Economy/Content/CombatEquipmentDefinitions.cs:15>), [물리 아이템의 장비 feature](<C:/Users/vulpo/.codex/worktrees/so-reference-authoring/DungeonStory/Assets/Scripts/Models/Economy/Content/ItemDefinitionSO.cs:378>), [공식 ID 생성](<C:/Users/vulpo/.codex/worktrees/so-reference-authoring/DungeonStory/Assets/Scripts/Services/Items/PhysicalItemIds.cs:8>)가 같은 정의를 가리켜야 한다. [실제 제작](<C:/Users/vulpo/.codex/worktrees/so-reference-authoring/DungeonStory/Assets/Scripts/Services/Combat/CombatEquipmentCraftingRuntime.cs:1036>)도 이 대응을 사용한다. 현재 61쌍은 일치하지만 native에서 기존의 다른 item ID를 고른 모순을 일반 참조 검사가 수용했다. 각 키의 존재 외에 세 방향의 동일성을 검사해야 한다.
+
+#### R23-05 실제 workstation 제공자
+
+[빈 workstation의 FacilityTag 대체값](<C:/Users/vulpo/.codex/worktrees/so-reference-authoring/DungeonStory/Assets/Scripts/Models/Economy/Content/ProductionRecipeSO.cs:74>)이 [실제 생산 매칭](<C:/Users/vulpo/.codex/worktrees/so-reference-authoring/DungeonStory/Assets/Scripts/Services/Economy/ProductionWorkshopAbilityAccessors.cs:44>)에 쓰인다. [일반 필드 검사](<C:/Users/vulpo/.codex/worktrees/so-reference-authoring/DungeonStory/Assets/Scripts/Services/Items/ContentReferenceCatalog.cs:816>)는 빈 원시 문자열을 건너뛴다. native에서 유효한 facility tag `butcher`를 선택해도 해당 workstation 제공자가 0개인 모순을 수용했다. 현재 Transform 15개는 모두 `m06`의 제공자가 있어 정상이다. Source 19개와 Sink 4개를 같은 물리 workstation 요구로 오판하지 않았으며 역할에 맞는 최종값을 검사해야 한다.
+
+#### R23-06 렉시콘 owner와 condition
+
+[종족 owner 조회](<C:/Users/vulpo/.codex/worktrees/so-reference-authoring/DungeonStory/Assets/Scripts/Services/Medical/AnatomyConditionLexiconCatalog.cs:49>)와 [condition 구성](<C:/Users/vulpo/.codex/worktrees/so-reference-authoring/DungeonStory/Assets/Scripts/Services/Medical/AnatomyConditionLexiconCatalog.cs:182>)가 첫 일치 또는 GroupBy/First를 사용한다. 실제 catalog에서 종족 owner 중복은 등록 순서에 따라 label을 바꾸고 condition 중복은 뒤 행을 버렸다. 현재 종족 소유 10개와 condition 49개는 유일하다. 종족 소유와 owner 내부 condition 중복을 거절해야 하며 의도적으로 공유되는 humanoid family를 중복 금지하면 안 된다.
+
+#### R23-07 설정 내부 중복 키
+
+[생존 설정](<C:/Users/vulpo/.codex/worktrees/so-reference-authoring/DungeonStory/Assets/Scripts/Models/Survival/Core/SurvivalBalanceSettingsSO.cs:109>)과 [무기 사거리 snapshot](<C:/Users/vulpo/.codex/worktrees/so-reference-authoring/DungeonStory/Assets/Scripts/Models/Combat/Core/CombatWeaponPrimitives.cs:142>)에 같은 enum 키를 두 번 넣으면 뒤 행이 무시된다. 두 실제 조회 경로의 native 반례를 확인했다. 현재 need 6개/pressure 3개와 무기 31개/59행은 중복 0개다. 중복과 잘못된 enum을 검사해야 한다. 생존 설정의 의도된 부분 override와 기존 기본값 경로를 누락 오류로 바꾸라는 결론은 아니다.
+
+#### R23-08 실제 Inspector 다중 편집
+
+[해부 profile 후보](<C:/Users/vulpo/.codex/worktrees/so-reference-authoring/DungeonStory/Assets/Editor/ContentReferenceDrawer.cs:286>)와 [boss phase 능력 후보](<C:/Users/vulpo/.codex/worktrees/so-reference-authoring/DungeonStory/Assets/Editor/ContentReferenceDrawer.cs:290>)가 첫 target의 CLR 값을 기준으로 필터링한다. 서로 다른 owner를 실제 Inspector Layout/Repaint로 동시에 편집했을 때 첫 owner 전용 값을 후보로 제시했고 생산 write/assign 경로가 두 대상에 적용했다. 후속 관계 검사는 두 번째 대상을 각각 오류 1개/2개로 거절했다. **무음 저장 손상이 아니라 잘못된 작성 허용과 지연 거절 문제다.** owner가 다른 다중 선택은 거절하거나 모든 대상에 유효한 후보만 제공해야 한다. 단일 Inspector의 일시적 pending 차이는 별도 결함으로 합산하지 않았다.
+
+#### R23-09 서비스 허브의 프로세스
+
+[supportedProcessIds](<C:/Users/vulpo/.codex/worktrees/so-reference-authoring/DungeonStory/Assets/Scripts/Services/ServiceRooms/ServiceRoomAbilities.cs:16>)는 존재하는 프로세스만 골라도 된다는 일반 선택을 사용한다. 허브 owner와 service category가 다른 현재 프로세스를 선택해도 native picker/root-field 검사는 수용했으며 [실제 서비스 시작](<C:/Users/vulpo/.codex/worktrees/so-reference-authoring/DungeonStory/Assets/Scripts/Services/ServiceRooms/ServiceSessionRuntime.cs:530>)은 나중에 이를 거절한다. [저장 복원](<C:/Users/vulpo/.codex/worktrees/so-reference-authoring/DungeonStory/Assets/Scripts/Services/ServiceRooms/ServiceSessionRuntime.cs:838>)도 owner 연결을 사용한다. 현재 허브 8개/프로세스 5개는 맞는다. 기존 owner/category 계약을 선택기와 작성 검증에 같이 적용해야 하며 새 서비스 추상화는 필요 없다.
+
+#### R23-10 출력 배분 JSON의 로컬 관계
+
+[canonicalPayload](<C:/Users/vulpo/.codex/worktrees/so-reference-authoring/DungeonStory/Assets/Scripts/Models/Economy/Content/ProductionOutputCostAllocationAuthoring.cs:15>)는 Inspector에서 보이는 원시 문자열이고 현재 3개 payload 안에 `outputLineId` 관계 9개가 들어 있다. [payload 해석](<C:/Users/vulpo/.codex/worktrees/so-reference-authoring/DungeonStory/Assets/Scripts/Services/Economy/ProductionOutputCostAllocationCapabilityRegistry.cs:115>)과 [owner output 검증](<C:/Users/vulpo/.codex/worktrees/so-reference-authoring/DungeonStory/Assets/Scripts/Services/Economy/ProductionOutputCostAllocationCapabilityRegistry.cs:175>)이 존재하지 않는 output을 명시적으로 거절하므로 현재 단절이나 무음 실패는 아니다. 다만 output을 선택하는 작성 UI 없이 ID를 JSON에 직접 넣는 표면은 남아 있다. owner 출력 목록을 쓰는 간단한 편집기로 보완할 P2 편의 항목이다. mass payload 307개는 고정 문법이며 외래 ID를 포함하지 않아 같은 문제로 세지 않았다.
+
+#### R23-X01 컨베이어 런타임 목적지
+
+[SO 기본 destinationId](<C:/Users/vulpo/.codex/worktrees/so-reference-authoring/DungeonStory/Assets/Scripts/Services/Infrastructure/Industrial/IndustrialInfrastructureBuildingAbilities.cs:319>)는 살아 있는 시설/포트 인스턴스 주소여서 정의 SO 선택과는 다르다. [초기화](<C:/Users/vulpo/.codex/worktrees/so-reference-authoring/DungeonStory/Assets/Scripts/Services/Infrastructure/Industrial/ConveyorRuntime.cs:1375>)는 이를 직접 복사하고 [사용자 목적지 변경](<C:/Users/vulpo/.codex/worktrees/so-reference-authoring/DungeonStory/Assets/Scripts/Services/Infrastructure/Industrial/ConveyorRuntime.cs:389>)이 거치는 유효 후보 검사를 우회한다. native에서 존재하지 않는 임의 주소를 SO/게시 검사가 수용했다. [실제 운송](<C:/Users/vulpo/.codex/worktrees/so-reference-authoring/DungeonStory/Assets/Scripts/Services/Infrastructure/Industrial/ConveyorRuntime.cs:945>)은 없는 목적지를 NoRoute로 처리한다. 현재 29개 기본값이 모두 비어 있어 현재 잘못된 목적지는 없다. 기본값 적용에도 동일한 인스턴스 검증을 쓰거나 정적 정의에서 인스턴스 주소 작성을 금지하는 경계다. 이번에 실제 운송 Play를 실행하지 않았고 NoRoute 결과는 생산 소스로 추적했다.
+
+### R23-E01/E02: 현재 실제로 끊어진 엔진 참조 8개
+
+| 실제 에셋 | Unity 필드 | 미존재 GUID / fileID |
+|---|---|---|
+| [Lit2DSceneTemplate.scenetemplate](<C:/Users/vulpo/.codex/worktrees/so-reference-authoring/DungeonStory/Assets/Settings/Lit2DSceneTemplate.scenetemplate:68>) | `dependencies[0].dependency` | `b3ab972b21db85d48ade9657efdd4771` / `2800000` |
+| [sprite3_6.asset](<C:/Users/vulpo/.codex/worktrees/so-reference-authoring/DungeonStory/Assets/Images/Palette/sprite3_6.asset:15>) | `m_Sprite` | `c073f5eab8e6b0547aad93c7accc9e16` / `617987512` |
+| [sprite3_5.asset](<C:/Users/vulpo/.codex/worktrees/so-reference-authoring/DungeonStory/Assets/Images/Palette/sprite3_5.asset:15>) | `m_Sprite` | `c073f5eab8e6b0547aad93c7accc9e16` / `-1189354265` |
+| [sprite3_4.asset](<C:/Users/vulpo/.codex/worktrees/so-reference-authoring/DungeonStory/Assets/Images/Palette/sprite3_4.asset:15>) | `m_Sprite` | `c073f5eab8e6b0547aad93c7accc9e16` / `-2042616866` |
+| [sprite3_3.asset](<C:/Users/vulpo/.codex/worktrees/so-reference-authoring/DungeonStory/Assets/Images/Palette/sprite3_3.asset:15>) | `m_Sprite` | `c073f5eab8e6b0547aad93c7accc9e16` / `1165392639` |
+| [sprite3_2.asset](<C:/Users/vulpo/.codex/worktrees/so-reference-authoring/DungeonStory/Assets/Images/Palette/sprite3_2.asset:15>) | `m_Sprite` | `c073f5eab8e6b0547aad93c7accc9e16` / `509893766` |
+| [sprite3_1.asset](<C:/Users/vulpo/.codex/worktrees/so-reference-authoring/DungeonStory/Assets/Images/Palette/sprite3_1.asset:15>) | `m_Sprite` | `c073f5eab8e6b0547aad93c7accc9e16` / `121811310` |
+| [sprite3_0.asset](<C:/Users/vulpo/.codex/worktrees/so-reference-authoring/DungeonStory/Assets/Images/Palette/sprite3_0.asset:15>) | `m_Sprite` | `c073f5eab8e6b0547aad93c7accc9e16` / `-874986263` |
+
+Tile 7개의 `m_Sprite`와 씬 템플릿의 `dependencies[0].dependency`가 Unity에서 실제로 미해결이며 같은 GUID가 현재 metadata에 없다. 씬 템플릿의 `templateScene`은 정상이고 내부 preview texture fileID도 정상이다. 깨진 필드만 위 표에 세었다. 그래프에서 8개 모두 직렬화된 역참조가 없고 활성 빌드 씬과 현재 GameContentCatalog에서 도달하지 않는다. **현재 플레이를 막는다고 확인한 것은 아니며, 동적 로드까지 포함한 완전 미사용/삭제 안전 증명도 아니다.** 원래 sprite/의존성을 복구하거나 의도된 에셋 정리로 처리할 P2이다. 임의의 이미지로 바꾸는 폴백은 권하지 않는다.
+
+### 오탐을 제외한 이유와 남아 있는 수기 문자열
+
+- `SeasonalSpecialExpeditionProfile.factionId`의 `hostile`/`truth:guardian`은 site/offer/전투 사실과 서사 counterparty로 복사하는 로컬 문맥이다. [실제 생산](<C:/Users/vulpo/.codex/worktrees/so-reference-authoring/DungeonStory/Assets/Scripts/Services/Run/SeasonalArcaneEventApplicationAdapters.cs:338>)부터 [소비](<C:/Users/vulpo/.codex/worktrees/so-reference-authoring/DungeonStory/Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/OffenseBattleExperienceObserver.cs:52>)까지 확인했고 pressure axis가 None이어서 [DungeonFaction 조인](<C:/Users/vulpo/.codex/worktrees/so-reference-authoring/DungeonStory/Assets/Scripts/Services/Offense/OffenseRegionRuntime.cs:187>)을 거치지 않는다. 분야별 미해결 후보 WORLD-R23-001을 철회했다. 다른 SO 선택으로 강제하면 의미가 바뀐다.
+- `CharacterTraitSO.selectionFamilyId`와 `incompatibilityGroups`는 수기 공유 분류 문자열이 남아 있다. [특성 선택](<C:/Users/vulpo/.codex/worktrees/so-reference-authoring/DungeonStory/Assets/Scripts/Services/Character/Core/CharacterTraitSelectionRules.cs:128>)의 동등성/교집합 규칙이며 별도 SO provider를 찾는 외래키가 아니다. 현재 중복 배제를 무력화하는 반례는 확인하지 않았다. 수기 입력이 하나도 없다는 결론은 내리지 않는다.
+- `PersistentNeedRule` 사건 토큰과 효과 binding ID는 생산/소비/저장 대조가 있는 owner-local 프로토콜이다. `DiseaseDefinitionSO.symptomProfileId`는 pending 질병 정의의 동결 snapshot에 포함된 label이며 별도 profile SO 관계가 아니다.
+- `collisionTag` 21개, `worldBranchTag` 49행, `iconId`/`vfxId` 각 49행, `tradeoffTags` 29개는 미소비 또는 표현 메타데이터로 기록했다. 임의의 외래 SO 관계나 새 필수 기능으로 부풀리지 않았다. parent 173개는 존재/자기참조/순환 대조에서 정상이며 현재 평면 노드 구조의 메타데이터다.
+- retired trait 13개, faction alias 6개, test character 1개, retired guest 1개를 활성 생산 정의와 구분했다. 이미 보호되는 enemy stable ID/faction/root 등록을 재발견으로 세지 않았다.
+
+### 추가로 포함한 엔진/플러그인 SO 32타입
+
+| 타입 | 파일 수 | 관계 검사 분류 |
+|---|---|---|
+| `UnityEditor.AddressableAssets.Settings.AddressableAssetSettings` | 1 | Addressables |
+| `UnityEditor.AddressableAssets.Settings.AddressableAssetGroup` | 5 | Addressables |
+| `UnityEditor.AddressableAssets.Settings.GroupSchemas.BundledAssetGroupSchema` | 5 | Addressables |
+| `UnityEditor.AddressableAssets.Settings.GroupSchemas.ContentUpdateGroupSchema` | 5 | Addressables |
+| `UnityEditor.AddressableAssets.Settings.AddressableAssetGroupTemplate` | 1 | Addressables |
+| `UnityEditor.AddressableAssets.Build.DataBuilders.BuildScriptFastMode` | 1 | Addressables |
+| `UnityEditor.AddressableAssets.Build.DataBuilders.BuildScriptPackedMode` | 1 | Addressables |
+| `UnityEditor.AddressableAssets.Build.DataBuilders.BuildScriptPackedPlayMode` | 1 | Addressables |
+| `UnityEditor.AddressableAssets.AddressableAssetSettingsDefaultObject` | 1 | Addressables |
+| `UnityEditor.AddressableAssets.Settings.ProfileDataSourceSettings` | 1 | Addressables |
+| `BehaviorDesigner.Runtime.ExternalBehaviorTree` | 1 | BehaviorDesigner |
+| `BehaviorDesigner.Runtime.GlobalVariables` | 1 | BehaviorDesigner |
+| `UnityEngine.Rendering.VolumeProfile` | 1 | Rendering |
+| `TMPro.TMP_FontAsset` | 37 | TextMeshPro |
+| `UnityEditor.GridPalette` | 5 | Tiles |
+| `UnityEngine.Tilemaps.Tile` | 791 | Tiles |
+| `UnityEngine.RuleTile` | 1 | Tiles |
+| `UnityEngine.Localization.Tables.SharedTableData` | 9 | Localization |
+| `UnityEditor.Localization.StringTableCollection` | 9 | Localization |
+| `UnityEngine.Localization.Tables.StringTable` | 18 | Localization |
+| `UnityEngine.Localization.Locale` | 2 | Localization |
+| `UnityEngine.Localization.Settings.LocalizationSettings` | 1 | Localization |
+| `DamageNumbersPro.Internal.DNPPreset` | 66 | Plugin and Editor settings |
+| `Sirenix.Serialization.GlobalSerializationConfig` | 1 | Plugin and Editor settings |
+| `DG.Tweening.Core.DOTweenSettings` | 1 | Plugin and Editor settings |
+| `UnityEditor.SceneTemplate.SceneTemplateAsset` | 1 | Plugin and Editor settings |
+| `UnityEngine.Rendering.Universal.Renderer2DData` | 1 | Rendering |
+| `UnityEngine.Rendering.Universal.UniversalRenderPipelineAsset` | 1 | Rendering |
+| `TMPro.TMP_SpriteAsset` | 1 | TextMeshPro |
+| `TMPro.TMP_StyleSheet` | 1 | TextMeshPro |
+| `TMPro.TMP_Settings` | 1 | TextMeshPro |
+| `UnityEngine.Rendering.Universal.UniversalRenderPipelineGlobalSettings` | 1 | Rendering |
+
+객체 연결과 위에서 명시한 SDK key join을 검사했다. glyph/codepoint, SDK 내부 수치, 렌더링 튜닝의 모든 불변식이나 모든 SDK Inspector 버튼 동작을 인증한 것은 아니다. 이는 게임 외래 SO ID의 누락을 감추기 위한 일괄 제외가 아니며 타입별 범위와 각 파일의 실제 결과를 엔진 원장에 남겼다.
+
+### 실제 실행과 실패 결과 보존
+
+| 실행 | 실제 결과 | 의미 |
+|---|---|---|
+| r158audit | 190초, native exit 0, C# 오류 0, console 오류 0, source drift 0 | 게임 에셋 3,544개 로드, native 관계/게시 검사, 반례 13개 관측. 두 Inspector 경로의 실제 Layout/Repaint 포함 |
+| r159audit | 160초, exit 1, C# 오류 0, source drift 0 | 전체 4,517개 census에서 끊어진 엔진 참조 8개를 발견해 중단. 전체 PASS가 아님 |
+| r160audit | 150초, exit 1, C# 오류 0, source drift 0 | 같은 0-미해결 기준을 마지막에 평가해 추가 반례 6개와 정확한 필드를 수집. 진단 completed는 관측 완료이며 검사 통과가 아님. 마지막 assert 오류를 그대로 보존 |
+
+모든 실행은 CUHA의 인증된 private Xvfb와 기존 lock/memory/source/console 보호 아래 한 번에 하나씩 수행했다. 사용자 데스크톱 입력/포커스를 사용하지 않았다. 실제 에셋은 메모리 반례 전후 JSON/dirty와 생산 입력 digest를 대조해 보존했다. 원본 복사본에만 임시 진단 3파일을 설치했고 마지막에 소유 파일만 제거해 기존 `r157su`의 생산 입력 21,712개 SHA를 다시 확인했다. Unity 프로세스 0, private display 종료로 마감했다.
+
+[r158 native 관측](<C:/Users/vulpo/Documents/Codex/2026-10-25/so-main-full-audit-r23/native-r158audit/r23-native-report.json>), [r159 원래 실패](<C:/Users/vulpo/Documents/Codex/2026-10-25/so-main-full-audit-r23/native-r159audit/run-summary.json>), [r160 추가 관측](<C:/Users/vulpo/Documents/Codex/2026-10-25/so-main-full-audit-r23/native-r160audit/r23-supplement-report.json>), [r160 실패 요약](<C:/Users/vulpo/Documents/Codex/2026-10-25/so-main-full-audit-r23/native-r160audit/run-summary.json>), [최종 원본 복구](<C:/Users/vulpo/Documents/Codex/2026-10-25/so-main-full-audit-r23/native-overlay-cleanup-r160audit.json>), [SDK key join 대조](<C:/Users/vulpo/Documents/Codex/2026-10-25/so-main-full-audit-r23/engine-relation-check.json>), [전체 참조 그래프](<C:/Users/vulpo/Documents/Codex/2026-10-25/so-main-full-audit-r23/all-so-reference-graph.json>)에 결과가 있다.
+
+**이번 완료는 고정 main에 대한 조사 완료다.** 실제 Inspector와 생산 검증/조회 반례를 실행했고, 사용자 플레이 전체나 사용자 저장/복원/재시도를 새로 실행하지 않았다. 현재 단절 8개와 미래 보호/작성 공백은 수정되지 않았다. 향후 콘텐츠 변경이나 동적 실행의 모든 결함이 없다고 보증하지 않는다. 원본 Documents checkout의 사용자 변경과 과거 QA를 보존했으며 게임 코드/에셋/인덱스 변경, commit/push/main 병합은 하지 않았다.
+
+## R22 — main 원본과 실제 에셋 재감사 결과 (2026-10-25)
+
+기준은 시작과 마감 fetch가 같은 `main21b381a665a3cb2ffe9418064d4de6524f2e1ed5`다. 이전 완료 표를 근거로 통과시키지 않고 C# 선언, 중첩 데이터, 실제 에셋 값, 생산 소비자, 저장 키와 게시 보호를 다시 대조했다. 이번 요청은 조사이므로 게임 코드와 에셋은 수정하지 않았다.
+
+**현재 에셋에서 새로 확정한 끊어진 관계는 0개다. 그러나 작성과 변경 보호 공백은 7개 원인 묶음이 남아 있다.** 이 중 실제 수기 관계 문자열은 해부 노드의 `pairedGroupId`다. 나머지는 선택기가 있어도 잘못된 조합을 고를 수 있거나, 저장에 쓰이는 연결 키를 게시 뒤 바꿀 수 있는 문제다. 일곱 항목을 현재 플레이 실패라고 세지 않는다.
+
+### 범위와 실제 확인 결과
+
+| 대조 대상 | 현재 결과와 한계 |
+|---|---|
+| 게임 생산 코드의 SO 선언 | 142종. 실제 에셋이 있는 124종과 기반형 또는 에셋 없는 18종을 포함한다. Editor와 플러그인 전용 선언은 게임 관계 판정에서 제외했다. |
+| 직렬화 선언과 후보 | 선언 2,467개에서 관계 후보 888개를 추출했다. 공통 상속, 중첩 목록과 managed reference의 파생형을 포함한다. 문자열 이름만으로 외래키라고 판정하지 않았다. |
+| 실제 게임 SO 에셋 | 3,544개. 각 타입, 소스, 파일, 등록 여부를 [현재 coverage manifest](C:/Users/vulpo/Documents/Codex/2026-10-25/so-main-reaudit-r22/coverage-manifest.json)에 기록했다. 분야별 수량은 중복되므로 더하지 않는다. |
+| Unity 객체 연결 | GUID 참조 8,962개와 게임 에셋으로 향하는 참조 4,731개에서 잘못된 GUID 또는 local fileID 0개. 에셋 내부 fileID 18개도 누락 0개. 필수 null의 의미와 문자열 관계는 별도로 원본을 확인했다. |
+| managed reference | 인스턴스 6,116개, 타입 이름 170개. 타입과 assembly 조합 175개는 직접 일치 159개와 `MovedFrom` 16개로 해석됐고 정적 누락은 0개다. |
+| Odin 데이터 | `serializationData`가 있는 2,628개 중 실제 node table이 있는 404개를 확인했다. 외부 객체 인덱스 12개 누락 0개, 미해석 binary payload 0개다. 현재 node의 프로젝트 타입과 assembly 문자열도 원본과 대조했다. Unity 역직렬화 실행 결과는 아니다. |
+| 게시 보호 | 기존 Python 검사가 현재 3,544개 에셋과 기록된 12,021필드를 통과했다. 이 결과는 이미 기록된 필드만 보호한다. 아래 누락 키까지 보호한다는 뜻이 아니다. |
+| 실행 여부 | Roslyn 구문 진단 0개와 읽기 전용 Python 대조를 확인했다. Unity import, C# 컴파일, Inspector 조작, Play, 실제 사용자 저장 복원은 이번 조사에서 실행하지 않았다. 과거 실행을 이번 실행 PASS로 바꾸지 않았다. |
+
+### 남은 항목과 우선순위
+
+| ID | 우선순위 | 남은 문제 | 현재 실제 값 |
+|---|---|---|---|
+| R22-01 | P1 저장 호환 | 구조물과 엄폐 능력의 `abilityId`가 저장 module 키인데 게시 변경 보호에서 빠진다. | structural 12개와 cover 3개 정상 |
+| R22-02 | P1 저장 호환 | 의류, 직물, 환경 작업복의 물리 아이템 매핑이 복원 exact join인데 게시 변경 보호에서 빠진다. 작업복의 apparel 대상 적격성도 검사하지 않는다. | 56 + 12 + 4개 매핑 정상 |
+| R22-03 | P1 관계 키 | 해부 `pairedGroupId`를 수기로 맞추며 오타와 한쪽 변경이 이식 호환을 바꾼다. 그룹 관계의 검증과 변경 보호가 없다. | 15개 프로필의 57그룹, 114개 멤버 정상 |
+| R22-04 | P1 owner 관계 | 장비 정의, 공식 물리 item ID, item의 장비 feature가 같은 장비를 가리키는지 검사하지 않는다. | 현재 61쌍 모두 일치 |
+| R22-05 | P1 생산 연결 | 빈 workstation 필드의 facility tag 대체값을 실제 workstation 제공자와 검사하지 않는다. | 해당 Transform 15개는 현재 m06에 연결됨 |
+| R22-06 | P2 선택 모호성 | 해부 렉시콘의 종족 소유 중복과 condition 중복이 먼저 나온 값으로 조용히 축약된다. | 현재 7개 에셋, 10개 종족 소유, 49개 condition 모두 정상 |
+| R22-07 | P2 설정 키 | 생존 설정의 need와 pressure 중복 키를 거부하지 않아 뒤 항목이 조용히 무시된다. | 현재 need 6개와 pressure 3개는 유일함 |
+
+#### R22-01 구조물과 엄폐 능력의 저장 키 보호 누락
+
+[BuildingAbility의 직렬화 abilityId](Assets/Scripts/Models/Buildings/Core/BuildingAbilityContracts.cs#L213)는 표시명이 아니다. [구조물](Assets/Scripts/Services/Buildings/BuildingStructuralIntegrityRuntime.cs#L167)과 [엄폐](Assets/Scripts/Services/Combat/CombatCoverDurability.cs#L87)가 이를 module ID로 만들고, [복원](Assets/Scripts/Services/Buildings/BuildingStateModule.cs#L181)은 저장 ID와 정확히 대조한다. `BuildingCoverAbility`를 `BuildingCoverAbilityV2`로 바꾸면 기존 module은 unknown, 새 module은 saved state 없음이 된다.
+
+[게시 캡처](Assets/Editor/ContentIdentityProtection.cs#L722)와 [Python 중첩 경로](tools/V27Balance/verify_content_identities.py#L162)는 production과 security 능력 ID만 보호한다. structural 12개와 cover 3개는 빠져 있다. 메모리 안의 실제 landmark와 `C01_WoodBarricade.asset`에서 각각 능력 ID만 바꿨을 때 기존 Python 보호 검사가 둘 다 통과했다. 현재 저장 파일을 실제로 복원한 시험은 아니며, 복원 실패 조건은 생산 C#에서 확인했다. 다른 능력 96종 전체를 무조건 불변으로 만드는 대신 실제 저장 module 키를 쓰는 네 종류의 경계로 고쳐야 한다.
+
+#### R22-02 의류와 직물과 환경 작업복의 물리 매핑
+
+[ApparelDefinitionSO.physicalItemId](Assets/Scripts/Models/Economy/Content/ApparelDefinitionSO.cs#L230), [TextileMaterialDefinitionSO.physicalItemId](Assets/Scripts/Models/Economy/Content/TextileMaterialDefinitionSO.cs#L14), [EnvironmentalWorkwearSO.itemDefinitionId](Assets/Scripts/Models/Economy/Content/EnvironmentalWorkwearSO.cs#L18)는 모두 Item 선택 필드다. 그러나 게시 보호는 각 SO 자신의 ID만 기록한다. 실제 세 에셋의 매핑을 존재하는 `relic:faction:beastkin:1`로 각각 바꾼 메모리 반례도 기존 Python 검사를 통과했다.
+
+[장착 의류 복원](Assets/Scripts/Services/Infrastructure/Environment/CharacterApparelRuntime.cs#L1783)은 저장된 물리 stack ID와 현재 의류 매핑이 같아야 한다. [작업복 복원](Assets/Scripts/Services/Infrastructure/Environment/EnvironmentalWorkwearRuntime.cs#L461)도 저장 stack을 현재 item 역조회 사전에서 찾아야 한다. [직물 주문 재개](Assets/Scripts/Services/Infrastructure/Environment/ApparelWorkOrderRuntime.cs#L1901)는 현재 재료 item ID와 저장 selection을 대조한다. 따라서 매핑 변경은 평범한 설명 변경이 아니라 기존 장착과 진행 주문의 연결 변경이다.
+
+현재 72개 매핑은 모두 존재하고 종류별로 유일하다. 작업복 4개도 각각 의류 정의 하나에 연결된다. 다만 [작업복 catalog](Assets/Scripts/Models/Economy/Content/EnvironmentalWorkwearSO.cs#L103)는 일반 item의 존재와 유일성만으로 장착 가능한 apparel인지를 보장하지 않는다. 이미 선택기를 쓰는 필드에 또 다른 SO 계층을 만들 필요는 없다. 저장 연결 키 보호와 현재 선택 대상의 capability 검증이 필요한 항목이다.
+
+#### R22-03 수기 pairedGroupId와 이식 호환
+
+[pairedGroupId](Assets/Scripts/Models/Medical/Core/AnatomyModels.cs#L87)는 프로필 안에서 두 노드를 연결하는 평문 문자열이다. [이식 호환](Assets/Scripts/Services/Medical/SurgeryOrderPlanningService.cs#L607)은 서로 다른 node ID라도 이 값이 같으면 허용한다. [해부 검증](Assets/Scripts/Services/Medical/AnatomyProfileCatalog.cs#L130)은 그룹 관계를 검사하지 않고, [게시 캡처](Assets/Editor/ContentIdentityProtection.cs#L701)는 node ID만 보호한다.
+
+실제 `anatomy:human`의 `eye:left`만 `eyes`에서 `eyes-typo`로 바꾼 메모리 반례는 기존 18필드 검사를 통과했다. 생산 코드와 같은 비교식을 적용하면 `eye:left -> eye:right` 호환이 true에서 false가 된다. 부품 저장은 node ID와 anatomy family를 보존하고 그룹은 현재 SO에서 다시 읽으므로 기존 부품의 호환도 바뀐다. 실제 수술 또는 복원 실행 PASS로 보고하지 않는다.
+
+현재 57그룹은 모두 두 멤버이고 오타는 발견되지 않았다. 프로필 내부 선택과 의도적인 그룹 생성 경계, 멤버 관계 검증, 게시 뒤 변경 정책이 필요하다. 현재 값이 모두 두 개라는 사실만으로 미래 모든 생물의 그룹을 무조건 두 개로 제한해서는 안 된다.
+
+#### R22-04 장비 정의와 물리 item의 양방향 owner 검증
+
+[장비 itemId](Assets/Scripts/Models/Economy/Content/CombatEquipmentDefinitions.cs#L15)와 [EquipmentItemFeature.equipmentDefinitionId](Assets/Scripts/Models/Economy/Content/ItemDefinitionSO.cs#L378)는 각각 존재하는 상대 SO를 고를 수 있다. 하지만 [장비 catalog](Assets/Scripts/Models/Economy/Content/CombatEquipmentDefinitions.cs#L151)는 이 둘의 역관계를 검사하지 않는다.
+
+실제 산출물은 [PhysicalItemIds.ForEquipment](Assets/Scripts/Services/Items/PhysicalItemIds.cs#L8)의 `equipment-item:<equipmentId>`가 권위다. [제작 catalog](Assets/Scripts/Services/Combat/CombatCraftDefinitionCatalog.cs#L171), [제작 runtime](Assets/Scripts/Services/Combat/CombatEquipmentCraftingRuntime.cs#L1036), [물리 저장](Assets/Scripts/Services/Items/WorldItemPersistenceService.cs#L79)도 이 공식을 쓴다. 따라서 장비의 `itemId`를 다른 존재 item으로 고르거나 item feature를 다른 존재 장비로 고르면 참조 존재 검사는 만족하면서 작성 데이터와 실제 산출물 권위가 갈라진다.
+
+현재 31무기 + 21방어구 + 9방패와 물리 item 61개는 공식과 역참조가 모두 맞는다. 남은 것은 잘못된 선택을 거부하는 owner 계약이다. 공식에서 파생 가능한 값을 계속 별도 수기 권위처럼 편집하게 둘지도 함께 정리해야 한다.
+
+#### R22-05 Transform 레시피의 effective workstation 검사
+
+[ProductionRecipeSO.WorkstationTag](Assets/Scripts/Models/Economy/Content/ProductionRecipeSO.cs#L74)는 원시 `workstationTag`가 비면 `FacilityTag`를 반환한다. [생산 매칭](Assets/Scripts/Services/Economy/ProductionWorkshopAbilityAccessors.cs#L44)은 이 최종값을 사용한다. 반면 [일반 참조 검사](Assets/Scripts/Services/Items/ContentReferenceCatalog.cs#L816)는 빈 원시 문자열을 건너뛴다. `ProductionFacilityTag`와 `ProductionWorkstation`의 제공자 집합도 다르다.
+
+현재 원시 workstation이 빈 38개 중 Transform 15개는 모두 `m06`이고 현재 제공자가 하나라 정상이다. 나머지 Source 19개와 Sink 4개는 같은 방식의 물리 workstation을 요구하는 관계로 세지 않았다. 반례는 빈 workstation인 Transform의 facilityTag를 고정 시설 키 `butcher`로 고르는 것이다. 시설 키로는 존재하지만 workstation 제공자는 없어서 생산 매칭은 전부 실패한다. [기존 일부 debug 검사](Assets/Scripts/Services/Economy/Editor/BranchedProductionNetworkDebugScenarios.cs#L114)도 surgery prefix를 제외한다.
+
+원시 두 필드가 아니라 역할에 따라 실제로 쓰이는 최종 제공자를 검사해야 한다. 현재 데이터 오류나 별도 저장 ID 단절은 아니다. 이 반례는 소스의 제공자 집합과 비교식 대조이며 Unity 생산 실행은 하지 않았다.
+
+#### R22-06 해부 렉시콘의 소유와 condition 중복
+
+[종족과 family 선택](Assets/Scripts/Services/Medical/AnatomyConditionLexiconCatalog.cs#L49)은 처음 일치하는 렉시콘을 고르고, [condition 목록](Assets/Scripts/Services/Medical/AnatomyConditionLexiconCatalog.cs#L182)은 `GroupBy(...).First()`로 축약한다. [현재 검증](Assets/Scripts/Services/Medical/AnatomyConditionLexiconCatalog.cs#L73)은 필요한 표현을 찾을 수 있는지 검사하므로 정상 첫 항목 뒤의 중복을 거부하지 않는다.
+
+현재 7개 렉시콘은 종족 10개를 중복 없이 소유하고 condition 49개도 모두 유일하다. 다만 slime 렉시콘에도 `human`을 선택하면 둘 다 존재하는 종족 참조인데 어느 렉시콘을 쓰는지가 등록 순서에 따라 달라진다. 같은 condition을 다른 label로 한 번 더 넣어도 두 번째 값이 버려진다. 메모리 계산 반례는 이 두 first-match 규칙을 확인했으며 C# validator 실행 결과는 아니다.
+
+종족 소유 중복과 렉시콘 내부 condition 중복을 명시적으로 거부해야 한다. 현재 humanoid family는 의도적으로 여러 렉시콘이 공유한다. family 이름이 같다는 이유만으로 전부 중복 오류로 바꾸면 안 된다. 이 항목은 표현 선택의 모호성이며 저장 identity 문제는 아니다.
+
+#### R22-07 생존 설정의 중복 enum 키
+
+[needs와 pressures](Assets/Scripts/Models/Survival/Core/SurvivalBalanceSettingsSO.cs#L109)는 enum을 키로 하는 리스트다. [조회](Assets/Scripts/Models/Survival/Core/SurvivalBalanceSettingsSO.cs#L118)는 처음 일치한 항목을 반환하고, 별도의 정의 검증은 없다. 같은 need 또는 pressure를 두 번 작성하면 뒤 항목의 수치가 조용히 무시된다. 현재 need 6개와 pressure 3개에는 중복이 없다.
+
+이 항목은 수기 문자열 외래키가 아니라 SO 안의 관계 키 유일성 공백이다. 중복과 유효하지 않은 enum을 거부할 필요가 있다. 항목 누락 시 코드 기본값을 쓰는 기존 동작도 확인했지만, 부분 설정을 허용하려는 의도인지 확정하지 않았으므로 누락을 무조건 오류로 만들거나 기존 기본값 경로를 제거하라는 결론은 내리지 않는다.
+
+### 별도 기록하되 새 관계 결함으로 세지 않은 필드
+
+| 관찰 | 실제 값 | 분류 이유 |
+|---|---|---|
+| 방어구 `collisionTag` | 21개, 고유 값 20개 | [장착 충돌](Assets/Scripts/Services/Combat/CombatEquipmentLoadoutRuntime.cs#L762)은 레이어와 신체 부위가 권위이고 이 태그는 소비하지 않는다. 미소비 데이터이지만 다른 SO를 찾는 관계 키로 확인되지 않았다. |
+| 서사 `worldBranchTag` | 전체 1,973행 중 49행, 고유 값 7개 | [텍스트 조회](Assets/Scripts/Content/InGameNarrativeTextCatalogSO.cs#L142)는 설명만 제공한다. 분기 행동의 외래 provider는 확인되지 않았다. 작성 보조 메타데이터인지 폐기 필드인지는 추가 계약 문제다. |
+| 해부 상태 `iconId`와 `vfxId` | 49행에 각각 값 존재 | [presentation으로 전달](Assets/Scripts/Services/Medical/AnatomyConditionLexiconCatalog.cs#L60)되지만 [상세 UI](Assets/Scripts/Views/UI/CharacterDetailedStatsRuntime.cs#L646)는 label만 소비한다. 현재 외부 media 조회 연결은 없다. 아이콘과 VFX 기능이 구현됐다고 볼 근거도 없지만 임의로 새 기능을 구현할 필수 항목으로 세지 않았다. |
+| 작물 유전체 `tradeoffTags` | 20에셋, 총 29값 | [runtime 변환](Assets/Scripts/Models/Economy/Content/CropGenomeDefinitionSO.cs#L37)은 locus 값이 권위이고 태그는 복사하지 않는다. 설명 태그 미소비와 실제 유전 효과 단절을 동일시하지 않았다. |
+
+일반 설명, provider 자신의 ID, DTO의 저장 ID, owner-local 이벤트 프로토콜도 외래키 누락으로 부풀리지 않았다. `PersistentNeedRule` 이벤트 토큰과 `GameplayEffectBinding.bindingId`는 생산 소비와 저장 검증이 있는 로컬 계약이다. Enemy origin의 stable ID와 faction ID, root 등록은 이미 보호되므로 이름 변경과 등록 제거 위험을 재발견으로 세지 않았다. 임의 변조 저장에 존재하지 않는 enemy ID를 넣는 별도 hardening 관찰은 현재 SO 작성 결함과 분리했다.
+
+해부 parent 173개는 모두 존재하고 자기참조와 다단계 순환도 0개다. 현재 부모 관계는 구조 메타데이터이고 런타임은 평면 노드 ID를 사용한다. 조상 순회 기능이 없다는 사실만으로 새 플레이 단절로 세지 않았다. retired trait 13개, faction alias 6개, test character 1개, retired guest 1개도 활성 생산 정의와 구분했다.
+
+### Inspector 확인이 남은 경계
+
+[공용 선택기](Assets/Editor/ContentReferenceDrawer.cs#L286)의 AnatomyProfile parent와 boss phase 능력 목록은 적용된 첫 target의 CLR 값을 읽는다. 공용 owner 경로가 사용하는 pending 복사와 달리 처리된다. 단일 Inspector frame의 일시적 차이는 실제 결함으로 세지 않았다. 서로 다른 profile 또는 능력 목록의 다중 편집에서 어떤 후보가 보이고 함께 적용되는지는 이번 조사에서 재현하지 않았다. 따라서 이 경계는 확인 필요 항목이며 위 7개 확정 묶음에 합산하지 않는다. 실제 Inspector가 안전하게 동작한다고 단정하지도 않는다.
+
+### 근거 보존과 완료 범위
+
+- [R22 외부 증거 폴더](C:/Users/vulpo/Documents/Codex/2026-10-25/so-main-reaudit-r22): 현재 syntax와 inventory, 전체 YAML 집계, graph 검사, coverage manifest, 분야별 원본 근거를 보존했다.
+- [공통 메모리 반례](C:/Users/vulpo/Documents/Codex/2026-10-25/so-main-reaudit-r22/common-probes.json)와 [게시 변경 반례](C:/Users/vulpo/Documents/Codex/2026-10-25/so-main-reaudit-r22/extra-published-edit-probes.json)는 기존 Python 검사를 실제 실행했다. 저장과 수술의 결과는 생산 C#의 비교 조건으로 추적했다.
+- [중복 키 반례](C:/Users/vulpo/Documents/Codex/2026-10-25/so-main-reaudit-r22/keyed-list-probes.json)는 실제 값 집계와 소스와 같은 비교식 계산이다. Unity 또는 C# 검증기의 실행으로 표현하지 않는다.
+- 이번 마감은 조사 완료다. R22-01~07의 수정 완료, 미래 모든 콘텐츠의 무결성 증명, 실제 Inspector와 사용자 저장 검증 완료를 뜻하지 않는다. 원본 Documents checkout의 사용자 변경과 기존 QA 자료를 보존했다.
+
 
 ## R21-01~11 및 X01 수정과 필요한 실행 검증 완료
 

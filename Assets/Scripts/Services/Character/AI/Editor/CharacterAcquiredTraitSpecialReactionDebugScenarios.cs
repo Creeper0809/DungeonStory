@@ -13,6 +13,13 @@ public static class CharacterAcquiredTraitSpecialReactionDebugScenarios
         V25AcquiredTraitContentAssetBuilder.Build();
         CharacterAcquiredTraitFormulaCatalogAssetBuilder.Build();
 
+        RunCurrentCatalog();
+    }
+
+    // Verification must not rebuild published content as a side effect.
+    public static void RunCurrentCatalog()
+    {
+
         CharacterAcquiredTraitModuleSO[] modules = AssetDatabase.FindAssets(
                 "t:CharacterAcquiredTraitModuleSO",
                 new[] { V25AcquiredTraitContentAssetBuilder.ModuleRoot })

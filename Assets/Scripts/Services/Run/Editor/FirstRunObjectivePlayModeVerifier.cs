@@ -1043,6 +1043,15 @@ public sealed class FirstRunObjectiveVerificationRunner : MonoBehaviour
             if (!initialArcaneDelivered)
                 yield return null;
         }
+        // Delivery visibility can precede its domain-owned action's final ACK.
+        // Use the remaining original 24-second haul budget, not a larger wait,
+        // and keep the actor running until that authority has finished.
+        while (brain.IsExternallyDrivenActionActive
+               && Time.realtimeSinceStartup < initialArcaneDeadline)
+            yield return null;
+        bool initialHaulOwnerCompleted = !brain.IsExternallyDrivenActionActive;
+        Check(initialHaulOwnerCompleted, "RESEARCH_ARCANE_INDEX_DOMAIN_ACTION_COMPLETE",
+            "delivery action authority finished within the original haul deadline");
         hauler.SetAiPaused(true);
         brain.StopCurrentActionForReplan(
             "first-run arcane-index delivery verification");
@@ -1059,7 +1068,7 @@ public sealed class FirstRunObjectiveVerificationRunner : MonoBehaviour
             + string.Join("|", itemRuntime.GetAllStacks()
                 .Where(stack => stack.ItemId == DurableToolItemRules.ArcaneIndex)
                 .Select(stack => $"{stack.State}/{stack.DestinationId}/durability={DurableToolItemRules.ReadCurrentDurability(stack.ItemId, stack.Components)}")));
-        if (!initialArcaneDelivered)
+        if (!initialArcaneDelivered || !initialHaulOwnerCompleted)
         {
             RestoreResearchWorkerAi(
                 hauler,
@@ -1321,20 +1330,42 @@ public sealed class FirstRunObjectiveVerificationRunner : MonoBehaviour
             work.ClearPriorityWorkTarget(); // Explicit research commands suppress autonomous AIHaul.
             brain.StopCurrentActionForReplan(
                 "first-run arcane-index replacement verification");
-            yield return null;
 
+            // Observe the closed row in the same frame as its drain receipt.
+            // A later autosave can legitimately checkpoint-GC that row; waiting
+            // a frame here compared a stale query snapshot with a newer world.
             IDungeonGameSaveService saves = scope.Container.Resolve<IDungeonGameSaveService>();
-            DungeonGameSaveData drainCheckpoint = saves.FromJson(saves.ToJson(saves.Capture()));
-            DungeonDurableFacilityEquipmentSaveData savedEquipment =
-                DungeonSaveSectionPayload.ReadOrNew<DungeonDurableFacilityEquipmentSaveData>(
-                    drainCheckpoint, DurableFacilityEquipmentPersistenceContract.SectionId);
-            Check(savedEquipment.slots.Any(slot =>
+            var slotPersistence = scope.Container.Resolve<IDurableFacilityEquipmentSlotPersistence>();
+            var liveBeforeCapture = slotPersistence.CaptureSaveData();
+            DungeonGameSaveData rawCheckpoint = saves.Capture();
+            string checkpointJson = saves.ToJson(rawCheckpoint);
+            DungeonGameSaveData drainCheckpoint = saves.FromJson(checkpointJson);
+            bool capturedSection = DungeonSaveSectionPayload.TryRead(rawCheckpoint,
+                DurableFacilityEquipmentPersistenceContract.SectionId,
+                out DungeonDurableFacilityEquipmentSaveData capturedEquipment);
+            bool savedSection = DungeonSaveSectionPayload.TryRead(drainCheckpoint,
+                DurableFacilityEquipmentPersistenceContract.SectionId,
+                out DungeonDurableFacilityEquipmentSaveData savedEquipment);
+            bool drainSaveExact = savedSection && savedEquipment.slots.Any(slot =>
                     slot.assignmentSequence == arcaneSequenceOne.AssignmentSequence
                     && slot.lifecyclePhase == DurableFacilityEquipmentSlotLifecyclePhase.ClosedAwaitingCheckpointGc
-                    && slot.drainReleasedQuantity == 1 && slot.drainReleasedMassGrams == 1300L),
+                    && slot.drainReleasedQuantity == 1 && slot.drainReleasedMassGrams == 1300L);
+            Check(drainSaveExact,
                 "RESEARCH_EQUIPMENT_DRAIN_SAVE_JSON",
                 "actual aggregate capture/preflight and sealed JSON before replacement; sections="
-                    + drainCheckpoint.sections.Count);
+                    + drainCheckpoint.sections.Count + "; expectedSequence=" + arcaneSequenceOne.AssignmentSequence
+                    + "; sameAuthority=" + ReferenceEquals(durableEquipmentSlots, slotPersistence)
+                    + "; capturedSection=" + capturedSection + "; savedSection=" + savedSection
+                    + "; liveBefore=" + JsonUtility.ToJson(liveBeforeCapture)
+                    + "; captured=" + JsonUtility.ToJson(capturedEquipment)
+                    + "; saved=" + JsonUtility.ToJson(savedEquipment));
+            {
+                string output = Environment.GetEnvironmentVariable("DUNGEONSTORY_AUDIT_REMEDIATION_OUTPUT");
+                using var writer = new StreamWriter(new FileStream(Path.Combine(output,
+                    "first-run-durable-drain-checkpoint.json"), FileMode.CreateNew));
+                writer.Write(checkpointJson);
+            }
+            yield return null;
 
             bool replacementSpawned = itemRuntime.SpawnUniqueItemAt(
                 DurableToolItemRules.ArcaneIndex,

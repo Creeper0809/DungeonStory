@@ -48,9 +48,25 @@ public sealed class AnatomyConditionLexiconSO : ScriptableObject
 
     public IReadOnlyList<string> ValidateDefinition()
     {
-        return string.IsNullOrWhiteSpace(LexiconId)
-            ? new[] { "Anatomy condition lexicon ID is required." }
-            : Array.Empty<string>();
+        List<string> errors = new();
+        if (string.IsNullOrWhiteSpace(LexiconId))
+        {
+            errors.Add("Anatomy condition lexicon ID is required.");
+        }
+
+        HashSet<AnatomyConditionKind> conditions = new();
+        foreach (AnatomyConditionLexiconEntry entry in
+                 entries ?? new List<AnatomyConditionLexiconEntry>())
+        {
+            if (entry != null && !conditions.Add(entry.condition))
+            {
+                errors.Add(
+                    $"Anatomy condition lexicon '{LexiconId}' contains duplicate "
+                    + $"condition '{entry.condition}'.");
+            }
+        }
+
+        return errors;
     }
 
 #if UNITY_EDITOR

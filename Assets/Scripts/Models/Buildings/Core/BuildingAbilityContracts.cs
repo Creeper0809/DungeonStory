@@ -210,7 +210,7 @@ public sealed class BuildingAbilityCollection : ISerializationCallbackReceiver
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public abstract class BuildingAbility
 {
-    [SerializeField, InspectorName("설정 능력 ID")]
+    [ContentIdentity, SerializeField, InspectorName("설정 능력 ID")]
     private string abilityId;
 
     protected BuildingAbility()

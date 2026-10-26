@@ -1,14 +1,14 @@
 {
   "artifact_kind": "dungeonstory-content-database",
   "generator": "tools/Documentation/generate_content_database.py",
-  "output_digest": "73f751341be4a969fc8b2ce395a87c3c6bb2ad349de956b807fd7ff89f0cec1a",
+  "output_digest": "c91eadd0400815e52988fd506aa6b5a9ddacefcf139ef6e4894b3ec2ad7a0031",
   "output_file_count": 491,
-  "output_files_manifest_sha256": "5b5a416a3e3e09e5fef32add67c8b77b79969ae5667e095e080302f13013d712",
+  "output_files_manifest_sha256": "167e1d0cf094b843fbbec93f14c0d4cbbd203f98b0e37d06d4a27f7f530c43a1",
   "output_root": "docs_final/content-db",
   "schema_version": 1,
-  "source_digest": "0ca9139fbd7901da189deab19e52b342cad8f09d4c00c941047bb82059730e18",
-  "source_file_count": 19647,
-  "source_files_manifest_sha256": "6d55cb75f73f2fa0a0777f90ced6abfcab780da368de32933e741b5126611645",
+  "source_digest": "9c163b026c08590f75bb5addb39bee038f24782bfa44524b26e5850912b89310",
+  "source_file_count": 19656,
+  "source_files_manifest_sha256": "ccfab291550e494a59458543258c913ee61c52575dda3050a20f34343c337cf0",
   "source_specs": [
     {
       "name": "unity-authored-assets",
@@ -42,7 +42,7 @@
   ],
   "statistics": {
     "code_consumer_csv_count": 75,
-    "code_consumer_row_count": 1489,
+    "code_consumer_row_count": 1493,
     "content_csv_count": 75,
     "duplicate_typed_id_groups": 10,
     "excluded_asset_type_count": 67,

@@ -4,6 +4,8 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Security.Cryptography;
+using System.Text;
 using UnityEditor;
 using UnityEditor.Build;
 using UnityEditor.Build.Reporting;
@@ -216,10 +218,7 @@ public static class ContentIdentityProtection
                 continue;
             if ((asset.fields ?? new List<FieldRecord>()).Any(
                     field => field != null
-                        && string.Equals(
-                            field.path,
-                            property.propertyPath,
-                            StringComparison.Ordinal)))
+                        && MatchesPublishedPath(field.path, property)))
             {
                 reason = "Published content identities are immutable. "
                     + "Create a new unpublished definition when a new ID is required.";
@@ -228,6 +227,45 @@ public static class ContentIdentityProtection
         }
 
         return false;
+    }
+
+    // Baseline paths use stable element keys instead of array indices. Resolve
+    // against pending Inspector values so reordering cannot unlock an old ID.
+    private static bool MatchesPublishedPath(string publishedPath, SerializedProperty property)
+    {
+        if (!publishedPath.StartsWith("@nested:", StringComparison.Ordinal))
+            return property.propertyPath == publishedPath
+                || property.propertyPath.StartsWith(publishedPath + ".", StringComparison.Ordinal);
+        string remaining = publishedPath.Substring(8);
+        string actual = string.Empty;
+        while (remaining.IndexOf('[') is int open && open >= 0)
+        {
+            int close = remaining.IndexOf(']', open);
+            if (close < 0) return false;
+            actual += remaining.Substring(0, open);
+            string prefix = actual + ".Array.data[";
+            if (!property.propertyPath.StartsWith(prefix, StringComparison.Ordinal)) return false;
+            int indexEnd = property.propertyPath.IndexOf(']', prefix.Length);
+            if (indexEnd < 0 || !int.TryParse(property.propertyPath.Substring(prefix.Length,
+                    indexEnd - prefix.Length), out int index)) return false;
+            SerializedProperty list = property.serializedObject.FindProperty(actual);
+            if (list == null || !list.isArray || index >= list.arraySize) return false;
+            SerializedProperty element = list.GetArrayElementAtIndex(index);
+            string selector = remaining.Substring(open + 1, close - open - 1);
+            int typeAt = selector.IndexOf(";type=", StringComparison.Ordinal);
+            string type = typeAt < 0 ? null : selector.Substring(typeAt + 6);
+            if (typeAt >= 0) selector = selector.Substring(0, typeAt);
+            int equals = selector.IndexOf('=');
+            if (equals < 0) return false;
+            SerializedProperty key = element.FindPropertyRelative(selector.Substring(0, equals));
+            if (key == null || key.propertyType != SerializedPropertyType.String
+                || key.stringValue != Uri.UnescapeDataString(selector.Substring(equals + 1))) return false;
+            if (type != null && (element.propertyType != SerializedPropertyType.ManagedReference
+                || element.managedReferenceFullTypename.Split(' ').Last().Split('.').Last() != type)) return false;
+            actual = element.propertyPath;
+            remaining = remaining.Substring(close + 1);
+        }
+        return property.propertyPath == actual + remaining;
     }
 
     internal static bool TryLoadBaseline(
@@ -293,7 +331,47 @@ public static class ContentIdentityProtection
         errors.AddRange(ValidateNewPublication(
             new Snapshot { assets = new List<AssetRecord> { published } },
             new Snapshot { assets = new List<AssetRecord> { current } }));
+        errors.AddRange(ValidatePublishedFormulaContracts(baseline));
         return errors;
+    }
+
+    // Formula hashes include dependent module/effect authoring. A save of a
+    // dependency must not silently invalidate already-saved pending choices.
+    internal static IReadOnlyList<string> ValidatePublishedFormulaContracts(Snapshot baseline)
+    {
+        var errors = new List<string>();
+        foreach (AssetRecord published in baseline.assets.Where(asset => asset.fields.Any(
+                     field => field.path == "@formula:content")))
+        {
+            try
+            {
+                string path = AssetDatabase.GUIDToAssetPath(published.guid);
+                var asset = AssetDatabase.LoadAssetAtPath<ScriptableObject>(path);
+                string expected = published.fields.Single(field => field.path == "@formula:content").value;
+                if (asset == null || FormulaContentHash(asset) != expected)
+                    errors.Add($"Published formula '{path}' changed. Preserve the published definition and author an explicit version migration before replacing its saved contract.");
+            }
+            catch (Exception exception) { errors.Add("Published formula validation failed: " + exception.Message); }
+        }
+        return errors;
+    }
+
+    private static string FormulaContentHash(ScriptableObject asset)
+    {
+        if (asset is EquipmentEvolutionFormulaCatalogSO equipment)
+            return equipment.ComputeCanonicalSha256();
+        if (asset is FacilityEvolutionRecipeSO facility)
+            return P1FacilityEvolutionAssetBuilder.ComputeFormulaCatalogSha256(
+                facility, facility.formulaCapabilities, facility.formulaPolicy);
+        if (asset is CharacterAcquiredTraitSettingsSO acquired)
+        {
+            GameContentCatalogSO root = AssetDatabase.LoadAssetAtPath<GameContentCatalogSO>(RootAssetPath)
+                ?? throw new InvalidOperationException("Game content root is missing.");
+            return CharacterAcquiredTraitFormulaCatalogAssetBuilder.ComputeCanonicalCatalogSha256(acquired,
+                root.DomainCatalogs.OfType<GameDomainContentCatalogSO>()
+                    .SelectMany(domain => domain.Definitions).OfType<CharacterAcquiredTraitModuleSO>());
+        }
+        return null;
     }
 
     internal static bool IsEligibleAssetPath(string assetPath)
@@ -679,6 +757,9 @@ public static class ContentIdentityProtection
 
     private static void CaptureNestedIdentities(SerializedObject source, AssetRecord record)
     {
+        string formulaHash = FormulaContentHash(source.targetObject as ScriptableObject);
+        if (formulaHash != null)
+            record.fields.Add(new FieldRecord { path = "@formula:content", value = formulaHash });
         if (source.targetObject is CharacterTraitSO trait)
             foreach (string alias in trait.LegacyPolicyNames)
                 record.fields.Add(new FieldRecord { path = "@legacy-trait-name:" + Uri.EscapeDataString(alias), value = alias });
@@ -690,6 +771,7 @@ public static class ContentIdentityProtection
         {
             List("features", "ammunitionKindId", types: new[] { nameof(AmmunitionItemFeature) });
             List("features", "substanceId", types: new[] { nameof(SubstanceItemFeature) });
+            List("features", "equipmentDefinitionId", types: new[] { nameof(EquipmentItemFeature) });
         }
         switch (record.typeName)
         {
@@ -698,7 +780,7 @@ public static class ContentIdentityProtection
                 List("combatAbilities.abilities", "id");
                 break;
             case nameof(CharacterSpeciesSO): List("combatAbilities.abilities", "id"); break;
-            case nameof(AnatomyProfileSO): List("nodes", "nodeId"); break;
+            case nameof(AnatomyProfileSO): List("nodes", "nodeId", new[] { "nodeId", "pairedGroupId" }); break;
             case nameof(OffenseDecisionCardSO):
             case nameof(FactionChapterDefinitionSO):
             case nameof(LifeEventDefinitionSO): List("choices", "choiceId"); break;
@@ -721,7 +803,8 @@ public static class ContentIdentityProtection
                 List("effects", "bindingId"); List("specialReactions", "reactionId"); break;
             case nameof(BuildingSO):
                 List("abilityModules.items", "abilityId", types: new[]
-                    { "BuildingProductionAbility", "BuildingSecurityAbility" });
+                    { "BuildingProductionAbility", "BuildingSecurityAbility",
+                        "BuildingStructuralIntegrityAbility", "BuildingCoverAbility" });
                 List("abilityModules.items", "workstationTag", types: new[] { "BuildingProductionWorkstationAbility" });
                 List("abilityModules.items", "serviceHubTag", types: new[] { "BuildingServiceHubAbility" });
                 CaptureProviderArray(source, record, "BuildingSemanticTagsAbility", "tags");
@@ -788,6 +871,14 @@ public static class ContentIdentityProtection
             foreach (string leaf in leaves)
             {
                 string value = element.FindPropertyRelative(leaf)?.stringValue;
+                if (leaf == "pairedGroupId")
+                {
+                    value ??= string.Empty;
+                    if (value != value.Trim()) throw new InvalidOperationException($"Noncanonical pair group '{scope}'.");
+                    record.fields.Add(new FieldRecord { path = "@nested:" + scope + "." + leaf,
+                        value = value.Length.ToString(CultureInfo.InvariantCulture) + ":" + value });
+                    continue;
+                }
                 if (string.IsNullOrWhiteSpace(value) || value != value.Trim())
                     throw new InvalidOperationException($"Invalid nested saved identity '{scope}.{leaf}'.");
                 record.fields.Add(new FieldRecord { path = "@nested:" + scope + "." + leaf, value = value });
@@ -851,6 +942,34 @@ public static class ContentIdentityProtection
             && property.propertyType == SerializedPropertyType.Enum)
         {
             return property.intValue.ToString(CultureInfo.InvariantCulture);
+        }
+
+        if (property.propertyType == SerializedPropertyType.Generic)
+        {
+            var text = new StringBuilder();
+            SerializedProperty cursor = property.Copy();
+            SerializedProperty end = property.GetEndProperty();
+            bool enter = true;
+            do
+            {
+                string value = cursor.propertyType switch
+                {
+                    SerializedPropertyType.Generic => "container",
+                    SerializedPropertyType.String => cursor.stringValue ?? string.Empty,
+                    SerializedPropertyType.Integer or SerializedPropertyType.Enum
+                        or SerializedPropertyType.ArraySize => cursor.longValue.ToString(CultureInfo.InvariantCulture),
+                    SerializedPropertyType.Float => cursor.doubleValue.ToString("R", CultureInfo.InvariantCulture),
+                    SerializedPropertyType.Boolean => cursor.boolValue ? "true" : "false",
+                    _ => throw new InvalidOperationException("Unsupported published formula field: " + cursor.propertyPath)
+                };
+                string key = cursor.propertyPath.Substring(property.propertyPath.Length);
+                text.Append(key.Length).Append(':').Append(key).Append(':').Append((int)cursor.propertyType)
+                    .Append(':').Append(value.Length).Append(':').Append(value).Append('\n');
+                enter = cursor.propertyType == SerializedPropertyType.Generic;
+            } while (cursor.Next(enter) && !SerializedProperty.EqualContents(cursor, end));
+            using var sha = SHA256.Create();
+            return BitConverter.ToString(sha.ComputeHash(Encoding.UTF8.GetBytes(text.ToString())))
+                .Replace("-", string.Empty).ToLowerInvariant();
         }
 
         throw new InvalidOperationException(
@@ -993,17 +1112,59 @@ public static class ContentIdentityProtection
 [CustomPropertyDrawer(typeof(ContentIdentityAttribute))]
 public sealed class ContentIdentityDrawer : PropertyDrawer
 {
+    public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
+    {
+        var reference = fieldInfo.GetCustomAttribute<ContentReferenceAttribute>();
+        if (reference != null) return ContentReferenceDrawer.ReferenceHeight(reference, property);
+        float height = EditorGUIUtility.singleLineHeight;
+        if (property.propertyType != SerializedPropertyType.Generic || !property.isExpanded) return height;
+        SerializedProperty child = property.Copy();
+        SerializedProperty end = property.GetEndProperty();
+        if (child.NextVisible(true))
+            do
+            {
+                if (SerializedProperty.EqualContents(child, end)) break;
+                height += 2 + EditorGUI.GetPropertyHeight(child, true);
+            } while (child.NextVisible(false));
+        return height;
+    }
+
     public override void OnGUI(
         Rect position,
         SerializedProperty property,
         GUIContent label)
     {
+        var reference = fieldInfo.GetCustomAttribute<ContentReferenceAttribute>();
+        if (reference != null)
+        {
+            ContentReferenceDrawer.DrawReference(position, property, label, reference);
+            return;
+        }
         bool published = ContentIdentityProtection.IsPublished(property, out string reason);
         GUIContent displayed = published && !string.IsNullOrEmpty(reason)
             ? new GUIContent(label.text, reason)
             : label;
-        using (new EditorGUI.DisabledScope(published))
-            EditorGUI.PropertyField(position, property, displayed, true);
+        if (property.propertyType != SerializedPropertyType.Generic)
+        {
+            using (new EditorGUI.DisabledScope(published))
+                EditorGUI.PropertyField(position, property, displayed, true);
+            return;
+        }
+        var line = new Rect(position.x, position.y, position.width, EditorGUIUtility.singleLineHeight);
+        property.isExpanded = EditorGUI.Foldout(line, property.isExpanded, displayed, true);
+        if (!property.isExpanded) return;
+        using var disabled = new EditorGUI.DisabledScope(published);
+        using var indent = new EditorGUI.IndentLevelScope();
+        SerializedProperty child = property.Copy();
+        SerializedProperty end = property.GetEndProperty();
+        if (child.NextVisible(true))
+            do
+            {
+                if (SerializedProperty.EqualContents(child, end)) break;
+                line.y += line.height + 2;
+                line.height = EditorGUI.GetPropertyHeight(child, true);
+                EditorGUI.PropertyField(line, child, true);
+            } while (child.NextVisible(false));
     }
 }
 

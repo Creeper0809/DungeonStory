@@ -1,4 +1,109 @@
+## R26 최종 결과
+
+후속 두 경계 마감: r186 시설150초와 cold load100초 모두 exit0/compile0/console0/input drift0이다. 저장 생성 PID1680145와 다른 PID2724424에서 Title LoadGame으로 원본104-section/2242961byte 저장을 읽고 같은 slot을 재로드했다.23검사로 저장 영역 집합/lineage/돈/물품 ID와 수량/연구/closed receipt 및 인물3개의 ID를 확인했고 입력 SHA3ab8bd4f...는 변하지 않았다. 시설 fixture는 새 component 복원 후 같은 물리 receipt authority에서 단일 차감/교체와 ACK retry/완료 후 중복 resume 거절을 확인했다. pwsh 인덱스 내용/freshness 실패0, 최종 변경/신규63입력 SHA와 원본9파일 보존을 마감했다. 게임 런타임/SO/씬/저장 schema는 후속에서 무변경이다. remaining-restore-completion.json과 갱신한 completion-audit.json에 근거를 연결했다. 아래 실행 중/실패 문구는 당시 이력이며 최종 결과를 대신하지 않는다. commit/push/main 병합은 수행하지 않았다.
+
+후속 r186 시설 material restart는150초/exit0/compile0/console0/input drift0으로 PASS했다. 이전 component 폐기 후 정상 pending과 DomainApplied ACK 대기를 새 component에 JSON 복원하고 동일 batch로 완료했으며 재료 단일 차감/교체 횟수/ACK 횟수/완료 후 resume 거절 및 변조 저장 상태불변을 확인했다. 실제 물리 receipt authority는 유지하는 통제 fixture이며 전체 프로세스 재시작과 구분한다. 현재 별도 새 Unity 프로세스에서 r182 실제104-section sealed checkpoint를 Title LoadGame으로 불러오는 검사 중이다.
+
+후속 r185는 compile0/drift0이며 새 component의 실패 pending 복원/retry와 DomainApplied ACK 복원/retry를 통과한 뒤 기존 V4 tamper fixture에서 실패했다. fixture가 pending commit/수량/질량만 바꾸고 frozen completedFact를 그대로 둬 aggregate owner guard에서 조기 거절됐다. 물리 receipt join 반례가 목표 경계에 도달하도록 테스트의 frozen fact만 같은 변조 값에 맞춘다. production guard와 기대하는 거절/상태불변은 유지하며 전체 r185는 FAIL로 보존한다.
+
+후속 두 검증: r184는 새 cold-load Editor entry의 IGameTimeScaleController namespace 누락으로 컴파일 실패했다. 실행 PASS가 아니며 input drift0/owned Unity 및 private display terminal을 확인해 로그를 보존했다. 검증 entry에 기존 Foundation namespace만 추가한 뒤 r185에서 다시 컴파일한다. 게임 런타임과 저장 기준은 바꾸지 않는다.
+
+완료 재검토: 현재61개 변경/신규 Unity 입력, r182/r183 입력 연속성, 기존3544 게시 값 및 원본9개 사용자 파일을 다시 대조했고 새 확정 생산 결함은0이다. 메인의 생산 경계와 독립 담당자의 실제 테스트 호출 검토 후 시설 전체 material pending 재시작/retry, 서비스 in-place restore, 실제씬 저장 후 재시작 복원은 미실행임을 명시했다. r180 autosave 진단을 r182 근거로 쓰지 않으며 외부 원장의 수정 전 관측 필드명도 정정했다. 지식베이스 query는 freshness PASS/결과0으로 원본을 직접 확인했다. 새 게임/에셋/인덱스 변경이나 Unity 실행은 없다. 증거: completion-recheck.json.
+
+CUHA r182 계약270초와 실제 GameplayScene 첫 진행140초, r183 시설 pending 직접 JSON 복원150초가 모두 exit0/compile0/console0/source drift0으로 완료됐다. r182->r183 입력 차이는 root Editor batch의 독립 검사 entry 한 파일뿐이며 SO/런타임/씬/기존 단언은 동일하다. 장비와 후천 특성 pending JSON/복원/retry, 시설 pending/finalized 및 material result, 실제씬의104-section sealed checkpoint와 closed receipt 수량1/질량1300g/phase3을 확인했다. 실제씬은 통제된 시작 캐릭터로 구매/중복 거절/AI 운반/연구 완료/기본 시설 재구매까지 확인했으며 모델 추론과 픽셀 검증은 미실행이다.
+
+pwsh 인덱스 rebuild와 내용 검증 및 최종 read-only freshness의 실패는0이다. completion-audit.json/remediation-tracking.json에서23개 대상은22수정+1감사 정정, 미처리0이다. 현재 변경/신규 Unity 입력61개는 최종 r183 manifest와 일치하고 원본 checkout의 사용자 변경9개 SHA도 보존했다. 게시3544개 기존 값 변경/삭제0 및489개 보호 필드 append를 마감 대조했다. 자체 실행의 orphan compiler만 종료된 run의 exe/cwd/startTicks/시간으로 식별해 정리했으며 Unity/operation lock/private display는 terminal이다. 증거 경로: C:/Users/vulpo/Documents/Codex/2026-10-26/so-remediation-r26. 이전 실패와 메모리 중단은 아래 역사로 보존한다. commit/push/main 병합은 이번 Goal 범위가 아니다.
+
+## R26 실행 검증 진행
+
+- r179r26 표적 계약은220초, compiler0/console0/input drift0으로 PASS했다. 추가 다중 owner API 거절과 structural ID drawer/저장 거절도 포함한다. 실제씬 r179 first-play는 부팅/구매/운반/연구/재구매 및 콘솔0을 통과했지만 durable equipment 저장 행 비교1개가 실패했다. 전체 플레이는 FAIL로 남긴다.
+- r180 first-play 진단에서 command/persistence authority 동일, section 존재, liveBefore/captured/saved 모두 동일한 slots[] 및 sequence2/revision12였다. 직렬화 손실은 없었다. 관측한 Closed row와 캡처 사이 yield frame 동안 자동 저장 후 checkpoint GC가 수행될 수 있다. first-run harness의 yield를 저장 검사 뒤로 옮겨 동일 프레임의 같은 terminal receipt를 비교한다. 수량1/질량1300/phase/104-section preflight 기준과 게임 Save/GC 코드는 변경하지 않았다. create-only sealed checkpoint JSON도 남긴다. 현재 r181 actual scene 재검증 중이다.
+- r179->r181 manifest 차이는 FirstRunObjectivePlayModeVerifier.cs 한 파일뿐이다. SO/런타임/기타21727 입력은 동일하며 relevant-source-continuity.json에 기록했다. R26 SO 표적 PASS는 해당 구현이 그대로인 범위에만 적용한다.
+- 인덱스 rebuild는 content DB 생성까지 진행했으나 Windows PowerShell5.1이 UTF8 한국어 regex를 잘못 읽어 validator에서 중단됐다. 인덱스 완료가 아니다. 최종 source에서 UTF8 기본인 pwsh로 다시 실행해 검증할 예정이다. 감사 flag count를 신규 gameplay 결함 수로 해석하지 않는다.
+
+- CUHA r178r26 최종 표적 계약은270초 정상 종료, compile 오류0/source drift0/console 오류0으로 PASS했다. 서비스/게시 지문과 의존 모듈 저장 거절/6 Inspector surfaces/장비 lifecycle/시설 burden 및 exact evidence/후천 특성 current catalog와 자동 pending JSON 복원 재시도를 실제 실행했다(so-remediation.txt). 이전 r174/r176 실패와 메모리 중단은 PASS로 바꾸지 않는다.
+- 완료 대조에서 다중 owner 후보 조회 API도 빈 목록을 반환하도록 제한하고 parent/boss 두 반례를 추가했다. structural/cover에 공통 적용되는 BuildingAbility.abilityId에 기존 ContentIdentity drawer를 부착하고 실제 structural asset의 게시/변경 저장 거절 반례를 추가했다. 추가 게시 값은 없으며 r179r26에서 현재 소스 재검증 중이다. 검증 종료 후 실제 GameplayScene 첫 진행을 한 번 실행한다.
+
+- r173r26은 시작 RAM6GiB 미만으로 첫 요청이 Unity 시작 전에 차단됐다. r171/r172 동안 생성된 orphan VBCSCompiler2개의 exe/cwd/PPID1/startTicks와 두 실행의 시간 범위를 대조한 뒤 해당 PID432726/506537만 SIGTERM했다. 원본 앱이나 다른 프로세스는 종료하지 않았다. owned-compiler-cleanup-01.json에 기록했다.
+- r173r26 contracts-02는 서비스 builder/begin/JSON/복원/손상 거절/완료 재시도, 게시 inventory/physical mapping/paired reorder/세 공식 변경 거절, Inspector6 surfaces Layout/Repaint/원본 불변과 장비 pending/material ACK/rollback/retry를 실제 통과했다. 기존 시설 burden fixture가 소비자 없는 entertainment capability를 정상 authoring으로 다뤄 실패했다. 전체는 FAIL로 유지한다.
+- 시설 fixture는 기준 완화 대신 invalid capability의 무변경 거절을 먼저 검증한 뒤 valid capability만으로 기존 burden/same-axis/evidence 단언을 모두 실행하도록 수정했다. 공개 공식9개 모두 current native canonical hash와 실제 asset catalogSha256 일치도 독립 대조했다(formula-canonical-review.json). 현재 소스 r174r26 계약 실행 중이다.
+
+- CUHA r171r26 candidate는 compile 오류0, console 오류0, source drift0,220초 정상 종료로 수용했다. 기존3544개 asset/GUID/script/type 및 기존 필드/값 변경0/삭제0을 비교했고489개 신규 보호 field/fingerprint만 append했다. 실제 gameplay YAML은 두 씬의 수동 배열 외 무변경이다.
+- CUHA r172r26 계약 실행은 root 참조 정상, module/procedure/research/blueprint/reward 중복 거절, local key/pair, trait/species/rarity, building mixed occupant, conveyor legacy seed/JSON, owner reciprocal/pending picker 검사를 실제 통과했다. 이후 새 service fixture가 managed contract를 만들고 aggregate mode를 준비하지 않아 복원에서 거절됐다. 게임 guard를 낮추지 않고 fixture에 실제 SetMode를 추가했다. r172 전체는 FAIL이며 부분 결과만 위 범위로 기록한다. source drift0/compile 오류0 및 private display/owned process terminal을 확인하고 다음 편집 창에서 수정했다.
+
+- SOURCE_EDIT 동결 후 Windows 격리 런처의 순수 검사와 noninteractive station/desktop 창 probe를 실제 실행해 통과했다. 증거: Artifacts/QA/r26-publication-candidate-01.launcher/self-test.stdout.txt 및 r26-publication-candidate-01/isolation-probe.txt.
+- 첫 두 컴파일에서 잘못 사용한 ProductionProcessKind.Transform을 FlowRole/ProductionFlowRole.Transform으로 수정했다. r26-publication-candidate-03은 현재 C# 컴파일 오류0으로 ReloadAssembly까지 진행했으나 로컬 여유 RAM이 973684736바이트가 되어 런처가 해당 소유 job만 중단했다. candidate 생성과 실행 테스트는 PASS가 아니다. 로그와 중단 사유를 보존했다.
+- CUHA는 Unity0/operation.lock free, MemAvailable 약10GB를 확인했다. 게임 사본 main21b381a66에 대한 현재 Git delta를 보존 백업과 함께 동기화한다. 서버는 실행 전후 전체 입력 manifest를 독립 해시 검증한다. SDK 자체 감사나 무관한 조합 테스트는 추가하지 않는다. 외부 도구/증거: C:/Users/vulpo/Documents/Codex/2026-10-26/so-remediation-r26.
+
 # DungeonStory Current Progress
+
+## R25 후속 표적 점검
+
+기존 미소비/비활성54필드의 문자열 키 후보와 게임 소유 reflection/저장 경계를 추가 확인했다. 신규 확정 항목0으로 게임 보완21/runtime2를 유지한다. content member 조회와 코드 상수의 reflection, DTO shape 검증을 새 SO foreign lookup으로 오인하지 않았으며 legacy metadata의 동적 미사용 보증도 하지 않았다. 새 Unity/게임 수정은 없고 증거는 game-only-followup.json이다.
+
+## R25 게임 SO 한정 원본 대조 마감
+
+현재 main21b381a66에서 게임 SO142타입/3544에셋/2470필드와 Recovery6개를 대조했다. 3544개 YAML을 다시 파싱해 기존 현재-source 원장과 값 불일치0 및 metaGUID/native identity 불일치0, 게임 owner 포인터27735개 missing0을 기록했다. actor829/world585/economy598/main458의 정확한 key 합집합은2470이다. source/PDB4503개 checksum도 현재와 일치했다.
+
+새 보호 경계는 시설 진화와 후천 특성 pending 공식2묶음이다. 기존 R24-04에는 실제 씬의 부적격 TestCharacter 후보, R24-06에는 Species Effects owner 검증을 보완했다. R25 본문과 game-only-issues.json에 게임21/runtime2, 공유 라벨/정적 미소비/등록 밖 자료의 경계를 분리했다. SDK는 조사 대상에 더하지 않았고 게임 코드/에셋/인덱스, 원본 사용자 변경과 기존 QA를 보존했다. 새 Unity/Inspector/Play 실행과 commit/push/main 병합은 없다.
+
+보조 조회의 잘못된 Windows 경로/누락된 옛 manifest 및 서로 다른 JSON schema key는 원본 입력을 바꾸지 않고 유효 경로/column schema로 다시 확인했다. 통합 검사 예상 수의 오타25는 기존19+runtime2+신규2의23으로 바로잡아 정확한 합계를 검사했다. 실패한 실행을 PASS로 바꾸거나 검사 계약을 낮추지 않았다. 최종 증거는 C:/Users/vulpo/Documents/Codex/2026-10-26/so-full-audit-r24/game-only-summary.json 및 game-only-closeout.json에 있다.
+
+## 2026-10-26 게임 SO 감사로 범위 정정
+
+SO_REFERENCE_FULL_AUDIT.md 상단과 작업 기록에 게임 소유 SO/실제 콘텐츠 연결 기준을 명시했다. SDK63선언과 Editor 설정/캐시3개는 게임 미완료 및 결함 수에서 제외한다. 게임 보완 목록19묶음은 원래 SDK를 포함하지 않아 수는 바뀌지 않는다. 게임 소스/에셋/검증 원본을 바꾸거나 새 Unity 실행을 시작하지 않았고 문서 diff와 범위 문구만 확인했다.
+
+## 2026-10-26 R24 완결성 반증 재검토
+
+수집기/원본/소비/실행 스크립트를 독립 대조해 현재 SO 파일3개 및 singleton 선언63개의 범위 누락, 게임 필드2개 분류 오류와 R171 부재 단정1개를 확인했다. 장비 공식 게시 버전 보호 공백R24-08을 새 정적 보완 항목으로 올려 게임 항목은19묶음이다. 현재 활성 외래키 값의 새 단절은 발견하지 않았다. SDK 추가 조인과 Recovery6 payload/객체 pointer multiset도 기존 native 원본으로 보완했다.
+
+현재 main/PDB source4503개 SHA 일치, 원본 Documents checkout9사용자변경 보존과 게임/에셋/인덱스 diff0을 확인했다. 원장과 보고서만 정정했고 새 Unity 실행/commit/push/main 병합은 없다. 이전 Goal 완료 manifest는 당시 기록으로 보존하되 모든 SO 범위/필수미확인0의 해석은 철회했다. 새 결과는 C:/Users/vulpo/Documents/Codex/2026-10-26/so-full-audit-r24/completeness-recheck-summary.json, r24-issues-rechecked.json, r24-field-ledger-rechecked.json와 보고서 상단에 있다.
+
+## 2026-10-26 R24 감사 마감
+
+최종 원본 후보10,960문서와895non-YAML에 미판정0, 생산2470필드/Editor20/DNP140의 소스 합집합 누락0과 main-review routing0을 기록했다. 독립 closure18 재검토의3역할 정정까지 반영했으며 runtime PASS로 바꾸지 않았다. final-completeness-review는 pending0/필수수정0으로 수용했고 보고서에는 게임18묶음/별도runtime2묶음/Assets단절2원인을 전부 identified-unfixed로 남겼다.
+
+r169는170초/C#0/drift0/Run managed0,19preview/3custom container/9생산 반례를 수집했다. r170은150초에 동일 supportId2개가 실제 builder→TryBegin에서 예외가 나고 상태불변임을 확인했다. 단일/다른ID 대조군은 JSON capture/restore에 성공하고 통제 입력 재시도도 성공했다. r171은160초에 encoded shader GUID/native provider 없음과 Odin Editor assembly 미load를 확인했다. 세 실행 모두 발견한 결함 때문에exit1이며 성공으로 고치지 않았다.
+
+마지막cleanup까지 임시 owned3파일만 제거하고base r157su의21,712입력 SHA/Unity0/격리display종료를 확인했다. 현재main21b381a66, 변경은감사문서4개뿐이다. 원본checkout9사용자dirty파일과과거QA를보존했고R23이전본문을동일하게유지했다. 게임소스/에셋/인덱스수정과commit/push/main변경은없다. 증거는 C:/Users/vulpo/Documents/Codex/2026-10-26/so-full-audit-r24의 r24-issues.json/candidate-coverage-final.json/r24-field-ledger.json/closeout-checks.json에 있다.
+
+## 2026-10-26 R24 전체 경로 수집 완료, 예외와 의미 판정 진행
+
+r164part00/01과 r168part02-retry1~06이 동일24551경로/digest를 중복과 누락 없이 덮었다. native persistent SO5964개, 반사 필드4615개, load exception0이며 미해결 pointer15개를 보존했다. Assets8개는 기존 Tile/scene-template이고 추가 Package7개는 현재 미선택 기본 리소스 또는 비활성 필드라는 원본 근거를 따로 확인했다. 과거 scene API managed 오류1940개와 exit1은 PASS로 바꾸지 않는다.
+
+r166은471초 resource-stop, r167은 UI 문서 단계에서 중단 요청 후 SIGTERM 미종료를 확인해 해당 Unity PID만 강제 종료했다. 둘 다 게임 소스 오류가 아니며 cleanup으로21712입력을 복구했다. r168은 cycle-safe 순회를 실제 자기검사와130초/200경로에서 확인했고 후속5범위를 모두 끝냈다. 마지막 cleanup도21712원본 SHA/Unity0/격리 display 종료를 확인했다. r168part02의 최초 시작은 메모리 사전 조건에서 거절됐으며 Unity를 실행한 것으로 세지 않는다.
+
+독립 원장을2470생산/20Editor로 합친 r24-field-ledger.json/csv와 전체 candidate-coverage.json을 생성했다. 140개 DamageNumbersPro 후보는 별도 SDK 판정을 진행한다. r169는 임시 R24SceneAuditBatch와 입력/meta3파일만 설치했고 사전 컴파일 통과 후19씬/3custom-container/9국소 계약 반례를 시작했다. 원본 게임 코드/에셋 변경과 push/main은 없다. 근거 폴더는 C:/Users/vulpo/Documents/Codex/2026-10-26/so-full-audit-r24다.
+
+## 2026-10-26 R24 중간 증거와 남은 검증
+
+Goal은 active이며 완료 판정하지 않았다. 독립 원본은78활성 package/4711YAML경로와 모든 non-YAML importer 후보를 기록했다. source-bound r163 compiled51DLL/51PDB의 정적 소비 원장을 만들었고183465메서드/134485필드/4503현재소스 checksum일치, game call resolution누락0이다. generated source51개와 임시진단1개는 별도로 제외 근거를 남긴다. native reflection의2490game-assembly필드는2470생산+20Editor probe이며 이전2467에서 놓친 IBuildingCondition3필드를 확인했다. actor829/world585/economy598/main458의 독립 초안과 typed object leaf60개를 원본 근거로 메인이 재검토 중이다. 초안의 미확인을 자동수용하지 않았다.
+
+r164 범위0..4000/4000..8000은 수집 완료지만 scene API 오류301/1639와 기존미해결7 때문에 exit1이며 PASS가 아니다. scene 내부는 별도 preview-reader로 보완해야 한다. r163/r164part02/r165part02 메모리 보호 종료는 실패로 보존하고 해당 overlay만 제거해21712입력을 원본 SHA로 복구했다. 당시 DefaultAsset인1.28GB GGUF를 원인으로 추정했으나 이후 r167 단계 추적과 r168의 cycle-safe 순회에서 UIElements 순환 참조 문제가 확인돼 이 추정을 정정한다. 메모리/오류 기준을 낮추지 않았다. 게임/에셋 수정과 push/main은 하지 않았다.
+
+## 2026-10-26 R24 감사 진행
+
+Goal을 새로 시작하고 main21b381a66/원본 사용자 변경/이전 증거를 보존했다. CUHA lock free/Unity0에서 진단3파일만 설치했다. 임시 진단의 r161 Assembly 이름 모호성과 r162 미정의 comparer 컴파일 오류를 각각 보존/복구하고 원인 수정했다. 게임 소스 오류로 세지 않는다. 두 실행은 exit1/drift0이고 종료 후21712생산 입력을 원본 SHA로 복구했다. 로컬의 임의 프레임워크 전체 참조 대신 Unity가 만든 실제 Editor response 설정으로 진단 사전 컴파일을 통과했다. r163은 이 사전 확인 소스의 독립 전체 경로 census이며 완료/PASS로 선기록하지 않는다. 외부 증거는 C:/Users/vulpo/Documents/Codex/2026-10-26/so-full-audit-r24다.
+
+## 2026-10-26 R23 자체 검증과 정정 완료
+
+완벽 조사라는 결론을 재검토해 범위 누락4에셋, native 미검증 SDK subasset2개, 분류 오류5필드와 누락 관계 R23-11을 확인했다. 현재 상점 join1개와 SaleItem4개는 정상이다. 독립 스캔/증거 리뷰와 정정 JSON/CSV를 C:/Users/vulpo/Documents/Codex/2026-10-25/so-main-r23-selfcheck에 보존했다. 이전 R23 영수증과 원장은 덮어쓰지 않았다.
+
+기존 native19관측과 exit1 실패 보존은 유효하다. console0은 managed Run 구간으로, Inspector는 drawer 렌더와 helper 적용으로 정정했다. 게임/에셋/인덱스 수정과 새 Unity 실행은 없다. 동일main과 문서 링크/역사 본문/원본 사용자 변경 보존을 확인했다. 완벽 또는 모든 플랫폼/바이너리/package 에셋/사용자 저장의 검증 완료로 보고하지 않는다.
+
+## 2026-10-25 R23 Goal 감사 완료
+
+고정 main21b381a665a3cb2ffe9418064d4de6524f2e1ed5의 게임 직렬화2467필드 전부를 판정했다. 중복/미분류/근거 오류0, 선언174파일 SHA 일치다. 전체 SO4517파일/4519객체와 객체 참조11849개, metadata30020개를 대조해 현재 엔진 참조8필드/2원인을 확인했다. 게임 SO 작성/변경 보호 또는 편의10묶음과 runtime locator1묶음은 미래 공백으로 구분했다. 현재 값 정상과 반례 수용을 구분한 상세 보고서는 SO_REFERENCE_FULL_AUDIT.md R23이다.
+
+CUHA r158audit190초는 native0/C#0/console0/drift0이고 실제 Inspector 두 경로를 포함한13반례를 관측했다. r159audit160초는 엔진 참조8개 때문에 exit1이다. r160audit150초는 같은0-누락 기준을 끝에서 평가해 추가6반례와 정확한8필드를 수집했으며 exit1/C#0/drift0으로 실패를 보존했다. 진단 completed와 내부 consoleErrors0을 전체 PASS로 바꾸지 않았다. 이번에 사용자 저장/복원이나 Play를 새로 실행하지 않았다.
+
+인증된 private Xvfb와 기존 lock/memory/source 보호를 유지했다. 메모리 반례 전후 원본 객체 JSON/dirty와 생산 digest를 보존했고 임시 진단3파일만 제거한 뒤 r157su 생산21712파일 SHA를 복구 확인했다. Unity0/private display 종료다. 외부 증거는 C:/Users/vulpo/Documents/Codex/2026-10-25/so-main-full-audit-r23이며 full-field-dispositions.json/csv, engine-file-dispositions.json, r23-issues.json, native-r158audit/r159audit/r160audit 및 최종 cleanup 영수증을 보존했다. 기존 감사 본문/QA와 원본 Documents의 사용자 변경을 유지했고 게임 소스/에셋/인덱스, commit/push/main은 변경하지 않았다.
+
+## 2026-10-25 R22 main 읽기 전용 재감사 완료
+
+시작/마감 main21b381a665a3cb2ffe9418064d4de6524f2e1ed5를 대조했다. SO142종, 실제124타입/3544에셋, 직렬화2467/후보888의 현재 manifest와 분야별 원본 근거를 외부 so-main-reaudit-r22 폴더에 보존했다. 현재 잘못된 관계는 새로 확정하지 않았고, 저장/작성 보호 공백7묶음을 SO_REFERENCE_FULL_AUDIT.md 상단에 기록했다. 현재 값과 미래 반례를 분리했다.
+
+Python 게시3544/12021 PASS, GUID8962/local4731/internal18/managed6116 정적 누락0, assembly175조합 direct159/MovedFrom16을 확인했다. Odin404 node table의 외부 객체 인덱스12 누락0, opaque payload0이다. 실제 source-bound 메모리 편집에서 structural/cover/의류/직물/작업복/pairedGroup의 게시 검사 우회를 확인했다. 복원과 수술 결과는 생산 소스로 추적했으며 native 실행으로 주장하지 않는다. 전체 증거는 C:/Users/vulpo/Documents/Codex/2026-10-25/so-main-reaudit-r22에 있다. 게임 코드/에셋/생성 인덱스와 원본 사용자 변경/기존 QA를 보존했으며 Unity/실제 저장 복원은 실행하지 않았다.
 
 ## 2026-10-25 R21 수정 및 검증 진행
 

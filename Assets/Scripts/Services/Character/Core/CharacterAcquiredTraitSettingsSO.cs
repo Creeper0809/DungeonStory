@@ -15,7 +15,7 @@ public sealed class CharacterAcquiredTraitSettingsSO : ScriptableObject
         manifestationGates = new();
     [Header("Narrative Formula")]
     [Tooltip("Immutable v1+ policy. Empty authoring is rejected; version 0 remains legacy save-only.")]
-    [SerializeField] private CharacterAcquiredTraitFormulaPolicyDefinition formulaPolicy;
+    [ContentIdentity, SerializeField] private CharacterAcquiredTraitFormulaPolicyDefinition formulaPolicy;
     [Tooltip("Formula v2+ drawbacks selected independently from positive trait modules.")]
     [SerializeField] private List<CharacterAcquiredTraitDrawbackCapabilityDefinition>
         drawbackCapabilities = new();

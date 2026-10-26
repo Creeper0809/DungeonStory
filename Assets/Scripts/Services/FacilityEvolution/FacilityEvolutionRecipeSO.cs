@@ -45,7 +45,7 @@ public class FacilityEvolutionRecipeSO : DataScriptableObject
 
     [Header("Narrative Formula")]
     [Tooltip("Formula metadata is the only authority for new dynamic lineage modifiers. Empty metadata is fail-closed.")]
-    public FacilityEvolutionFormulaPolicyDefinition formulaPolicy;
+    [ContentIdentity] public FacilityEvolutionFormulaPolicyDefinition formulaPolicy;
     [Tooltip("Each capability names a registered evolution module and its immutable potency formula.")]
     public List<FacilityEvolutionFormulaCapabilityDefinition> formulaCapabilities = new();
 

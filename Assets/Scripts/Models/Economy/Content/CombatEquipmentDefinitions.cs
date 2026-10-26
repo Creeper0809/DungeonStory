@@ -12,7 +12,7 @@ public abstract class CombatEquipmentDefinitionSO : ScriptableObject, IGameplayE
     [SerializeField] private string displayName = string.Empty;
     [TextArea, SerializeField] private string description = string.Empty;
     [ContentReference(ContentReferenceKind.Item)]
-    [SerializeField] private string itemId = string.Empty;
+    [ContentIdentity, SerializeField] private string itemId = string.Empty;
     [Min(0f), SerializeField] private float weight = 1f;
     [Range(0, 2), SerializeField] private int occupiedHands = 1;
     [Min(1f), SerializeField] private float maxDurability = 100f;

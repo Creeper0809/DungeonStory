@@ -26,18 +26,58 @@ public sealed class ResourceResearchProjectCatalog : IResearchProjectCatalog
 
     public ResourceResearchProjectCatalog(IEnumerable<ResearchProjectSO> source)
     {
-        projects = (source ?? Array.Empty<ResearchProjectSO>())
+        ResearchProjectSO[] materialized = (source
+                ?? Array.Empty<ResearchProjectSO>())
             .Where(project => project != null)
+            .ToArray();
+        ResearchProjectSO invalid = materialized.FirstOrDefault(
+            project => !project.ProjectId.IsValid);
+        if (invalid != null)
+        {
+            throw new InvalidOperationException(
+                $"Research project '{invalid.name}' has no stable project ID.");
+        }
+
+        IGrouping<string, ResearchProjectSO> duplicateProject = materialized
+            .GroupBy(project => project.ProjectId.Value, StringComparer.Ordinal)
+            .FirstOrDefault(group => group.Count() > 1);
+        if (duplicateProject != null)
+        {
+            throw new InvalidOperationException(
+                $"Duplicate research project ID: {duplicateProject.Key}");
+        }
+
+        IGrouping<int, ResearchProjectSO> duplicateBlueprintOwner = materialized
+            .Where(project => project.Blueprint != null
+                && project.Blueprint.id > 0)
+            .GroupBy(project => project.Blueprint.id)
+            .FirstOrDefault(group => group.Count() > 1);
+        if (duplicateBlueprintOwner != null)
+        {
+            throw new InvalidOperationException(
+                $"Blueprint ID {duplicateBlueprintOwner.Key} is owned by multiple research projects: "
+                + string.Join(", ", duplicateBlueprintOwner
+                    .Select(project => project.ProjectId.Value)
+                    .OrderBy(value => value, StringComparer.Ordinal)));
+        }
+
+        ResearchProjectSO[] ordered = materialized
             .OrderBy(project => project.ProjectId.Value, StringComparer.Ordinal)
             .ToArray();
-        byId = projects
-            .Where(project => project.ProjectId.IsValid)
-            .GroupBy(project => project.ProjectId.Value, StringComparer.Ordinal)
-            .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
-        byBlueprintId = projects
-            .Where(project => project.Blueprint != null)
-            .GroupBy(project => project.Blueprint.id)
-            .ToDictionary(group => group.Key, group => group.First());
+        Dictionary<string, ResearchProjectSO> projectIndex = ordered
+            .ToDictionary(
+                project => project.ProjectId.Value,
+                project => project,
+                StringComparer.Ordinal);
+        Dictionary<int, ResearchProjectSO> blueprintIndex = ordered
+            .Where(project => project.Blueprint != null
+                && project.Blueprint.id > 0)
+            .ToDictionary(
+                project => project.Blueprint.id,
+                project => project);
+        projects = ordered;
+        byId = projectIndex;
+        byBlueprintId = blueprintIndex;
     }
 
     public IReadOnlyList<ResearchProjectSO> Projects => projects;
@@ -51,13 +91,6 @@ public sealed class ResourceResearchProjectCatalog : IResearchProjectCatalog
     public IReadOnlyList<string> Validate()
     {
         List<string> errors = projects.SelectMany(project => project.ValidateDefinition()).ToList();
-        foreach (IGrouping<string, ResearchProjectSO> duplicate in projects
-                     .GroupBy(project => project.ProjectId.Value, StringComparer.Ordinal)
-                     .Where(group => string.IsNullOrWhiteSpace(group.Key) || group.Count() > 1))
-        {
-            errors.Add($"Duplicate research project ID: {duplicate.Key}");
-        }
-
         HashSet<ResearchProjectSO> catalogSet = projects.ToHashSet();
         foreach (ResearchProjectSO project in projects)
         {

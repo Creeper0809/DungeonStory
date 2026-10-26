@@ -15,17 +15,37 @@ public sealed class ResourceSurgicalProcedureCatalog : ISurgicalProcedureCatalog
 
     public ResourceSurgicalProcedureCatalog(IEnumerable<SurgicalProcedureSO> source)
     {
-        procedures = (source ?? Array.Empty<SurgicalProcedureSO>())
+        SurgicalProcedureSO[] materialized = (source
+                ?? Array.Empty<SurgicalProcedureSO>())
             .Where(procedure => procedure != null)
+            .ToArray();
+        SurgicalProcedureSO invalid = materialized.FirstOrDefault(
+            procedure => string.IsNullOrWhiteSpace(procedure.ProcedureId));
+        if (invalid != null)
+        {
+            throw new InvalidOperationException(
+                $"Surgical procedure '{invalid.name}' has no stable procedure ID.");
+        }
+
+        IGrouping<string, SurgicalProcedureSO> duplicate = materialized
+            .GroupBy(procedure => procedure.ProcedureId, StringComparer.Ordinal)
+            .FirstOrDefault(group => group.Count() > 1);
+        if (duplicate != null)
+        {
+            throw new InvalidOperationException(
+                $"Duplicate surgical procedure ID '{duplicate.Key}'.");
+        }
+
+        SurgicalProcedureSO[] ordered = materialized
             .OrderBy(procedure => procedure.ProcedureId, StringComparer.Ordinal)
             .ToArray();
-        byId = procedures
-            .Where(procedure => !string.IsNullOrWhiteSpace(procedure.ProcedureId))
-            .GroupBy(procedure => procedure.ProcedureId, StringComparer.Ordinal)
+        Dictionary<string, SurgicalProcedureSO> index = ordered
             .ToDictionary(
-                group => group.Key,
-                group => group.First(),
+                procedure => procedure.ProcedureId,
+                procedure => procedure,
                 StringComparer.Ordinal);
+        procedures = ordered;
+        byId = index;
     }
 
     public IReadOnlyList<SurgicalProcedureSO> Procedures => procedures;
@@ -38,14 +58,6 @@ public sealed class ResourceSurgicalProcedureCatalog : ISurgicalProcedureCatalog
     public IReadOnlyList<string> Validate()
     {
         List<string> errors = new List<string>();
-        foreach (IGrouping<string, SurgicalProcedureSO> duplicate in procedures
-                     .GroupBy(item => item.ProcedureId, StringComparer.Ordinal)
-                     .Where(group => string.IsNullOrWhiteSpace(group.Key)
-                         || group.Count() > 1))
-        {
-            errors.Add($"중복 수술 절차 ID: {duplicate.Key}");
-        }
-
         foreach (SurgicalProcedureSO procedure in procedures)
         {
             if (procedure.RequiredFacilityTags == SurgeryFacilityTag.None)

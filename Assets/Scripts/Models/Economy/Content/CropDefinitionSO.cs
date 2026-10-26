@@ -75,9 +75,9 @@ public sealed class CropDefinitionSO : DataScriptableObject
     [SerializeField] private string cropId = string.Empty;
     [SerializeField] private string displayName = string.Empty;
     [ContentReference(ContentReferenceKind.Item)]
-    [SerializeField] private string harvestItemId = string.Empty;
+    [ContentIdentity, SerializeField] private string harvestItemId = string.Empty;
     [ContentReference(ContentReferenceKind.Item)]
-    [SerializeField] private string seedItemId = string.Empty;
+    [ContentIdentity, SerializeField] private string seedItemId = string.Empty;
     [SerializeField] private CropGenomeDefinitionSO baseGenome;
     [SerializeField] private CropFamilyGroup familyGroup;
     [SerializeField] private CropDiseaseKind endemicDisease;

@@ -157,25 +157,28 @@ public class CharacterSpawner : BuildableObject,IInteractable
             return;
         }
 
-        if (characters == null)
+        CharacterSO[] prepared = (characters ?? Array.Empty<CharacterSO>())
+            .Where(value => value != null).ToArray();
+        bool mergeCatalog = characterCatalog != null && !sceneAdapter.IsCatalogMerged;
+        if (mergeCatalog)
         {
-            characters = new CharacterSO[0];
-        }
-
-        if (sceneAdapter.BeginCatalogMerge() && characterCatalog != null)
-        {
-            IEnumerable<CharacterSO> catalogCustomers = characterCatalog.Characters
+            var registered = characterCatalog.Characters;
+            foreach (CharacterSO configured in prepared)
+                if (!registered.Contains(configured))
+                    throw new InvalidOperationException(
+                        $"Spawner character '{configured.name}' is not registered in the run character catalog.");
+            IEnumerable<CharacterSO> catalogCustomers = registered
                 .Where(data => data != null && data.characterType == CharacterType.Customer);
-            characters = characters
+            prepared = prepared
                 .Concat(catalogCustomers)
-                .Where(data => data != null)
-                .GroupBy(data => data.id)
-                .Select(group => group.First())
+                .Distinct()
                 .ToArray();
         }
 
-        characters = characters.Where((x) => x != null).OrderBy((x) => x.id).ToArray();
-        sceneAdapter.RebuildCharacterIndex(characters);
+        prepared = prepared.OrderBy(value => value.id).ToArray();
+        sceneAdapter.RebuildCharacterIndex(prepared);
+        characters = prepared;
+        if (mergeCatalog) sceneAdapter.BeginCatalogMerge();
         spawnDelay ??= new WaitForSeconds(0.3f);
         sceneAdapter.BeginRuntimeInitialization();
         EnsureCharacterPool();

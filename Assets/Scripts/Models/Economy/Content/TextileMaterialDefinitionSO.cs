@@ -11,7 +11,7 @@ public sealed class TextileMaterialDefinitionSO : DataScriptableObject
     [ContentIdentity]
     [SerializeField] private string materialId = string.Empty;
     [ContentReference(ContentReferenceKind.Item)]
-    [SerializeField] private string physicalItemId = string.Empty;
+    [ContentIdentity, SerializeField] private string physicalItemId = string.Empty;
     [SerializeField] private string displayName = string.Empty;
     [TextArea, SerializeField] private string description = string.Empty;
     [SerializeField] private TextileMaterialTag tags = TextileMaterialTag.Woven;

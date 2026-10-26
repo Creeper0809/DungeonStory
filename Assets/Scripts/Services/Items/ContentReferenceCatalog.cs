@@ -149,6 +149,13 @@ public sealed class ContentReferenceCatalog
     // the global cache: two catalogs may intentionally publish the same local ID.
     public IReadOnlyList<Entry> Entries(ContentReferenceAttribute reference, ScriptableObject root, object owner = null)
     {
+        if (root is StockInfo && reference.Kind == ContentReferenceKind.BuildingNumeric)
+            return Entries(reference).Where(entry => entry.Asset is BuildingSO
+                { category: BuildingCategory.Shop }).ToArray();
+        if (owner is BuildingServiceHubAbility serviceHub && reference.DefinitionTypeName == nameof(ServiceProcessSO))
+            return Entries(reference).Where(entry => entry.Asset is ServiceProcessSO process
+                && process.OwnerHubTag == serviceHub.ServiceHubTag
+                && process.ServiceCategory == serviceHub.serviceCategory).ToArray();
         if (reference.Kind is ContentReferenceKind.CampaignRegion or ContentReferenceKind.CampaignFaction)
         {
             if (root is not OffenseCampaignCatalogSO campaign) return Array.Empty<Entry>();
@@ -683,6 +690,14 @@ public sealed class ContentReferenceCatalog
             errors.AddRange(campaign.ValidateDefinition().Select(error => path + ": " + error));
         if (value is CharacterTraitSO authoredTrait)
             errors.AddRange(authoredTrait.ValidateDefinition().Select(error => path + ": " + error));
+        if (value is CharacterSpeciesSO authoredSpecies)
+            errors.AddRange(authoredSpecies.ValidateGameplayEffects().Select(error => path + ": " + error));
+        if (value is CombatWeaponSO authoredWeapon)
+            errors.AddRange(authoredWeapon.ValidateDefinition().Select(error => path + ": " + error));
+        if (value is SurvivalBalanceSettingsSO survival)
+            errors.AddRange(survival.ValidateDefinition().Select(error => path + ": " + error));
+        if (value is AnatomyConditionLexiconSO lexicon)
+            errors.AddRange(lexicon.ValidateDefinition().Select(error => path + ": " + error));
         if (value is StatChange needChange && string.IsNullOrWhiteSpace(needChange.needId))
             errors.Add(path + ": purchase need effect requires a character need.");
         if (value is DiseaseDefinitionSO authoredDisease)
@@ -753,6 +768,7 @@ public sealed class ContentReferenceCatalog
         }
         if (value is AnatomyProfileSO anatomy)
         {
+            errors.AddRange(anatomy.ValidateDefinition().Select(error => path + ": " + error));
             var nodeIds = anatomy.Nodes.Where(node => node != null).Select(node => node.NodeId).ToHashSet(StringComparer.Ordinal);
             foreach (var node in anatomy.Nodes.Where(node => node != null && node.ParentNodeId.Length > 0))
                 if (!nodeIds.Contains(node.ParentNodeId) || node.ParentNodeId == node.NodeId)
@@ -761,6 +777,40 @@ public sealed class ContentReferenceCatalog
                 if (attachment == null || !nodeIds.Contains(attachment.nodeId ?? string.Empty))
                     errors.Add($"{path}: unknown local apparel anatomy node '{attachment?.nodeId}'.");
         }
+        if (value is ConditionNeedToConnect { connectWithEntrance: false, associatedId: < 0 })
+            errors.Add(path + ": a building connection condition requires a non-negative building definition ID.");
+        if (value is StockInfo stock && (stock.shopId <= 0 || !assets.OfType<BuildingSO>()
+                .Any(building => building.id == stock.shopId && building.category == BuildingCategory.Shop)))
+            errors.Add(path + ": stock owner must be a registered shop building.");
+        if (value is CombatEquipmentDefinitionSO equipment)
+        {
+            ItemDefinitionSO[] matches = assets.OfType<ItemDefinitionSO>().Where(candidate => candidate.ItemId == equipment.ItemId).ToArray();
+            ItemDefinitionSO item = matches.Length == 1 ? matches[0] : null;
+            if (item?.GetFeatureOrDefault<EquipmentItemFeature>()?.equipmentDefinitionId != equipment.EquipmentId)
+                errors.Add(path + ": equipment physical item must link back to the same equipment definition.");
+        }
+        if (value is EquipmentItemFeature feature && root is ItemDefinitionSO physicalItem
+            && !assets.OfType<CombatEquipmentDefinitionSO>().Any(equipment =>
+                equipment.EquipmentId == feature.equipmentDefinitionId && equipment.ItemId == physicalItem.ItemId))
+            errors.Add(path + ": physical equipment item must have a reciprocal equipment mapping.");
+        if (value is BuildingServiceHubAbility hub)
+            foreach (string id in hub.supportedProcessIds ?? Array.Empty<string>())
+                if (!assets.OfType<ServiceProcessSO>().Any(process => process.ProcessId == id
+                        && process.OwnerHubTag == hub.ServiceHubTag && process.ServiceCategory == hub.serviceCategory))
+                    errors.Add(path + ": supported process '" + id + "' belongs to a different hub/category or is missing.");
+        if (value is ServiceProcessSO processDefinition)
+        {
+            errors.AddRange(processDefinition.ValidateDefinition().Select(error => path + ": " + error));
+            if (!assets.OfType<BuildingSO>().SelectMany(building => building.Abilities)
+                    .OfType<BuildingServiceHubAbility>().Any(hub => hub.ServiceHubTag == processDefinition.OwnerHubTag
+                        && hub.serviceCategory == processDefinition.ServiceCategory && hub.SupportsProcess(processDefinition.ProcessId)))
+                errors.Add(path + ": service process has no matching registered hub/category producer.");
+        }
+        if (value is ProductionRecipeSO { FlowRole: ProductionFlowRole.Transform } recipe)
+            if (!assets.OfType<BuildingSO>().SelectMany(building => building.Abilities)
+                    .OfType<BuildingProductionWorkstationAbility>().Any(workstation => workstation.IsValid
+                        && workstation.WorkstationTag == recipe.WorkstationTag))
+                errors.Add(path + ": effective workstation tag '" + recipe.WorkstationTag + "' has no valid registered producer.");
         foreach (var field in SerializedFields(value.GetType()))
         {
             object member = field.GetValue(value);

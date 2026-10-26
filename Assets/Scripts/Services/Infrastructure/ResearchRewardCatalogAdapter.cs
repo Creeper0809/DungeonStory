@@ -17,10 +17,10 @@ public sealed class ResearchRewardCatalog : IResearchRewardCatalog
         ISurgicalProcedureCatalog surgicalProcedures,
         IEnvironmentalWorkwearCatalog environmentalWorkwear)
     {
-        this.researchProjects = researchProjects
+        IResearchProjectCatalog projectCatalog = researchProjects
             ?? throw new ArgumentNullException(nameof(researchProjects));
         List<ResearchRewardEntry> entries = new List<ResearchRewardEntry>();
-        foreach (ResearchProjectSO project in researchProjects.Projects)
+        foreach (ResearchProjectSO project in projectCatalog.Projects)
         {
             foreach (BlueprintBuildingUnlock unlock in project.Unlocks
                          .OfType<BlueprintBuildingUnlock>())
@@ -93,7 +93,7 @@ public sealed class ResearchRewardCatalog : IResearchRewardCatalog
                 material.DisplayName);
         }
 
-        all = entries
+        ResearchRewardEntry[] normalized = entries
             .Where(entry => !string.IsNullOrWhiteSpace(entry.ResearchId)
                 && !string.IsNullOrWhiteSpace(entry.RewardId))
             .GroupBy(
@@ -104,18 +104,40 @@ public sealed class ResearchRewardCatalog : IResearchRewardCatalog
             .ThenBy(entry => entry.Kind)
             .ThenBy(entry => entry.RewardId, StringComparer.Ordinal)
             .ToArray();
-        byResearch = all
+        IGrouping<string, ResearchRewardEntry> ambiguous = normalized
+            .GroupBy(
+                entry => RewardKey(entry.Kind, entry.RewardId),
+                StringComparer.Ordinal)
+            .FirstOrDefault(group => group
+                .Select(entry => entry.ResearchId)
+                .Distinct(StringComparer.Ordinal)
+                .Count() > 1);
+        if (ambiguous != null)
+        {
+            throw new InvalidOperationException(
+                $"Research reward '{ambiguous.Key}' is owned by multiple projects: "
+                + string.Join(", ", ambiguous
+                    .Select(entry => entry.ResearchId)
+                    .Distinct(StringComparer.Ordinal)
+                    .OrderBy(value => value, StringComparer.Ordinal)));
+        }
+
+        Dictionary<string, IReadOnlyList<ResearchRewardEntry>> researchIndex = normalized
             .GroupBy(entry => entry.ResearchId, StringComparer.Ordinal)
             .ToDictionary(
                 group => group.Key,
                 group => (IReadOnlyList<ResearchRewardEntry>)group.ToArray(),
                 StringComparer.Ordinal);
-        requirementByReward = all
+        Dictionary<string, ResearchProjectId> rewardIndex = normalized
             .GroupBy(entry => RewardKey(entry.Kind, entry.RewardId), StringComparer.Ordinal)
             .ToDictionary(
                 group => group.Key,
-                group => new ResearchProjectId(group.First().ResearchId),
+                group => new ResearchProjectId(group.Single().ResearchId),
                 StringComparer.Ordinal);
+        this.researchProjects = projectCatalog;
+        all = normalized;
+        byResearch = researchIndex;
+        requirementByReward = rewardIndex;
     }
 
     public IReadOnlyList<ResearchRewardEntry> All => all;
@@ -142,15 +164,6 @@ public sealed class ResearchRewardCatalog : IResearchRewardCatalog
             }
         }
 
-        foreach (IGrouping<string, ResearchRewardEntry> duplicateAuthority in all
-                     .GroupBy(
-                         reward => RewardKey(reward.Kind, reward.RewardId),
-                         StringComparer.Ordinal)
-                     .Where(group => group.Select(entry => entry.ResearchId)
-                         .Distinct(StringComparer.Ordinal).Count() > 1))
-        {
-            errors.Add($"보상 '{duplicateAuthority.Key}'에 연구 요구 ID가 둘 이상 지정되었습니다.");
-        }
         return errors;
     }
 

@@ -8,15 +8,46 @@ public sealed class ResourceEquipmentModuleCatalog : IEquipmentModuleCatalog
     private readonly IReadOnlyList<EquipmentModuleDefinitionSO> all;
 
     public ResourceEquipmentModuleCatalog(IGameContentCatalog content)
+        : this((content ?? throw new ArgumentNullException(nameof(content)))
+            .GetAll<EquipmentModuleDefinitionSO>())
     {
-        byId = (content ?? throw new ArgumentNullException(nameof(content)))
-            .GetAll<EquipmentModuleDefinitionSO>()
-            .Where(definition => definition != null && !string.IsNullOrWhiteSpace(definition.ModuleId))
+    }
+
+    public ResourceEquipmentModuleCatalog(
+        IEnumerable<EquipmentModuleDefinitionSO> source)
+    {
+        EquipmentModuleDefinitionSO[] definitions = (source
+                ?? Array.Empty<EquipmentModuleDefinitionSO>())
+            .Where(definition => definition != null)
+            .ToArray();
+        EquipmentModuleDefinitionSO invalid = definitions.FirstOrDefault(
+            definition => string.IsNullOrWhiteSpace(definition.ModuleId));
+        if (invalid != null)
+        {
+            throw new InvalidOperationException(
+                $"Equipment module '{invalid.name}' has no stable module ID.");
+        }
+
+        IGrouping<string, EquipmentModuleDefinitionSO> duplicate = definitions
             .GroupBy(definition => definition.ModuleId, StringComparer.Ordinal)
-            .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
-        all = byId.Values.OrderBy(definition => definition.LineageKind)
+            .FirstOrDefault(group => group.Count() > 1);
+        if (duplicate != null)
+        {
+            throw new InvalidOperationException(
+                $"Duplicate equipment module ID '{duplicate.Key}'.");
+        }
+
+        Dictionary<string, EquipmentModuleDefinitionSO> index = definitions
+            .ToDictionary(
+                definition => definition.ModuleId,
+                definition => definition,
+                StringComparer.Ordinal);
+        EquipmentModuleDefinitionSO[] ordered = definitions
+            .OrderBy(definition => definition.LineageKind)
             .ThenBy(definition => definition.ModuleId, StringComparer.Ordinal)
             .ToArray();
+        byId = index;
+        all = ordered;
     }
 
     public IReadOnlyList<EquipmentModuleDefinitionSO> All => all;

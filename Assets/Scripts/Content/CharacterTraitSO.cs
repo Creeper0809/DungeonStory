@@ -107,11 +107,20 @@ public class CharacterTraitSO : DataScriptableObject, IGameplayEffectSource
             .Any(value => value != null);
         if (!hasBehavior && !hasMood && !hasEventWeight && !hasEffect && !hasIdentity)
             errors.Add($"Character trait {id} requires an effect or identity consequence.");
+        if (Effects.Any(value => value == null))
+            errors.Add($"Character trait {id} contains a null gameplay effect binding.");
         foreach (GameplayEffectBinding binding in Effects.Where(value => value != null))
         {
             if (!binding.IsValidFor(SourceRef, out string reason))
                 errors.Add($"Character trait {id} {reason}.");
         }
+        if (Effects
+            .Where(value => value != null)
+            .GroupBy(
+                value => value.bindingId?.Trim() ?? string.Empty,
+                System.StringComparer.Ordinal)
+            .Any(group => group.Count() > 1))
+            errors.Add($"Character trait {id} contains duplicate gameplay effect binding ids.");
         if (hasEffect && HasLegacyNumericPayload())
             errors.Add(
                 $"Character trait {id} uses shared effects and legacy numeric fields together; "

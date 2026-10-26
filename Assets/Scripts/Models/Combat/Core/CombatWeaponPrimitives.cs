@@ -75,11 +75,22 @@ public sealed class CombatWeaponSnapshot
         CombatEquipmentRoleFlags roleFlags = CombatEquipmentRoleFlags.None,
         float? arcaneManaCost = null)
     {
+        IReadOnlyList<CombatRangeProfile> resolvedRanges =
+            ranges ?? Array.Empty<CombatRangeProfile>();
+        IReadOnlyList<string> rangeErrors =
+            ValidateRangeProfiles(resolvedRanges);
+        if (rangeErrors.Count > 0)
+        {
+            throw new InvalidOperationException(
+                $"Combat weapon '{definitionId}' has ambiguous range profiles: "
+                + string.Join(" | ", rangeErrors));
+        }
+
         DefinitionId = definitionId ?? string.Empty;
         InstanceId = instanceId ?? string.Empty;
         Kind = kind;
         Verb = verb;
-        Ranges = ranges ?? Array.Empty<CombatRangeProfile>();
+        Ranges = resolvedRanges;
         MaximumRange = Mathf.Max(1, maximumRange);
         Quality = quality;
         AmmunitionItemId = ammunitionItemId ?? string.Empty;
@@ -128,6 +139,24 @@ public sealed class CombatWeaponSnapshot
     public float SmokeExposure { get; }
     public CombatEquipmentRoleFlags RoleFlags { get; }
     public float ArcaneManaCost { get; }
+
+    public static IReadOnlyList<string> ValidateRangeProfiles(
+        IEnumerable<CombatRangeProfile> profiles)
+    {
+        List<string> errors = new();
+        HashSet<CombatRangeBand> bands = new();
+        foreach (CombatRangeProfile profile in
+                 profiles ?? Array.Empty<CombatRangeProfile>())
+        {
+            if (profile != null && !bands.Add(profile.band))
+            {
+                errors.Add(
+                    $"Combat range band '{profile.band}' is duplicated.");
+            }
+        }
+
+        return errors;
+    }
 
     public float MisfireChance => !GunpowderWeapon || DurabilityRatio >= 0.4f
         ? 0f

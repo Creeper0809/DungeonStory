@@ -39,6 +39,9 @@ public sealed class CombatWeaponSO : CombatEquipmentDefinitionSO
     public float MaximumMisfireChance => Mathf.Clamp01(maximumMisfireChance);
     public float SmokeExposure => Mathf.Max(0f, smokeExposure);
 
+    public IReadOnlyList<string> ValidateDefinition() =>
+        CombatWeaponSnapshot.ValidateRangeProfiles(RangeProfiles);
+
     public CombatWeaponSnapshot CreateSnapshot(
         CombatEquipmentInstance instance,
         int verbIndex = 0,

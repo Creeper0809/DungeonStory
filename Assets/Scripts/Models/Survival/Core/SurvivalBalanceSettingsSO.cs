@@ -115,10 +115,39 @@ public sealed class SurvivalBalanceSettingsSO : ScriptableObject
     public IReadOnlyList<CharacterNeedBalanceEntry> Needs => needs;
     public IReadOnlyList<SurvivalPressureBalanceProfile> Pressures => pressures;
 
+    public IReadOnlyList<string> ValidateDefinition()
+    {
+        List<string> errors = new();
+        HashSet<CharacterCondition> conditions = new();
+        foreach (CharacterNeedBalanceEntry entry in
+                 needs ?? new List<CharacterNeedBalanceEntry>())
+        {
+            if (!conditions.Add(entry.condition))
+            {
+                errors.Add(
+                    $"Survival need condition '{entry.condition}' is duplicated.");
+            }
+        }
+
+        HashSet<DungeonSurvivalPressure> pressureKeys = new();
+        foreach (SurvivalPressureBalanceProfile profile in
+                 pressures ?? new List<SurvivalPressureBalanceProfile>())
+        {
+            if (!pressureKeys.Add(profile.pressure))
+            {
+                errors.Add(
+                    $"Survival pressure '{profile.pressure}' is duplicated.");
+            }
+        }
+
+        return errors;
+    }
+
     public bool TryGetNeed(
         CharacterCondition condition,
         out CharacterNeedBalanceEntry entry)
     {
+        RequireUnambiguousKeys();
         if (needs != null)
         {
             for (int index = 0; index < needs.Count; index++)
@@ -137,6 +166,7 @@ public sealed class SurvivalBalanceSettingsSO : ScriptableObject
     public SurvivalPressureBalanceProfile GetPressure(
         DungeonSurvivalPressure pressure)
     {
+        RequireUnambiguousKeys();
         DungeonSurvivalPressure normalized =
             DungeonSurvivalPressureRules.Normalize((int)pressure);
         if (pressures != null)
@@ -151,6 +181,17 @@ public sealed class SurvivalBalanceSettingsSO : ScriptableObject
         }
 
         return GetDefaultPressure(normalized);
+    }
+
+    private void RequireUnambiguousKeys()
+    {
+        IReadOnlyList<string> errors = ValidateDefinition();
+        if (errors.Count > 0)
+        {
+            throw new InvalidOperationException(
+                "Survival balance settings contain ambiguous keys: "
+                + string.Join(" | ", errors));
+        }
     }
 
     public static bool TryGetDefaultNeed(

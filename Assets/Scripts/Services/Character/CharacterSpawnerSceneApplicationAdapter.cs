@@ -14,6 +14,7 @@ public sealed class CharacterSpawnerSceneApplicationAdapter
     private readonly Dictionary<int, Door> entranceByBuildingVersion = new();
 
     public bool IsRuntimeInitialized => flags.Contains(RuntimeInitialized);
+    public bool IsCatalogMerged => flags.Contains(CatalogMerged);
 
     public bool BeginCatalogMerge() => flags.Add(CatalogMerged);
 
@@ -31,14 +32,18 @@ public sealed class CharacterSpawnerSceneApplicationAdapter
 
     public void RebuildCharacterIndex(IEnumerable<CharacterSO> characters)
     {
-        charactersById.Clear();
-        foreach (IGrouping<int, CharacterSO> group in
-                 (characters ?? Array.Empty<CharacterSO>())
-                 .Where(value => value != null)
-                 .GroupBy(value => value.id))
+        var candidate = new Dictionary<int, CharacterSO>();
+        foreach (CharacterSO character in characters ?? Array.Empty<CharacterSO>())
         {
-            charactersById[group.Key] = group.First();
+            if (character == null) continue;
+            if (candidate.TryGetValue(character.id, out CharacterSO previous)
+                && previous != character)
+                throw new InvalidOperationException(
+                    $"Character numeric ID '{character.id}' belongs to both '{previous.name}' and '{character.name}'.");
+            candidate[character.id] = character;
         }
+        charactersById.Clear();
+        foreach (var pair in candidate) charactersById.Add(pair.Key, pair.Value);
     }
 
     public bool TryGetCharacter(int id, out CharacterSO character) =>

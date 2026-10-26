@@ -71,6 +71,11 @@ public enum AnatomyConditionKind
     TreatmentRequired = 6
 }
 
+[AttributeUsage(AttributeTargets.Field)]
+public sealed class AnatomyPairGroupAttribute : PropertyAttribute
+{
+}
+
 [Serializable]
 public sealed class AnatomyNodeDefinition
 {
@@ -84,7 +89,8 @@ public sealed class AnatomyNodeDefinition
     [SerializeField, Range(0f, 1f)] private float capacityWeight = 1f;
     [SerializeField] private bool vital;
     [SerializeField] private bool removable = true;
-    [SerializeField] private string pairedGroupId = string.Empty;
+    [AnatomyPairGroup, SerializeField]
+    private string pairedGroupId = string.Empty;
     [SerializeField] private CombatBodyPart legacyBodyPart;
     [SerializeField] private bool mapsToLegacyBodyPart;
 

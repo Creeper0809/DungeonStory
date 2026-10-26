@@ -24,18 +24,36 @@ public sealed class ResourceAnatomyConditionLexicon : IAnatomyConditionLexicon
     public ResourceAnatomyConditionLexicon(
         IEnumerable<AnatomyConditionLexiconSO> assets)
     {
-        LexiconDefinition[] loaded = (assets ?? Array.Empty<AnatomyConditionLexiconSO>())
+        AnatomyConditionLexiconSO[] authored =
+            (assets ?? Array.Empty<AnatomyConditionLexiconSO>())
             .Where(asset => asset != null)
+            .ToArray();
+        string[] definitionErrors = authored
+            .SelectMany(asset => asset.ValidateDefinition()
+                .Select(error => $"{asset.name}: {error}"))
+            .ToArray();
+        if (definitionErrors.Length > 0)
+        {
+            throw new InvalidOperationException(
+                "Anatomy condition lexicon definitions are invalid: "
+                + string.Join(" | ", definitionErrors));
+        }
+
+        LexiconDefinition[] loaded = authored
             .Select(asset => new LexiconDefinition(
                 asset.LexiconId,
                 asset.AnatomyFamily,
                 asset.SpeciesIds,
                 asset.Entries))
             .ToArray();
-        lexicons = loaded.Length > 0
-            ? loaded
-            : throw new InvalidOperationException(
+        if (loaded.Length == 0)
+        {
+            throw new InvalidOperationException(
                 "The root content catalog contains no authored anatomy lexicons.");
+        }
+
+        RequireUnambiguousSpeciesConditions(loaded);
+        lexicons = loaded;
     }
 
     public bool TryResolve(
@@ -47,11 +65,13 @@ public sealed class ResourceAnatomyConditionLexicon : IAnatomyConditionLexicon
         string species = speciesId?.Trim() ?? string.Empty;
         string family = anatomyFamily?.Trim() ?? string.Empty;
         LexiconDefinition lexicon = lexicons.FirstOrDefault(item =>
-                item.SpeciesIds.Contains(species, StringComparer.OrdinalIgnoreCase))
+                item.SpeciesIds.Contains(species, StringComparer.OrdinalIgnoreCase)
+                && item.Entries.ContainsKey(condition))
             ?? lexicons.FirstOrDefault(item => string.Equals(
                 item.AnatomyFamily,
                 family,
-                StringComparison.OrdinalIgnoreCase));
+                StringComparison.OrdinalIgnoreCase)
+                && item.Entries.ContainsKey(condition));
         if (lexicon != null
             && lexicon.Entries.TryGetValue(
                 condition,
@@ -98,6 +118,33 @@ public sealed class ResourceAnatomyConditionLexicon : IAnatomyConditionLexicon
         }
 
         return errors;
+    }
+
+    private static void RequireUnambiguousSpeciesConditions(
+        IEnumerable<LexiconDefinition> definitions)
+    {
+        Dictionary<string, string> owners =
+            new(StringComparer.OrdinalIgnoreCase);
+        foreach (LexiconDefinition definition in definitions)
+        {
+            foreach (string speciesId in definition.SpeciesIds)
+            {
+                foreach (AnatomyConditionKind condition in
+                         definition.Entries.Keys)
+                {
+                    string key = speciesId + "\u001f" + (int)condition;
+                    if (owners.TryGetValue(key, out string existing))
+                    {
+                        throw new InvalidOperationException(
+                            $"Anatomy condition '{condition}' for species "
+                            + $"'{speciesId}' is owned by both '{existing}' "
+                            + $"and '{definition.Id}'.");
+                    }
+
+                    owners.Add(key, definition.Id);
+                }
+            }
+        }
     }
 
     private static IReadOnlyList<LexiconDefinition> BuildDefaults()
@@ -179,8 +226,7 @@ public sealed class ResourceAnatomyConditionLexicon : IAnatomyConditionLexicon
                 .ToArray();
             Entries = (entries ?? Array.Empty<AnatomyConditionLexiconEntry>())
                 .Where(value => value != null)
-                .GroupBy(value => value.condition)
-                .ToDictionary(group => group.Key, group => group.First().Clone());
+                .ToDictionary(value => value.condition, value => value.Clone());
         }
 
         public string Id { get; }

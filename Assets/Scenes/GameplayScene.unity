@@ -14597,8 +14597,7 @@ MonoBehaviour:
       physicalCommitId: 
       physicalSourceStackIds: []
       physicalInputMassGrams: 0
-  characters:
-  - {fileID: 11400000, guid: e61f47e09c6cd9449aeeee72493b9fdc, type: 2}
+  characters: []
   characterPrefab: {fileID: 3240235570985505524, guid: eb0f86a24c65be04a8059751ede38ea9, type: 3}
   outsideSpawnPoint: {fileID: 0}
   entryDoorPoint: {fileID: 0}

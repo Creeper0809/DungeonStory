@@ -1040,6 +1040,18 @@ public class Grid
         }).Any();
     }
 
+    public bool IsConnectedToBuilding(Vector2Int start, int definitionId)
+    {
+        return GetOccupantPath(start, position =>
+        {
+            GridCell cell = GetGridCell(position);
+            return cell != null
+                && cell.GetAllOccupants()
+                    .Any(occupant => occupant is IGridBuildingOccupant
+                        && occupant.GridId == definitionId);
+        }).Any();
+    }
+
     public List<IGridOccupant> FindAllOccupants(Func<IGridOccupant, bool> predicate)
     {
         List<IGridOccupant> result =

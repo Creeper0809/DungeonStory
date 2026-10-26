@@ -315,6 +315,8 @@ internal static class IsolatedUnityLauncher
     private static bool IsFocusedRegressionEditEntry(string method)
     {
         return method == "V20ContentResolutionRecoveryDebugScenarios.RunPrioritizedEffectBoundaries"
+            || method == "R26SoRemediationBatch.CapturePublicationCandidate"
+            || method == "R26SoRemediationBatch.RunAll"
             || method == "V27CiEvidenceBatch.RunImpactEffectContracts"
             || method == "V27CiEvidenceBatch.RunImpactCoreContracts"
             || method == "V27CiEvidenceBatch.RunImpactCharacterContracts";
