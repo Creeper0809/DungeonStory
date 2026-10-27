@@ -809,14 +809,14 @@ public static class CustomerAiDebugScenarios
         AIActionSet replacementSet = Resources.Load<AIActionSet>("SO/AI/Action/LookAround");
         AIAction first = new AIAction(firstSet, AIActionPlan.AtDestination(shop));
         AIAction replacement = new AIAction(replacementSet, AIActionPlan.WithoutDestination);
-        customer.ai.bestAction = first;
-        customer.ai.isBestActionEnd = false;
+        customer.ai.SetSelectedActionForDebug(first);
+        customer.ai.SetDecisionPendingForDebug(false);
         int moneyBefore = GetHoldingMoney(customer);
 
         BuildingRetailPurchaseCommitResult commitResult = new BuildingRetailPurchaseCommitResult();
         IEnumerator purchase = shopping.BuyItem(stock, 25, first, shop, commitResult);
         bool reachedDelay = purchase.MoveNext();
-        customer.ai.bestAction = replacement;
+        customer.ai.SetSelectedActionForDebug(replacement);
         bool continuedAfterReplacement = purchase.MoveNext();
         int moneyAfter = GetHoldingMoney(customer);
 
@@ -883,10 +883,10 @@ public static class CustomerAiDebugScenarios
         AIActionSet shoppingSet = Resources.Load<AIActionSet>("SO/AI/Action/Shopping");
         AIAction firstAction = new AIAction(shoppingSet, AIActionPlan.AtDestination(shop));
         AIAction secondAction = new AIAction(shoppingSet, AIActionPlan.AtDestination(shop));
-        firstCustomer.ai.bestAction = firstAction;
-        firstCustomer.ai.isBestActionEnd = false;
-        secondCustomer.ai.bestAction = secondAction;
-        secondCustomer.ai.isBestActionEnd = false;
+        firstCustomer.ai.SetSelectedActionForDebug(firstAction);
+        firstCustomer.ai.SetDecisionPendingForDebug(false);
+        secondCustomer.ai.SetSelectedActionForDebug(secondAction);
+        secondCustomer.ai.SetDecisionPendingForDebug(false);
 
         int firstMoneyBefore = GetHoldingMoney(firstCustomer);
         int secondMoneyBefore = GetHoldingMoney(secondCustomer);

@@ -176,6 +176,8 @@ if ($ExecuteMethod -in @('ArchitectureRefactorVerificationBatch.RunCore', 'Archi
     }
 }
 $qaFocusedRegressionEditEntries = @(
+    'R26SoRemediationBatch.CapturePublicationCandidate',
+    'R26SoRemediationBatch.RunAll',
     'V20ContentResolutionRecoveryDebugScenarios.RunPrioritizedEffectBoundaries',
     'V27CiEvidenceBatch.RunImpactEffectContracts',
     'V27CiEvidenceBatch.RunImpactCoreContracts',

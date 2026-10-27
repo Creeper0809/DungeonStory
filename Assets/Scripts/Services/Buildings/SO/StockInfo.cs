@@ -7,7 +7,7 @@ using UnityEngine;
 [CreateAssetMenu(menuName = "DungeonStory/Building/StockInfo", order = 0)]
 public class StockInfo : DataScriptableObject
 {
-    [ContentIdentity]
+    [ContentIdentity, ContentReference(ContentReferenceKind.BuildingNumeric, emptyNumericId: 0)]
     public int shopId;
     public List<Tuple<SaleItem,int>> stocks;
     public float multifly;

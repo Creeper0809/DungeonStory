@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using DungeonStory.Foundation;
 using DungeonStory.Foundation.Facts;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -9,6 +10,113 @@ using UnityEngine;
 
 public static partial class MigratedProducerEconomyEntryExtendedE2EDebugScenarios
 {
+    public static void RunDailyOfferOwnershipForBatch()
+    {
+        VerifyInternalBuildingOfferRejection();
+        const MigratedProducerOutcomeKind kind = MigratedProducerOutcomeKind.FacilityShopPurchaseResult;
+        var receiver = new ShopEnqueueProbe();
+        string purchased;
+        using (var scenario = new FacilityShopScenario(kind, purchaseDelivery: receiver))
+        {
+            FacilityShopSaveSection section = scenario.CreateShopSaveSection();
+            string before = section.Capture();
+            string key = scenario.ShopOwner.GetDailyOfferKey(0);
+            Require(scenario.Purchase(out _), "Daily ownership fixture purchase failed.");
+            purchased = section.Capture();
+            int money = scenario.Money, payments = scenario.PaymentRecords.Count;
+            Require(scenario.ShopOwner.WasDailyOfferPurchased(key), "Committed daily purchase was not recorded.");
+            Require(!scenario.ShopOwner.TryPurchaseDailyOffer(0, scenario.Session,
+                    new EconomyTransactionContext(EconomyTransactionKind.AutoProcurement,
+                        "wishlist:test", "test", "ownership test"), out var duplicate)
+                    && duplicate.failureStage == FacilityShopPurchaseFailureStage.AlreadyPurchased
+                    && scenario.Money == money && scenario.PaymentRecords.Count == payments,
+                "Automatic purchase bypassed the daily owner or changed payment.");
+            scenario.ShopOwner.Refresh(5);
+            Require(section.Capture() == purchased && !scenario.Purchase(out _),
+                "Same-day refresh reset the purchase restriction.");
+            section.Restore(before, section.SectionVersion, new DungeonGameRestoreReport());
+            Require(!scenario.ShopOwner.WasDailyOfferPurchased(key), "An earlier save retained the later UI purchase cache.");
+            section.Restore(purchased, section.SectionVersion, new DungeonGameRestoreReport());
+            Require(!scenario.Purchase(out _) && scenario.Money == money,
+                "Restored daily purchase allowed another debit.");
+            foreach (string corruption in new[] { "missing", "null", "duplicate", "wrong-day" })
+            {
+                var json = JObject.Parse(purchased);
+                if (corruption == "missing") json.Remove("purchasedDailyOfferKeys");
+                if (corruption == "null") json["purchasedDailyOfferKeys"] = JValue.CreateNull();
+                if (corruption == "duplicate") ((JArray)json["purchasedDailyOfferKeys"]).Add(key);
+                if (corruption == "wrong-day") json["currentOfferDay"] = 6;
+                bool rejected = false;
+                try { section.Restore(json.ToString(Formatting.None), section.SectionVersion, new DungeonGameRestoreReport()); }
+                catch (InvalidOperationException) { rejected = true; }
+                Require(rejected && section.Capture() == purchased && scenario.Money == money,
+                    "Daily purchase corruption mutated live state: " + corruption);
+            }
+            var legacy = JObject.Parse(purchased);
+            legacy.Remove("dailyOfferPurchaseStateVersion"); legacy.Remove("purchasedDailyOfferKeys");
+            section.Restore(legacy.ToString(Formatting.None), section.SectionVersion, new DungeonGameRestoreReport());
+            Require(scenario.PurchaseSequence == 1 && scenario.Money == money
+                && scenario.ShopOwner.CaptureState().PurchasedDailyOfferKeys.Count == 0,
+                "Legacy V1 compatibility fabricated purchase records or lost existing state.");
+        }
+        using (var fresh = new FacilityShopScenario(kind, purchaseDelivery: receiver))
+        {
+            FacilityShopSaveSection section = fresh.CreateShopSaveSection();
+            section.Restore(purchased, section.SectionVersion, new DungeonGameRestoreReport());
+            Require(section.Capture() == purchased && !fresh.Purchase(out var duplicate)
+                && duplicate.failureStage == FacilityShopPurchaseFailureStage.AlreadyPurchased
+                && fresh.Money == fresh.InitialMoney && fresh.PaymentRecords.Count == 0,
+                "A fresh owner lost the saved daily restriction.");
+            fresh.ShopOwner.Refresh(6);
+            Require(fresh.Purchase(out _) && fresh.PurchaseSequence == 2,
+                "A new day did not permit its new offer.");
+        }
+        using (var retry = new FacilityShopScenario(kind, MigratedProducerOutcomeFaultMode.RejectCommit,
+                   purchaseDelivery: receiver))
+        {
+            string before = retry.CreateShopSaveSection().Capture();
+            Require(!retry.Purchase(out _) && retry.CreateShopSaveSection().Capture() == before
+                && retry.Money == retry.InitialMoney && retry.PaymentRecords.Count == 0,
+                "Rejected publication consumed the daily offer.");
+            retry.Probe.FaultMode = MigratedProducerOutcomeFaultMode.None;
+            Require(retry.Purchase(out _) && retry.PurchaseSequence == 1 && retry.PaymentRecords.Count == 1,
+                "Failed daily purchase could not retry exactly once.");
+        }
+        VerifyShopUnknownAcknowledgementRestore();
+        Debug.Log("R27_DAILY_OFFER_OWNER_SAVE_RESTORE_RETRY=PASS");
+    }
+
+    private static void VerifyInternalBuildingOfferRejection()
+    {
+        var internalBuilding = UnityEditor.AssetDatabase.LoadAssetAtPath<BuildingSO>(
+            "Assets/Resources/SO/Buildings/RuntimeArchetypes/Exterior_ReceptionPoint_FloorOverlay.asset");
+        var purchasable = UnityEditor.AssetDatabase.LoadAssetAtPath<BuildingSO>(
+            "Assets/Resources/SO/Building/P1/P1_SpikeTrap.asset");
+        Require(internalBuilding != null && internalBuilding.id < 0 && purchasable != null,
+            "Authored internal and purchasable building fixtures are required.");
+        var offers = FacilityShopService.CreateDailyOffers(5, new[] { internalBuilding, purchasable },
+            Array.Empty<FacilityBlueprintSO>(), 0, _ => 1f, _ => 1f,
+            CharacterAiEditorTestDependencies.AuthoredGameplay);
+        Require(offers.Count == 1 && offers[0].DataId == purchasable.id && offers[0].IsValid
+            && FacilityShopUnlockState.IsDailyOfferKey(
+                FacilityShopUnlockState.DailyOfferKey(5, 0, offers[0].OfferTypeId, offers[0].DataId), 5),
+            "An internal runtime archetype occupied a daily shop slot.");
+        using var scenario = new FacilityShopScenario(MigratedProducerOutcomeKind.FacilityShopPurchaseResult);
+        int money = scenario.Money;
+        string before = scenario.CreateShopSaveSection().Capture();
+        var account = new EditorGameMoneyAccount(scenario.Session,
+            new EconomyTransactionLedgerRuntime(new UnityGameClock(), scenario.Treasury));
+        var invalidOffer = new FacilityBuildingOffer(internalBuilding, 100, FacilityShopRarity.Common, false, true);
+        Require(!invalidOffer.IsValid && !FacilityShopService.CanEnterBasicPurchase(internalBuilding)
+            && !FacilityShopService.TryPurchaseOffer(account, invalidOffer,
+                scenario.ShopOwner.UnlockState, default, DisabledDungeonDebugRuleQuery.Instance, out var rejected)
+            && rejected.failureStage == FacilityShopPurchaseFailureStage.OfferValidation
+            && scenario.Money == money && scenario.PaymentRecords.Count == 0
+            && scenario.CreateShopSaveSection().Capture() == before,
+            "Direct purchase of an internal archetype changed money or shop state.");
+        Debug.Log("R27_INTERNAL_BUILDING_SHOP_REJECTION=PASS");
+    }
+
     public static void RunFacilityShopObserversForBatch()
     {
         RunFacilityShopT01OrThrow();
@@ -58,17 +166,11 @@ public static partial class MigratedProducerEconomyEntryExtendedE2EDebugScenario
             Require(rejected, "Purchase save accepted missing day metadata.");
             Require(!source.Purchase(out _) && source.Money == expectedBalance && source.PaymentRecords.Count == 1,
                 "Pending unknown observation allowed a second debit.");
-            var shop = source.ShopOwner.CaptureState();
             serialized = JsonConvert.SerializeObject(new ShopObservationCheckpoint
             {
                 journal = journal, ledger = ledger, counters = counters,
                 session = GameSessionSaveData.From(source.Session.Capture()),
-                shop = new DungeonFacilityShopSaveData
-                {
-                    currentOfferDay = shop.CurrentOfferDay, purchaseSequence = shop.PurchaseSequence,
-                    basicPurchaseBuildingIds = shop.BasicPurchaseBuildingIds.ToList(),
-                    acquiredBlueprintIds = shop.AcquiredBlueprintIds.ToList()
-                },
+                shop = JsonUtility.FromJson<DungeonFacilityShopSaveData>(source.CreateShopSaveSection().Capture()),
                 treasury = source.Treasury.Current.Copy()
             });
         }
@@ -77,10 +179,8 @@ public static partial class MigratedProducerEconomyEntryExtendedE2EDebugScenario
         {
             new TestGameSessionStateStore(restored.Session).Restore(saved.session.ToSnapshot());
             restored.Treasury.Replace(saved.treasury);
-            var shop = (IFacilityShopPersistence)restored.ShopOwner;
-            shop.PublishRestoreCandidate(shop.BuildRestoreCandidate(new FacilityShopStateSnapshot(
-                saved.shop.currentOfferDay, saved.shop.basicPurchaseBuildingIds,
-                saved.shop.acquiredBlueprintIds, saved.shop.purchaseSequence)));
+            var shop = restored.CreateShopSaveSection();
+            shop.Restore(JsonUtility.ToJson(saved.shop), shop.SectionVersion, new DungeonGameRestoreReport());
             RestoreFacilityShopT01Ledger(restored.Outcomes.Ledger, saved.ledger);
             restored.Outcomes.Transaction.Restore(restored.Outcomes.Transaction.PrepareRestore(saved.counters));
             restored.Facts.Journal.BeginRestoreCandidate();
@@ -110,11 +210,17 @@ public static partial class MigratedProducerEconomyEntryExtendedE2EDebugScenario
                 && exact.operationId == original.operationId, "Recovery changed canonical identity.");
             Require(restored.Facts.Journal.RecoverPending(out _) && restored.PaymentRecords.Count == 1,
                 "Empty journal replay repeated payment.");
+            Require(!restored.Purchase(out var duplicate)
+                && duplicate.failureStage == FacilityShopPurchaseFailureStage.AlreadyPurchased
+                && restored.Money == expectedBalance && restored.PaymentRecords.Count == 1,
+                "Restored acknowledged purchase lost its daily restriction.");
+            restored.ShopOwner.Refresh(6);
             Require(restored.Purchase(out var next) && next.purchasePublicationKey != publicationKey
                 && restored.PurchaseSequence == 2 && restored.PaymentRecords.Count == 2
                 && restored.Money == expectedBalance - next.cost, "Fresh restored owner could not make its next purchase.");
             // Dispose removes the durable observer. The next actual owner command must reject before effects.
             restored.Facts.Dispose();
+            restored.ShopOwner.Refresh(7);
             int balance = restored.Money;
             Require(!restored.Purchase(out _) && restored.Money == balance && restored.PaymentRecords.Count == 2,
                 "Disposed observation lifetime allowed an unobserved payment.");

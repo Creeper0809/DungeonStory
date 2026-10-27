@@ -356,7 +356,7 @@ public static class R18MedicalPolicyReferenceDebugScenarios
         try
         {
             ContentReferenceCatalog catalog =
-                ContentReferenceCatalog.FromRoot(content.Root);
+                ContentReferenceSelection.CreateCatalog(content.Root);
             RequireSameIds(
                 catalog.Entries(new ContentReferenceAttribute(
                         ContentReferenceKind.AnatomyFamily))
@@ -562,7 +562,7 @@ public static class R18MedicalPolicyReferenceDebugScenarios
                 && policies.All(registry.Contains),
             "The built-in faction economic policy registry is incomplete.");
         ContentReferenceCatalog references =
-            ContentReferenceCatalog.FromRoot(content.Root);
+            ContentReferenceSelection.CreateCatalog(content.Root);
         RequireSameIds(
             references.Entries(new ContentReferenceAttribute(
                     ContentReferenceKind.FactionEconomicPolicy))

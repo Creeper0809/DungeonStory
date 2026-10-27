@@ -1407,7 +1407,7 @@ public static class FullGameManualQaRuntimeProbe
             destination = action.destination != null ? action.destination.name : string.Empty;
             if (planned)
             {
-                customer.Brain.bestAction = action;
+                customer.Brain.SetSelectedActionForDebug(action);
                 action.MarkStarted(Time.time);
                 shoppingAction.Execute(customer);
             }

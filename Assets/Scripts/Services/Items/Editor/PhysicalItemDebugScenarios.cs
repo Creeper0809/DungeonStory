@@ -3625,9 +3625,12 @@ public static class PhysicalItemDebugScenarios
 
     internal static WorldItemStackRuntime CreateRuntimeForCrossDomainFixture(
         out WorldItemRepository repository,
-        out CombatEquipmentRuntime equipmentRuntime)
+        out CombatEquipmentRuntime equipmentRuntime,
+        BuildableObject[] equipmentModuleFacilities = null)
     {
-        return CreateRuntime(out repository, out equipmentRuntime);
+        return CreateRuntime(out repository, out equipmentRuntime,
+            out _, out _, out _,
+            equipmentModuleFacilities: equipmentModuleFacilities);
     }
 
     internal static WorldItemStackRuntime CreateRuntimeForCrossDomainFixture(
@@ -4314,7 +4317,8 @@ public static class PhysicalItemDebugScenarios
         Action<IDungeonRestoreTransactionParticipant>
             exactRouteRestoreParticipantObserver = null,
         Func<WorldItemRepository, IPhysicalItemMassQuery, ItemQuantityReservationService,
-            PhysicalItemBatchDispositionService> batchDispositionFactory = null)
+            PhysicalItemBatchDispositionService> batchDispositionFactory = null,
+        BuildableObject[] equipmentModuleFacilities = null)
     {
         IGameContentCatalog gameContent = new ResourceGameContentCatalog(
             new UnityGameContentRootLoader());
@@ -4360,6 +4364,16 @@ public static class PhysicalItemDebugScenarios
             EditorNullItemMarkerPresenter.Instance);
         IPhysicalItemMassQuery massQuery =
             new PhysicalItemMassQuery(itemCatalog);
+        FacilityBufferMassAdmissionService moduleInputCapacity =
+            equipmentModuleFacilities == null ? null
+                : new FacilityBufferMassAdmissionService(
+                    destinationClaims,
+                    new FacilityBufferPhysicalOccupancyQuery(
+                        repository, massQuery, quantityReservations),
+                    massQuery);
+        DeferredEquipmentModuleInputOwner moduleInputOwners =
+            equipmentModuleFacilities == null ? null
+                : new DeferredEquipmentModuleInputOwner();
         ICombatRejectedRecoveryProjector rejectedRecoveryProjector =
             enableRejectedRecovery
                 ? new CombatRejectedRecoveryProjector(
@@ -4402,7 +4416,8 @@ public static class PhysicalItemDebugScenarios
             calendar: new EditorFixedGameCalendar(137, 9),
             rejectedRecoveryProjector: rejectedRecoveryProjector,
             characterWorld: characterWorld,
-            qualityResolver: craftQualityResolver);
+            qualityResolver: craftQualityResolver,
+            moduleInputOwners: moduleInputOwners);
         IRetailStockPhysicalRuntime retailStockPhysical =
             new RetailStockPhysicalRuntime(
                 new CombatEquipmentRuntimeRetailAuthorityAdapter(equipmentRuntime));
@@ -4446,7 +4461,8 @@ public static class PhysicalItemDebugScenarios
                         itemCatalog,
                         EditorNullItemMarkerPresenter.Instance),
             warehouseMassAdmission: null,
-            retailStockPhysical: retailStockPhysical);
+            retailStockPhysical: retailStockPhysical,
+            facilityBufferMassAdmission: moduleInputCapacity);
         reservedTransfer = itemTransferService;
         IFacilityOutputExactRouteOutboxPersistence exactRouteAuthority = null;
         if (exactRouteRestoreParticipantObserver != null)
@@ -4480,6 +4496,24 @@ public static class PhysicalItemDebugScenarios
             exactRouteOutboxPersistence: exactRouteAuthority,
             batchDispositionOverride: batchDispositionFactory?.Invoke(repository, massQuery, quantityReservations));
         equipmentItemGateway.Attach(runtime);
+        if (moduleInputOwners != null)
+        {
+            moduleInputOwners.Attach(new EquipmentModuleInputOwnerRuntime(
+                new FixtureBuildingWorldQuery(equipmentModuleFacilities),
+                combatCatalog,
+                massQuery,
+                runtime,
+                destinationClaims,
+                moduleInputCapacity,
+                new FacilityBufferDestinationLifecycleService(
+                    destinationClaims, destinationClaims,
+                    moduleInputCapacity, moduleInputCapacity),
+                new FacilityBufferDestinationReleaseService(
+                    runtime, itemTransferService, characterWorld ?? worldRegistry)));
+            if (!moduleInputOwners.TryReconcileLive(out string ownerFailure))
+                throw new InvalidOperationException(
+                    "Equipment module fixture owner setup failed: " + ownerFailure);
+        }
         return runtime;
     }
 
@@ -6837,6 +6871,34 @@ public static class PhysicalItemDebugScenarios
             grid = null;
             return false;
         }
+    }
+
+    private sealed class DeferredEquipmentModuleInputOwner :
+        IEquipmentModuleInputOwnerRuntime
+    {
+        private IEquipmentModuleInputOwnerRuntime target;
+
+        internal void Attach(IEquipmentModuleInputOwnerRuntime owner) =>
+            target = owner ?? throw new ArgumentNullException(nameof(owner));
+
+        private IEquipmentModuleInputOwnerRuntime Target => target
+            ?? throw new InvalidOperationException(
+                "Equipment module fixture owner is not attached.");
+
+        public bool TryReconcileLive(out string failureReason) =>
+            Target.TryReconcileLive(out failureReason);
+
+        public bool TryReconcileRestore(out string failureReason) =>
+            Target.TryReconcileRestore(out failureReason);
+
+        public bool TryValidateFacility(BuildableObject facility,
+            out string failureReason) =>
+            Target.TryValidateFacility(facility, out failureReason);
+
+        public bool TryRequestItem(BuildableObject facility, string itemId,
+            int quantity, out int requested, out string failureReason) =>
+            Target.TryRequestItem(facility, itemId, quantity,
+                out requested, out failureReason);
     }
 
     private sealed class FixtureBuildingWorldQuery : IBuildingWorldQuery

@@ -23,19 +23,31 @@ public sealed class ResourceRunCharacterCatalog : IRunCharacterCatalog
 {
     private readonly CharacterSO[] characters;
 
+    [VContainer.Inject]
     public ResourceRunCharacterCatalog(IGameContentCatalog content)
+        : this((content ?? throw new ArgumentNullException(nameof(content))).GetAll<CharacterSO>())
     {
-        characters = (content ?? throw new ArgumentNullException(nameof(content)))
-            .GetAll<CharacterSO>()
+    }
+
+    public ResourceRunCharacterCatalog(IEnumerable<CharacterSO> definitions)
+    {
+        CharacterSO[] loaded = (definitions ?? throw new ArgumentNullException(nameof(definitions)))
             .Where(value => value != null)
+            .Distinct()
             .OrderBy(value => value.id)
             .ThenBy(value => value.name, StringComparer.Ordinal)
             .ToArray();
-        if (characters.Length == 0)
+        if (loaded.Length == 0)
         {
             throw new InvalidOperationException(
                 "The root content catalog contains no authored CharacterSO definitions.");
         }
+        IGrouping<int, CharacterSO> duplicate = loaded.GroupBy(value => value.id)
+            .FirstOrDefault(group => group.Count() > 1);
+        if (duplicate != null)
+            throw new InvalidOperationException("Character numeric ID '" + duplicate.Key
+                + "' has multiple registered definitions: " + string.Join(", ", duplicate.Select(value => value.name)));
+        characters = loaded;
     }
 
     public IReadOnlyCollection<CharacterSO> Characters => characters;

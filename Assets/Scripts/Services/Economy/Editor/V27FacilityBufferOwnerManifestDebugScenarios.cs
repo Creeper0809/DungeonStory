@@ -48,7 +48,7 @@ public static class V27FacilityBufferOwnerManifestDebugScenarios
             ["Assets/Scripts/Services/Economy/CertifiedSeedRuntime.cs"] = "economy.certified-seed",
             ["Assets/Scripts/Services/Economy/CropEcologyRuntime.cs"] = "economy.crop-plot",
             ["Assets/Scripts/Services/Economy/Planning/RegionalSupplyContractApplicationAdapter.cs"] = "economy.regional-contract",
-            ["Assets/Scripts/Services/Run/V20ContentResolutionService.cs"] = "run.faction-contract",
+            ["Assets/Scripts/Services/Run/V20FactionContractDeliveryRuntime.cs"] = "run.faction-contract",
             ["Assets/Scripts/Services/Economy/Planning/ResourceStockPolicyRuntime.cs"] = "economy.stock-policy",
             ["Assets/Scripts/Services/Economy/ProductionItemGateway.cs"] = "economy.production",
             ["Assets/Scripts/Services/Economy/Waste/WasteProcessingPortAdapters.cs"] = "adapter.waste-processing",
@@ -73,7 +73,7 @@ public static class V27FacilityBufferOwnerManifestDebugScenarios
         Input("economy.production-sensor", "production-sensor:{facilityId}", "ProductionStockSensorRuntime|ProductionStockSensorDestinationAuthorityRuntime", "exact LiveFacility claim; exact-stack managed admission", "one authored stock-sensor panel in exact current grams", "Production V14 sensor owner + derived current-facility claim/profile + Physical Items", "atomic destination release; mutation rollback restores exact authority", "migrated", "Assets/Scripts/Models/Economy/Content/ProductionStockSensorRuntime.cs"),
         Input("economy.grand-project", "facility-input:exact:economy.grand-project:{escapedProjectId}", "GrandProjectRuntime|EconomyProjectInputOwnerRuntime", "exact LiveFacility claim; ExactGramRequired policy", "exact positive authored project requirement vector in current grams", "Grand Project current format + projection fingerprint/revision + typed Sink + Physical Items child authority", "carried-aware terminal release before paired revoke", "migrated", "Assets/Scripts/Services/Economy/EconomyProjectInputOwnerRuntime.cs"),
         Input("economy.regional-contract", "facility-input:exact:economy.regional-contract:{escapedContractId}", "RegionalSupplyContractRuntime|EconomyProjectInputOwnerRuntime", "owner-neutral exact ReservedTarget claim; ExactGramRequired policy", "exact positive contract requirement vector in current grams", "Regional Contract current format + projection fingerprint/revision + typed Transfer + Physical Items child authority", "carried-aware terminal release before paired revoke", "migrated", "Assets/Scripts/Services/Economy/EconomyProjectInputOwnerRuntime.cs"),
-        Input("run.faction-contract", "facility-input:exact:run.faction-contract:{escapedContractId}", "V20CampaignRuntime|V20ContentResolutionService|EconomyProjectInputOwnerRuntime", "owner-neutral exact ReservedTarget claim; ExactGramRequired policy", "exact positive authored consume=true requirement vector in current grams", "Faction Campaign V2 descriptor/outbox + typed Transfer + Physical Items child authority", "carried-aware expiry/completion release before paired revoke", "migrated", "Assets/Scripts/Services/Economy/EconomyProjectInputOwnerRuntime.cs"),
+        Input("run.faction-contract", "facility-input:exact:run.faction-contract:{escapedContractId}", "V20CampaignRuntime|V20FactionContractDeliveryRuntime|EconomyProjectInputOwnerRuntime", "owner-neutral exact ReservedTarget claim; ExactGramRequired policy", "exact positive authored consume=true requirement vector in current grams", "Faction Campaign V2 descriptor/outbox + typed Transfer + Physical Items child authority", "carried-aware expiry/completion release before paired revoke", "migrated", "Assets/Scripts/Services/Economy/EconomyProjectInputOwnerRuntime.cs"),
         Input("survival.character-consumables", "facility-input:exact:survival.character-consumables:v1:{meal|recreation-substance}:{escapedFacilityId}:{escapedItemId}", "CharacterConsumablesRuntime|CharacterConsumablesInputOwnerDescriptorSource|CharacterConsumablesInputOwnerRuntime|CharacterConsumablesInputOwnerLifecycleRuntime", "exact LiveFacility claim; ExactGramRequired policy", "one exact current item unit in positive grams per item-specific destination", "Consumables V8 + derived claim/profile restore join + Physical Items child authority", "lost-facility/capability carried-aware release before paired revoke", "migrated", "Assets/Scripts/Services/Survival/CharacterConsumablesInputOwnerRuntime.cs"),
         Input("captivity.interaction", "facility-input:exact:captivity.interaction:v1:{captiveId}:{interactionId}:{facilityId}:{position}:{massRevision}:{capacity}:{fingerprint}", "CaptivityInteractionRuntime|CaptivityInteractionMaterialRuntime|CaptivityInteractionMaterialLifecycleRuntime", "exact LiveFacility claim; ExactGramRequired policy", "category requirement count x maximum current catalog unit grams, with actual delivered exact lots selected at Sink", "Captivity state committed Sink token + claim/profile replacement + Physical Items pending receipt join", "owner-position carried-aware close; restore publish rollback restores prior authority", "migrated", "Assets/Scripts/Services/Captivity/CaptivityInteractionRuntime.cs"),
         Input("captivity.care-labor", "captive-care:{id}|captive-labor-tool:{id}", "CaptivityRuntime|CaptivityLaborRuntime|CaptivityCareLaborInputOwnerRuntime", "exact LiveFacility captive-housing claim; ExactGramRequired policy", "maximum current positive Food unit grams | exact current prisoner-work-kit unit grams", "Captivity V3 derived pair + Physical Items child authority; restore participant 218 before shared 220", "owner-position carried-aware release before paired revoke", "migrated", "Assets/Scripts/Services/Captivity/CaptivityCareLaborInputOwnerRuntime.cs"),
@@ -111,7 +111,7 @@ public static class V27FacilityBufferOwnerManifestDebugScenarios
         Input("infrastructure.manual-water-fallback", "plumbing:manual-water:{fixtureId}", "FluidNetworkRuntime|ManualWaterTransferRuntime", "same exact LiveBuilding authority as infrastructure.fluid", "same clean-water projection; not counted twice", "Fluid V7 pending Transfer and save authority", "delegated transfer cancellation", "duplicate-authority", "Assets/Scripts/Services/Infrastructure/Industrial/FluidFacilityInputOwnerAuthority.cs"),
 
         DirectOutput("combat.module-source", "physical-source-buffer:combat.module-create:{moduleInstanceId}|physical-source-buffer:combat.module-return:{equipmentInstanceId}:{slotIndex}:{moduleInstanceId}", "EquipmentModuleRuntime|EquipmentModulePreparedOutputBinder|PhysicalItemExactSourcePublicationService", "exact unique module component and gram reservation, stack-identity binding, atomic Source publication, targeted facility release, rollback, and save capture guard", "migrated", "Assets/Scripts/Services/Combat/EquipmentModuleRuntime.cs"),
-        DirectOutput("run.v20-grant", "physical-source-buffer:run.v20-grant:{actionId}", "V20ContentResolutionService|PhysicalItemExactSourcePublicationService", "exact multi-line gram plan, atomic prepared publication, cost rollback, acknowledged Loose release, and save capture guard", "migrated", "Assets/Scripts/Services/Run/V20ContentResolutionService.cs"),
+        DirectOutput("run.v20-grant", "physical-source-buffer:run.v20-grant:{actionId}", "V20ContentResolutionService|V20ContentEffectTransaction|V20ContentResolutionJournal|PhysicalItemExactSourcePublicationService", "exact multi-line gram plan, atomic prepared publication, cost rollback, acknowledged Loose release, and save capture guard", "migrated", "Assets/Scripts/Services/Run/V20ContentEffectTransaction.cs"),
         DirectOutput("economy.world-resource-output", "physical-source-buffer:economy.world-resource-output:world-resource:{nodeId}:{workTypeId}:{cycleSequence}", "WorldResourceRuntime|WorldResourceOutputPublicationPortAdapter|PhysicalItemExactSourcePublicationService", "key-addressed frozen multi-line outcome, exact gram publication, exact finite/renewable source debit, admission-commit forward retry, acknowledged Loose release, V3 frozen restore validation, and transient save capture guard", "migrated", "Assets/Scripts/Models/Economy/Content/WorldResourceRuntime.cs"),
         Output("exterior.merchant-cart", "physical-source-buffer:exterior.merchant-cart:{incidentId}", "MerchantCartExteriorIncidentHandler|PhysicalItemExactSourcePublicationService", "exact retained batch with acknowledged provenance, exact sink/release, and Exterior V3 + Physical Items V18 restore-authority join", "migrated", "Assets/Scripts/Services/Infrastructure/Exterior/ExteriorIncidentHandlers.cs"),
         new OwnerRow(
@@ -345,6 +345,8 @@ public static class V27FacilityBufferOwnerManifestDebugScenarios
             .Append("Assets/Scripts/Services/Infrastructure/Registration/DungeonProgressionOffenseRegistration.cs")
             .Append("Assets/Scripts/Services/Infrastructure/Registration/DungeonCombatRegistration.cs")
             .Append("Assets/Scripts/Services/Infrastructure/Registration/DungeonWorldSimulationRegistration.cs")
+            .Append("Assets/Scripts/Services/Infrastructure/Registration/DungeonCharacterRegistration.cs")
+            .Append("Assets/Scripts/Services/Run/V20ContentResolutionJournal.cs")
             .Append("Assets/Scripts/Models/Economy/Content/WorldResourceOutputContracts.cs")
             .Append("Assets/Scripts/Models/Economy/Content/WorldResourcePorts.cs")
             .Append("Assets/Scripts/Services/Economy/WorldResourcePortAdapters.cs")
@@ -1641,6 +1643,15 @@ public static class V27FacilityBufferOwnerManifestDebugScenarios
         string v20ContentResolution = Read(
             root,
             "Assets/Scripts/Services/Run/V20ContentResolutionService.cs");
+        string v20EffectTransaction = Read(
+            root,
+            "Assets/Scripts/Services/Run/V20ContentEffectTransaction.cs");
+        string v20ResolutionJournal = Read(
+            root,
+            "Assets/Scripts/Services/Run/V20ContentResolutionJournal.cs");
+        string characterRegistration = Read(
+            root,
+            "Assets/Scripts/Services/Infrastructure/Registration/DungeonCharacterRegistration.cs");
         string exteriorIncidentHandlers = Read(
             root,
             "Assets/Scripts/Services/Infrastructure/Exterior/ExteriorIncidentHandlers.cs");
@@ -1674,8 +1685,17 @@ public static class V27FacilityBufferOwnerManifestDebugScenarios
                     "IFacilityBufferPlannedUniqueOutputBinder",
                     StringComparison.Ordinal)
                 && !v20ContentResolution.Contains("transfers.TrySpawnItem(", StringComparison.Ordinal)
-                && v20ContentResolution.Contains("exactSources.TryPrepare(", StringComparison.Ordinal)
-                && v20ContentResolution.Contains("exactSources.TryCommitReleased(", StringComparison.Ordinal)
+                && !v20EffectTransaction.Contains("transfers.TrySpawnItem(", StringComparison.Ordinal)
+                && v20EffectTransaction.Contains("exactSources.TryPrepare(", StringComparison.Ordinal)
+                && v20EffectTransaction.Contains("exactSources.TryCommitReleased(", StringComparison.Ordinal)
+                && !v20ResolutionJournal.Contains("transfers.TrySpawnItem(", StringComparison.Ordinal)
+                && v20ResolutionJournal.Contains("exactSources.TryPrepare(", StringComparison.Ordinal)
+                && v20ResolutionJournal.Contains("exactSources.TryCommitReleased(", StringComparison.Ordinal)
+                && Count(characterRegistration,
+                    "Register<V20ContentResolutionService>(CreateContentResolution,") == 1
+                && Count(characterRegistration, "new V20FactionContractDeliveryRuntime(") == 1
+                && Count(characterRegistration, "new V20ContentEffectTransaction(") == 1
+                && Count(characterRegistration, "new V20ContentResolutionJournal(") == 1
                 && !worldResourceRuntime.Contains("SpawnOutput(", StringComparison.Ordinal)
                 && worldResourceRuntime.Contains("outputPublication.TryPrepare(", StringComparison.Ordinal)
                 && worldResourceRuntime.Contains("outputPublication.CommitReleased(", StringComparison.Ordinal)

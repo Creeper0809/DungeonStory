@@ -159,13 +159,15 @@ public static class Wim040IncidentCompletionDebugScenarios
         var facilityId = new BuildingInstanceId("building:c16");
         var response = new ObservedIncidentResponseSaveData
             { operationId = "response:c16", externalOperationId = "transfer:c16" };
-        first.RestoreSocietyResponseMovementProvenance(response.operationId,
+        var movements = new SocietyResponseMovementProvenanceRuntime();
+        ownerType.GetField("responseMovements", flags).SetValue(owner, movements);
+        movements.GetState(first).RestoreSocietyResponseMovementProvenance(response.operationId,
             response.externalOperationId, facilityId.Value, 3, 4, string.Empty);
         var owns = ownerType.GetMethod("OwnsTransferMovement",
-            System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic);
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
         bool Owns(AbilityMove movement, ObservedIncidentResponseSaveData candidate,
             BuildingInstanceId facility, Vector2Int position) =>
-            (bool)owns.Invoke(null, new object[] { movement, candidate, facility, position });
+            (bool)owns.Invoke(owner, new object[] { movement, candidate, facility, position });
         Require(Owns(first, response, facilityId, destination), "exact provenance must match");
         Require(!Owns(restored, response, facilityId, destination), "same destination on another mover is insufficient");
         Require(!Owns(first, new ObservedIncidentResponseSaveData
@@ -179,7 +181,7 @@ public static class Wim040IncidentCompletionDebugScenarios
         Require(!Owns(first, response, facilityId, new Vector2Int(4, 4)), "different destination must not own movement");
         Require(!Owns(null, response, facilityId, destination) && !Owns(first, null, facilityId, destination),
             "missing owner or response must not match");
-        first.TryReleaseSocietyResponseMovementProvenance(response.operationId, response.externalOperationId);
+        movements.GetState(first).TryReleaseSocietyResponseMovementProvenance(response.operationId, response.externalOperationId);
         Require(!Owns(first, response, facilityId, destination), "released provenance must not own later movement");
     }
 

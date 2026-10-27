@@ -1,5 +1,108 @@
 # DungeonStory Current Task Plan
-## 현재 Goal — R21-01~11 및 X01 수정과 main 통합 (2026-10-25)
+
+## 현재 Goal - 구조 감사 S01~S11 수정과 main 통합
+
+Status: in_progress / 사용자 승인. branch codex/fix-structure-r27, 기준 c2ff169b8. origin/main21b381a66 대비 이전 승인 SO 커밋1개를 포함한다. 원본 Documents checkout의 AI 변경과 실행 중 Unity는 별도 작업이며 건드리지 않는다.
+
+1. 완료: S01 상점 일일 제한 저장, S03/S11 UI 공용 규칙과 생성 함수, S04/S09/S10 공용 참조 판정, S05 게시 ID 선언을 반영하고 관련 작성/장착/상점 실행과 복원을 검증했다.
+2. 완료: S02 Brain 종료와 복원 권위, S06 사건 소유 이동 증빙, S07 시설 소비 실행, S08 세력 배송과 조립 책임을 옮기고 실제 이동/소비/배송과 실패/복원/재시도를 검증했다. 기존 저장 표현과 영수증 계약은 유지한다.
+3. 완료: 실제 첫 진행, 구매 당일 저장의 새 프로세스31검사와 구형 저장23검사 PASS. r199 최종 CI5묶음도 exit0/compile0/console0/source drift0으로 모두 PASS했다. 구조 baseline 무변경 Verify PASS, root 참조3이며 인덱스 내용/freshness 실패0이다. 실패와 중단 이력 및 소스 연속성은 보고서와 실행 manifest에 보존했다.
+4. 통합 단계: 이 커밋은 최종 검증을 마친 입력이다. commit/push와 PR 생성/attach 후 GitHub CI, main 병합과 병합 후 CI를 확인한다. GitHub 통합 결과는 해당 PR과 Actions 기록을 따른다.
+
+작업 창: 메인이 담당한 CUHA Unity와 격리 display의 종료를 확인했다. r199 입력21736개 SHA drift0이며 소스 동결을 유지한 채 Git 통합한다. 원본 checkout의 별도 작업과 사용자 앱은 건드리지 않는다.
+
+## 현재 작업 - 전체 코드 구조 감사 2026-10-27
+
+Status: completed / 사용자 요청은 코드 검사다. 기준은 방금 푸시한 c2ff169b8이며 게임 소스의 복잡성, 책임 응집성, 의존 관계를 확인한다. SDK 구현과 원본 checkout의 별도 AI 작업은 제외한다. 코드 수정과 Unity 실행 및 PR/main 변경은 이 조사 범위가 아니다.
+
+1. 완료: 런타임2983파일의 기존 Roslyn 지표와 default assembly2198파일의 의존 그래프를 외부 폴더에 생성했다. 루트 참조3->4로 기존 구조 Verify는 실패했다. Assets 보고서와 baseline은 무변경이다.
+2. 완료: UI, AI, SO authoring 담당자의 근거를 원본에서 재대조했다. 상점의 일일 구매 제한과 pending fact journal의 재전달 방지는 서로 다른 계약임을 확인했다. 저장 조립, 시설 사용, 사건 처리와 상위 복잡도 후보도 확인했다.
+3. 완료: docs/dev/code-structure-review-20261027.md에 개선11개와 비수정/추가 확인 범위를 정리했다. 근거32링크와 원본 입력8547개 무변경을 검증했다. 조사에서 게임 코드와 Unity/PR/main은 변경하지 않았다.
+
+## 현재 작업 — R26 남은 두 복원 경계 실행
+
+Status: completed / 사용자 승인한 두 복원 경계의 실행과 마감을 완료했다. 시설 material pending 새 component 복원/retry 및 새 Unity 프로세스의 실제 저장 파일 Title LoadGame/동일 slot 재로드 PASS. 전수 검증이나 별도 구조 분리는 추가하지 않았다.
+
+1. 완료: 로컬 Unity0, CUHA Unity/operation lock free 및 r183 terminal을 확인했다. 메인이 Unity 담당자이며 EDIT_READY로 표적 검증 entry를 준비한다.
+2. 완료: 시설의 실패 후 pending과 DomainApplied ACK 대기를 새 component에 정확히 복원하고 같은 batch를 재개하는 entry를 추가했다. 실제씬은 새 프로세스의 Title LoadGame과 공식 slot load, 동일 저장 재로드, 소유자/재료/영수증 보존을 검사한다. SDK와 원본 checkout은 제외한다.
+3. 완료: 최종 r186r26 시설150초와 새 프로세스 cold load100초가 exit0/compile0/console0/drift0으로 PASS했다. 실제 Title LoadGame 및 같은 slot 재로드23검사, 기존 저장 SHA/인물 중복/물품/돈/연구/영수증 보존을 확인했다. 관련 인덱스를 한 번 갱신해 내용/freshness 실패0, 현재 변경/신규 입력63개와 원본 사용자 파일9개 SHA를 대조했다. r184 컴파일 누락과 r185 구형 tamper fixture 실패는 역사로 보존한다. 증거: C:/Users/vulpo/Documents/Codex/2026-10-26/so-remediation-r26/remaining-restore-completion.json.
+
+## 현재 작업 — R26 완료 주장 재검토
+
+Status: completed / 사용자의 재확인 요청. 완료 표시 대신 현재 source/manifest와 생산 등록/저장 경계 및 실제 테스트 호출을 대조했다. 새 확정 생산 결함0, 검증 설명의 경계를 정정했다. 새 Goal/Unity 실행/게임 수정은 없다.
+
+1. 완료: 최종 r183 입력61개와 r182/r183 연속성, 세 native 종료 결과, 기존 게시3544개 값과 원본 사용자 변경9개 보존을 재대조했다.
+2. 완료: 메인은 runtime/catalog/Inspector/publisher 실제 진입 경계, 독립 담당자는 저장/복원/retry 테스트의 호출과 단언을 검토했다. 새 확정 생산 결함은 없다.
+3. 완료: 시설 전체 material pending 재시작/retry 미실행, 서비스 static restore 거절과 in-place 원자성 구분, 실제씬 sealed save와 재시작 복원 구분, r180 역사 autosave의 증거 경계를 명시했다. 처리 원장의 수정 전 current 관측을 baselineObservationBeforeR26으로 정정했다. 증거: C:/Users/vulpo/Documents/Codex/2026-10-26/so-remediation-r26/completion-recheck.json.
+
+## 현재 Goal — 게임 SO 문제 수정 R26
+
+Status: completed / 사용자 요청의 게임 보완21묶음/runtime목적지2묶음을 처리했다.22묶음 수정 및 R23-10 감사 오분류 정정. 후속 두 복원 경계를 포함한 최종 소스 r186r26이며 native 실행과 인덱스 검증을 완료했다. SDK와 선택적 vocabulary 개선은 제외했다.
+
+작업 사본: C:/Users/vulpo/.codex/worktrees/so-reference-authoring/DungeonStory, branch codex/fix-game-so-r26, 시작 main21b381a66. 메인이 Unity 담당자로 SOURCE_EDIT/UNITY_VERIFY를 배타적으로 운영했다. 현재 local/CUHA Unity 실행은 모두 종료됐다.
+
+1. 완료: 서비스 정의 집합 계약, 캐릭터 등록/숫자 ID/실제 씬, catalog owner와 중복, trait/species/설정/lexicon 검증.
+2. 완료: publisher/selector, mapping/pair/local owner, workstation/service/Shop, runtime 목적지 경계. 게시 공식과 의존 module 변경 저장 거절. 기존 DTO/alias와 유효한0 참조 보존.
+3. 완료: 기존3544개 게시 값 변경/삭제0, 보호 field/fingerprint489개 append. 씬 두 수동 배열 참조만 제거했고 asset 자체는 보존. 사용자 수동 작업 없음.
+4. 완료: 현재 source r182r26 표적 계약270초 PASS와 실제 GameplayScene 첫 진행140초 PASS. compile0/console0/source drift0. source-bound receipt/save/restore/retry 및 Inspector 확인. 무관한 전수 검증은 하지 않음.
+5. 완료: r183 시설 pending/finalized 직접 JSON 복원150초 PASS. 손상/중복 거절의 상태불변과 material result 복원 포함. r182 이후 바뀐 것은 독립 검사 entry 한 파일이며 기존 SO/런타임/씬/단언은 동일하다. pwsh 인덱스 생성/내용/최종 freshness 실패0, 항목23개 증거 대응과 현재 변경 입력61개 SHA 및 원본 사용자 변경9개 보존을 완료 대조했다. 증거: C:/Users/vulpo/Documents/Codex/2026-10-26/so-remediation-r26/completion-audit.json. main 통합은 이번 Goal 범위에 포함되지 않는다.
+
+## 현재 작업 — 게임 소유 SO 원본 대조 R25
+
+Status: completed / game-only audit. SDK 자체를 제외한 게임 소유 SO 선언/중첩 필드와 실제 에셋/등록/소비/저장 관계를 재대조하고 남은 항목을 정리했다. 모든 미래 실행의 무결점 보증이나 게임 수정 완료가 아니다. 새로운 Goal과 push/main 변경은 없다.
+
+1. 완료: main21b381a66의 게임 SO142타입/3544에셋/2470필드 및 Recovery6개를 대조했다. 모든3544 YAML값/meta와 현재 소스를 다시 확인했고 게임 owner 객체 pointer27735개의 missing은0이다.
+2. 완료: actor829/world585/economy598/main458을 중복/누락0으로 합쳤다. 시설 진화/후천 특성의 저장 pending 공식 보호2묶음을 추가했고 R24-04의 씬 수동 후보와 R24-06의 Species owner 검증 범위를 보완했다. 공유 라벨과 정적 미소비는 결함 수에 섞지 않았다.
+3. 완료: SO_REFERENCE_FULL_AUDIT.md R25와 game-only 원장에 게임 보완21/runtime목적지2를 정리했다. TestCharacter는 실제 두 씬에 연결된 부적격 후보이며 null 거절 뒤 다음 후보로 진행하므로 미사용/전면진행차단 모두 단정하지 않는다. 원본과 문서 검사를 마쳤으며 새 Unity 실행과 게임 코드/에셋/인덱스 수정은 없다.
+
+## 현재 범위 정정 — 게임 소유 SO와 실제 연결만 조사
+
+Status: completed / scope corrected. 사용자 지시에 따라 SDK 전체 타입/Editor singleton/샘플 전수 검토를 제외했다. SDK 선언63개와 Editor 설정/캐시3개를 게임 감사의 미완료 근거로 세지 않는다. 게임이 사용하는 SDK/엔진 에셋은 직접 연결과 실제 게임 동작에 필요한 경계만 확인한다. 게임 코드의 분류 정정과 R24-08은 유지하며 상세 범위는 SO_REFERENCE_FULL_AUDIT.md 상단을 따른다. 새 조사나 Unity 실행을 추가하지 않았다.
+
+## 현재 작업 — R24 조사 완결성 재검증 (2026-10-26)
+
+Status: completed / prior universal completion claim corrected. R24가 모든 SO의 완전 합집합이라는 주장을 철회했다. 현재 fetch한 main은 21b381a665a3cb2ffe9418064d4de6524f2e1ed5로 같다. 재검증을 완료한 것이며 모든 타입/플랫폼/동적 경로 인증이나 게임 수정을 완료한 것이 아니다.
+
+1. 완료: 수집기 밖 현재 SO 파일3개와 미포함 ScriptableSingleton 선언63개를 개별 기록했다. main 버전관리2파일/ignored 로컬1파일과 closed62/open generic1을 분리했다.
+2. 완료: 장비 공식2필드 분류와 R171의 fileID 부재 표현을 정정했다. 게시 버전 보호 누락R24-08을 더해 게임 보완19묶음으로 갱신했다. SDK 추가 조인과 Recovery 현재 payload를 보완했으며 실행 PASS로 바꾸지 않았다.
+3. 완료: 현재4503PDB source checksum, 감사문서 링크/역사본문/원장 수와 원본 사용자9파일 보존을 확인했다. Unity 신규 실행과 게임 코드/에셋/인덱스 수정, push/main 변경은 없다. 근거는 completeness-recheck-summary.json 및 SO_REFERENCE_FULL_AUDIT.md 상단이다.
+
+## 현재 Goal — SO 관계 독립 전수 감사 R24 (2026-10-26)
+
+Status: completed / audit only. 사용자 요청으로 만든 Goal의 독립 원본/소비/실행/예외 조사와 최종 재검토를 마쳤다. 기준 main21b381a665a3cb2ffe9418064d4de6524f2e1ed5. 게임 작성/보호/계약18묶음, 별도 런타임 목적지2묶음과 Assets 객체 단절2원인을 남겼다. 게임 수정 완료가 아니며 게임 코드 수정과 push/main 변경은 이번 조사 범위가 아니다.
+
+1. 완료: native24,551/24,551경로와5964SO, 원본 class114 10,960문서/non-YAML895후보를 양방향 대조했다. scene23문서/custom container3개, test/disabled/detached 예외를 각각 근거로 마감했으며 후보 미판정0이다.
+2. 완료: 생산2470+Editor20+DNP140필드를 독립 소스 합집합2630과 맞췄다. generic object leaf60개와256main-review routing을 마감했고 추가18의미 재검토에서3역할을 정정했다. routing0을 runtime PASS로 세지 않는다.
+3. 완료: r168 전체 범위, r16919scene/3container/9생산 반례, r170서비스지원ID의 시작/capture/restore/원자성/재시도3대조군, r171encoded GUID 조회를 수집했다. 실패 gate는exit1그대로 보존했고21,712생산입력을 매 cleanup에서 복구했다.
+4. 완료: SO_REFERENCE_FULL_AUDIT.md와 정규화 원장, 독립 final-completeness-review를 마감했다. 필수 대기/수정0, 현재main동일, 기존사용자9dirty파일/과거QA와R23역사본문 보존, 게임/에셋/인덱스diff0을 확인했다. 모든플랫폼/전체UI/렌더링실행으로 확대하지 않았다.
+
+## 현재 작업 — R23 조사 자체의 정확성과 누락 재검증 (2026-10-26)
+
+Status: completed / audit corrected. R23의 문자 그대로의 전체 전수/완벽 판정은 성립하지 않았다. 현재 main21b381a66을 유지하고 조사 자체의 누락과 검증 표현을 정정했다. 게임 수정이나 재실행 완료로 세지 않는다.
+
+1. 완료: 독립 YAML/metadata/DLL 대조에서 native census 밖 Odin Editor 설정4개와 native 순회 밖 SDK subasset2개를 확인했다. 두 subasset의 세 문서와 로컬 schema join은 정적으로 보완했고 native 미실행을 유지했다.
+2. 완료: 필드5개를 정정했다. StockInfo.shopId의 실제 건물 외래키 수기 입력을 R23-11로 추가했고 현재1012 join과 상품4개는 정상임을 대조했다. 원본/정정 원장은 별도로 보존했다.
+3. 완료: 기존19반례의 실질은 유지하지만 전체 console0/Inspector 클릭과 저장/전체 객체 JSON 보존 주장을 좁혔다. 정정 문서/경로/동일 main/원본 무변경을 마감 확인했다. Windows 직접 로드, 전체 UI 저장과 재import, 모든 바이너리/package subasset은 미확인이다.
+
+## 현재 Goal — SO 관계 필드 단위 전수 감사 R23 (2026-10-25)
+
+Status: completed / audit only. 기준 main21b381a665a3cb2ffe9418064d4de6524f2e1ed5. R22 범위 누락을 보완해 전체 SO4517파일/4519객체, 게임 직렬화2467필드와 SDK32타입을 대조했다. 현재 엔진 객체 단절8필드/2원인, 게임 작성/변경 보호 또는 편의10묶음과 별도 런타임 주소1묶음을 SO_REFERENCE_FULL_AUDIT.md 상단 R23에 정리했다. 조사 완료이며 수정 완료가 아니다. 게임 코드/에셋/생성 인덱스와 원본 사용자 변경/과거 QA를 보존했다.
+
+1. 완료: main과 생산 입력을 고정하고 필드2467개를 중복/미분류0으로 판정했다. 선언174소스 SHA 및 실제 native 직렬화와 대조했다.
+2. 완료: provider/등록/선택 문맥/생산 소비/저장/보호 또는 제외 이유를 근거 원장에 연결했다. SDK973파일도 파일별 SHA/타입/객체 결과와 SDK key join으로 보완했다.
+3. 완료: CUHA private Xvfb에서 native 반례13+6개와 Inspector 두 경로를 관측했다. r159/r160의 실제 미해결 참조 실패를 유지했고 로컬 문맥 faction과 분류/metadata 오탐을 철회했다.
+4. 완료: R23 보고서/정규화 항목/JSON/CSV를 연결했다. 임시3파일 제거 후 서버 생산21712입력을 원본 SHA로 복구했고 동일 main, 링크/줄 범위, 역사 본문 보존과 게임 원본 무변경을 마감 대조했다. 실제 Play/사용자 저장/복원/재시도나 push/main 병합은 이번 조사 범위가 아니다.
+
+## 현재 작업 — main21b381a66 SO 관계 R22 읽기 전용 재감사 (2026-10-25)
+
+Status: completed / read-only audit. 시작과 마감 main21b381a665a3cb2ffe9418064d4de6524f2e1ed5가 같다. SO_REFERENCE_FULL_AUDIT.md 상단 R22에 현재 단절0, 작성/변경 보호 공백7묶음, 별도 미소비 메타데이터와 Inspector 미확인 경계를 기록했다. 게임 코드/에셋/생성 인덱스 변경과 Unity 실행 없이 조사만 마쳤다. 원본 checkout과 기존 QA를 보존했다.
+
+1. 완료: main fetch, 깨끗한 작업 checkout과 적용 지침을 확인하고 원본 사용자 변경을 격리했다.
+2. 완료: SO142종/직렬화2467/후보888 및 실제3544에셋을 재추출했다. GUID8962/local asset4731/internal fileID18/managed6116, assembly175조합과 Odin404개 node table을 원본으로 대조했다.
+3. 완료: 분야별 소비자와 공용 catalog/drawer/identity/save를 검토했다. 현재 값은 정상인 저장 module15개/물리 매핑72개/해부57그룹/장비61쌍/Transform15개와 keyed list 보호 공백을 구분했다.
+4. 완료: 메모리 반례와 현재 게시3544/12021 검사를 확인하고 R22-01~07을 기록했다. 신규 링크44개/소스 줄39개와 diff, 게임 소스/에셋 무변경 및 동일 main을 마감 검증했다. 실제 Inspector/Unity/저장 실행은 하지 않았다.
+
+## 이전 Goal — R21-01~11 및 X01 수정과 main 통합 완료 (2026-10-25)
 
 Status: integration. 기준 main37f07adcefd1b8994929dcf679284d0e0ee1e538, branch codex/fix-so-r21. R21-01~11/X01 구현과 필요한 실제 실행 검증을 마쳤다. r156 R21표적320초/Inspector170초, r157 effects1170/core240/character180/world250/crop200초가 모두 native0/C#0/consoleErrors0/drift0이다. 공식 Gameplay104섹션 복원과 baseline 복구를 완료했다. r156 대비1파일1줄의 무관한 semantic fixture 변경은 전체21712입력 SHA/diff와 원래 증거를 보존해 재사용한다. Unity0/lock free/여유10.12GiB로 검증 창을 닫았다. 원본 Documents checkout 및 기존 QA를 보존했다. commit/push, PR/CI/main 병합과 후속 CI로 Goal을 마감한다.
 

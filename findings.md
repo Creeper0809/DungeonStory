@@ -1,4 +1,110 @@
+## R27 게시 ID CI 정합성
+
+- 기존 Python 검사기는 R26의 신체 pair group, 장비 provider와 공식/복합 필드 지문을 아직 읽지 못했고 저장 건물 능력도 두 타입만 열거했다. 현재 게임 검사를 낮추는 대신 게시 계약과 검사기의 입력을 맞춘다.
+- 현재 건물 저장 능력 집합은 커밋된 C#의 IBuildingPersistentAbilityDefinition 선언과 상속으로 결정한다. 이름이 새롭더라도 보호하며 모호한 선언과 보호 선언 제거는 거절한다. marker 이전 저장소를 읽는 네 타입 계약은 역사 호환 경로로만 둔다.
+- pair group의 빈 값과 UTF-16 길이 표현, EquipmentItemFeature의 장비 ID를 실제 YAML과 대조한다. 공식과 복합 필드 지문 계산은 Unity SerializedProperty/공식 소유자 한 곳에 유지한다. Python은 불변 게시 값/해시 형식과 실제 구조를 확인하고, 동일 커밋의 깨끗한 Unity 입력 및 저장된 증거, 현재 source/config에 묶인 effects 완료와 게시 정의 전체 검증을 필수로 요구한다. 오래된 지문이나 실행 증거만으로 통과할 수 없다.
+- 이 보완은 Python 검사기와 표적 테스트만 바꾸며 r199 게임 입력은 동일하다. 새 타입/상속/누락/ID 변경/선언 제거/모호성/장비 provider/UTF-16 pair/공식 및 복합 지문 증거 부재 반례를 포함한100개 Python 테스트가 통과했다.
+
+## 전체 코드 구조 감사 2026-10-27
+
+- 기준은 c2ff169b8이다. 런타임2983파일, embedded Editor1034파일, root Editor41파일, Tests18파일을 목록화했다. SDK572 C#은 제외한다. 전체 파일의 정적 수집과 위험 경계의 직접 검토를 구분하며 모든 함수의 의미 검토 완료로 표현하지 않는다.
+- 기존 지식베이스는 fresh였으나 DungeonPersistenceCoordinator 검색0건이었다. 실제 source와 기존 분석기를 사용했다. 파일 그래프2198개에서 순환묶음21개, 최대1000개이며 독립 결함1000개를 뜻하지 않는다. 게임 asmdef45개의 선언 참조에는 순환이 없다.
+- 현재 구조 Verify 실패는 ContentReferenceCatalog.FromRoot의 GameContentCatalogSO 직접 의존 추가로 RootCatalogReference3->4이다. baseline을 바꾸거나 기존 Assets 보고서를 덮지 않았다. GitHub CI 결과로 확대하지 않는다.
+- 상점 구매 journal은 pending 관측과 배송의 재전달 권위이며 UI의 일일 상품 중복 제한과 다르다. 구매 identity는 다음 sequence를 포함하고 완료 pending은 제거된다. 따라서 journal 존재가 purchasedKeys의 저장 복원 불일치를 해결하지 않는다.
+- 과도한 분리보다 쓰기 권위 통합과 실제 중복 정책 제거를 우선한다. 시설 사용 및 사건 처리의 의미별 경계는 후보가 되지만 저장 영수증, 재시도, 원자적 게시 검사를 제거할 근거는 없다.
+
+## R26 수정 계약 결정
+
+- 남은 복원 검증은 두 경계만 추가한다. 시설은 기존 실패/ACK fixture에서 저장한 pending을 기존 component 폐기 후 새 component에 복원하고, 같은 물리 batch 권위를 유지한 채 retry/추가 차감 없음/중복 교체 없음/ACK 횟수/완료 후 재개 거절을 검사한다. 이는 통제된 상태 component 재생성 검증이다. 실제씬은 종료된 r182 프로세스가 생성한 sealed checkpoint를 바이트 그대로 새 프로세스의 격리 slot에 옮겨 Title LoadGame으로 복원하며, JSON 재봉인이나 상태 주입으로 입력을 바꾸지 않는다.
+
+- 완료 재검토에서 신규 생산 결함은 확인되지 않았다. root 관계 검사는 실제 ResourceGameContentCatalog 부팅에 연결되고 저장 훅은 표적 반례와 같은 publisher validator를 호출한다. 시설 r183의 nested material result JSON을 전체 material pending 재시작/retry로 확대하거나, 서비스 static restore 생성 거절을 in-place restore 원자성으로 확대하지 않는다. 실제씬104-section sealed save도 재시작 후 로드 증거와 구분한다.
+
+- 실제 첫 진행의 복도 구매 ID0을 대조해 R24-X01의 초기 `<=0` 거절이 호환성을 막는다는 점을 수정했다. 새 미선택 sentinel은-1, 기존 serialized0과 JsonUtility roundtrip0은 유효한 건물 참조로 유지한다. fake movement0과 실제 BuildableObject0을 구별하는 Grid 사례, root 등록 Corridor0 검증을 추가했다. 기존 필드명/타입/이전 bool alias와 실제 에셋 값은 그대로다.
+- 실제씬의 기존 첫 진행 harness는 물품 도착 관측 직후 domain-owned 운반 액션의 ACK 전에 actor를 정지시킬 수 있었다. 작업 명령은 그 상태를 올바르게 거절한다. 원래24초 haul deadline의 남은 시간 안에서 실제 action 종료를 기다리고 actor를 정지하도록 해 기준/timeout을 늘리지 않는다.
+
+- 최종 통합에서 R24-04의 숫자 ID 검사를 spawner projection뿐 아니라 ResourceRunCharacterCatalog 전체로 올렸다. catalog는 같은 SO 반복은 하나로 보지만 서로 다른 정의의 같은 숫자 ID는 생성 전에 거절한다. VContainer의 생산자 constructor를 명시해 enumerable 검증 입력과 혼동하지 않는다.
+- 기존 시설 burden 검증은 최신 경험 정책 v3 전의 synthetic payload를 사용했다. 시설 참조는 개인 경험이 아니며 injury label만으로 credit을 얻을 수 없음을 먼저 검사한다. 부정 경험 반례는 실제 policy가 요구하는 actor participant 및 typed health/mood delta로 구성해 Intense/negative와 기존 budget2, exact/legacy dedup, optional drawback 단언을 그대로 유지한다. 2점 budget에서 최소 cost6인 예제는 해가 없으므로 그 반례의 controlled magnitude minimum만 cost2에 맞췄다. 게임 수치/경험 policy/런타임 판정은 수정하지 않는다.
+
+- 상태와 DTO 이름을 바꾸지 않고 등록/선택/게시 경계에서 잘못된 owner와 중복을 거절한다. 저장 영수증의 중복 검사는 유지하며 서비스 contract의 supportIds만 정의 집합으로 만든다. 인스턴스별 capacity/speed 보정은 그대로다.
+- 공개된 physical mapping, 구조/cover module ID, anatomy pair를 기존 GUID 기준 append-only 게시 목록에 추가한다. anatomy pair 선택은 같은 profile의 pending node만 사용하며 기존 pair 값은 유지한다.
+- 장비/시설/후천 특성 공식은 게시된 policy 및 canonical content 지문을 보호한다. 의존 module/effect 저장도 게시된 공식의 변경을 검사한다. 기존 저장이 가리키는 정의를 제자리 교체하지 않으며 새 공식 도입은 명시적인 버전 이행이 필요하다. CharacterSkill의 기존 역사별 권위는 그대로 둔다.
+- R23-10은 main21b381a66의 R20ProductionOutputCostDrawer로 이미 처리된 항목이다. 실제3 payload/9키가 현재 owner output과 일치한다. 일반 Inspector는 raw JSON을 노출하지 않는다. 불필요한 중복 UI를 만들지 않고 정정한다.
+- TestCharacter asset은 보존하고 GameplayScene/SampleScene의 수동 스폰 배열 참조만 제거한다. 컨베이어 destinationId의 serialized legacy seed는 유지하되 일반 Inspector에서 숨긴다. 실제 목적지는 검증하는 runtime command와 기존 DTO가 소유한다.
+
 # DungeonStory Current Findings
+
+## R25 게임 소유 원본 대조
+
+Roslyn editor/player 선언에서 SDK와 Editor fixture를 제외하고 상속을 다시 계산한 게임 SO는142타입/138선언파일이다. native에는124구체타입/3544persistent 에셋이 대응하며 source 밖 native 게임 타입은0이다. 필드2470개는141root에 대응하고 OnBuyItemSO는직렬화필드0의 기반형이다. 원본class114의추가6개는Recovery씬CharacterSO이며별도payload비교대상이다. 게임SO객체포인터27735개에서missing0을확인했다. 현재3544에셋YAML과metaGUID도다시파싱해기존소스결속원장과불일치0이다.
+
+GameContentCatalog의 포인터 그래프에3518에셋이 있고26개는 밖이다. 이는 곧 미사용이라는 뜻이 아니다. GameData는 실제 GameManager 설정이며 TestCharacter도 enabled GameplayScene/SampleScene의 CharacterSpawner 수동 배열에 연결돼 있다. id0/stable archetype 미기록의 이 후보는 root에서 준비된 profile이 없어 null 거절되고 다음 후보로 진행한다. 나머지24개는 미등록 trait13, legacy faction6/festival4, retired guest request1로 분리했다. SDK소스나 Editor singleton의 누락수는 이번 게임 감사의 미완료/결함수로 세지 않는다.
+
+시설 진화 recipe와 후천 특성 pending 공식의 version/hash가 저장 뒤 현재 정의와만 비교되는 경계를 R25-01/02로 확정해 게임 보완 목록은21묶음이다. 현재 pair 형식/값은 정상이고 게시 후 변경의 보호 공백이며 변경 후 Unity 복원 반례를 새로 실행한 것은 아니다. CharacterSkill은 과거v2~v5 authority가 있어 동일 결함으로 세지 않는다. 기존 R24-06에는 Species Effects의 사전 owner/duplicate 검사가 없다는 범위도 보완했다. 현재 종족11개/149binding은 정상이다. HeritableTraitConsequence.targetId는 전용 dropdown과 종류 검증이 있어 수기 작성 공백에서 제외했다. 공유 group/affinity는 실제 비교가 있어도 SO외래키가 아니며 현재 오류와 선택 편의 후보를 분리한다.
+
+## 2026-10-26 사용자 범위 정정
+
+대상은 게임 소유 SO와 실제 콘텐츠 연결이다. SDK 자체의 모든 SO/Editor singleton을 포함한 완전 합집합은 요청 범위가 아니었다. SDK 선언63개와 Editor 설정/캐시3개의 누락을 게임 조사 미완료로 연결한 것은 범위 과잉이다. 실제 게임이 사용하는 SDK/엔진 에셋의 직접 참조는 확인하되 SDK 내부 전수 조사는 완료 조건에서 제외한다. 게임 코드에 있는 장비 공식 버전/hash 의미 정정과 게시 버전 보호 공백R24-08은 이 범위 안에 남는다.
+
+## 2026-10-26 R24 완결성 재검토에서 확인한 정정
+
+Assets/active Packages만 포함하는 scope와 AssetDatabase census는 ProjectSettings의 main 추적 SO2개와 ignored UserSettings SO1개를 누락했다. generic ScriptableSingleton의 UnityEditor base 계층을 해석하지 못해 SDK 선언63개도 빠졌다. closed62/open generic abstract1이며 FilePath20의 현재 backing은 present4/absent15/PreferencesFolder 미확인1이다. 63개 현재 활성 instance나 게임 결함으로 합산하지 않는다. 이 두 범위 반례 때문에 기존 모든 SO 합집합 완료 판정은 성립하지 않는다.
+
+기존 mainReview256 마감은 타입 접두어, 역할과 read 개수에 따른 그룹 규칙으로도 만들어진다. 개별 소비 의미 검토의 증명이 아니다. 원본 대조에서 EquipmentEvolutionFormulaPolicyDefinition.formulaVersion은 일반 수치가 아니라 저장된 node의 catalog 선택 provider였고 catalogSha256은 표시 metadata가 아니라 frozen hash 호환 계약이었다. 두 필드를 별도 정정 원장에 반영했다.
+
+현재 게시 및 등록된 장비 공식 catalog는 버전3/4의 두 개다. ContentIdentityProtection은 capabilityId를 캡처하지만 formulaPolicy의 버전은 저장하지 않는다. 기존 게시 버전 변경은 예전 저장 노드의 RequireVersion 조회를 끊을 수 있다. R24-08로 정적 변경 보호 공백을 추가하며 현재 값의 단절이나 변경 후 복원 실행 실패를 관측한 것으로 보고하지 않는다. hash는 파생 integrity 값이므로 무조건 독립 identity로 잠그는 수정도 결론 내리지 않는다.
+
+Recovery6개는 앞선5scalar fingerprint보다 강한 현재 source-bearing payload/외부 객체 pointer multiset 비교에서 일치했다. 다만 옛 baseStats6개 안의 statId54회는 현재 CharacterSO schema에 없고 native JSON에도 없다. 비활성 직렬화 이력과 실제 현재 필드를 구분하며 source fileID와 개별 native instance identity가 같다는 증거로 확대하지 않는다.
+
+R171은 GUIDToAssetPath가 비어 fileID 열거 분기를 실행하지 않았다. path-backed provider 미확립을 native/built-in 전체 부재로 일반화한 기존 표현을 정정했다. SDK2121은 native 반사 필드 범위이며 개별 의미 전수 완료가 아니다. 보완한 renderer/blend/RuleTile/SpriteShape/APV/RID/type/label 조인은 현재 정상 또는 비활성이었다. UXML92필드는 generated flag46/값46으로 실제 수기 ID92개가 아니며 새 게임 결함으로 세지 않는다.
+
+## 2026-10-26 R24 최종 판단
+
+동일 SO의 supportId는 여러 배치 instance에서 반복되지만 세션 계약은 unique를 요구했다. 생산 계약 builder와 TryBegin에서 예외를 재현했고 실패 version/active state 보존 및 대조군의 JSON capture/restore와 통제 재시도를 확인했다. 이 R24-07을 최우선으로 올렸다. 일반 protocol이라고 제외할 수 없는 definition→instance fanout 계약이다.
+
+다른 새 경계는 equipment/procedure/research/Character 숫자 ID catalog, rarity budget/potential table와 trait effect binding의 중복 거절 누락이다. 현재 등록 데이터에는 새 중복이 없으며 별도 validator나 원래 runtime suppression과 생산 생성 경계를 구별한다. 근거가 없어 모든 ID를 SO FK로 바꾸거나 공유 vocabulary를 전역 유일 ID로 강제하지 않는다.
+
+최종 독립 검토는 필요 대기/수정0으로 마감했다. native GUID 조회는 shadergraph16slot의 GUID에 경로/provider가 없고 Odin Editor assembly도 기존 load되지 않았음을 확인했다. pointer15, SDK baseline47회, template missing-script3과 disabled/detached 자료는 활성 게임 자료와 분리한다. 세부 현재 판정은 SO_REFERENCE_FULL_AUDIT.md R24와 외부 r24-issues.json에 있다.
+
+## 2026-10-26 R24 범위 대조와 판정 보완
+
+DefaultImporter라는 이유만으로 모든 파일을 비객체 리소스로 닫을 수 없다. 독립 YAML 대조에서 overlay/recommendations/questionnaire3개가 실제 Editor SO custom serialization임을 확인했다. 생산 코드는 LoadSerializedFileAndForget를 사용하며 현재 내부 키 조인은 정상이다. 원본에서 발견한 씬 SO23문서와 이3컨테이너는 일반 AssetDatabase 순회와 별도 경로로 보완한다.
+
+메모리 중단을 GGUF 리소스로 추정했던 판단은 확정 원인이 아니었다. r167의 단계 추적은 UIElements.VisualTreeAsset 순회에서 반복이 발생함을 보여줬다. Unity의 managedReferenceId 단위로 중복 진입을 막고 alias edge를 보존한 r168은 같은 SO의2095속성/54노드/27alias와 두 노드 순환 자기검사를 끝냈다. 그 후24551경로 전체 수집을 완료했다. 기존 실패 로그와 진단별 source 영수증은 유지한다.
+
+필드 타입이 container여도 SO leaf가 있으면 직접 관계다. 60개 leaf-bearing field 중7개를 재분류한다. CharacterTrait의 legacy behavior/event key13에셋은 실제 소비 코드가 있지만 현재 RetiredIds와 일치하고 root 등록이0이므로 현재 활성 게임 단절과 구분한다. Wildlife nestTag/migrationPatternId는 conversion read가 있어 미소비라는 근거를 정정하되 실제 gameplay downstream 소비는 확인되지 않았다. 모든 필드를 채운 것만으로 semantic 검토가 끝났다고 세지 않는다.
+
+## 2026-10-26 R24 독립 감사 계약
+
+이전 원장을 대상의 정답으로 쓰지 않는다. native는 타입 필터가 아닌 전체 Assets/등록 package 경로에서 LoadAllAssetsAtPath로 SO와 subasset을 찾고, 원본 YAML/DLL/package 후보와 별도 대조한다. 필드 표면은 runtime reflection과 실제 SerializedProperty/지원 직렬화를 함께 기록하며 generic 전체 인자와 실제 파생형을 포함한다. 경로와 줄 존재 검사로 소비 증거를 대체하지 않고 compiled field/method/PDB 접근과 원본을 대조한다.
+
+StockInfo 수기 숫자 owner join과 identity/protocol의 이중 역할을 유지해 검토한다. EquipmentModule의 cross-asset 중복을 First로 축약하는 경계와 SurgicalProcedure의 별도 Validate 호출 여부는 현재 정상 값과 분리해 확인 중이다. package/Editor 예제의 미해결 참조는 게임 활성 정의와 구분하되 대상에서 조용히 버리지 않는다.
+
+## 2026-10-26 R23 조사 자체의 누락과 판정 오류
+
+필드 칸이 모두 채워진 것과 의미 검토 완료는 다르다. generic 마지막 인자만 보는 추출이 StockInfo.stocks의 SaleItem 참조를 값으로 분류했고, ContentIdentity가 붙은 StockInfo.shopId를 provider-only로 봐 BuildingSO.id의 수기 외래 owner join을 놓쳤다. catalog SHA3개도 저장 호환 프로토콜이다. 총5필드의 정정 원장과 R23-11을 따로 보존했다. 현재 상점 정의1개/id1012와 상품4개는 정상이다.
+
+타입 필터가 인식하는4517경로만으로 전체 SO를 보증할 수 없다. 원본 YAML4521경로/4523문서 대조에서 Linux importer가 읽지 못하는 Odin Editor 설정4개를 발견했다. importer 의도/Windows 직접 로드/게임 영향은 미확인이다. SDK subasset2개는 기존 native 순회 밖이어서 현재 세 문서의 정적 필드/연결만 보완했다. 기존 evidenceErrors0은 근거 경로/줄 범위 검사였고 의미적 정확성까지 보증하지 않았다.
+
+19프로브는 실제 코드 결과를 관측하지만5개 생산 조회/12개 작성 검증/2개 drawer+helper다. 전체로그 console0은 라이선스 오류3건 때문에 거짓이고 Run 구간 managed counter0으로 제한해야 한다. Inspector 클릭/Undo/저장/reimport는 검증하지 않았다. 전체 persistent 파일 보존은 별도21712입력 SHA로 판단한다. 현재 상세 판정은 SO_REFERENCE_FULL_AUDIT.md 상단 재검증 절이다.
+
+## 2026-10-25 R23 감사 수용 기준
+
+기존 R22는 타입별 서술과 후보 집계가 중심이고 각 직렬화 필드의 판정 근거가 완결된 형태로 연결돼 있지 않았다. R23은 모든 필드를 ID 관계, 제공 키, 직접 객체 참조, 로컬 프로토콜/저장 표현, 값/설명, 중첩 컨테이너로 판정하며 원장 키는 소스 선언의 정확한 path/line/type/field다. 자동 구조 판정과 실제 소비자 검토를 구분한다. generic 마지막 인자만 보는 이전 extractor와 Unity/Odin의 실제 직렬화 차이도 대조한다. R22의 7개를 그대로 확정하지 않고 오류로 볼 계약인지 다시 확인한다.
+
+## 2026-10-25 R23 확정 판정
+
+이전 R22는 게임 정의3544개를 전체 SO로 일반화할 여지가 있는 범위 오류가 있었다. 실제 native census는4517개이며 타일/폰트/플러그인 설정973개가 더 있다. 게임 선언2467개는 필드별 contract/제외 원장으로 완결했고 SDK는32타입/973파일의 객체 참조와 Localization/Addressables/BehaviorDesigner key join으로 대조했다. SDK 내부 모든 숫자와 동적 로드 경로의 보편 인증으로 확대하지 않는다.
+
+현재 미해결은 Tile m_Sprite7개와 SceneTemplate dependency1개다. native와 metadata 원본이 일치하며 직렬화 역참조와 활성 씬/root 도달은 없다. 현재 플레이 차단이나 완전 미사용/삭제 안전으로 바꾸지 않는다. 미래 보호/작성 공백10묶음과 별도 conveyor runtime locator1묶음은 현재 값의 오류와 분리한다. Inspector 두 특수 경로는 native 다중 편집에서 잘못된 후보 수용 후 후속 검증 거절까지 관측했다. JSON output allocation3개/9개 로컬 output ID는 현재 유효하고 fail-closed지만 raw 작성 표면은 남는 P2다.
+
+SeasonalSpecialExpeditionProfile.factionId는 DungeonFaction SO가 아니라 site/offer/서사 counterparty 문맥이므로 분야 후보를 철회했다. 특성 family/group은 별도 provider 없는 공유 분류다. unused metadata와 엔진 내부 숫자까지 관계 결함으로 부풀리지 않는다. 보호 방식은 실제 저장 join과 owner 계약에 맞춰 고쳐야 하며 새 SO/추상화를 일괄 도입하지 않는다. 전체 잔여 항목과 원본 근거는 SO_REFERENCE_FULL_AUDIT.md R23 및 외부 so-main-full-audit-r23에 있다.
+
+## 2026-10-25 R22 조사 기준
+
+main21b381a66의 원본을 새로 추출했다. 제공자 자신의 안정 ID, 저장 표현의 ID, 외부 관계 입력을 구분했다. Root의 일반 Domain 뷰만으로 전체 제공자를 추정하지 않고 실제 전체 asset 및 FromRoot의 owner 집합을 대조했다. 게시3544/12021 PASS도 기록되지 않은 키의 보호 증명이 아니다. 구조물/엄폐 ability ID와 의류/직물/작업복 물리 매핑, 해부 pairedGroup의 메모리 변경을 기존 Python 검사가 수용하는 반례를 확인했다.
+
+현재 단절0과 미래 작성/변경 보호7묶음을 구분했다. equipment 양방향 owner, effective workstation, lexicon 종족/condition과 survival enum 중복도 남는다. 이미 보호되는 enemy ID/faction/등록 삭제는 후보에서 철회했다. 미소비 collisionTag/worldBranchTag/iconId/vfxId/tradeoffTags를 임의의 외래 관계 또는 새 기능 필수 구현으로 세지 않았다. parent는 현재 유효한 구조 메타데이터다. Inspector pending/multi-object의 두 특수 경로는 이번 native 미실행 경계로 남기고 확정 결함 수에 합산하지 않았다.
+
 ## 2026-10-25 R21 수정 계약
 
 전체 참조 검사의 입력은 ContentReferenceCatalog.FromRoot와 같은 제공자 집합이어야 한다. ResourceGameContentCatalog.GetAll<ScriptableObject>()는 Domain 뷰라 item/domain 소유 키/skill settings가 빠진다. r155의 새 root-variant fixture는 이 불완전한 입력 때문에 실패했고 r156에서 실제 FromRoot 제공자 집합으로 고쳐 전체 오류0 조건을 유지했다. r156 표적/Inspector는 실제 PASS다. 이후 effects의 semantic fixture는 해석 전 WeightedTarget 대신 해석된 EnemyFaction을 Entries에 넘기도록1줄 수정했다. r157은 이1줄 외 전체21712입력이 동일하다. r156의 원래 source/configuration과 정확한 파일 SHA/diff를 보존해 관련 없는 PASS를 다시 실행하거나 새 실행으로 바꾸지 않는다.
@@ -5837,3 +5943,19 @@ native-destructive-drain-current-r3은 Title/owner selection까지만 PASS하고
 - 현재 효과 연결의 수치 영향은 SO_REFERENCE_FULL_AUDIT.md에 기록한다. 과거 V27 인증 입력과 baseline은 그대로 보존하며 현재 효과 검증을 과거 전체 밸런스 인증으로 바꾸지 않는다.
 - r129sr의 R18 작성/정책/구형 견적 검사는 통과했지만 Undo 격리 정리 실패와 Addressables source drift1로 전체 실행은 수용하지 않았다. 고정된 Addressables 패키지 ResetHashes는 캐시가 이미 default여도 Undo 때 persisted settings를 dirty로 만든다. 기존 fixture는 hash 값 변화가 없다는 이유로 원래 dirty 상태 복원을 거부했다. 실제 Undo 발생을 관측한 경우에만 전체 JSON/hash 일치 후 원래 dirty로 되돌린다. 미관측 dirty 변화, 비캐시 JSON 변화와 전체 입력 drift는 계속 실패한다. 원래 action 실패와 정리 실패도 함께 보존한다. 서버의 변경된 설정 파일은 현재 승인된 원본 바이트로 복구하며 검사에서 제외하지 않는다.
 - r130sr 작성250초는 전체 PASS다. runtime130초의 통증 비교는 prepared identity가 체력을 초기화해 부상도가 달랐고 같은0.5를 재적용했다. r131sr230초는 그 검사와 과충전 JSON 경계를 지나 마나 Tick 검사에서 실패했다. 실제 health scheduler가 상태를 분할 처리하므로 캐릭터가 방문된 시각을 관측하고 상태 수 이내의 실제 Tick으로 진행한 후1초 회복량을 비교한다. 생산 계산, 회복량 기대값과 timeout은 바꾸지 않는다. r130 이후에는 runtime fixture 한 파일만 변경되므로 작성 증거의 실제 source binding과 전체 manifest 차이를 보존해 재사용한다.
+# R27 구조 보완 결정
+
+- main 대비 R26 GameplayScene 변경은 미등록 TestCharacter의 수동 spawn 후보1개 제거뿐이다. 승인된 c2ff169b8 씬은 SHA a0fc27f149e57bbf6deba481e170c75f707b9c187baf4bf535a11d43df47c73e이며 r197 실제 진행/신구 저장 복원이 이 바이트로 성공했다. V27 current-scene pin만 같은 값으로 갱신하고 정확한 지문 비교와 실행 후 재검사는 유지한다. 과거 전체 밸런스 archive나 baseline은 다시 쓰지 않는다. r198은 이 변경을 합치기 위해 중단한 부분 실행이며 PASS가 아니다.
+
+- r197 효과 CI의 장비 중첩 ID 변조 fixture는 새 module-authority 검사에서 캡처 전에 거절됐다. 런타임 검사를 바꾸지 않고 실제 invalid clone의 정확한 사전 거절, 게시 snapshot의 해당 nested ID 값 변경 거절, 원본 JSON 복원/재시도를 각각 확인하도록 테스트를 보완한다. 예외를 무조건 성공으로 처리하거나 기존 ID 단언을 제거하지 않는다.
+
+- 실제 상점 UI에서 내부 RuntimeArchetypes의 음수 ID 건물이 일일 후보에 섞여 canonical 구매 키 생성이 실패했다. 설치 키트와 해금이 비음수 ID를 요구하므로 추첨 전 제외하고 직접 구매도 결제 전에 거절한다. ID0은 유효한 복도이므로 그대로 허용한다. 실제 내부 에셋과 정상 에셋을 함께 넣어 후보/직접 결제/상태 불변을 검사한다.
+- 검증 프로세스는 SIGTERM 후 exit0을 반환할 수 있다. 외부 직렬 실행기는 종료 코드, 컴파일, 소스 보존뿐 아니라 정확한 완료 표시, 오류 로그와 수동 중단 기록을 함께 검사한다. r194 first-play는 예외3건과 미완료로 FAIL이며 정상 종료 코드로 PASS로 바꾸지 않는다.
+
+- S01: 일일 제한은 FacilityShopUnlockState에 저장하고 모든 구매 명령이 같은 키를 검사한다. 기본 상품 반복 구매는 유지한다. 구형 V1 저장은 기존에 저장하지 않은 일일 이력을 합성하지 않고 빈 이력으로 읽는다. 새 이력 필드는 완전한 쌍과 정규화된 현재 날짜 키만 허용한다.
+- S02/S06: Brain이 행동 종료와 투영 복원을 소유한다. 사건 이동 증빙은 scoped 서비스가 이동 인스턴스별로 소유하고 기존 캐릭터 DTO 필드를 그대로 읽고 쓴다. live와 복원 후보가 같은 인물 ID여도 다른 컴포넌트 키로 분리한다.
+- S07/S08: 시설 방문은 접근/취소/결제/최종 완료를 유지하고 소비 실행만 옮긴다. 소비 코루틴은 매번 현재 상태를 읽어 다른 방문의 상태 교체를 견딘다. 세력 배송의 물리 영수증/보상/ACK는 배송 소유자로, 서비스 조립은 기존 등록 위치로 옮긴다.
+- S03/S04/S05/S09/S10/S11: 기존 순수 규칙과 UI 생성 함수를 공용 위치로 모으고 저장하는 건물 능력이 게시 ID 보호 대상임을 직접 선언한다. 파일 길이 기준 분리, 저장 ID 변경, 구조 baseline 완화는 하지 않는다.
+- 검증: 기존 analyzer Verify PASS(rootCatalogReferences=3), Python CI91개 PASS, DSB001~DSB008 바이너리 재현 PASS. r189 표적4묶음과 r190 실제 이동은 PASS이며 각 소스 label을 보존한다. 최종 현재 입력 CI와 원격 통합은 별도 확인한다.
+- 실제 배송에서 인장 공급 대기까지 전체 효과 롤백을 적용해 새 배송 요청을 지우는 결함을 재현했다. 효과 실행 전에는 캠페인 보상/소비를 시작하지 않았으므로 전체 물품 롤백을 하지 않고 계약 입력 소유자만 보상 정리한다. 효과 실행 후 실패의 기존 롤백/전진 복구는 유지한다. 실제 pending 물품 요청1개 유지, 운반, JSON 복원, 보상 및 ACK 재시도와 기존 효과 실패 검사를 수용 조건으로 삼는다.
+- r193에서 인장 배송23.64게임초와 수락 재시도는 통과했고 숯8개도 실제 목적지에 도착했다. 이후 물리 영수증 관찰자가 URI escape 작업 ID를 일반 stable ID로 취급해 거절했다. 저장 원본 operation/commit ID와 기존 정상 기록 키는 유지하고, 인코딩/긴 합성 ID만 물리 fact 경계에서 SHA256 기반 관찰 키로 변환한다. 전역192자/문자 제한은 유지하며 잘못된 escape, 공백/제어문자, 2048자 초과 입력은 거절한다. 저장 원본/관찰 키 조인과 변조 거절을 별도 표적으로 검증한다.

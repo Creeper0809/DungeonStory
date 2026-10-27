@@ -7,6 +7,7 @@ using VContainer;
 
 public class BuildableObject : MonoBehaviour,
     IGridOccupant,
+    IGridBuildingOccupant,
     IGridMovementOccupant,
     IGridBuildingOccupantCapability,
     IBuildingWorldEntryPort

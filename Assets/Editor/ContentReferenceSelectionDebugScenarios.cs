@@ -419,6 +419,7 @@ public static class ContentReferenceSelectionDebugScenarios
         var sourceSnapshots = new List<AssetSnapshot>();
         try
         {
+            VerifyCatalogComposition();
             VerifyCatalogEntries();
             VerifyAnatomyNodeEntries();
             VerifySelectionsAndPersistence(temporaryObjects, sourceSnapshots);
@@ -435,6 +436,51 @@ public static class ContentReferenceSelectionDebugScenarios
                     Object.DestroyImmediate(temporaryObjects[index]);
             }
         }
+    }
+
+    public static void VerifyCatalogComposition()
+    {
+        var root = AssetDatabase.LoadAssetAtPath<GameContentCatalogSO>(
+            "Assets/Resources/SO/GameContentCatalog.asset");
+        Require(root != null, "Registered content root is missing.");
+        var domains = root.DomainCatalogs.OfType<GameDomainContentCatalogSO>().ToArray();
+        var items = root.GetItemDefinitions<ItemDefinitionCatalogSO>();
+        var skills = root.GetCharacterSkillSettings<CharacterSkillSystemSettingsSO>();
+        Require(domains.Length > 0 && items != null && skills != null,
+            "Catalog composition requires domain, item and skill definitions.");
+        var runtime = ContentReferenceCatalog.FromCatalogs(domains, items, skills);
+        var incomplete = ScriptableObject.CreateInstance<GameContentCatalogSO>();
+        try
+        {
+            incomplete.Configure(items, null, skills, null, domains);
+            Require(incomplete.ValidateCatalog().Count > 0,
+                "The permissive authoring fixture must lack required presentation/media.");
+            var authoring = ContentReferenceSelection.CreateCatalog(incomplete);
+
+            void Check(ContentReferenceKind kind, IEnumerable<ContentReferenceCatalog.Entry> expected)
+            {
+                var expectedPairs = expected.Select(entry => (entry.Asset, entry.Id)).ToHashSet();
+                Require(expectedPairs.Count > 0, $"{kind} composition fixture has no expected entries.");
+                foreach (var catalog in new[] { runtime, authoring })
+                {
+                    var actual = catalog.Entries(new ContentReferenceAttribute(kind));
+                    Require(actual.Count == expectedPairs.Count
+                        && expectedPairs.SetEquals(actual.Select(entry => (entry.Asset, entry.Id))),
+                        $"{kind} candidates changed between explicit runtime inputs and permissive authoring.");
+                }
+            }
+
+            Check(ContentReferenceKind.Item, items.Definitions.Select(value =>
+                new ContentReferenceCatalog.Entry(value, value.ItemId)));
+            Check(ContentReferenceKind.Culture, domains.SelectMany(value => value.Definitions)
+                .OfType<SpeciesCultureDefinitionSO>().Select(value =>
+                    new ContentReferenceCatalog.Entry(value, value.StableId)));
+            Check(ContentReferenceKind.InvasionPattern, domains.SelectMany(domain =>
+                domain.InvasionPatterns.Select(value => new ContentReferenceCatalog.Entry(domain, value.id))));
+            Check(ContentReferenceKind.SkillModule, skills.Modules.Where(value => value != null)
+                .Select(value => new ContentReferenceCatalog.Entry(skills, value.id)));
+        }
+        finally { Object.DestroyImmediate(incomplete); }
     }
 
     private static void VerifyCatalogEntries()
@@ -818,7 +864,9 @@ public static class ContentReferenceSelectionDebugScenarios
             Require(
                 ContentReferenceSelection.ResolveKind(
                     ContentReferenceKind.WeightedTarget,
-                    property) == ContentReferenceKind.LifeEvent,
+                    property) == ContentReferenceKind.LifeEvent
+                    && ContentReferenceCatalog.ResolveKind(ContentReferenceKind.WeightedTarget,
+                        property.propertyPath, null) == ContentReferenceKind.LifeEvent,
                 "relatedEventWeights did not resolve to LifeEvent.");
         }
         using (var serialized = new SerializedObject(culture))
@@ -831,7 +879,9 @@ public static class ContentReferenceSelectionDebugScenarios
             Require(
                 ContentReferenceSelection.ResolveKind(
                     ContentReferenceKind.WeightedTarget,
-                    property) == ContentReferenceKind.Culture,
+                    property) == ContentReferenceKind.Culture
+                    && ContentReferenceCatalog.ResolveKind(ContentReferenceKind.WeightedTarget,
+                        property.propertyPath, null) == ContentReferenceKind.Culture,
                 "otherCultureAttitudes did not resolve to Culture.");
         }
         using (var serialized = new SerializedObject(background))
@@ -845,6 +895,8 @@ public static class ContentReferenceSelectionDebugScenarios
                 ContentReferenceSelection.ResolveKind(
                     ContentReferenceKind.WeightedTarget,
                     reaction) == ContentReferenceKind.EnemyFaction
+                    && ContentReferenceCatalog.ResolveKind(ContentReferenceKind.WeightedTarget,
+                        reaction.propertyPath, null) == ContentReferenceKind.EnemyFaction
                     && ContentReferenceCatalog.IsKeyReference(ContentReferenceKind.EnemyFaction),
                 "factionReactions did not resolve to the registered enemy-faction key protocol.");
             var factionKeys = ContentReferenceSelection.Entries(
@@ -862,12 +914,24 @@ public static class ContentReferenceSelectionDebugScenarios
             Require(kind != null && target != null, "Effect fields are unavailable.");
             VerifyEffectKind(kind, target, V20ContentEffectKind.FactionRapport,
                 ContentReferenceKind.Faction, "affected-faction");
+            VerifyEffectKind(kind, target, V20ContentEffectKind.FactionGrievance,
+                ContentReferenceKind.Faction, "requesting-faction");
+            VerifyEffectKind(kind, target, V20ContentEffectKind.FactionObligation,
+                ContentReferenceKind.Faction, "faction:test");
             VerifyEffectKind(kind, target, V20ContentEffectKind.ItemGrant,
                 ContentReferenceKind.Item, "item:test");
+            VerifyEffectKind(kind, target, V20ContentEffectKind.ItemConsume,
+                ContentReferenceKind.Item, "item:test");
+            VerifyEffectKind(kind, target, V20ContentEffectKind.DiseaseExposure,
+                ContentReferenceKind.Disease, "disease:test");
+            VerifyEffectKind(kind, target, V20ContentEffectKind.ProficiencyExperience,
+                ContentReferenceKind.Proficiency, "proficiency:test");
             VerifyEffectKind(kind, target, V20ContentEffectKind.Mood,
                 null, "mood-label");
             VerifyEffectKind(kind, target, V20ContentEffectKind.SkillExperience,
                 null, "totalXP");
+            VerifyEffectKind(kind, target, (V20ContentEffectKind)int.MaxValue,
+                null, "unknown-effect-target");
         }
     }
 
@@ -880,6 +944,10 @@ public static class ContentReferenceSelectionDebugScenarios
     {
         kindProperty.intValue = (int)effectKind;
         targetProperty.stringValue = semanticTarget;
+        Require(
+            ContentReferenceCatalog.ResolveKind(ContentReferenceKind.EffectTarget,
+                targetProperty.propertyPath, new V20ContentEffect { kind = effectKind }) == expected,
+            $"{effectKind} runtime resolution disagreed with its target contract.");
         Require(
             ContentReferenceSelection.ResolveKind(
                 ContentReferenceKind.EffectTarget,

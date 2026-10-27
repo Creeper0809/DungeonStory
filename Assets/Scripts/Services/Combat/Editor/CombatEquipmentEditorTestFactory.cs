@@ -25,7 +25,8 @@ public static class CombatEquipmentEditorTestFactory
         IProductionFacilityMutationEpochQuery facilityMutations = null,
         ICombatEquipmentCraftInputDestinationRuntime inputDestinations = null,
         Func<CombatEquipmentRuntimeStateStore,
-            CombatEquipmentCraftOutputTransaction> craftOutputTransactionFactory = null)
+            CombatEquipmentCraftOutputTransaction> craftOutputTransactionFactory = null,
+        IEquipmentModuleInputOwnerRuntime moduleInputOwners = null)
     {
         catalog = Require(catalog, nameof(catalog));
         itemInstances = Require(itemInstances, nameof(itemInstances));
@@ -72,7 +73,8 @@ public static class CombatEquipmentEditorTestFactory
                     itemStackRuntime,
                     AllFacilityCapabilityQuery.Instance,
                     new EditorEquipmentModuleExactSourcePublicationProxy(
-                        itemStackRuntime)),
+                        itemStackRuntime),
+                    moduleInputOwners),
                 new EquipmentHistoryTransferRuntime(
                     itemInstances,
                     catalog,

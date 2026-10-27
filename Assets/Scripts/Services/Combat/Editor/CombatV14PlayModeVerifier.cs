@@ -2210,9 +2210,9 @@ public static class CombatV14PlayModeVerifier
                 actor.state = decisionState;
                 if (actor.Brain != null)
                 {
-                    actor.Brain.bestAction = bestAction;
-                    actor.Brain.isExecuted = isExecuted;
-                    actor.Brain.isBestActionEnd = isBestActionEnd;
+                    actor.Brain.SetSelectedActionForDebug(bestAction);
+                    actor.Brain.SetExecutionFlagForDebug(isExecuted);
+                    actor.Brain.SetDecisionPendingForDebug(isBestActionEnd);
                     actor.Brain.SetActionPhase(phase, detail: phaseDetail);
                 }
                 presentation.SetStatus(

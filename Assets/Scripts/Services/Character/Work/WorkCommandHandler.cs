@@ -262,7 +262,7 @@ public sealed class WorkCommandHandler
             if (OwnsAction())
             {
                 ClearPriorityWorkTarget();
-                actor.Brain.isBestActionEnd = true;
+                WorkRunRuntime.EndAiAction(actor, currentAction, CharacterAiActionTerminalKind.Failed);
             }
             yield break;
         }
@@ -275,7 +275,7 @@ public sealed class WorkCommandHandler
             if (OwnsAction())
             {
                 ClearPriorityWorkTarget();
-                actor.Brain.isBestActionEnd = true;
+                WorkRunRuntime.EndAiAction(actor, currentAction, CharacterAiActionTerminalKind.Failed);
             }
             yield break;
         }
@@ -293,7 +293,7 @@ public sealed class WorkCommandHandler
                 if (OwnsAction())
                 {
                     ClearPriorityWorkTarget();
-                    actor.Brain.isBestActionEnd = true;
+                    WorkRunRuntime.EndAiAction(actor, currentAction, CharacterAiActionTerminalKind.Failed);
                 }
                 yield break;
             }
@@ -313,11 +313,13 @@ public sealed class WorkCommandHandler
             if (OwnsAction())
             {
                 ClearPriorityWorkTarget();
-                actor.Brain.isBestActionEnd = true;
+                WorkRunRuntime.EndAiAction(actor, currentAction,
+                    actor != null && !actor.IsDead ? CharacterAiActionTerminalKind.Completed : CharacterAiActionTerminalKind.Cancelled);
             }
             yield break;
         }
 
+        CharacterAiActionTerminalKind outcome = CharacterAiActionTerminalKind.Cancelled;
         WorkControlChangedEvent.PublishToCharacter(work, actor,
             WorkControlTransition.SuppressionStarted, target);
         while (target != null
@@ -335,6 +337,7 @@ public sealed class WorkCommandHandler
                 {
                     WorkControlChangedEvent.PublishToCharacter(work, actor,
                         WorkControlTransition.SuppressionTargetUnreachable, target);
+                    outcome = CharacterAiActionTerminalKind.Failed;
                     break;
                 }
 
@@ -371,11 +374,13 @@ public sealed class WorkCommandHandler
 
             if (suppressionEnded)
             {
+                outcome = CharacterAiActionTerminalKind.Completed;
                 break;
             }
 
             if (target.IsDead)
             {
+                outcome = CharacterAiActionTerminalKind.Completed;
                 if (target.TryGetComponent(out InvasionIntruderRuntime intruderRuntime))
                 {
                     intruderRuntime.ResolveSuppressedBy(actor);
@@ -397,7 +402,7 @@ public sealed class WorkCommandHandler
         if (OwnsAction())
         {
             ClearPriorityWorkTarget();
-            actor.Brain.isBestActionEnd = true;
+            WorkRunRuntime.EndAiAction(actor, currentAction, outcome);
         }
     }
 

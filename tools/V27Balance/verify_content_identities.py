@@ -8,7 +8,7 @@ the catalog registrations emitted as schema-1 virtual fields.
 from __future__ import annotations
 
 import argparse
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 import json
 from pathlib import Path
 import re
@@ -41,6 +41,9 @@ REGISTRY_ARRAY_MEMBERS = {
 }
 NESTED_FIELD_PREFIX = "@nested:"
 LEGACY_TRAIT_NAME_PREFIX = "@legacy-trait-name:"
+FORMULA_CONTENT_FIELD = "@formula:content"
+FORMULA_TYPES = frozenset({"EquipmentEvolutionFormulaCatalogSO",
+                          "FacilityEvolutionRecipeSO", "CharacterAcquiredTraitSettingsSO"})
 TOP_LEVEL_SCALAR_RE = re.compile(
     r"^  (?P<name>[A-Za-z_][A-Za-z0-9_]*):(?P<value>.*)$"
 )
@@ -117,7 +120,7 @@ NESTED_ROUTES: dict[str, tuple[NestedRoute, ...]] = {
             managed_reference=True,
         ),
     ),
-    "AnatomyProfileSO": (NestedRoute("nodes", "nodeId", ("nodeId",)),),
+    "AnatomyProfileSO": (NestedRoute("nodes", "nodeId", ("nodeId", "pairedGroupId")),),
     "OffenseDecisionCardSO": (NestedRoute("choices", "choiceId", ("choiceId",)),),
     "FactionChapterDefinitionSO": (
         NestedRoute("choices", "choiceId", ("choiceId",)),
@@ -165,7 +168,10 @@ NESTED_ROUTES: dict[str, tuple[NestedRoute, ...]] = {
             "abilityId",
             ("abilityId",),
             managed_reference=True,
-            managed_types=("BuildingProductionAbility", "BuildingSecurityAbility"),
+            # Wire compatibility for trees predating the persistent-definition marker.
+            # Current trees derive this membership from their committed declarations.
+            managed_types=("BuildingProductionAbility", "BuildingSecurityAbility",
+                           "BuildingStructuralIntegrityAbility", "BuildingCoverAbility"),
         ),
         NestedRoute("abilityModules.items", "workstationTag", ("workstationTag",),
                     managed_reference=True, managed_types=("BuildingProductionWorkstationAbility",)),
@@ -183,6 +189,8 @@ NESTED_ROUTES: dict[str, tuple[NestedRoute, ...]] = {
                     managed_reference=True, managed_types=("BuildingEvolutionAbility",), array_path="settings.metrics", array_value="key"),
     ),
     "ResourceItemDefinitionSO": (
+        NestedRoute("features", "equipmentDefinitionId", ("equipmentDefinitionId",),
+                    managed_reference=True, managed_types=("EquipmentItemFeature",)),
         NestedRoute(
             "features",
             "ammunitionKindId",
@@ -199,6 +207,8 @@ NESTED_ROUTES: dict[str, tuple[NestedRoute, ...]] = {
         ),
     ),
     "GenericItemDefinitionSO": (
+        NestedRoute("features", "equipmentDefinitionId", ("equipmentDefinitionId",),
+                    managed_reference=True, managed_types=("EquipmentItemFeature",)),
         NestedRoute(
             "features",
             "ammunitionKindId",
@@ -449,11 +459,12 @@ def _parse_nested_route_path(
     raise VerificationError(f"nested identity leaf is invalid at {location}: {tail}")
 
 
-def _parse_nested_identity_path(type_name: str, path: str, location: str) -> None:
+def _parse_nested_identity_path(type_name: str, path: str, location: str,
+                                routes: dict[str, tuple[NestedRoute, ...]] = NESTED_ROUTES) -> None:
     if not path.startswith(NESTED_FIELD_PREFIX):
         raise VerificationError(f"invalid nested identity path at {location}: {path}")
     text = path[len(NESTED_FIELD_PREFIX):]
-    for route in NESTED_ROUTES.get(type_name, ()):
+    for route in routes.get(type_name, ()):
         if _parse_nested_route_path(route, text, location) is not None:
             return
     raise VerificationError(
@@ -465,11 +476,16 @@ def _validate_virtual_fields(
     type_name: str,
     fields: list[IdentityField],
     location: str,
+    routes: dict[str, tuple[NestedRoute, ...]],
 ) -> None:
     virtual = [field for field in fields if field.path.startswith("@")]
     for field in virtual:
+        if field.path == FORMULA_CONTENT_FIELD:
+            if type_name not in FORMULA_TYPES or re.fullmatch(r"[0-9a-f]{64}", field.value) is None:
+                raise VerificationError(f"formula identity type/hash is invalid at {location}")
+            continue  # Verified by the source-bound Unity publisher, not a second formula implementation.
         if field.path.startswith(NESTED_FIELD_PREFIX):
-            _parse_nested_identity_path(type_name, field.path, location)
+            _parse_nested_identity_path(type_name, field.path, location, routes)
             if not field.value or field.value != field.value.strip():
                 raise VerificationError(
                     f"nested identity value is blank or not trimmed at {location}: {field.path}"
@@ -518,7 +534,8 @@ def _validate_virtual_fields(
                 )
 
 
-def load_baseline(raw: bytes, label: str) -> IdentityBaseline:
+def load_baseline(raw: bytes, label: str, *,
+                  routes: dict[str, tuple[NestedRoute, ...]] = NESTED_ROUTES) -> IdentityBaseline:
     try:
         text = raw.decode("utf-8-sig", errors="strict")
         document = json.loads(text, object_pairs_hook=_strict_object)
@@ -596,7 +613,7 @@ def load_baseline(raw: bytes, label: str) -> IdentityBaseline:
                     f"identity string is not a top-level scalar at {field_location}"
                 )
             fields.append(IdentityField(path, value))
-        _validate_virtual_fields(type_name, fields, location)
+        _validate_virtual_fields(type_name, fields, location, routes)
         assets.append(PublishedAsset(guid, type_name, script_guid, tuple(fields)))
     return IdentityBaseline(tuple(assets))
 
@@ -745,6 +762,73 @@ CSHARP_NON_CODE_RE = re.compile(
     r"|/\*.*?\*/",
     re.DOTALL,
 )
+
+
+def nested_routes_for_snapshot(snapshot: GitSnapshot) -> dict[str, tuple[NestedRoute, ...]]:
+    """Use the same persistent ability declaration as the Unity publisher.
+
+    Resolve simple class/interface inheritance from committed game sources. Ambiguous
+    names and unsupported persistent generic declarations fail instead of widening
+    the identity set. The fixed legacy route only reads pre-marker repositories.
+    """
+    marker = "IBuildingPersistentAbilityDefinition"
+    paths = [p for p in snapshot.entries if p.startswith("Assets/Scripts/")
+             and p.endswith(".cs") and "/Editor/" not in p and "/Tests/" not in p]
+    declaration = re.compile(
+        r"\b(?P<modifiers>(?:(?:public|internal|private|protected|abstract|sealed|partial|static|new)\s+)*)"
+        r"(?P<kind>class|interface)\s+(?P<name>[A-Za-z_]\w*)"
+        r"(?P<generic><[^{};]+?>)?\s*(?::(?P<bases>[^{};]+))?\s*\{"
+    )
+    definitions: dict[str, list[tuple[str, set[str], bool, bool]]] = {}
+    for path, raw in snapshot.read_blobs(paths).items():
+        code = CSHARP_NON_CODE_RE.sub(" ", raw.decode("utf-8-sig", errors="strict"))
+        for match in declaration.finditer(code):
+            bases = match["bases"] or ""
+            # Generic arguments are not inherited types, including marker-looking names.
+            while re.search(r"<[^<>]*>", bases):
+                bases = re.sub(r"<[^<>]*>", "", bases)
+            parents = {p.strip().removeprefix("global::").rsplit(".", 1)[-1]
+                       for p in bases.split(",") if p.strip()}
+            definitions.setdefault(match["name"], []).append((
+                match["kind"], parents, "abstract" in match["modifiers"].split(),
+                match["generic"] is not None))
+    declarations = [row for rows in definitions.values() for row in rows]
+    if marker not in definitions:
+        if any(marker in row[1] for row in declarations):
+            raise VerificationError("Persistent building ability marker declaration is missing")
+        return NESTED_ROUTES
+    if len(definitions[marker]) != 1 or definitions[marker][0][0] != "interface":
+        raise VerificationError("Persistent building ability marker declaration is ambiguous")
+
+    def descendants(root: str) -> set[str]:
+        result = {root}
+        while True:
+            added = {name for name, rows in definitions.items()
+                     if any(parents & result for _, parents, _, _ in rows)} - result
+            if not added:
+                return result
+            result.update(added)
+
+    persistent = descendants(marker)
+    building = descendants("BuildingAbility")
+    concrete = []
+    for name in sorted(persistent - {marker}):
+        rows = definitions[name]
+        if len(rows) != 1:
+            raise VerificationError(f"Persistent building ability declaration is ambiguous: {name}")
+        kind, _, abstract, generic = rows[0]
+        if kind != "class":
+            continue
+        if name not in building or generic:
+            raise VerificationError(f"Persistent building ability declaration is unsupported: {name}")
+        if not abstract:
+            concrete.append(name)
+    if not concrete:
+        raise VerificationError("Persistent building ability authority has no concrete definitions")
+    routes = dict(NESTED_ROUTES)
+    legacy = routes["BuildingSO"]
+    routes["BuildingSO"] = (replace(legacy[0], managed_types=tuple(concrete)), *legacy[1:])
+    return routes
 
 
 def _script_declares_type(raw: bytes, path: str, type_name: str) -> None:
@@ -978,7 +1062,16 @@ def _capture_nested_route(
             if scope_prefix:
                 scope = f"{scope_prefix}.{scope}"
             for leaf in route.leaves:
-                value = _identity_string(selected_element, leaf, item_location)
+                if leaf == "pairedGroupId":
+                    value = selected_element.get(leaf, "")
+                    if value is None:
+                        value = ""
+                    if not isinstance(value, str) or value != value.strip():
+                        raise VerificationError(f"noncanonical pair group at {item_location}")
+                    # C# string.Length counts UTF-16 units, including an explicitly empty group.
+                    value = f"{len(value.encode('utf-16-le')) // 2}:{value}"
+                else:
+                    value = _identity_string(selected_element, leaf, item_location)
                 virtual_path = f"{NESTED_FIELD_PREFIX}{scope}.{leaf}"
                 if virtual_path in result:
                     raise VerificationError(f"duplicate nested identity path at {location}: {virtual_path}")
@@ -999,14 +1092,15 @@ def _actual_nested_fields(
     document: str,
     record: PublishedAsset,
     asset_path: str,
+    routes: dict[str, tuple[NestedRoute, ...]] = NESTED_ROUTES,
 ) -> dict[str, str]:
-    routes = NESTED_ROUTES.get(record.type_name, ())
-    if not routes:
+    type_routes = routes.get(record.type_name, ())
+    if not type_routes:
         return {}
     root = _load_scripted_yaml(document, asset_path)
     references = None
     result: dict[str, str] = {}
-    for route in routes:
+    for route in type_routes:
         # Legacy traits omitted their empty, default-initialized rule list.
         # Published rule keys still cannot disappear: expected_virtual is compared below.
         if record.type_name == "CharacterTraitSO" and route.path == "identityRules" and "identityRules" not in root:
@@ -1248,7 +1342,10 @@ def _guid_paths(snapshot: GitSnapshot, suffix: str) -> dict[str, list[str]]:
     return result
 
 
-def verify_head_assets(snapshot: GitSnapshot, baseline: IdentityBaseline) -> tuple[int, int]:
+def verify_head_assets(snapshot: GitSnapshot, baseline: IdentityBaseline, *,
+                       routes: dict[str, tuple[NestedRoute, ...]] | None = None) -> tuple[int, int]:
+    if routes is None:
+        routes = nested_routes_for_snapshot(snapshot)
     asset_meta_by_guid = _guid_paths(snapshot, ".asset.meta")
     script_meta_by_guid = _guid_paths(snapshot, ".cs.meta")
     registered_script_meta_by_guid = {
@@ -1259,7 +1356,10 @@ def verify_head_assets(snapshot: GitSnapshot, baseline: IdentityBaseline) -> tup
     published_guids = set(baseline.assets_by_guid())
     assets_checked = 0
     fields_checked = 0
+    requires_native = any(FORMULA_CONTENT_FIELD in asset.fields_by_path() for asset in baseline.assets)
     for record in baseline.assets:
+        if record.type_name in FORMULA_TYPES and FORMULA_CONTENT_FIELD not in record.fields_by_path():
+            raise VerificationError(f"Published formula contract is missing: {record.guid}")
         meta_paths = asset_meta_by_guid.get(record.guid, [])
         if len(meta_paths) != 1:
             reason = "does not resolve" if not meta_paths else "resolves more than once"
@@ -1297,7 +1397,7 @@ def verify_head_assets(snapshot: GitSnapshot, baseline: IdentityBaseline) -> tup
         expected_virtual = {
             field.path: field.value
             for field in record.fields
-            if field.path.startswith("@")
+            if field.path.startswith("@") and field.path != FORMULA_CONTENT_FIELD
         }
         actual_virtual = _actual_catalog_fields(
             snapshot,
@@ -1309,7 +1409,7 @@ def verify_head_assets(snapshot: GitSnapshot, baseline: IdentityBaseline) -> tup
             published_guids,
         )
         actual_virtual.update(
-            _actual_nested_fields(scripted_document, record, asset_path)
+            _actual_nested_fields(scripted_document, record, asset_path, routes)
         )
         actual_virtual.update(
             _actual_legacy_trait_fields(scripted_document, record, asset_path)
@@ -1333,9 +1433,23 @@ def verify_head_assets(snapshot: GitSnapshot, baseline: IdentityBaseline) -> tup
                 f"missing={missing}, unexpected={unexpected}, changed={changed}"
             )
         fields_checked += len(expected_virtual)
+        structured_values = None
         for field in record.fields:
             if field.path.startswith("@"):
                 continue
+            token = scalar_tokens.get(field.path, "").strip()
+            if field.path in field_blocks and (not token or token.startswith(("{", "["))):
+                if structured_values is None:
+                    structured_values = _load_scripted_yaml(scripted_document, asset_path)
+                value = structured_values.get(field.path)
+                if isinstance(value, (dict, list)):
+                    if re.fullmatch(r"[0-9a-f]{64}", field.value) is None:
+                        raise VerificationError(f"structured identity hash is invalid: {asset_path}.{field.path}")
+                    # Unity's SerializedProperty traversal owns the compound fingerprint.
+                    # The exact asset, baseline and publisher source must have native proof.
+                    requires_native = True
+                    fields_checked += 1
+                    continue
             if field.path not in scalar_tokens:
                 if field.value == "":
                     # Unity omits newly added serialized string fields while their
@@ -1355,6 +1469,8 @@ def verify_head_assets(snapshot: GitSnapshot, baseline: IdentityBaseline) -> tup
                 )
             fields_checked += 1
         assets_checked += 1
+    if requires_native:
+        verify_formula_execution(snapshot, len(baseline.assets))
     return assets_checked, fields_checked
 
 
@@ -1440,27 +1556,58 @@ def verify_revisions(
     base_snapshot = GitSnapshot(root, base_revision)
     head_snapshot = GitSnapshot(root, head_revision)
     verify_work_type_protocols(base_snapshot, head_snapshot)
+    base_routes = nested_routes_for_snapshot(base_snapshot)
+    head_routes = nested_routes_for_snapshot(head_snapshot)
+    if base_routes is not NESTED_ROUTES and head_routes is NESTED_ROUTES:
+        raise VerificationError("Persistent building ability authority was removed")
     head_raw = head_snapshot.read_blob(BASELINE_PATH)
     if head_raw is None:
         raise VerificationError(
             f"head identity baseline is missing at {head_snapshot.commit}: {BASELINE_PATH}"
         )
-    head = load_baseline(head_raw, f"{head_snapshot.commit}:{BASELINE_PATH}")
+    head = load_baseline(head_raw, f"{head_snapshot.commit}:{BASELINE_PATH}", routes=head_routes)
     if not head.assets:
         raise VerificationError("head identity baseline cannot reset to an empty asset list")
     base_raw = base_snapshot.read_blob(BASELINE_PATH)
     base_present = base_raw is not None
     if base_raw is not None:
-        base = load_baseline(base_raw, f"{base_snapshot.commit}:{BASELINE_PATH}")
+        base = load_baseline(base_raw, f"{base_snapshot.commit}:{BASELINE_PATH}", routes=base_routes)
         compare_baselines(base, head)
-    assets_checked, fields_checked = verify_head_assets(head_snapshot, head)
+    assets_checked, fields_checked = verify_head_assets(head_snapshot, head, routes=head_routes)
+    formula_count = sum(field.path == FORMULA_CONTENT_FIELD for asset in head.assets for field in asset.fields)
     return {
         "base": base_snapshot.commit,
         "head": head_snapshot.commit,
         "baseBaselinePresent": base_present,
         "assetsChecked": assets_checked,
         "fieldsChecked": fields_checked,
+        "formulaContractsVerifiedByUnity": formula_count,
     }
+
+
+def verify_formula_execution(snapshot: GitSnapshot, published_count: int) -> None:
+    """Require native formula/compound identity validation for the exact committed inputs."""
+    import verify_change_scope as gate
+    if snapshot.root != gate.ROOT.resolve() or _resolve_commit(snapshot.root, "HEAD") != snapshot.commit:
+        raise VerificationError("Formula validation requires the committed head checkout and its native evidence")
+    paths = ["Assets", "Packages", "ProjectSettings", "Artifacts/QA/ImpactCI"]
+    if _run_git(snapshot.root, ["git", "diff", "--name-only", snapshot.commit, "--", *paths]):
+        raise VerificationError("Formula validation inputs/evidence differ from the committed head")
+    if _run_git(snapshot.root, ["git", "ls-files", "--others", "--", *paths[:3]]):
+        raise VerificationError("Formula validation has uncommitted Unity inputs")
+    try:
+        gate.verify_receipt({"effects"})
+        receipt = gate.ledger.load_json_strict(snapshot.root / gate.EVIDENCE)
+    except SystemExit as error:
+        raise VerificationError(f"Formula native evidence failed: {error}") from error
+    effects = [check for check in receipt["checks"] if check["group"] == "effects"]
+    for path in (gate.EVIDENCE, effects[0]["log"], effects[0]["summary"]):
+        _run_git(snapshot.root, ["git", "cat-file", "-e", f"{snapshot.commit}:{path}"])
+    log = (snapshot.root / effects[0]["log"]).read_text(encoding="utf-8")
+    marker = (rf"^CONTENT_REFERENCE_INTEGRITY=PASS; runtimeSoTypes=[1-9][0-9]*; "
+              rf"publishedAssets={published_count}; .+$")
+    if len(re.findall(marker, log, re.M)) != 1:
+        raise VerificationError("Formula native evidence lacks the complete published identity validation")
 
 
 def main(argv: list[str] | None = None) -> int:

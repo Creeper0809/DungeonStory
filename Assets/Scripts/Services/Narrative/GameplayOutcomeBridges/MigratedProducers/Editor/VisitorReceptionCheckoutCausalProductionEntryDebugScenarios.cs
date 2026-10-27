@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.ExceptionServices;
+using System.Runtime.Serialization;
 using DungeonStory.Foundation;
 using DungeonStory.Foundation.Facts;
 using Newtonsoft.Json;
@@ -192,6 +193,7 @@ public static class VisitorReceptionCheckoutCausalProductionEntryDebugScenarios
     {
         private readonly string ownerId;
         private readonly CustomerAiDebugScenarios.CustomerAiScenarioWorld world;
+        private readonly CharacterWorldSaveService actorSave;
         private readonly Shop shop;
         private readonly CharacterActor visitor;
         private readonly CharacterActor worker;
@@ -234,6 +236,11 @@ public static class VisitorReceptionCheckoutCausalProductionEntryDebugScenarios
             world = new CustomerAiDebugScenarios.CustomerAiScenarioWorld();
             try
             {
+                // 캐릭터 단위 저장과 복원은 같은 이동 provenance 소유자를 사용한다.
+                actorSave = (CharacterWorldSaveService)FormatterServices.GetUninitializedObject(
+                    typeof(CharacterWorldSaveService));
+                Field(typeof(CharacterWorldSaveService), "responseMovements").SetValue(
+                    actorSave, new SocietyResponseMovementProvenanceRuntime());
                 shop = world.Place("S01_판매카운터", new Vector2Int(4, 0)) as Shop
                     ?? throw new InvalidOperationException("Authored staffed retail counter is missing.");
                 shop.RestorePersistentIdentity(new BuildingInstanceId(ShopId));
@@ -425,8 +432,8 @@ public static class VisitorReceptionCheckoutCausalProductionEntryDebugScenarios
                 "Restored assigned worker cannot serve visitor.");
             AIActionSet actionSet = Resources.Load<AIActionSet>("SO/AI/Action/Shopping")
                 ?? throw new InvalidOperationException("Authored shopping action missing.");
-            visitor.ai.bestAction = new AIAction(actionSet, AIActionPlan.AtDestination(shop));
-            visitor.ai.isBestActionEnd = false;
+            visitor.ai.SetSelectedActionForDebug(new AIAction(actionSet, AIActionPlan.AtDestination(shop)));
+            visitor.ai.SetDecisionPendingForDebug(false);
             shopping.BeginVisitInteraction(shop);
             var routines = new Stack<IEnumerator>();
             routines.Push(shop.Interact(visitor.BuildingVisitor));
@@ -535,7 +542,7 @@ public static class VisitorReceptionCheckoutCausalProductionEntryDebugScenarios
                 && actor.GetAbility<AbilityShopping>() != null && actor.GetAbility<AbilityMove>() != null,
                 "Canonical actor capture requires all touched runtime components.");
             return Dto((DungeonCharacterSaveData)Invoke(typeof(CharacterWorldSaveService),
-                "CaptureActor", null, world.Grid, actor));
+                "CaptureActor", actorSave, world.Grid, actor));
         }
 
         private void RestoreActor(CharacterActor actor, JToken source)
@@ -552,7 +559,7 @@ public static class VisitorReceptionCheckoutCausalProductionEntryDebugScenarios
                 world.Grid, dto, new Dictionary<int, CharacterSO> { [dto.dataId] = actor.Identity.Data }, report, false);
             Require(report.Success, "Canonical actor validation: " + string.Join("; ", report.Errors));
             CaptureActor(actor); // assert dependencies before null-conditional production Apply.
-            Invoke(typeof(CharacterWorldSaveService), "ApplyActorState", null, world.Grid, actor, dto);
+            Invoke(typeof(CharacterWorldSaveService), "ApplyActorState", actorSave, world.Grid, actor, dto);
             Require(JToken.DeepEquals(source, CaptureActor(actor)),
                 "Canonical actor payload did not round-trip: " + dto.persistentId);
         }

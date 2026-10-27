@@ -2057,8 +2057,8 @@ public static partial class MigratedProducerEconomyEntryExtendedE2EDebugScenario
                 ?? throw new InvalidOperationException(
                     "The authored shopping action fixture is missing.");
             action = new AIAction(actionSet, AIActionPlan.AtDestination(shop));
-            customer.ai.bestAction = action;
-            customer.ai.isBestActionEnd = false;
+            customer.ai.SetSelectedActionForDebug(action);
+            customer.ai.SetDecisionPendingForDebug(false);
             InitialStockCount = shop.GetStockCount();
             InitialMoney = shopping.HoldingMoney;
         }
@@ -2505,6 +2505,8 @@ public static partial class MigratedProducerEconomyEntryExtendedE2EDebugScenario
         internal int PurchaseSequence => runtime.CaptureState().PurchaseSequence;
         internal FacilityShopFactEditorFixture Facts => purchaseFacts;
         internal DailyFacilityShopRuntime ShopOwner => runtime;
+        internal FacilityShopSaveSection CreateShopSaveSection() =>
+            new(runtime, new SingleFacilityShopCatalog(building));
         internal GameSessionState Session => state;
         internal TreasuryEconomyAggregateStateStore Treasury => treasury;
         internal IReadOnlyList<EconomyTransactionRecord> PaymentRecords =>
@@ -2862,7 +2864,7 @@ public static partial class MigratedProducerEconomyEntryExtendedE2EDebugScenario
         public OperatingDayFactJournalData facts;
     }
 
-    private sealed class SingleFacilityShopCatalog : IFacilityShopCatalog
+    private sealed class SingleFacilityShopCatalog : IFacilityShopCatalog, IFacilityShopDefinitionCatalog
     {
         private readonly BuildingSO building;
 
@@ -2871,6 +2873,9 @@ public static partial class MigratedProducerEconomyEntryExtendedE2EDebugScenario
                 ?? throw new ArgumentNullException(nameof(building));
 
         public IReadOnlyCollection<BuildingSO> Buildings => new[] { building };
+        IReadOnlyCollection<FacilityShopCatalogDefinition> IFacilityShopDefinitionCatalog.Buildings =>
+            new[] { new FacilityShopCatalogDefinition(building.id, building.objectName, 1) };
+        IReadOnlyCollection<int> IFacilityShopDefinitionCatalog.BlueprintIds => Array.Empty<int>();
         public IReadOnlyCollection<FacilityBlueprintSO> Blueprints =>
             Array.Empty<FacilityBlueprintSO>();
         public BuildingSO FindBuildingById(int buildingId) =>

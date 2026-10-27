@@ -10,13 +10,23 @@ using UnityEngine;
 public sealed class ContentReferenceDrawer : PropertyDrawer
 {
     public override float GetPropertyHeight(SerializedProperty property, GUIContent label) =>
-        ContentReferenceSelection.ResolveReference((ContentReferenceAttribute)attribute, property) == null
+        ReferenceHeight((ContentReferenceAttribute)attribute, property);
+
+    public static float ReferenceHeight(ContentReferenceAttribute reference, SerializedProperty property) =>
+        ContentReferenceSelection.ResolveReference(reference, property) == null
             ? EditorGUIUtility.singleLineHeight
             : EditorGUIUtility.singleLineHeight * 2 + 2;
 
     public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
     {
-        var reference = (ContentReferenceAttribute)attribute;
+        DrawReference(position, property, label, (ContentReferenceAttribute)attribute);
+    }
+
+    public static void DrawReference(Rect position, SerializedProperty property, GUIContent label,
+        ContentReferenceAttribute reference)
+    {
+        using var protection = new EditorGUI.DisabledScope(
+            ContentIdentityProtection.IsPublished(property, out _));
         if (ContentReferenceSelection.HasMixedContext(reference, property))
         {
             EditorGUI.LabelField(position, label.text, "서로 다른 대상 종류 — 개별 선택 필요");
@@ -140,25 +150,12 @@ public static class ContentReferenceSelection
     public static ContentReferenceKind? ResolveKind(ContentReferenceKind kind, SerializedProperty property)
     {
         if (kind == ContentReferenceKind.WeightedTarget)
-        {
-            if (property.propertyPath.Contains("relatedEventWeights.")) return ContentReferenceKind.LifeEvent;
-            if (property.propertyPath.Contains("otherCultureAttitudes.")) return ContentReferenceKind.Culture;
-            if (property.propertyPath.Contains("factionReactions.")) return ContentReferenceKind.EnemyFaction;
-            return null;
-        }
+            return ContentReferenceCatalog.ResolveWeightedTargetKind(property.propertyPath);
         if (kind != ContentReferenceKind.EffectTarget) return kind;
         int dot = property.propertyPath.LastIndexOf('.');
         var effectKind = property.serializedObject.FindProperty(property.propertyPath.Substring(0, dot + 1) + "kind");
         if (effectKind == null || effectKind.hasMultipleDifferentValues) return null;
-        return (V20ContentEffectKind)effectKind.intValue switch
-        {
-            V20ContentEffectKind.ItemGrant or V20ContentEffectKind.ItemConsume => ContentReferenceKind.Item,
-            V20ContentEffectKind.DiseaseExposure => ContentReferenceKind.Disease,
-            V20ContentEffectKind.ProficiencyExperience => ContentReferenceKind.Proficiency,
-            V20ContentEffectKind.FactionRapport or V20ContentEffectKind.FactionGrievance
-                or V20ContentEffectKind.FactionObligation => ContentReferenceKind.Faction,
-            _ => null
-        };
+        return ContentReferenceCatalog.ResolveEffectTargetKind((V20ContentEffectKind)effectKind.intValue);
     }
 
     public static ContentReferenceAttribute ResolveReference(ContentReferenceAttribute reference, SerializedProperty property)
@@ -234,6 +231,12 @@ public static class ContentReferenceSelection
 
     public static bool HasMixedContext(ContentReferenceAttribute reference, SerializedProperty property) =>
         ContentReferenceCatalog.RequiresOwnerContext(reference.Kind) && property.serializedObject.isEditingMultipleObjects
+            || property.serializedObject.isEditingMultipleObjects
+                && (reference.Kind == ContentReferenceKind.AnatomyNode
+                        && property.serializedObject.targetObject is AnatomyProfileSO
+                    || reference.Kind == ContentReferenceKind.EnemyAbility
+                        && property.serializedObject.targetObject is EnemyArchetypeDefinitionSO
+                        && property.propertyPath.Contains("bossPhases."))
             || reference.Kind == ContentReferenceKind.FacilityRecordMetric
                 && property.serializedObject.FindProperty("generationTrigger")?.hasMultipleDifferentValues == true
             || reference.Kind == ContentReferenceKind.DefenseFamily && Sibling(property, "enabled")?.hasMultipleDifferentValues == true
@@ -248,8 +251,25 @@ public static class ContentReferenceSelection
 
     public static IReadOnlyList<Entry> Entries(ContentReferenceAttribute reference, SerializedProperty property)
     {
+        if (HasMixedContext(reference, property)) return Array.Empty<Entry>();
         var all = Entries(reference);
         if (catalog == null) return all;
+        if (property.serializedObject.targetObject is StockInfo && reference.Kind == ContentReferenceKind.BuildingNumeric)
+            return catalog.Entries(reference, (ScriptableObject)property.serializedObject.targetObject)
+                .Select(entry => new Entry(entry.Asset, entry.Id)).ToArray();
+        int processAt = property.propertyPath.IndexOf(".supportedProcessIds", StringComparison.Ordinal);
+        if (processAt >= 0 && reference.DefinitionTypeName == nameof(ServiceProcessSO))
+        {
+            if (property.serializedObject.isEditingMultipleObjects) return Array.Empty<Entry>();
+            SerializedProperty hub = property.serializedObject.FindProperty(property.propertyPath.Substring(0, processAt));
+            var pending = new BuildingServiceHubAbility
+            {
+                serviceHubTag = hub.FindPropertyRelative("serviceHubTag").stringValue,
+                serviceCategory = (ServiceCategory)hub.FindPropertyRelative("serviceCategory").intValue
+            };
+            return catalog.Entries(reference, property.serializedObject.targetObject as ScriptableObject, pending)
+                .Select(entry => new Entry(entry.Asset, entry.Id)).ToArray();
+        }
         if (ContentReferenceCatalog.RequiresOwnerContext(reference.Kind))
         {
             if (HasMixedContext(reference, property)) return Array.Empty<Entry>();
@@ -387,6 +407,16 @@ public static class ContentReferenceSelection
         ? ContentReferenceCatalog.ResolveType(reference.DefinitionTypeName) : AssetType(reference.Kind);
 
     public static IReadOnlyList<Entry> Entries(ContentReferenceKind kind) => Entries(new ContentReferenceAttribute(kind));
+
+    public static ContentReferenceCatalog CreateCatalog(GameContentCatalogSO root)
+    {
+        if (root == null) throw new ArgumentNullException(nameof(root));
+        return ContentReferenceCatalog.FromCatalogs(
+            root.DomainCatalogs.OfType<GameDomainContentCatalogSO>(),
+            root.GetItemDefinitions<ItemDefinitionCatalogSO>(),
+            root.GetCharacterSkillSettings<CharacterSkillSystemSettingsSO>());
+    }
+
     public static IReadOnlyList<Entry> Entries(ContentReferenceAttribute reference)
     {
         string key = $"{reference.Kind}:{reference.DefinitionTypeName}:{reference.IdMemberName}";
@@ -396,7 +426,7 @@ public static class ContentReferenceSelection
         {
             var root = AssetDatabase.LoadAssetAtPath<GameContentCatalogSO>("Assets/Resources/SO/GameContentCatalog.asset");
             if (root == null) return Array.Empty<Entry>();
-            catalog = ContentReferenceCatalog.FromRoot(root);
+            catalog = CreateCatalog(root);
         }
         return entries[key] = catalog.Entries(reference).Select(value => new Entry(value.Asset, value.Id, value.Label)).ToArray();
     }
@@ -457,6 +487,12 @@ public static class ContentReferenceSelection
         ContentReferenceKind kind = reference.Kind;
         int emptyNumericId = reference.EmptyNumericId;
         error = string.Empty;
+        if (HasMixedContext(reference, property))
+        {
+            error = "Select one owning definition before assigning its local reference. Existing ID preserved.";
+            return false;
+        }
+        if (ContentIdentityProtection.IsPublished(property, out error)) return false;
         if (asset == null) { WriteId(property, kind, string.Empty, emptyNumericId); return true; }
         Entry[] entries = Entries(reference, property).Where(value => value.Asset == asset).ToArray();
         if (entries.Length != 1 || Entries(reference).Count(value => ContentReferenceCatalog.Matches(reference, value.Id, entries[0].Id)) != 1)

@@ -407,6 +407,18 @@ public static partial class FacilityEvolutionDebugScenarios
                     }
                 }
             };
+            // An authored capability with no target consumer is invalid data,
+            // rather than a legal offer to silently filter out. Keep that
+            // rejection boundary separate from the valid burden-selection flow.
+            string beforeInvalidPrepare = JsonUtility.ToJson(state);
+            if (FacilityFormulaEvolutionAuthority.TryPrepare(
+                    state, recipe, out _, out string invalidCapabilityFailure)
+                || !invalidCapabilityFailure.Contains("no reachable target consumer", StringComparison.Ordinal)
+                || JsonUtility.ToJson(state) != beforeInvalidPrepare)
+                throw new InvalidOperationException(
+                    "An unsupported facility capability was accepted or changed state.");
+            recipe.formulaCapabilities.RemoveAll(capability =>
+                capability.evolutionModuleId == "facility:entertainment");
             if (!FacilityFormulaEvolutionAuthority.TryPrepare(
                     state, recipe, out FacilityEvolutionFormulaPresentationPendingSnapshot pending,
                     out string failure))
@@ -500,6 +512,12 @@ public static partial class FacilityEvolutionDebugScenarios
         const string operationId =
             "facility-visit:facility=building:exact-negative-facility-fixture:use=1";
         recipe.formulaPolicy.baseBudget = 1;
+        // This case deliberately yields budget two after exact/legacy dedup.
+        // Its controlled positive capability must fit budget + one drawback
+        // credit. The main scenario's minimum cost six cannot fit that bound.
+        foreach (FacilityEvolutionFormulaCapabilityDefinition capability in recipe.formulaCapabilities)
+            capability.parameterRanges.Single(range => range.parameterId == NarrativeFormulaParameterIds.Magnitude)
+                .minimumUnits = 1000;
         FacilityEvolutionState state = new()
         {
             facilityPersistentId = facilityId,
@@ -541,6 +559,37 @@ public static partial class FacilityEvolutionDebugScenarios
         };
         exact.experience = GameplayExperienceObserverRegistration.Default
             .Observe(exact);
+        if (exact.experience.category != (int)GameplayExperienceCategory.NotExperience
+            || GameplayOutcomeEvidenceFormulaProjection.IsNegative(exact))
+            throw new InvalidOperationException("A facility reference was incorrectly scored as personal injury experience.");
+        // Use the actual policy-v3 actor view and typed health/mood metrics.
+        // A facility reference with an injury label is deliberately not a
+        // personal experience and cannot supply optional-drawback credit.
+        exact.subjectKindId = "character";
+        exact.subjectId = "character:visitor";
+        exact.perspectiveKind = (int)NarrativePerspectiveKind.Character;
+        exact.roleIds = new List<string> { "actor", "facility" };
+        exact.participants = new List<GameplayOutcomeEvidenceParticipantBindingSnapshot>
+        {
+            new() { entityKindId = "character", entityId = exact.subjectId, roleId = "actor",
+                participationKind = (int)GameplayParticipationKind.Direct,
+                hasPerceptionEvidence = true, displayText = "검증 방문자" },
+            new() { entityKindId = "facility", entityId = facilityId, roleId = "facility",
+                participationKind = (int)GameplayParticipationKind.Direct,
+                hasPerceptionEvidence = true, displayText = "검증 시설" }
+        };
+        exact.metrics = new List<GameplayOutcomeEvidenceMetricBindingSnapshot>();
+        foreach (var metric in new[] { (Id: "health-before", Value: 100d), (Id: "health-after", Value: 45d),
+                     (Id: "mood-before", Value: 40d), (Id: "mood-after", Value: 40d) })
+            exact.metrics.Add(new GameplayOutcomeEvidenceMetricBindingSnapshot
+            { metricId = metric.Id, unitId = "point", referenceKindId = "character", referenceId = exact.subjectId,
+                value = metric.Value, minimum = metric.Value, maximum = metric.Value, sampleCount = 1 });
+        exact.metricIds = exact.metrics.Select(metric => metric.metricId).ToList();
+        exact.metricReferenceIds = new List<string> { "character:" + exact.subjectId };
+        exact.experience = GameplayExperienceObserverRegistration.Default.Observe(exact);
+        if (exact.experience.category != (int)GameplayExperienceCategory.Intense
+            || !GameplayOutcomeEvidenceFormulaProjection.IsNegative(exact))
+            throw new InvalidOperationException("The typed actor injury fixture did not retain its policy-v3 assessment.");
         if (!GameplayOutcomeEvidenceBindingAuthority.TryValidate(
                 exact, out string bindingFailure))
         {
@@ -570,7 +619,11 @@ public static partial class FacilityEvolutionDebugScenarios
         {
             throw new InvalidOperationException(
                 "Exact negative facility evidence did not replace its legacy duplicate "
-                + "or expose an optional drawback offer.");
+                + "or expose an optional drawback offer: budget=" + pending.node.formulaBudget
+                + "; evidence=" + string.Join(",", request.EvidenceFactIds)
+                + "; exact=" + exact.publicFactId
+                + "; negative=" + GameplayOutcomeEvidenceFormulaProjection.IsNegative(exact)
+                + "; offers=" + string.Join(",", request.Offers.Select(offer => offer.ModuleId)));
         }
 
         EvolutionNode resolved = FacilityFormulaEvolutionAuthority.FreezeSelectedModule(
@@ -1554,7 +1607,39 @@ public static partial class FacilityEvolutionDebugScenarios
             && occupant.id == world.SourceData.id;
     }
 
-    private static bool VerifyFailedReplacementReplaysPendingMaterialBatch()
+    public static void RunMaterialPendingRestartAndRetryForBatch()
+    {
+        Require(VerifyFailedReplacementReplaysPendingMaterialBatch(restartComponent: true),
+            "Restored material pending did not retry the same batch with one debit.");
+        Require(VerifyDomainAppliedAcknowledgementResume(restartComponent: true),
+            "Restored DomainApplied material pending replayed replacement or acknowledgement.");
+        Require(VerifyPendingMaterialV4TamperRestoresAtomically(),
+            "Tampered facility material pending changed the accepted state.");
+        Debug.Log("R26_FACILITY_MATERIAL_RESTART=PASS; fresh component JSON restore; same pending batch; single debit; replacement and ACK retry; duplicate resume rejected; tamper unchanged");
+    }
+
+    private static FacilityEvolutionStateComponent RestoreFreshMaterialComponent(BuildableObject facility)
+    {
+        FacilityEvolutionStateComponent previous = facility.GetComponent<FacilityEvolutionStateComponent>();
+        Require(previous != null && previous.HasPendingMaterialCommit, "Restart fixture has no material pending.");
+        int oldInstanceId = previous.GetInstanceID();
+        int version = previous.CurrentVersion;
+        string payload = previous.CaptureState();
+        string pending = JsonUtility.ToJson(previous.PendingMaterialCommit);
+        UnityEngine.Object.DestroyImmediate(previous);
+        FacilityEvolutionStateComponent restored = facility.gameObject.AddComponent<FacilityEvolutionStateComponent>();
+        Require(restored.GetInstanceID() != oldInstanceId
+            && restored.TryRestoreState(version, payload, out _)
+            && restored.HasPendingMaterialCommit
+            && JsonUtility.ToJson(restored.PendingMaterialCommit) == pending,
+            "Fresh component did not restore the exact material commit and resolved result.");
+        return restored;
+    }
+
+    private static bool VerifyFailedReplacementReplaysPendingMaterialBatch() =>
+        VerifyFailedReplacementReplaysPendingMaterialBatch(restartComponent: false);
+
+    private static bool VerifyFailedReplacementReplaysPendingMaterialBatch(bool restartComponent)
     {
         using EvolutionScenarioWorld world = EvolutionScenarioWorld.CreateCombatDining();
         FacilityEvolutionRecipeSO recipe = CreateCombatRecipe(
@@ -1624,6 +1709,12 @@ public static partial class FacilityEvolutionDebugScenarios
                 out _)
             && sourceState.HasPendingMaterialCommit;
 
+        if (restartComponent)
+        {
+            sourceState = RestoreFreshMaterialComponent(world.SourceFacility);
+            currentFormatRoundTrip = currentFormatRoundTrip && sourceState.HasPendingMaterialCommit;
+        }
+
         bool second = engine.TryResumePending(
             world.SourceFacility,
             out FacilityEvolutionResult secondResult,
@@ -1651,6 +1742,13 @@ public static partial class FacilityEvolutionDebugScenarios
                 .GetComponent<FacilityEvolutionStateComponent>()
                 .HasPendingMaterialCommit
             && replacer.TryReplaceCalls == 2;
+        if (passed && restartComponent)
+        {
+            passed = !engine.TryResumePending(secondResult.ResultBuilding, out _, out _)
+                && replacer.TryReplaceCalls == 2
+                && resources.HasMaterial("high_grade_meat", 1)
+                && !resources.HasMaterial("high_grade_meat", 2);
+        }
         if (!passed)
         {
             Debug.LogError(
@@ -2089,6 +2187,12 @@ public static partial class FacilityEvolutionDebugScenarios
             FacilityEvolutionStateSnapshot tampered =
                 JsonUtility.FromJson<FacilityEvolutionStateSnapshot>(canonical);
             mutate(tampered);
+            // Keep the frozen fact internally consistent so this case reaches
+            // the physical receipt join instead of failing the earlier owner guard.
+            FacilityEvolutionPendingMaterialCommitSnapshot pending = tampered.pendingMaterialCommit;
+            pending.completedFact.materialCommitId = pending.commitId;
+            pending.completedFact.materialQuantity = pending.quantity;
+            pending.completedFact.materialInputMassGrams = pending.inputMassGrams;
             state.ApplySnapshot(tampered);
             FacilityEvolutionPendingMaterialRestoreGuard guard =
                 new FacilityEvolutionPendingMaterialRestoreGuard(
@@ -2171,7 +2275,10 @@ public static partial class FacilityEvolutionDebugScenarios
         return passed;
     }
 
-    private static bool VerifyDomainAppliedAcknowledgementResume()
+    private static bool VerifyDomainAppliedAcknowledgementResume() =>
+        VerifyDomainAppliedAcknowledgementResume(restartComponent: false);
+
+    private static bool VerifyDomainAppliedAcknowledgementResume(bool restartComponent)
     {
         using EvolutionScenarioWorld world = EvolutionScenarioWorld.CreateCombatDining();
         FacilityEvolutionRecipeSO recipe = CreateCombatRecipe(
@@ -2204,6 +2311,12 @@ public static partial class FacilityEvolutionDebugScenarios
             && publishedState.PendingMaterialCommit?.phase
                 == FacilityEvolutionMaterialCommitPhase.DomainApplied;
 
+        if (restartComponent)
+        {
+            Require(domainApplied, "Restart fixture did not reach DomainApplied before ACK.");
+            publishedState = RestoreFreshMaterialComponent(published);
+        }
+
         bool second = engine.TryResumePending(
             published,
             out FacilityEvolutionResult resumed,
@@ -2212,7 +2325,7 @@ public static partial class FacilityEvolutionDebugScenarios
             .GetGridCell(world.SourcePosition)
             .GetOccupant(GridLayer.Building) as BuildableObject;
 
-        return domainApplied
+        bool passed = domainApplied
             && second
             && resumed.Success
             && ReferenceEquals(afterResume, published)
@@ -2221,6 +2334,11 @@ public static partial class FacilityEvolutionDebugScenarios
             && !publishedState.HasPendingMaterialCommit
             && inner.HasMaterial("high_grade_meat", 1)
             && !inner.HasMaterial("high_grade_meat", 2);
+        if (passed && restartComponent)
+            passed = !engine.TryResumePending(published, out _, out _)
+                && replacer.TryReplaceCalls == 1 && resources.AcknowledgeCalls == 2
+                && inner.HasMaterial("high_grade_meat", 1) && !inner.HasMaterial("high_grade_meat", 2);
+        return passed;
     }
 
     private static bool VerifyPendingMaterialProjectionResumesExactResult()

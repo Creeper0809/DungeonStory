@@ -22,7 +22,7 @@ public sealed class BuildingDefenseAbility : BuildingAbility
 [Serializable]
 [BuildingAbilityDisplayName("엄폐")]
 public sealed class BuildingCoverAbility : BuildingAbility,
-    IBuildingRuntimeAbilityDefinition
+    IBuildingPersistentAbilityDefinition
 {
     [InspectorName("엄폐 높이")]
     public CombatCoverHeight height = CombatCoverHeight.Low;
@@ -39,7 +39,7 @@ public sealed class BuildingCoverAbility : BuildingAbility,
 [Serializable]
 [BuildingAbilityDisplayName("구조 내구도")]
 public sealed class BuildingStructuralIntegrityAbility : BuildingAbility,
-    IBuildingRuntimeAbilityDefinition
+    IBuildingPersistentAbilityDefinition
 {
     [Min(1f), InspectorName("최대 내구도")]
     public float maxHitPoints = 300f;
@@ -83,7 +83,7 @@ public sealed class BuildingRecreationalSubstanceServiceAbility : BuildingAbilit
 [BuildingAbilityDisplayName("생산")]
 public sealed class BuildingProductionAbility : BuildingAbility,
     IBuildingWorkCompletionAbility,
-    IBuildingRuntimeAbilityDefinition,
+    IBuildingPersistentAbilityDefinition,
     IBuildingStockCategorySignal
 {
     [InspectorName("생산 품목")] public StockCategory outputCategory = StockCategory.General;
@@ -426,7 +426,7 @@ public sealed class BuildingTrainingAbility : BuildingAbility,
 [BuildingAbilityDisplayName("경비")]
 public sealed class BuildingSecurityAbility : BuildingAbility,
     IBuildingWorkCompletionAbility,
-    IBuildingRuntimeAbilityDefinition
+    IBuildingPersistentAbilityDefinition
 {
     [Min(1)] public int maxAlarmCharges = 3;
     [Min(1)] public int chargesPerGuardWork = 1;

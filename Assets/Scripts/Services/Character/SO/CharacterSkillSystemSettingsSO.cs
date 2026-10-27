@@ -545,17 +545,26 @@ public sealed class CharacterSkillSystemSettingsSO : ScriptableObject
 
     public int GetBudget(CharacterSkillRarity rarity)
     {
-        CharacterRarityBudget configured = rarityBudgets?.FirstOrDefault(item => item != null && item.rarity == rarity);
+        RequireRarityBudgetKeys();
+        CharacterRarityBudget configured = rarityBudgets.FirstOrDefault(item =>
+            item.rarity == rarity);
         return Mathf.Max(1, configured?.budget ?? 1);
     }
 
     public IReadOnlyList<CharacterWeightedRarity> GetRarityWeights(CharacterPotentialGrade potential)
     {
-        CharacterPotentialRarityProfile profile = potentialRarityProfiles?
-            .FirstOrDefault(item => item != null && item.potential == potential);
+        RequirePotentialRarityProfileKeys();
+        CharacterPotentialRarityProfile profile = potentialRarityProfiles
+            .FirstOrDefault(item => item.potential == potential);
         return profile != null
             ? profile.rarityWeights
             : (IReadOnlyList<CharacterWeightedRarity>)Array.Empty<CharacterWeightedRarity>();
+    }
+
+    public void RequireUniqueRarityTableKeys()
+    {
+        RequireRarityBudgetKeys();
+        RequirePotentialRarityProfileKeys();
     }
 
     public CharacterSkillModuleRule FindModule(string moduleId)
@@ -570,12 +579,59 @@ public sealed class CharacterSkillSystemSettingsSO : ScriptableObject
         {
             throw new InvalidOperationException("CharacterSkill formula policy is missing.");
         }
+        RequireUniqueRarityTableKeys();
         formulaPolicy.RequireCompleteGenerationContexts();
         formulaPolicy.RequireCatalogSha256();
         if (formulaPolicy.formulaVersion >=
             CharacterSkillFormulaVersions.DrawbackModuleSelectionFormulaVersion)
             RequireDrawbackCatalog();
         return formulaPolicy.ToRuntime();
+    }
+
+    private void RequireRarityBudgetKeys()
+    {
+        if (rarityBudgets == null || rarityBudgets.Count == 0)
+        {
+            throw new InvalidOperationException(
+                "CharacterSkill rarity-budget table is missing.");
+        }
+        if (rarityBudgets.Any(value => value == null))
+        {
+            throw new InvalidOperationException(
+                "CharacterSkill rarity-budget table contains a null entry.");
+        }
+        IGrouping<CharacterSkillRarity, CharacterRarityBudget> duplicate =
+            rarityBudgets
+                .GroupBy(value => value.rarity)
+                .FirstOrDefault(group => group.Count() > 1);
+        if (duplicate != null)
+        {
+            throw new InvalidOperationException(
+                $"CharacterSkill rarity-budget key '{duplicate.Key}' is duplicated.");
+        }
+    }
+
+    private void RequirePotentialRarityProfileKeys()
+    {
+        if (potentialRarityProfiles == null || potentialRarityProfiles.Count == 0)
+        {
+            throw new InvalidOperationException(
+                "CharacterSkill potential-rarity profile table is missing.");
+        }
+        if (potentialRarityProfiles.Any(value => value == null))
+        {
+            throw new InvalidOperationException(
+                "CharacterSkill potential-rarity profile table contains a null entry.");
+        }
+        IGrouping<CharacterPotentialGrade, CharacterPotentialRarityProfile> duplicate =
+            potentialRarityProfiles
+                .GroupBy(value => value.potential)
+                .FirstOrDefault(group => group.Count() > 1);
+        if (duplicate != null)
+        {
+            throw new InvalidOperationException(
+                $"CharacterSkill potential-rarity profile key '{duplicate.Key}' is duplicated.");
+        }
     }
 
     public CharacterSkillDrawbackCapabilityDefinition FindDrawback(string drawbackId)

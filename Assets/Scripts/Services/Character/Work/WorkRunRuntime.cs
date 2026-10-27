@@ -263,7 +263,7 @@ internal sealed class WorkRunRuntime
         work.isWorking = false;
         if (actor.Brain != null)
         {
-            actor.Brain.isBestActionEnd = true;
+            actor.Brain.RequestDecisionAfterExecution();
         }
 
         return true;
@@ -292,7 +292,7 @@ internal sealed class WorkRunRuntime
             }
             else
             {
-                brain.isBestActionEnd = true;
+                brain.RequestDecisionAfterExecution();
             }
         }
     }

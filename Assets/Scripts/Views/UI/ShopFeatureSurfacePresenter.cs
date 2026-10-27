@@ -203,7 +203,8 @@ public sealed class ShopFeatureQueryService : IShopFeatureQueryService
         string scope = basic ? "Basic" : "Daily";
         string purchaseKey = basic
             ? $"shop:basic:{offer?.OfferTypeId}:{offer?.DataId}"
-            : $"shop:daily:{offerDay}:{index}:{offer?.OfferTypeId}:{offer?.DataId}";
+            : offer == null ? string.Empty
+                : FacilityShopUnlockState.DailyOfferKey(offerDay, index, offer.OfferTypeId, offer.DataId);
         string detail = offer == null
             ? "상품 정보 없음"
             : $"{offer.TypeDisplayName} / {offer.Rarity} / 비용 {offer.Cost} / {offer.Star}성" +
@@ -320,8 +321,6 @@ public sealed class ShopFeatureQueryService : IShopFeatureQueryService
 
 public sealed class ShopFeatureCommandService : IShopFeatureCommandService
 {
-    private readonly HashSet<string> purchasedKeys =
-        new HashSet<string>(StringComparer.Ordinal);
     private readonly DailyFacilityShopRuntime runtime;
     private readonly IGameSessionStateProvider gameDataProvider;
     private readonly IAutoProcurementRuntime autoProcurement;
@@ -349,11 +348,13 @@ public sealed class ShopFeatureCommandService : IShopFeatureCommandService
     public bool WasPurchased(string purchaseKey)
     {
         return !string.IsNullOrWhiteSpace(purchaseKey)
-            && purchasedKeys.Contains(purchaseKey);
+            && runtime.WasDailyOfferPurchased(purchaseKey);
     }
 
     public ShopFeatureCommandResult PurchaseDaily(int index, string purchaseKey)
     {
+        if (!string.Equals(runtime.GetDailyOfferKey(index), purchaseKey, StringComparison.Ordinal))
+            return new ShopFeatureCommandResult(false, "일일 상품이 변경되었습니다. 목록을 다시 확인해 주세요.");
         return Purchase(
             purchaseKey,
             (DailyFacilityShopRuntime runtime, GameSessionState gameData, out FacilityShopPurchaseResult result) =>
@@ -367,8 +368,7 @@ public sealed class ShopFeatureCommandService : IShopFeatureCommandService
             purchaseKey,
             (DailyFacilityShopRuntime runtime, GameSessionState gameData, out FacilityShopPurchaseResult result) =>
                 runtime.TryPurchaseBasicOffer(index, gameData, out result),
-            "기본 구매",
-            repeatable: true);
+            "기본 구매");
     }
 
     public ShopFeatureCommandResult AdjustProcurementBudget(
@@ -460,17 +460,11 @@ public sealed class ShopFeatureCommandService : IShopFeatureCommandService
     private ShopFeatureCommandResult Purchase(
         string purchaseKey,
         PurchaseOperation operation,
-        string label,
-        bool repeatable = false)
+        string label)
     {
         if (string.IsNullOrWhiteSpace(purchaseKey))
         {
             return new ShopFeatureCommandResult(false, $"{label} 실패: 상품 식별자가 없습니다.");
-        }
-
-        if (!repeatable && purchasedKeys.Contains(purchaseKey))
-        {
-            return new ShopFeatureCommandResult(false, "이미 구매한 상품입니다.");
         }
 
         if (runtime == null)
@@ -490,11 +484,6 @@ public sealed class ShopFeatureCommandService : IShopFeatureCommandService
         int afterMoney = gameData.holdingMoney != null
             ? gameData.holdingMoney.Value
             : -1;
-        if (succeeded && !repeatable)
-        {
-            purchasedKeys.Add(purchaseKey);
-        }
-
         return new ShopFeatureCommandResult(
             succeeded,
             $"{(succeeded ? $"{label} 성공" : $"{label} 실패")}: {result.message} / " +

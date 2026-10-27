@@ -61,6 +61,10 @@ public interface IGridOccupant
     bool IsGridMovement { get; }
 }
 
+public interface IGridBuildingOccupant : IGridOccupant
+{
+}
+
 public interface IGridMovementOccupant
 {
     GridMoveType GridMoveType { get; }

@@ -7,7 +7,7 @@ FactionContractDefinitionSO,content-type,,type-reference,services:run,runtime,st
 FactionContractDefinitionSO,content-type,,type-reference; save-restore-reference,services:run,runtime,structural-type-consumer,Assets/Scripts/Services/Run/V20CampaignRuntime.cs
 FactionContractDefinitionSO,content-type,,type-reference,services:run,persistence,structural-type-consumer,Assets/Scripts/Services/Run/V20CampaignSaveCodec.cs
 FactionContractDefinitionSO,content-type,,type-reference,services:run,runtime,structural-type-consumer,Assets/Scripts/Services/Run/V20ContentResolutionRequestPlanner.cs
-FactionContractDefinitionSO,content-type,,type-reference; save-restore-reference,services:run,runtime,structural-type-consumer,Assets/Scripts/Services/Run/V20ContentResolutionService.cs
+FactionContractDefinitionSO,content-type,,type-reference; save-restore-reference,services:run,runtime,structural-type-consumer,Assets/Scripts/Services/Run/V20FactionContractDeliveryRuntime.cs
 FactionContractDefinitionSO,content-type,,type-reference,services:run,runtime,structural-type-consumer,Assets/Scripts/Services/Run/V20FactionContractQuery.cs
 FactionContractDefinitionSO,content-type,,type-reference,services:run,content-loading,structural-type-consumer,Assets/Scripts/Services/Run/V20StoryCatalogContracts.cs
 FactionContractDefinitionSO,content-type,,type-reference,services:run,content-loading,structural-type-consumer,Assets/Scripts/Services/Run/V20StoryContentCatalog.cs

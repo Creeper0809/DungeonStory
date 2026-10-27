@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.ExceptionServices;
+using System.Runtime.Serialization;
 using DungeonStory.Foundation;
 using DungeonStory.Foundation.Facts;
 using Newtonsoft.Json;
@@ -121,6 +122,7 @@ public static partial class TabooButcheryCausalProductionEntryDebugScenarios
     {
         private readonly string ownerId;
         private readonly CustomerAiDebugScenarios.CustomerAiScenarioWorld world;
+        private readonly CharacterWorldSaveService actorSave;
         private readonly List<CharacterActor> actors = new();
         private readonly GameEventBus events = new();
         private readonly CharacterVitalsActivityObserver vitalsActivities;
@@ -192,6 +194,11 @@ public static partial class TabooButcheryCausalProductionEntryDebugScenarios
             world = new CustomerAiDebugScenarios.CustomerAiScenarioWorld();
             try
             {
+                // 캐릭터 단위 저장과 복원은 같은 이동 provenance 소유자를 사용한다.
+                actorSave = (CharacterWorldSaveService)FormatterServices.GetUninitializedObject(
+                    typeof(CharacterWorldSaveService));
+                Field(typeof(CharacterWorldSaveService), "responseMovements").SetValue(
+                    actorSave, new SocietyResponseMovementProvenanceRuntime());
                 health = new CharacterBodyHealthRuntime(new UnityRealtimeClock(), CharacterAiEditorTestDependencies.WorldRegistry, clock, events,
                     new DynamicFrameWorkBudget(clock, new UnityUiClock()),
                     new ResourceAnatomyProfileCatalog(new ResourceGameContentCatalog(new UnityGameContentRootLoader())),
@@ -425,7 +432,7 @@ public static partial class TabooButcheryCausalProductionEntryDebugScenarios
         };
 
         private JObject CaptureActor(CharacterActor actor) => Dto((DungeonCharacterSaveData)
-            Invoke(typeof(CharacterWorldSaveService), "CaptureActor", null, world.Grid, actor));
+            Invoke(typeof(CharacterWorldSaveService), "CaptureActor", actorSave, world.Grid, actor));
 
         private void Restore(JObject checkpoint)
         {
@@ -448,7 +455,7 @@ public static partial class TabooButcheryCausalProductionEntryDebugScenarios
                 Invoke(typeof(CharacterWorldRestorePayloadValidator), "ValidateActor", null, world.Grid, dto,
                     new Dictionary<int, CharacterSO> { [dto.dataId] = actor.Identity.Data }, report, false);
                 Require(report.Success, "Actor restore: " + string.Join("; ", report.Errors));
-                Invoke(typeof(CharacterWorldSaveService), "ApplyActorState", null, world.Grid, actor, dto);
+                Invoke(typeof(CharacterWorldSaveService), "ApplyActorState", actorSave, world.Grid, actor, dto);
             }
             items.Restore(Read<DungeonPhysicalItemSaveData>(state["physical"]));
             ids.Restore((JObject)state["idSequence"]);

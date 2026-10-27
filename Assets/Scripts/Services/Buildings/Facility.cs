@@ -219,9 +219,6 @@ public class Facility : BuildableObject,
             yield break;
         }
 
-        WaterFixtureUseTicket fixtureUseTicket = default;
-        BuildingWaterFixtureAbility waterFixture =
-            BuildingData?.GetAbility<BuildingWaterFixtureAbility>();
         string failureReason;
         bool useAdmitted = resuming
             ? TryRestoreActiveUse(actor, out failureReason)
@@ -411,11 +408,7 @@ public class Facility : BuildableObject,
         }
         facilityUseAttempt.State.Advance(FacilityUseExecutionPhase.SeatApproach);
 
-        BuildingRecreationalSubstanceServiceAbility recreation =
-            BuildingData?.GetAbility<BuildingRecreationalSubstanceServiceAbility>();
-        bool usesPhysicalMealAction = recreation?.IsValid != true
-            && Facility != null
-            && Facility.SupportsRole(FacilityRole.Meal);
+        bool usesPhysicalMealAction = FacilityUseEffectsExecution.UsesPhysicalMeal(this);
         float duration = facilityUseAttempt.State.serviceSeconds;
 
         actor.SetActionPhase("\uC2DC\uC124 \uC774\uC6A9", this, $"{duration:0.#}s");
@@ -452,275 +445,48 @@ public class Facility : BuildableObject,
             : default;
         if (facilityUseAttempt.State.Enter(FacilityUseExecutionPhase.Effects))
         {
-        // Water supply and wastewater fallback are one atomic authority in
-        // IWaterFixtureUseRuntime.  In particular, dry/manual fixtures can
-        // legitimately emit sewage or a physical waste item when no pipe is
-        // available; a separate drain precheck here would reject those authored
-        // fallback modes before the runtime can issue its use ticket.
-        if (!facilityUseAttempt.State.waterPrepared && waterFixtureUseRuntime != null
-            && waterFixture != null
-            && !waterFixtureUseRuntime.TryBeginUse(
-                this,
-                actor?.BuildingCharacterId ?? default,
-                out fixtureUseTicket,
-                out DomainFailure plumbingFailure))
-        {
-            AbortForResourceFailure(
-                actor,
-                interactionFacilityLabel,
-                serviceSession,
-                plumbingFailure.Code.ToString(),
-                facilityUseAttempt);
-            yield break;
-        }
-        if (!facilityUseAttempt.State.waterPrepared)
-        {
-            facilityUseAttempt.State.waterPrepared = true;
-            facilityUseAttempt.State.waterFixtureId = fixtureUseTicket.IsValid
-                ? fixtureUseTicket.FixtureId.Value : string.Empty;
-            facilityUseAttempt.State.waterSupplyKind = fixtureUseTicket.SupplyKind;
-            facilityUseAttempt.State.wastewaterAmount = fixtureUseTicket.WastewaterAmount;
-        }
-        else if (facilityUseAttempt.State.waterSupplyKind != WaterFixtureSupplyKind.None)
-        {
-            fixtureUseTicket = new WaterFixtureUseTicket(
-                new BuildingInstanceId(facilityUseAttempt.State.waterFixtureId),
-                facilityUseAttempt.State.waterSupplyKind,
-                facilityUseAttempt.State.wastewaterAmount);
-        }
-        if (recreation?.IsValid == true)
-        {
-            if (!actor.TryConsumeRecreationalSubstance(
-                    this,
-                    out BuildingRecreationalSubstanceUseSnapshot substanceResult))
+            var effects = new FacilityUseEffectsExecution(this, actor,
+                () => facilityUseAttempt.State, mealConsumptionRuntime, waterFixtureUseRuntime,
+                roomEnvironmentExperienceService, GameClock, interactionFacilityLabel);
+            IEnumerator execution = effects.Apply();
+            try
             {
-                string failureCode = string.IsNullOrWhiteSpace(substanceResult.FailureCode)
-                    ? CharacterConsumablesFailureCode.InvalidCommand.ToString()
-                    : substanceResult.FailureCode;
-                CancelServiceSessionAndCaptureChild(
-                    serviceSession,
-                    failureCode,
-                    facilityUseAttempt);
-                actor.RecordActivity(this, new BuildingActivitySnapshot(
-                    BuildingActivityKinds.FacilityUse,
-                    BuildingActivityOutcomes.Failed,
-                    failureCode,
-                    reasonCode: failureCode,
-                    bubbleEligible: true));
-                CommitTerminalFacilityUse(
-                    actor,
-                    facilityUseAttempt,
-                    CharacterFacilityUseOutcomeStatus.Failed,
-                    failureCode);
-                actor.ReportInteractionFailure(
-                    BuildingInteractionFailureKind.ConsumptionFailed,
-                    $"{interactionFacilityLabel}: {failureCode}",
-                    this);
-                yield break;
-            }
-
-            facilityUseAttempt.ChildResultKeys.AddRange(
-                ApplyRecovery(
-                    actor,
-                    0f,
-                    0f,
-                    recreation.funRecovery,
-                    0f,
-                    0f,
-                    0f));
-            float sentiment = recreation.facilitySentiment;
-            string socialDetail = $"{substanceResult.DisplayName}을(를) 즐김";
-            actor.RememberFacilityExperience(this, sentiment, socialDetail);
-            actor.RecordActivity(this, new BuildingActivitySnapshot(
-                BuildingActivityKinds.Social,
-                BuildingActivityOutcomes.Completed,
-                socialDetail,
-                actionId: "social:recreational-drink",
-                reasonCode: substanceResult.Overdosed
-                    ? "recreational-drink-overdose"
-                    : substanceResult.BecameAddicted
-                        ? "recreational-drink-addiction"
-                        : "recreational-drink",
-                value: recreation.funRecovery,
-                sentiment: substanceResult.Overdosed ? -0.5f : sentiment,
-                bubbleEligible: true));
-            if (!string.IsNullOrWhiteSpace(
-                    substanceResult.OutcomeResultKey))
-            {
-                facilityUseAttempt.ChildResultKeys.Add(
-                    substanceResult.OutcomeResultKey);
-            }
-            facilityUseAttempt.EffectsCommitted = true;
-        }
-        else if (Facility != null && Facility.SupportsRole(FacilityRole.Meal))
-        {
-            bool mealConsumed;
-            if (!string.IsNullOrEmpty(facilityUseAttempt.State.mealOperationId))
-            {
-                bool found = actor.TryGetMealConsumptionResult(mealConsumptionRuntime,
-                    facilityUseAttempt.State.mealOperationId, out mealResult);
-                if (!found && !string.Equals(mealResult.OperationId,
-                        facilityUseAttempt.State.mealOperationId, StringComparison.Ordinal))
-                    throw new InvalidOperationException("Restored facility meal operation is missing: "
-                        + facilityUseAttempt.State.mealOperationId);
-                mealConsumed = mealResult.Success;
-            }
-            else
-            {
-                mealConsumed = mealConsumptionRuntime != null
-                    && actor.TryConsumeMeal(mealConsumptionRuntime, this, out mealResult);
-                facilityUseAttempt.State.mealOperationId = mealResult.OperationId ?? string.Empty;
-            }
-            if (!mealConsumed && mealResult.AcceptedPending)
-            {
-                actor.SetActionPhase("식사 중", this, "4s");
-                while (facilityUseAttempt.State.mealWaitElapsedSeconds < 15f)
+                while (execution.MoveNext())
                 {
-                    yield return null;
-                    if (!TryContinueInteraction(
-                            actor,
-                            currentAction,
-                            out interactionFailure,
-                            out interactionFailureDetail))
+                    yield return execution.Current;
+                    if (!TryContinueInteraction(actor, currentAction,
+                            out interactionFailure, out interactionFailureDetail))
                     {
-                        AbortInteraction(
-                            actor,
-                            interactionFacilityLabel,
-                            serviceSession,
-                            useStarted: true,
-                            interactionFailure,
-                            interactionFailureDetail,
-                            facilityUseAttempt);
+                        AbortInteraction(actor, interactionFacilityLabel, serviceSession, useStarted: true,
+                            interactionFailure, interactionFailureDetail, facilityUseAttempt);
                         yield break;
                     }
-                    // Check lifecycle/action cancellation before reading a use
-                    // that its owner may already have retired while suspended.
-                    // Meal plans still advance only on game time.
-                    facilityUseAttempt.State.mealWaitElapsedSeconds = Mathf.Min(15f,
-                        facilityUseAttempt.State.mealWaitElapsedSeconds + GameDeltaTime);
-                    if (!actor.TryGetMealConsumptionResult(
-                            mealConsumptionRuntime,
-                            mealResult.OperationId,
-                            out BuildingMealUseSnapshot currentMeal))
-                    {
-                        mealResult = currentMeal;
-                        break;
-                    }
-                    mealResult = currentMeal;
-                    if (mealResult.Success)
-                    {
-                        mealConsumed = true;
-                        break;
-                    }
-                    if (!mealResult.AcceptedPending)
-                    {
-                        break;
-                    }
-                }
-                if (!mealConsumed && mealResult.AcceptedPending)
-                {
-                    mealResult = new BuildingMealUseSnapshot(
-                        false,
-                        CharacterConsumablesFailureCode.PhysicalConsumptionFailed.ToString(),
-                        string.Empty,
-                        0,
-                        failureDetail: "meal-action-timeout");
                 }
             }
-            if (!mealConsumed)
+            finally { (execution as IDisposable)?.Dispose(); }
+            mealResult = effects.Meal;
+            if (!effects.Succeeded)
             {
-                if (mealResult.IsRetryableUnavailable)
+                if (effects.ResourceFailure)
+                    AbortForResourceFailure(actor, interactionFacilityLabel, serviceSession,
+                        effects.FailureCode, facilityUseAttempt);
+                else
                 {
-                    const string cancellationReason = "meal-supply-retry";
-                    CancelServiceSessionAndCaptureChild(
-                        serviceSession,
-                        cancellationReason,
-                        facilityUseAttempt);
-                    actor.RecordActivity(this, new BuildingActivitySnapshot(
-                        BuildingActivityKinds.FacilityUse,
-                        BuildingActivityOutcomes.Cancelled,
-                        $"{interactionFacilityLabel} meal supply changed before commit; retrying selection.",
-                        reasonCode: cancellationReason));
-                    CommitTerminalFacilityUse(
-                        actor,
-                        facilityUseAttempt,
-                        CharacterFacilityUseOutcomeStatus.Cancelled,
-                        cancellationReason);
-                    SetVisitOutcome(actor, this, BuildingVisitOutcome.Abandoned);
-                    yield break;
+                    CancelServiceSessionAndCaptureChild(serviceSession, effects.FailureCode, facilityUseAttempt);
+                    actor.RecordActivity(this, new BuildingActivitySnapshot(BuildingActivityKinds.FacilityUse,
+                        effects.Cancelled ? BuildingActivityOutcomes.Cancelled : BuildingActivityOutcomes.Failed,
+                        effects.ActivityDetail, reasonCode: effects.FailureCode, bubbleEligible: !effects.Cancelled));
+                    CommitTerminalFacilityUse(actor, facilityUseAttempt,
+                        effects.Cancelled ? CharacterFacilityUseOutcomeStatus.Cancelled : CharacterFacilityUseOutcomeStatus.Failed,
+                        effects.FailureCode);
+                    if (effects.Cancelled) SetVisitOutcome(actor, this, BuildingVisitOutcome.Abandoned);
+                    else actor.ReportInteractionFailure(BuildingInteractionFailureKind.ConsumptionFailed,
+                        string.IsNullOrWhiteSpace(effects.FailureDetail)
+                            ? $"{interactionFacilityLabel}: {effects.FailureCode}"
+                            : $"{interactionFacilityLabel}: {effects.FailureCode}:{effects.FailureDetail}", this);
                 }
-
-                if (mealResult.IsNoLongerNeeded)
-                {
-                    const string cancellationReason = "meal-no-longer-needed";
-                    CancelServiceSessionAndCaptureChild(
-                        serviceSession,
-                        cancellationReason,
-                        facilityUseAttempt);
-                    actor.RecordActivity(this, new BuildingActivitySnapshot(
-                        BuildingActivityKinds.FacilityUse,
-                        BuildingActivityOutcomes.Cancelled,
-                        $"{interactionFacilityLabel} meal plan retired because the need was already satisfied.",
-                        reasonCode: cancellationReason));
-                    CommitTerminalFacilityUse(
-                        actor,
-                        facilityUseAttempt,
-                        CharacterFacilityUseOutcomeStatus.Cancelled,
-                        cancellationReason);
-                    SetVisitOutcome(actor, this, BuildingVisitOutcome.Abandoned);
-                    yield break;
-                }
-
-                string failureCode = mealConsumptionRuntime == null
-                    ? "InvalidCommand"
-                    : string.IsNullOrWhiteSpace(mealResult.FailureCode)
-                        ? CharacterConsumablesFailureCode.PhysicalConsumptionFailed.ToString()
-                        : mealResult.FailureCode;
-                CancelServiceSessionAndCaptureChild(
-                    serviceSession,
-                    failureCode,
-                    facilityUseAttempt);
-                actor.RecordActivity(this, new BuildingActivitySnapshot(
-                    BuildingActivityKinds.FacilityUse,
-                    BuildingActivityOutcomes.Failed,
-                    string.IsNullOrWhiteSpace(mealResult.FailureDetail)
-                        ? failureCode
-                        : $"{failureCode}:{mealResult.FailureDetail}",
-                    reasonCode: failureCode,
-                    bubbleEligible: true));
-                CommitTerminalFacilityUse(
-                    actor,
-                    facilityUseAttempt,
-                    CharacterFacilityUseOutcomeStatus.Failed,
-                    failureCode);
-                actor.ReportInteractionFailure(
-                    BuildingInteractionFailureKind.ConsumptionFailed,
-                    string.IsNullOrWhiteSpace(mealResult.FailureDetail)
-                        ? $"{interactionFacilityLabel}: {failureCode}"
-                        : $"{interactionFacilityLabel}: {failureCode}:{mealResult.FailureDetail}",
-                    this);
                 yield break;
             }
-            if (!string.IsNullOrWhiteSpace(mealResult.OutcomeResultKey))
-                facilityUseAttempt.ChildResultKeys.Add(mealResult.OutcomeResultKey);
-            facilityUseAttempt.EffectsCommitted = true;
-            facilityUseAttempt.State.mealSucceeded = true;
-            facilityUseAttempt.State.mealDisplayName = mealResult.DisplayName;
-        }
-        else
-        {
-            facilityUseAttempt.ChildResultKeys.AddRange(
-                ApplyConfiguredUseRecovery(actor));
-        }
-
-        waterFixtureUseRuntime?.CompleteUse(this, fixtureUseTicket);
-        actor.ApplyFacilityUseCompleted(this);
-        facilityUseAttempt.EffectsCommitted = true;
-        facilityUseAttempt.ChildResultKeys.AddRange(
-            actor.ApplyRoomExperienceDetailed(
-                roomEnvironmentExperienceService,
-                this,
-                "facility-use").ChildResultKeys);
         facilityUseAttempt.State.Advance(FacilityUseExecutionPhase.Effects);
         }
         actor.SetActionPhase("\uC774\uC6A9 \uC815\uB9AC", this);
@@ -1433,124 +1199,9 @@ public class Facility : BuildableObject,
         return grid.GetWorldPos(new Vector2(endX, centerPos.y));
     }
 
-    public IReadOnlyList<string> ApplyConfiguredUseRecovery(
-        IBuildingVisitorPort actor)
-    {
-        if (actor == null || Facility == null)
-        {
-            return Array.Empty<string>();
-        }
-
-        FacilityNeedRecoveryData configured = BuildingData != null
-            ? BuildingData.GetNeedRecovery()
-            : default;
-        float sleep = configured.sleep;
-        float mood = configured.mood;
-        float fun = configured.fun;
-        float hunger = configured.hunger;
-        float excretion = configured.excretion;
-        float hygiene = configured.hygiene;
-
-        if (configured.HasEffect)
-        {
-            return ApplyRecovery(
-                actor,
-                sleep,
-                mood,
-                fun,
-                hunger,
-                excretion,
-                hygiene);
-        }
-
-        if (Facility.SupportsRole(FacilityRole.Rest))
-        {
-            sleep += 35f;
-            mood += 12f;
-        }
-
-        if (Facility.SupportsRole(FacilityRole.Training))
-        {
-            fun += 15f;
-            mood += 5f;
-        }
-
-        if (Facility.SupportsRole(FacilityRole.Research))
-        {
-            fun += 10f;
-            mood += 8f;
-        }
-
-        if (Facility.SupportsRole(FacilityRole.Mana))
-        {
-            mood += 10f;
-        }
-
-        if (Facility.SupportsRole(FacilityRole.Logistics))
-        {
-            mood += 3f;
-        }
-
-        if (Facility.SupportsRole(FacilityRole.Meal))
-        {
-            hunger += 35f;
-            mood += 5f;
-        }
-
-        if (Facility.SupportsRole(FacilityRole.Toilet))
-        {
-            excretion += 70f;
-            mood += 2f;
-        }
-
-        if (Facility.SupportsRole(FacilityRole.Hygiene))
-        {
-            hygiene += 60f;
-            mood += 4f;
-        }
-
-        return ApplyRecovery(
-            actor,
-            sleep,
-            mood,
-            fun,
-            hunger,
-            excretion,
-            hygiene);
-    }
-
-    private IReadOnlyList<string> ApplyRecovery(
-        IBuildingVisitorPort actor,
-        float sleep,
-        float mood,
-        float fun,
-        float hunger,
-        float excretion,
-        float hygiene)
-    {
-        if (sleep == 0f
-            && mood == 0f
-            && fun == 0f
-            && hunger == 0f
-            && excretion == 0f
-            && hygiene == 0f)
-        {
-            return Array.Empty<string>();
-        }
-
-        BuildingNeedRecoveryResult result = actor.ApplyNeedRecoveryDetailed(
-            new BuildingNeedRecoverySnapshot(
-            sleep,
-            mood,
-            fun,
-            hunger,
-            excretion,
-            hygiene,
-            $"facility:{RequirePersistentInstanceId().Value}",
-            roomEnvironmentExperienceService?.GetActiveConditionIds(this),
-            $"{objectNameOrDefault()} 이용"));
-        return result.ChildResultKeys;
-    }
+    public IReadOnlyList<string> ApplyConfiguredUseRecovery(IBuildingVisitorPort actor) =>
+        FacilityUseEffectsExecution.ApplyConfiguredRecovery(this, actor,
+            roomEnvironmentExperienceService, objectNameOrDefault());
 
     private string objectNameOrDefault()
     {

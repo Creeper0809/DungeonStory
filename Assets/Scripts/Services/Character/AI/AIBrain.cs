@@ -20,13 +20,15 @@ public class AIBrain : CharacterAbility
     private static readonly int BranchCount =
         Enum.GetValues(typeof(CharacterAiBranch)).Length;
     public AIAction[] availableActions;
-    [ReadOnly]public AIAction bestAction;
+    [SerializeField, ReadOnly, FormerlySerializedAs("bestAction")]
+    private AIAction selectedAction;
+    public AIAction bestAction { get => selectedAction; private set => selectedAction = value; }
     [SerializeField, FormerlySerializedAs("isBestActionEnd")]
     private bool decisionPending = true;
     public bool isBestActionEnd
     {
         get => decisionPending;
-        set
+        private set
         {
             if (decisionPending == value)
             {
@@ -44,7 +46,79 @@ public class AIBrain : CharacterAbility
             }
         }
     }
-    public bool isExecuted = false;
+    [SerializeField, FormerlySerializedAs("isExecuted")]
+    private bool executionActive;
+    public bool isExecuted { get => executionActive; private set => executionActive = value; }
+    private AIAction stopCallbackAction;
+
+    internal void HoldDecisionForCurrentExecution() => isBestActionEnd = false;
+    internal void RequestDecisionAfterExecution() => isBestActionEnd = true;
+
+    internal void CompleteWorkCancellation(AIAction expectedAction, bool requestImmediateReplan)
+    {
+        if (!ReferenceEquals(bestAction, expectedAction)
+            || expectedAction != null && ReferenceEquals(stopCallbackAction, expectedAction)) return;
+        if (expectedAction != null) NotifyActionTerminal(CharacterAiActionTerminalKind.Cancelled);
+        bestAction = null;
+        if (expectedAction != null || requestImmediateReplan)
+        {
+            decisionPending = true;
+            RequestImmediateReplan(clearFailures: false);
+        }
+        else if (actor != null && actor.isActiveAndEnabled
+                 && actor.CurrentLifecycleState == CharacterLifecycleState.Active)
+            RequestDecisionAfterExecution();
+    }
+
+    private void InvokeActionStop(AIAction action, string reason)
+    {
+        if (action == null || ReferenceEquals(stopCallbackAction, action)) return;
+        AIAction previous = stopCallbackAction;
+        stopCallbackAction = action;
+        try { action.actionset?.OnStop(actor, action, reason); }
+        finally { stopCallbackAction = previous; }
+    }
+
+    internal ProjectionCheckpoint CaptureProjectionCheckpoint() => new(this);
+
+    internal void RestoreProjectionCheckpoint(ProjectionCheckpoint snapshot)
+    {
+        if (snapshot == null || !ReferenceEquals(snapshot.Owner, this))
+            throw new InvalidOperationException("AI projection checkpoint belongs to a different brain.");
+        // 복원 취소는 새 실행이나 판단 요청을 만들지 않는다.
+        bestAction = snapshot.Action;
+        isExecuted = snapshot.Executed;
+        decisionPending = snapshot.Pending;
+        currentActionPhase = snapshot.Phase;
+        currentActionPhaseDetail = snapshot.Detail;
+        currentDestinationDebugLabel = snapshot.Destination;
+        executionLedger.SetRuntimePhaseForPresentation(snapshot.Phase);
+        phaseTransitionCount = snapshot.PhaseTransitions;
+        DebugVersion = snapshot.DebugVersion;
+    }
+
+    internal sealed class ProjectionCheckpoint
+    {
+        internal readonly AIBrain Owner;
+        internal readonly AIAction Action;
+        internal readonly bool Executed, Pending;
+        internal readonly string Phase, Detail, Destination;
+        internal readonly long PhaseTransitions;
+        internal readonly int DebugVersion;
+        internal ProjectionCheckpoint(AIBrain owner)
+        {
+            Owner = owner; Action = owner.bestAction; Executed = owner.isExecuted;
+            Pending = owner.decisionPending; Phase = owner.currentActionPhase;
+            Detail = owner.currentActionPhaseDetail; Destination = owner.currentDestinationDebugLabel;
+            PhaseTransitions = owner.phaseTransitionCount; DebugVersion = owner.DebugVersion;
+        }
+    }
+
+#if UNITY_EDITOR
+    public void SetSelectedActionForDebug(AIAction action) => bestAction = action;
+    public void SetExecutionFlagForDebug(bool executed) => isExecuted = executed;
+    public void SetDecisionPendingForDebug(bool pending) => isBestActionEnd = pending;
+#endif
     [SerializeField] private float actionFailureCooldown = 1f;
     [SerializeField, Range(0f, 0.5f)] private float actionSwitchScoreMargin = 0.12f;
     [SerializeField, Min(0f)] private float actionTransitionCooldown = 0.75f;
@@ -1181,10 +1255,7 @@ public class AIBrain : CharacterAbility
 
         operationObservation.ClearCurrentOperationBlock();
         NotifyActionTerminal(CharacterAiActionTerminalKind.Cancelled);
-        bestAction?.actionset?.OnStop(
-            actor,
-            bestAction,
-            "외부 구동 행동으로 전환");
+        InvokeActionStop(bestAction, "외부 구동 행동으로 전환");
         bestAction?.ReleaseReservation(actor);
         queuedAction?.ReleaseReservation(actor);
         actor?.GetAbility<AbilityMove>()?.CancelActiveMovement();
@@ -1406,6 +1477,9 @@ public class AIBrain : CharacterAbility
         CharacterAiActionTerminalKind terminalKind,
         bool clearFailures)
     {
+        if (stopCallbackAction != null
+            && ReferenceEquals(stopCallbackAction, expectedAction ?? bestAction))
+            return false;
         if (expectedAction != null
             && !ReferenceEquals(bestAction, expectedAction))
         {
@@ -1419,9 +1493,7 @@ public class AIBrain : CharacterAbility
         {
             ClearFailureForCompletedAction(completedAction);
         }
-        // Do not route failure/cancellation through the compatibility setter:
-        // it represents legacy successful completion and would rewrite the
-        // terminal kind to Completed before the next decision.
+        // 종료 종류를 확정한 뒤 다음 판단을 한 번 요청한다.
         decisionPending = true;
         RequestImmediateReplan(clearFailures: false);
         return true;
@@ -1567,10 +1639,7 @@ public class AIBrain : CharacterAbility
         NotifyActionTerminal(CharacterAiActionTerminalKind.Failed);
         try
         {
-            expectedAction.actionset?.OnStop(
-                actor,
-                expectedAction,
-                failure.Reason);
+            InvokeActionStop(expectedAction, failure.Reason);
         }
         catch (Exception stopException)
         {
@@ -1619,10 +1688,7 @@ public class AIBrain : CharacterAbility
         AIAction actionToStop = bestAction;
         try
         {
-            actionToStop?.actionset?.OnStop(
-                actor,
-                actionToStop,
-                reason ?? "lifecycle-transition");
+            InvokeActionStop(actionToStop, reason ?? "lifecycle-transition");
         }
         catch (Exception exception)
         {
@@ -1787,7 +1853,7 @@ public class AIBrain : CharacterAbility
             + $"phase={currentActionPhase}; "
             + $"destination={AIBrainDebugFormatter.GetDestinationLabel(actionToStop?.destination)}";
 
-        actionToStop?.actionset?.OnStop(actor, actionToStop, reason);
+        InvokeActionStop(actionToStop, reason);
         NotifyActionTerminal(CharacterAiActionTerminalKind.Cancelled);
         actionToStop?.ReleaseReservation(actor);
         queuedActionToClear?.ReleaseReservation(actor);

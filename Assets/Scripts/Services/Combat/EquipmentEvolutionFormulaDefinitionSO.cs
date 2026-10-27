@@ -199,7 +199,7 @@ public sealed partial class EquipmentEvolutionFormulaCatalogSO : ScriptableObjec
     public const string ResourcePath = "SO/EquipmentEvolutionFormulaCatalog";
     public const string LegacyV3ResourcePath = "SO/EquipmentEvolutionFormulaCatalogV3";
 
-    public EquipmentEvolutionFormulaPolicyDefinition formulaPolicy = new();
+    [ContentIdentity] public EquipmentEvolutionFormulaPolicyDefinition formulaPolicy = new();
     public List<int> milestoneThresholds = new() { 1, 5, 10 };
     public double ordinaryImportance = 0.5d;
     public double historicalImportance = 2d;

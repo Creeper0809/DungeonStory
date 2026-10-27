@@ -1,0 +1,15 @@
+isolation=run-flow event subscriptions disposed and invasion threat producer disabled before synthetic winter in disposable Play; actual seasonal daily bus retained; director/state/restore participants unchanged
+administration=authored R07 via production building factory at (36, 0)
+charcoal pickup=(12, 0); destination=(16, 0); real travel required
+winter=controlled day91/other seasonal eligibility; actual main daily dispatch/notice/button/close; unaccepted debit0
+seal-request=one exact physical request retained after rejected acceptance; no effect or reward committed
+seal-boundary gameSeconds=22.64805; wallSeconds=6.653831; worker=(-35.50, 0.00, 0.00); lifecycle=Active; duty=OnDuty; action=운반; phase=:; destination=; failure=; rejection=none; scheduler=2; slots=policy:run.v20-administrative-seal:(36, 0):True:facility-input:exact:durable-equipment:run.v20-administrative-seal:building:700fa6bb1f774b79b3ef3aa1749f30e1:00000001; seals=stack:bfaa5b1b0355479e9da69490d00c31a0:(36, 0):FacilityBuffer:facility-input:exact:durable-equipment:run.v20-administrative-seal:building:700fa6bb1f774b79b3ef3aa1749f30e1:00000001
+accept=real seal AI delivery then actual choice retry; no charcoal/reward on acceptance; deadline=95
+source release=ordinary forbidden toggle after acceptance; no pre-contract relocation/quantity mutation
+physical-boundary phase=PhysicalCommitted; failure=; charcoal=0; before=8; rapport=0; gameSeconds=67.04401; wallSeconds=18.62392; day=91; workerAction=; phase=; failure=; hauls=False; stacks=
+delivery=actual AI carried/physical Transfer8; buffer-observed=True; gameSeconds=67.04401; wallSeconds=18.6274
+whole-world=JSON pending receipt + incoming seasonal/faction join; missing occurrence reject/no live mutation; exact restore PASS
+reward=rapport+8/obligation+1/grievance0 once; physical ACK empty; terminal current world restore exact
+scope=controlled winter day/eligibility, authored R07+physical stock+healthy staff+typed next-haul preference, unrelated run-flow/invasion scheduling isolated; real main seasonal dispatcher/UI/haul/current full restore; general AI priority/performance/natural season progression/boss scheduling/combined defense/6adult NOT_RUN
+result=PASS
+cleanup=operator stops disposable protected Play; no scene/profile/save file writes

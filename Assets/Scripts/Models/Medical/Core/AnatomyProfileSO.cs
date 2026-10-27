@@ -49,9 +49,37 @@ public sealed class AnatomyProfileSO : ScriptableObject
 
     public IReadOnlyList<string> ValidateDefinition()
     {
-        return string.IsNullOrWhiteSpace(ProfileId)
-            ? new[] { "Anatomy profile ID is required." }
-            : Array.Empty<string>();
+        List<string> errors = new List<string>();
+        if (string.IsNullOrWhiteSpace(ProfileId))
+        {
+            errors.Add("Anatomy profile ID is required.");
+        }
+
+        foreach (IGrouping<string, AnatomyNodeDefinition> group in
+                 (nodes ?? new List<AnatomyNodeDefinition>())
+                 .Where(node => node != null
+                     && !string.IsNullOrWhiteSpace(node.PairedGroupId))
+                 .GroupBy(node => node.PairedGroupId, StringComparer.Ordinal))
+        {
+            AnatomyNodeDefinition[] members = group.ToArray();
+            if (members.Length != 2)
+            {
+                errors.Add(
+                    $"Anatomy pair group '{group.Key}' must contain exactly two nodes.");
+                continue;
+            }
+
+            if (members.Any(node => string.IsNullOrWhiteSpace(node.NodeId))
+                || members.Select(node => node.NodeId)
+                    .Distinct(StringComparer.Ordinal)
+                    .Count() != 2)
+            {
+                errors.Add(
+                    $"Anatomy pair group '{group.Key}' must contain two distinct non-empty node IDs.");
+            }
+        }
+
+        return errors;
     }
 
 #if UNITY_EDITOR

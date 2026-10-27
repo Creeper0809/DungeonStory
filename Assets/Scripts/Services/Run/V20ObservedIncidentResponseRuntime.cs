@@ -7,6 +7,7 @@ using UnityEngine;
 
 internal sealed class V20ObservedIncidentResponseRuntime
 {
+    private readonly SocietyResponseMovementProvenanceRuntime responseMovements;
     private readonly IContentResolutionService contentResolution;
     private readonly IGameCalendar calendar;
     private readonly IRunSeedProvider runSeed;
@@ -53,8 +54,10 @@ internal sealed class V20ObservedIncidentResponseRuntime
         ICharacterMedicalCommand medicalCommands,
         ICharacterMedicalQuery medicalQuery,
         ICharacterLifetimeQuery characterLifetime,
-        Func<IExteriorIncidentRuntime> exteriorIncidents)
+        Func<IExteriorIncidentRuntime> exteriorIncidents,
+        SocietyResponseMovementProvenanceRuntime responseMovements)
     {
+        this.responseMovements = responseMovements ?? throw new ArgumentNullException(nameof(responseMovements));
         this.contentResolution = contentResolution ?? throw new ArgumentNullException(nameof(contentResolution));
         this.calendar = calendar ?? throw new ArgumentNullException(nameof(calendar));
         this.runSeed = runSeed ?? throw new ArgumentNullException(nameof(runSeed));
@@ -637,7 +640,7 @@ internal sealed class V20ObservedIncidentResponseRuntime
                         new CoreGridCell(
                             candidateDestination.x,
                             candidateDestination.y));
-                if (!move.TryStartSocietyResponseSystemMove(
+                if (!responseMovements.TryStartSystemMove(move,
                         response.operationId,
                         externalOperationId,
                         facility.PersistentInstanceId,
@@ -730,7 +733,7 @@ internal sealed class V20ObservedIncidentResponseRuntime
                     customerId);
             startedIncidentTransferOperations.Remove(
                 response.externalOperationId);
-            if (!move.TryRecordSocietyResponseMovementReceipt(
+            if (!responseMovements.TryRecordReceipt(move,
                     response.operationId,
                     response.externalOperationId,
                     receiptId,
@@ -811,7 +814,7 @@ internal sealed class V20ObservedIncidentResponseRuntime
                 cancelled: false);
             return;
         }
-        if (!move.TryStartSocietyResponseSystemMove(
+        if (!responseMovements.TryStartSystemMove(move,
                 response.operationId,
                 response.externalOperationId,
                 facilityId,
@@ -938,7 +941,7 @@ internal sealed class V20ObservedIncidentResponseRuntime
                     targetId,
                     StringComparison.Ordinal));
         }
-        target?.GetAbility<AbilityMove>()?
+        responseMovements.GetState(target?.GetAbility<AbilityMove>())?
             .TryReleaseSocietyResponseMovementProvenance(
                 response.operationId,
                 response.externalOperationId);
@@ -1129,15 +1132,17 @@ internal sealed class V20ObservedIncidentResponseRuntime
         return true;
     }
 
-    private static bool OwnsTransferMovement(
+    private bool OwnsTransferMovement(
         AbilityMove movement,
         ObservedIncidentResponseSaveData response,
         BuildingInstanceId facilityId,
-        Vector2Int destination) =>
-        !ReferenceEquals(movement, null)
-        && response != null
-        && string.Equals(movement.SocietyResponseMovementOperationId, response.operationId, StringComparison.Ordinal)
-        && string.Equals(movement.SocietyResponseMovementExternalOperationId, response.externalOperationId, StringComparison.Ordinal)
-        && string.Equals(movement.SocietyResponseMovementFacilityId, facilityId.Value, StringComparison.Ordinal)
-        && movement.SocietyResponseMovementDestination == destination;
+        Vector2Int destination)
+    {
+        var state = responseMovements.GetState(movement);
+        return state != null && response != null
+            && string.Equals(state.SocietyResponseMovementOperationId, response.operationId, StringComparison.Ordinal)
+            && string.Equals(state.SocietyResponseMovementExternalOperationId, response.externalOperationId, StringComparison.Ordinal)
+            && string.Equals(state.SocietyResponseMovementFacilityId, facilityId.Value, StringComparison.Ordinal)
+            && state.SocietyResponseMovementDestination == destination;
+    }
 }

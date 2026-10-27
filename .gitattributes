@@ -33,6 +33,9 @@ docs/implementation-reports/world-resource-runtime-latest.txt text eol=lf
 docs/implementation-reports/crop-plot-runtime-latest.txt text eol=lf
 Artifacts/QA/ImpactCI/*.json text eol=lf
 Artifacts/QA/ImpactCI/*.log -text
+Artifacts/QA/StructureR27/*.json text eol=lf
+Artifacts/QA/StructureR27/*.txt text eol=lf
+Artifacts/QA/StructureR27/*.log -text
 Artifacts/QA/v27-facility-buffer-owner-manifest.txt text eol=lf
 Artifacts/QA/v27-balance-economy-256-seed.txt text eol=crlf
 Artifacts/QA/v27-balance-vertical-slice-full-loop-playmode.txt text eol=crlf

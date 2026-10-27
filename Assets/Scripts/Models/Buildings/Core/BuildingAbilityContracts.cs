@@ -210,7 +210,7 @@ public sealed class BuildingAbilityCollection : ISerializationCallbackReceiver
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public abstract class BuildingAbility
 {
-    [SerializeField, InspectorName("설정 능력 ID")]
+    [ContentIdentity, SerializeField, InspectorName("설정 능력 ID")]
     private string abilityId;
 
     protected BuildingAbility()
@@ -237,4 +237,9 @@ public abstract class BuildingAbility
         abilityId = GetType().Name;
         return true;
     }
+}
+
+// 저장 모듈의 주소로 AbilityId를 쓰는 정의. 게시 후 ID 변경을 보호한다.
+public interface IBuildingPersistentAbilityDefinition : IBuildingRuntimeAbilityDefinition
+{
 }

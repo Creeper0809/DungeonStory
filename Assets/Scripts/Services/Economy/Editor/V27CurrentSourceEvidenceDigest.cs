@@ -16,10 +16,10 @@ using UnityEngine;
 public static class V27CurrentSourceEvidenceDigest
 {
     public const string GameplayScenePath = "Assets/Scenes/GameplayScene.unity";
-    // Reviewed main scene. Rebinding this pin requires fresh execution evidence;
+    // Reviewed gameplay scene. Rebinding this pin requires fresh execution evidence;
     // each long-running producer also checks its captured identity at completion.
     public const string OfficialGameplaySceneSha256 =
-        "a698948004fd2a1db71ef1bebf5ab4d4c5d62caf85fed1ea5af2bb3972c30341";
+        "a0fc27f149e57bbf6deba481e170c75f707b9c187baf4bf535a11d43df47c73e";
 
     public static string ComputeAllScriptsDigest()
         => Capture().Digest;

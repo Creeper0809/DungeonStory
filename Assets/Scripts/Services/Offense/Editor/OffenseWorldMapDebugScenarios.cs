@@ -484,7 +484,7 @@ public static class SoReferenceRemediationLeafADebugScenarios
         ResourceGameContentCatalog content = new(
             new UnityGameContentRootLoader());
         ContentReferenceCatalog catalog =
-            ContentReferenceCatalog.FromRoot(content.Root);
+            ContentReferenceSelection.CreateCatalog(content.Root);
 
         ValidateFuelReference(catalog);
         ValidateGolemRechargeReference(catalog);

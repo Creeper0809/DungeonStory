@@ -104,7 +104,8 @@ public static class DungeonCharacterRegistration
         builder.Register<ContentRequirementEvaluator>(Lifetime.Singleton)
             .As<IContentRequirementEvaluator>();
         builder.RegisterInstance(V21ContentEffectExecutionRegistry.Default);
-        builder.Register<V20ContentResolutionService>(Lifetime.Singleton)
+        builder.Register<SocietyResponseMovementProvenanceRuntime>(Lifetime.Singleton);
+        builder.Register<V20ContentResolutionService>(CreateContentResolution, Lifetime.Singleton)
             .AsSelf()
             .As<IContentResolutionService>()
             .As<IObservedCareerLifeEventCommand>()
@@ -458,5 +459,175 @@ public static class DungeonCharacterRegistration
             .AsSelf()
             .As<ICharacterLogNarrativeService>();
     }
+
+    private static V20ContentResolutionService CreateContentResolution(IObjectResolver resolver)
+    {
+        T Required<T>() where T : class => resolver.Resolve<T>()
+            ?? throw new InvalidOperationException("Content resolution dependency is null: " + typeof(T).Name);
+        return ComposeContentResolution(
+            Required<V20CampaignRuntime>(),
+            Required<V20StoryContentCatalog>(),
+            Required<ICharacterNarrativeCatalog>(),
+            Required<IContentRequirementEvaluator>(),
+            Required<ICharacterWorldQuery>(),
+            Required<ICareerPersistence>(),
+            Required<ICareerService>(),
+            Required<IGameCalendar>(),
+            Required<IKinshipQuery>(),
+            Required<ICharacterNarrativeQuery>(),
+            Required<ICharacterProficiencyQuery>(),
+            Required<ICharacterNarrativeCommand>(),
+            Required<IGriefTraumaService>(),
+            Required<ICharacterBodyHealthCommand>(),
+            Required<IPopulationHealthService>(),
+            Required<IDiseaseDefinitionCatalog>(),
+            Required<IStockQuery>(),
+            Required<IItemReservationService>(),
+            Required<IIdempotentAtomicItemConsumptionService>(),
+            Required<IWorldItemStackRuntime>(),
+            Required<IPhysicalItemExactSourcePublicationService>(),
+            Required<IWorldDropZoneQuery>(),
+            Required<IGameMoneyAccount>(),
+            Required<IFacilityCapabilityQuery>(),
+            Required<IPhysicalItemBatchDispositionService>(),
+            Required<IPhysicalFacilityItemBatchTransferGateway>(),
+            Required<IEconomyProjectInputOwnerPort>(),
+            Required<RunAdministrativeSealDurableEquipmentRuntime>(),
+            Required<ISocialRitualFactPublisher>(),
+            Required<V21ContentEffectExecutionRegistry>());
+    }
+
+    private static V20ContentResolutionService ComposeContentResolution(
+        V20CampaignRuntime live,
+        V20StoryContentCatalog catalog,
+        ICharacterNarrativeCatalog narrativeCatalog,
+        IContentRequirementEvaluator requirements,
+        ICharacterWorldQuery characters,
+        ICareerPersistence careers,
+        ICareerService careerQuery,
+        IGameCalendar calendar,
+        IKinshipQuery kinship,
+        ICharacterNarrativeQuery narrativeQuery,
+        ICharacterProficiencyQuery proficiencyQuery,
+        ICharacterNarrativeCommand narrative,
+        IGriefTraumaService grief,
+        ICharacterBodyHealthCommand bodyHealth,
+        IPopulationHealthService populationHealth,
+        IDiseaseDefinitionCatalog diseases,
+        IStockQuery stock,
+        IItemReservationService reservations,
+        IIdempotentAtomicItemConsumptionService atomicItems,
+        IWorldItemStackRuntime items,
+        IPhysicalItemExactSourcePublicationService exactSources,
+        IWorldDropZoneQuery dropZones,
+        IGameMoneyAccount money,
+        IFacilityCapabilityQuery facilities,
+        IPhysicalItemBatchDispositionService physicalDispositions,
+        IPhysicalFacilityItemBatchTransferGateway factionContractTransfers,
+        IEconomyProjectInputOwnerPort factionContractInputOwners,
+        RunAdministrativeSealDurableEquipmentRuntime administrativeSealEquipment,
+        ISocialRitualFactPublisher factPublisher,
+        V21ContentEffectExecutionRegistry effectHandlers = null)
+    {
+        if (live == null || catalog == null || requirements == null || characters == null
+            || stock == null || atomicItems == null || factPublisher == null)
+            throw new ArgumentNullException("Required content resolution owner is null.");
+        if (effectHandlers != null && !ReferenceEquals(effectHandlers, live.EffectHandlers))
+            throw new ArgumentException("Campaign and content resolution must share the same effect registry.");
+        var requestPlanner = new V20ContentResolutionRequestPlanner(live, catalog, narrativeCatalog, narrativeQuery, dropZones);
+        var factionContractQuery = new V20FactionContractQuery(live, catalog, items, facilities, dropZones);
+        var factionDeliveries = new V20FactionContractDeliveryRuntime(live, catalog, requirements,
+            items, physicalDispositions, factionContractTransfers, factionContractInputOwners, factionContractQuery);
+        var typedEffects = new V20ContentTypedEffectRuntime(characters, bodyHealth, grief, populationHealth,
+            narrative, narrativeCatalog, narrativeQuery, diseases, live.EffectHandlers, calendar);
+        var effectRollback = new V20ContentEffectRollback(live, characters, careers, bodyHealth, grief,
+            populationHealth, narrative, items, money, typedEffects.Handlers);
+        var effectTransaction = new V20ContentEffectTransaction(dropZones, items, money, reservations,
+            stock, atomicItems, exactSources, typedEffects, effectRollback);
+        var retirementPlanner = new V20RetirementSchedulePlanner(requirements, careers);
+        var journal = new V20ContentResolutionJournal(live, careers, exactSources, items, money,
+            factPublisher, typedEffects, effectRollback, retirementPlanner);
+        var observedLifeEvents = new V20ObservedLifeEventCommands(live, catalog, characters, careerQuery, calendar,
+            kinship, proficiencyQuery, narrative, factPublisher, physicalDispositions, reservations,
+            effectTransaction, effectRollback, journal);
+        return new V20ContentResolutionService(
+            live,
+            catalog,
+            requirements,
+            careers,
+            reservations,
+            items,
+            facilities,
+            physicalDispositions,
+            factionContractTransfers,
+            factionContractInputOwners,
+            administrativeSealEquipment,
+            factPublisher,
+            requestPlanner,
+            factionContractQuery,
+            factionDeliveries,
+            effectTransaction,
+            effectRollback,
+            retirementPlanner,
+            journal,
+            observedLifeEvents);
+    }
+
+#if UNITY_EDITOR
+    public static V20ContentResolutionService CreateContentResolutionForDebug(
+        V20CampaignRuntime live,
+        V20StoryContentCatalog catalog,
+        IContentRequirementEvaluator requirements,
+        ICharacterWorldQuery characters,
+        IStockQuery stock,
+        IIdempotentAtomicItemConsumptionService atomicItems,
+        ISocialRitualFactPublisher factPublisher,
+        ICharacterNarrativeCommand narrative = null,
+        IPhysicalItemExactSourcePublicationService exactSources = null,
+        ICharacterNarrativeCatalog narrativeCatalog = null,
+        IItemReservationService reservations = null,
+        IWorldItemStackRuntime items = null,
+        IWorldDropZoneQuery dropZones = null,
+        IGameMoneyAccount money = null,
+        ICharacterBodyHealthCommand bodyHealth = null,
+        ICareerPersistence careers = null,
+        ICareerService careerQuery = null,
+        IPopulationHealthService populationHealth = null,
+        IDiseaseDefinitionCatalog diseases = null,
+        IGriefTraumaService grief = null,
+        V21ContentEffectExecutionRegistry effectHandlers = null,
+        IGameCalendar calendar = null) =>
+        ComposeContentResolution(
+            live,
+            catalog,
+            narrativeCatalog,
+            requirements,
+            characters,
+            careers,
+            careerQuery,
+            calendar,
+            null,
+            narrative as ICharacterNarrativeQuery,
+            null,
+            narrative,
+            grief,
+            bodyHealth,
+            populationHealth,
+            diseases,
+            stock,
+            reservations,
+            atomicItems,
+            items,
+            exactSources,
+            dropZones,
+            money,
+            null,
+            null,
+            null,
+            null,
+            null,
+            factPublisher,
+            effectHandlers);
+#endif
 
 }

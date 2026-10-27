@@ -23,7 +23,7 @@ public static class OwnerScopedContentReferenceDebugScenarios
     public static void RunAll()
     {
         GameContentCatalogSO root = RequireAsset<GameContentCatalogSO>(RootPath);
-        ContentReferenceCatalog catalog = ContentReferenceCatalog.FromRoot(root);
+        ContentReferenceCatalog catalog = ContentReferenceSelection.CreateCatalog(root);
         ContentReferenceSelection.Invalidate();
         VerifyCampaignTargets(catalog);
         VerifyAcquiredTraitBindings(catalog);

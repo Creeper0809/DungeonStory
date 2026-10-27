@@ -18,7 +18,7 @@ internal sealed class ProbeExitDungeonActionSet : AIExitDungeon
         actor?.AddLog("Probe survival action executed.");
         if (actor != null && actor.Brain != null)
         {
-            actor.Brain.isBestActionEnd = false;
+            actor.Brain.SetDecisionPendingForDebug(false);
         }
     }
 }
@@ -54,7 +54,7 @@ internal sealed class ProbeEatActionSet : AIEat
         actor?.AddLog("Probe food action executed.");
         if (actor != null && actor.Brain != null)
         {
-            actor.Brain.isBestActionEnd = false;
+            actor.Brain.SetDecisionPendingForDebug(false);
         }
     }
 }
@@ -79,7 +79,7 @@ internal sealed class ProbeWorkActionSet : AIWork
         actor?.AddLog("Probe work action executed.");
         if (actor != null && actor.Brain != null)
         {
-            actor.Brain.isBestActionEnd = false;
+            actor.Brain.SetDecisionPendingForDebug(false);
         }
     }
 }
@@ -115,7 +115,7 @@ internal sealed class ProbeShoppingActionSet : AIShopping
         actor?.AddLog("Probe shopping action executed.");
         if (actor != null && actor.Brain != null)
         {
-            actor.Brain.isBestActionEnd = false;
+            actor.Brain.SetDecisionPendingForDebug(false);
         }
     }
 }
@@ -140,7 +140,7 @@ internal sealed class ProbeLookAroundActionSet : AILookAround
         actor?.AddLog("Probe look-around action executed.");
         if (actor != null && actor.Brain != null)
         {
-            actor.Brain.isBestActionEnd = false;
+            actor.Brain.SetDecisionPendingForDebug(false);
         }
     }
 }
@@ -165,7 +165,7 @@ internal sealed class ProbeWaitActionSet : AIWait
         actor?.AddLog("Probe wait action executed.");
         if (actor != null && actor.Brain != null)
         {
-            actor.Brain.isBestActionEnd = false;
+            actor.Brain.SetDecisionPendingForDebug(false);
         }
     }
 }
@@ -196,7 +196,7 @@ internal sealed class ProbeVolatileWorkActionSet : AIWork
         actor?.AddLog("Probe volatile work action executed.");
         if (actor != null && actor.Brain != null)
         {
-            actor.Brain.isBestActionEnd = false;
+            actor.Brain.SetDecisionPendingForDebug(false);
         }
     }
 }
@@ -247,7 +247,7 @@ internal sealed class ProbeContinuableWorkActionSet : AIWork
 
         if (actor != null && actor.Brain != null)
         {
-            actor.Brain.isBestActionEnd = false;
+            actor.Brain.SetDecisionPendingForDebug(false);
         }
     }
 
@@ -278,7 +278,7 @@ internal sealed class ProbeOneShotWorkActionSet : AIWork
         actor?.AddLog("Probe one-shot work action executed.");
         if (actor != null && actor.Brain != null)
         {
-            actor.Brain.isBestActionEnd = false;
+            actor.Brain.SetDecisionPendingForDebug(false);
         }
     }
 }

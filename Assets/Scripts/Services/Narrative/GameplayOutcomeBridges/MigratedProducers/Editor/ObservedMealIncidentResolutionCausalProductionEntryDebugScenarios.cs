@@ -310,7 +310,7 @@ public static class ObservedMealIncidentResolutionCausalProductionEntryDebugScen
                 RunSeed = 157181,
                 Season = Season.Spring
             };
-            resolution = new V20ContentResolutionService(
+            resolution = DungeonCharacterRegistration.CreateContentResolutionForDebug(
                 campaign,
                 catalog,
                 AlwaysSatisfiedContentRequirements.Instance,

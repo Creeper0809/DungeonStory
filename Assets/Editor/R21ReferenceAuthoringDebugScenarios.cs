@@ -25,7 +25,7 @@ public static class R21ReferenceAuthoringDebugScenarios
     public static void RunAll()
     {
         GameContentCatalogSO root = RequireAsset<GameContentCatalogSO>(RootPath);
-        ContentReferenceCatalog catalog = ContentReferenceCatalog.FromRoot(root);
+        ContentReferenceCatalog catalog = ContentReferenceSelection.CreateCatalog(root);
         ScriptableObject[] published = PublishedDefinitions(root);
 
         CharacterSO characterSource = RequirePublished<CharacterSO>(

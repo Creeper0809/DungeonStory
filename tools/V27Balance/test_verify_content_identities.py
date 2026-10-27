@@ -782,6 +782,8 @@ class RevisionVerificationTests(GitIdentityFixture):
         fields = (
             ("@nested:nodes[nodeId=left-arm].nodeId", "left-arm"),
             ("@nested:nodes[nodeId=right-arm].nodeId", "right-arm"),
+            ("@nested:nodes[nodeId=left-arm].pairedGroupId", "0:"),
+            ("@nested:nodes[nodeId=right-arm].pairedGroupId", "0:"),
         )
         self.write_baseline([self.asset_row(fields=fields, type_name="AnatomyProfileSO")])
         base = self.commit("publish nested anatomy identities")
@@ -789,7 +791,7 @@ class RevisionVerificationTests(GitIdentityFixture):
         self.write_asset(fields=("nodes:", "- nodeId: right-arm", "- nodeId: left-arm"))
         reordered = self.commit("reorder anatomy nodes")
         result = verifier.verify_revisions(base, reordered, self.root)
-        self.assertEqual(2, result["fieldsChecked"])
+        self.assertEqual(4, result["fieldsChecked"])
 
         self.write_asset(fields=("nodes:", "- nodeId: right-arm", "- nodeId: left-hand"))
         renamed = self.commit("rename anatomy node")
@@ -1567,6 +1569,142 @@ public static readonly IReadOnlyList<WorkTypeId> All = new[] { Fabricate };'''
                     expected,
                     verifier.decode_identity_scalar(raw, "test.asset.identity"),
                 )
+
+
+class PersistentBuildingIdentityTests(GitIdentityFixture):
+    contracts = (
+        "public interface IBuildingPersistentAbilityDefinition {}\n"
+        "public abstract class BuildingAbility {}\n"
+        "public abstract class SavedBase : BuildingAbility, IBuildingPersistentAbilityDefinition {}\n"
+        "public sealed class NewSavedAbility : SavedBase {}\n"
+        "public sealed class UnsavedAbility : BuildingAbility {}\n"
+        "// public class CommentAbility : SavedBase {}\n"
+        'public class TextHolder { string text = "class TextAbility : SavedBase {}"; }\n'
+    )
+
+    def publish_building(self):
+        (self.root / "Assets/Scripts/TestSO.cs").write_text("public class BuildingSO {}\n")
+        (self.root / "Assets/Scripts/Abilities.cs").write_text(self.contracts)
+        self.write_building("NewSavedAbility", "saved:alpha")
+        self.write_baseline([self.asset_row(type_name="BuildingSO", fields=(
+            (self.identity_path("NewSavedAbility", "saved:alpha"), "saved:alpha"),))])
+        return self.commit("publish declared persistent ability")
+
+    @staticmethod
+    def identity_path(kind, identity):
+        return ("@nested:abilityModules.items[abilityId="
+                + verifier.quote(identity, safe="-._~") + f";type={kind}].abilityId")
+
+    def write_building(self, kind, identity):
+        self.write_asset(fields=("abilityModules:", "  items:", "  - rid: 10", "  - rid: 20",
+            "references:", "  RefIds:", "  - rid: 10",
+            f"    type: {{class: {kind}, ns: '', asm: Assembly-CSharp}}",
+            f"    data: {{abilityId: {identity}}}", "  - rid: 20",
+            "    type: {class: UnsavedAbility, ns: '', asm: Assembly-CSharp}",
+            "    data: {abilityId: unsaved:ignored}"))
+
+    def test_inherited_new_type_uses_committed_declaration_without_gate_registration(self):
+        base = self.publish_building()
+        extra = self.root / "Assets/Scripts/AdditionalAbility.cs"
+        extra.write_text("public sealed class AnotherSavedAbility : SavedBase {}\n")
+        head = self.commit("add independently declared persistent ability")
+        snapshot = verifier.GitSnapshot(self.root, head)
+        routes = verifier.nested_routes_for_snapshot(snapshot)
+        self.assertEqual(("AnotherSavedAbility", "NewSavedAbility"), routes["BuildingSO"][0].managed_types)
+        # An omitted published key is rejected as soon as the new type is used in an asset.
+        self.write_building("AnotherSavedAbility", "saved:beta")
+        changed = self.commit("use new persistent ability without publication")
+        with self.assertRaisesRegex(verifier.VerificationError, "nested identities do not match"):
+            verifier.verify_revisions(base, changed, self.root)
+        self.write_building("NewSavedAbility", "saved:alpha")
+        restored = self.commit("restore published asset")
+        extra.write_text("public class WorkingTreeOnlyAbility : SavedBase {}\n")
+        self.assertEqual(1, verifier.verify_revisions(base, restored, self.root)["fieldsChecked"])
+
+    def test_published_persistent_id_mutation_is_rejected_with_or_without_republication(self):
+        base = self.publish_building()
+        self.write_building("NewSavedAbility", "saved:renamed")
+        head = self.commit("mutate saved address")
+        with self.assertRaises(verifier.VerificationError):
+            verifier.verify_revisions(base, head, self.root)
+        self.write_baseline([self.asset_row(type_name="BuildingSO", fields=(
+            (self.identity_path("NewSavedAbility", "saved:renamed"), "saved:renamed"),))])
+        head = self.commit("try to republish renamed address")
+        with self.assertRaises(verifier.VerificationError):
+            verifier.verify_revisions(base, head, self.root)
+
+    def test_removing_marker_cannot_silently_remove_identity_protection(self):
+        base = self.publish_building()
+        source = self.root / "Assets/Scripts/Abilities.cs"
+        source.write_text(self.contracts.replace(", IBuildingPersistentAbilityDefinition", ""))
+        head = self.commit("remove persistent membership")
+        with self.assertRaisesRegex(verifier.VerificationError, "no concrete definitions"):
+            verifier.verify_revisions(base, head, self.root)
+        source.write_text(self.contracts.replace(", IBuildingPersistentAbilityDefinition", "")
+                          .replace("public interface IBuildingPersistentAbilityDefinition {}\n", ""))
+        head = self.commit("remove marker authority")
+        with self.assertRaisesRegex(verifier.VerificationError, "authority was removed"):
+            verifier.verify_revisions(base, head, self.root)
+
+    def test_ambiguous_persistent_type_names_fail_closed(self):
+        base = self.publish_building()
+        (self.root / "Assets/Scripts/Duplicate.cs").write_text("public class NewSavedAbility : SavedBase {}\n")
+        head = self.commit("introduce ambiguous managed class name")
+        with self.assertRaisesRegex(verifier.VerificationError, "declaration is ambiguous"):
+            verifier.verify_revisions(base, head, self.root)
+
+    def test_formula_hash_needs_current_native_execution_and_cannot_be_omitted(self):
+        (self.root / "Assets/Scripts/TestSO.cs").write_text("public class FacilityEvolutionRecipeSO {}\n")
+        self.write_asset(fields=("formulaCapabilities: []",))
+        self.write_baseline([self.asset_row(type_name="FacilityEvolutionRecipeSO",
+            fields=((verifier.FORMULA_CONTENT_FIELD, "a" * 64),))])
+        head = self.commit("publish formula without native validation")
+        with self.assertRaisesRegex(verifier.VerificationError, "native evidence"):
+            verifier.verify_revisions(self.initial, head, self.root)
+        self.write_baseline([self.asset_row(type_name="FacilityEvolutionRecipeSO", fields=())])
+        head = self.commit("omit formula protection")
+        with self.assertRaisesRegex(verifier.VerificationError, "formula contract is missing"):
+            verifier.verify_revisions(self.initial, head, self.root)
+
+    def test_compound_fingerprint_cannot_pass_by_matching_hash_shape_alone(self):
+        self.write_asset(fields=("policy:", "  amount: 7"))
+        self.write_baseline([self.asset_row(fields=(("policy", "a" * 64),))])
+        head = self.commit("publish structured identity without native proof")
+        with self.assertRaisesRegex(verifier.VerificationError, "native evidence"):
+            verifier.verify_revisions(self.initial, head, self.root)
+
+
+class R26IdentityEncodingTests(unittest.TestCase):
+    def test_pair_groups_preserve_empty_and_utf16_encoded_identity(self):
+        probe = NestedIdentityExtractionTests()
+        actual = probe.extract("AnatomyProfileSO", "  nodes:\n  - nodeId: torso\n"
+                               "  - nodeId: arm\n    pairedGroupId: 'pair:🦾'\n")
+        self.assertEqual("0:", actual["@nested:nodes[nodeId=torso].pairedGroupId"])
+        self.assertEqual("7:pair:🦾", actual["@nested:nodes[nodeId=arm].pairedGroupId"])
+        for malformed in ("[]", "' noncanonical '"):
+            with self.assertRaises(verifier.VerificationError):
+                probe.extract("AnatomyProfileSO", "  nodes:\n  - nodeId: arm\n    pairedGroupId: " + malformed + "\n")
+
+    def test_equipment_provider_identity_is_checked_against_managed_asset(self):
+        probe = NestedIdentityExtractionTests()
+        body = ("  features:\n  - rid: 10\n  references:\n    RefIds:\n    - rid: 10\n"
+                "      type: {class: EquipmentItemFeature, ns: '', asm: Assembly-CSharp}\n"
+                "      data: {equipmentDefinitionId: weapon:test}\n")
+        path = "@nested:features[equipmentDefinitionId=weapon%3Atest;type=EquipmentItemFeature].equipmentDefinitionId"
+        self.assertEqual({path: "weapon:test"}, probe.extract("GenericItemDefinitionSO", body))
+        with self.assertRaises(verifier.VerificationError):
+            verifier._parse_nested_identity_path("GenericItemDefinitionSO", path.replace("EquipmentItemFeature", "AmmunitionItemFeature"), "test")
+
+    def test_formula_identity_rejects_wrong_type_hash_and_republication(self):
+        def load(kind, digest):
+            row = GitIdentityFixture.asset_row(type_name=kind, fields=((verifier.FORMULA_CONTENT_FIELD, digest),))
+            return verifier.load_baseline(json.dumps({"schemaVersion": 1, "assets": [row]}).encode(), "test")
+        for kind, digest in (("BuildingSO", "a" * 64), ("FacilityEvolutionRecipeSO", "bad")):
+            with self.assertRaises(verifier.VerificationError):
+                load(kind, digest)
+        with self.assertRaisesRegex(verifier.VerificationError, "published identity changed"):
+            verifier.compare_baselines(load("FacilityEvolutionRecipeSO", "a" * 64),
+                                       load("FacilityEvolutionRecipeSO", "b" * 64))
 
 
 if __name__ == "__main__":

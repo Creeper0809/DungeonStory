@@ -84,6 +84,7 @@ BuildingSO,content-type,,type-reference; save-restore-reference,services:infrast
 BuildingSO,content-type,,type-reference; save-restore-reference,services:infrastructure,runtime,structural-type-consumer,Assets/Scripts/Services/Infrastructure/Industrial/ElectricalNetworkRuntime.cs
 BuildingSO,content-type,,type-reference; save-restore-reference,services:infrastructure,runtime,structural-type-consumer,Assets/Scripts/Services/Infrastructure/Industrial/FluidAutonomousOutcomeContractProbe.cs
 BuildingSO,content-type,,type-reference; save-restore-reference,services:infrastructure,runtime,structural-type-consumer,Assets/Scripts/Services/Infrastructure/Industrial/FluidNetworkBatchDebugContract.cs
+BuildingSO,content-type,,type-reference,services:infrastructure,runtime,structural-type-consumer,Assets/Scripts/Services/Infrastructure/Industrial/IndustrialInfrastructureBuildingAbilities.cs
 BuildingSO,content-type,,type-reference,services:infrastructure,runtime,structural-type-consumer,Assets/Scripts/Services/Infrastructure/Industrial/IndustrialInfrastructureTopology.cs
 BuildingSO,content-type,,type-reference; save-restore-reference,services:infrastructure,runtime,structural-type-consumer,Assets/Scripts/Services/Infrastructure/Industrial/WimWetVenueWaterDebugContract.cs
 BuildingSO,content-type,,type-reference,services:infrastructure,runtime,structural-type-consumer,Assets/Scripts/Services/Infrastructure/MetaProgressionRuntimeProvider.cs

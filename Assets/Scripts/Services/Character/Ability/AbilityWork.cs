@@ -1468,25 +1468,7 @@ public class AbilityWork : CharacterAbility
                 || actor.Brain.bestAction != null
                     && !ReferenceEquals(actor.Brain.bestAction, currentAction))
                 return;
-            if (currentAction != null)
-            {
-                actor.Brain.EndExpectedAction(
-                    currentAction,
-                    CharacterAiActionTerminalKind.Cancelled,
-                    clearFailures: false);
-            }
-            else if (actor.isActiveAndEnabled
-                     && actor.CurrentLifecycleState == CharacterLifecycleState.Active)
-            {
-                actor.Brain.isBestActionEnd = true;
-            }
-            if (activeWorkRunId != invalidatedVersion
-                || actor.Brain.bestAction != null
-                    && !ReferenceEquals(actor.Brain.bestAction, currentAction))
-                return;
-            actor.Brain.bestAction = null;
-            if (requestImmediateReplan)
-                actor.Brain.RequestImmediateReplan(clearFailures: false);
+            actor.Brain.CompleteWorkCancellation(currentAction, requestImmediateReplan);
         }
     }
 

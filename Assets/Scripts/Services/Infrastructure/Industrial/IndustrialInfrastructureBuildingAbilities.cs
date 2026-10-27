@@ -315,7 +315,9 @@ public sealed class BuildingConveyorPortAbility : BuildingAbility
 {
     public ConveyorPortMode mode = ConveyorPortMode.Both;
 
-    [InspectorName("목적지 ID")]
+    // Legacy serialized seed read when a runtime conveyor node is first created.
+    // Persistent BuildingSO authoring must leave runtime instance destinations empty.
+    [HideInInspector, InspectorName("목적지 ID")]
     public string destinationId = string.Empty;
 
     [Min(1), InspectorName("포트 버퍼")]

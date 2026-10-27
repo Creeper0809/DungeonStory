@@ -373,7 +373,7 @@ public static class P1FacilityEvolutionAssetBuilder
     private static FacilityEvolutionFormulaRangeDefinition FixedRange(
         string parameterId, long units) => Range(parameterId, units, units, 1, 0, 1);
 
-    private static string ComputeFormulaCatalogSha256(
+    public static string ComputeFormulaCatalogSha256(
         FacilityEvolutionRecipeSO recipe,
         IEnumerable<FacilityEvolutionFormulaCapabilityDefinition> capabilities,
         FacilityEvolutionFormulaPolicyDefinition policy)

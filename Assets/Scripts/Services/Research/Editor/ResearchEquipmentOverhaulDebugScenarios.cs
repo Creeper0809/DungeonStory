@@ -4,8 +4,10 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using TMPro;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.UI;
 
 public static class ResearchEquipmentOverhaulDebugScenarios
 {
@@ -628,6 +630,7 @@ public static class ResearchEquipmentOverhaulDebugScenarios
     private static void ValidateRuntimeLocksModulesAndSave(
         ICollection<string> failures)
     {
+        ValidateModuleInstallationReadiness(failures);
         ResourceCombatEquipmentCatalog catalog = new ResourceCombatEquipmentCatalog(new ResourceGameContentCatalog(new UnityGameContentRootLoader()));
         CombatEquipmentRuntime locked = CombatEquipmentEditorTestFactory.Create(
             catalog,
@@ -665,11 +668,6 @@ public static class ResearchEquipmentOverhaulDebugScenarios
         Require(directCreateRejected, "direct runtime call bypasses research lock", failures);
 
         ResourceEquipmentModuleCatalog moduleCatalog = new ResourceEquipmentModuleCatalog(new ResourceGameContentCatalog(new UnityGameContentRootLoader()));
-        WorldItemStackRuntime physicalItems =
-            PhysicalItemDebugScenarios.CreateRuntimeForCrossDomainFixture(
-                out WorldItemRepository itemRepository,
-                out CombatEquipmentRuntime runtime);
-        physicalItems.Start();
         List<GameObject> progressionObjects = new List<GameObject>();
         BuildableObject appraisal = CreateProgressionFacility(
             AppraisalFacilityPath,
@@ -694,6 +692,18 @@ public static class ResearchEquipmentOverhaulDebugScenarios
         Require(appraisal != null && restoration != null && fitting != null
                 && wrongFacility != null,
             "equipment progression facility fixture is incomplete", failures);
+        WorldItemStackRuntime physicalItems =
+            PhysicalItemDebugScenarios.CreateRuntimeForCrossDomainFixture(
+                out WorldItemRepository itemRepository,
+                out CombatEquipmentRuntime runtime,
+                new[] { appraisal, restoration, fitting });
+        physicalItems.Start();
+        string appraisalDestination =
+            EquipmentProgressionFacilityContract.GetLocalBufferDestinationId(appraisal);
+        string restorationDestination =
+            EquipmentProgressionFacilityContract.GetLocalBufferDestinationId(restoration);
+        string fittingDestination =
+            EquipmentProgressionFacilityContract.GetLocalBufferDestinationId(fitting);
         Require(runtime.IsDefinitionUnlocked("weapon:longsword", out _),
             "completed research does not immediately unlock equipment", failures);
         CombatEquipmentInstance weapon = runtime.CreateInstance(
@@ -703,9 +713,7 @@ public static class ResearchEquipmentOverhaulDebugScenarios
             3,
             appraisal.centerPos,
             WorldItemStackState.FacilityBuffer,
-            appraisal.RequirePersistentInstanceId().Value);
-        string appraisalDestination = appraisal
-            .RequirePersistentInstanceId().Value;
+            appraisalDestination);
         bool appraisalSuppliesReady = physicalItems.SpawnItemAt(
                 "component:material-test-coupon",
                 1,
@@ -747,27 +755,30 @@ public static class ResearchEquipmentOverhaulDebugScenarios
                 && wrongFacilityFailure.Code
                     == FailureCode.EquipmentProgressionFacilityUnavailable,
             "wrong facility bypassed module appraisal authorization", failures);
-        Require(runtime.TryAppraiseModule(module.instanceId, appraisal, out _),
-            "module appraisal failed", failures);
+        Require(runtime.TryAppraiseModule(module.instanceId, appraisal,
+                out DomainFailure appraisalFailure),
+            $"module appraisal failed: {DescribeFailure(appraisalFailure)}", failures);
         Require(!runtime.TryRestoreModule(
                 module.instanceId,
                 restoration,
                 out DomainFailure remoteRestoreFailure)
                 && remoteRestoreFailure.Code == FailureCode.EquipmentModuleMissing,
-            "module restoration ignored the facility-local buffer", failures);
+            "module restoration ignored the facility-local buffer: "
+                + DescribeFailure(remoteRestoreFailure), failures);
         Require(physicalItems.TryRouteStackToDestination(
                 module.sourceStackId,
                 WorldItemStackState.FacilityBuffer,
-                restoration.RequirePersistentInstanceId().Value,
+                restorationDestination,
                 restoration.centerPos,
                 out _),
             "module could not be routed to the restoration buffer", failures);
-        Require(runtime.TryRestoreModule(module.instanceId, restoration, out _),
-            "module restoration failed", failures);
+        Require(runtime.TryRestoreModule(module.instanceId, restoration,
+                out DomainFailure restorationFailure),
+            $"module restoration failed: {DescribeFailure(restorationFailure)}", failures);
         Require(physicalItems.TryRouteStackToDestination(
                 module.sourceStackId,
                 WorldItemStackState.FacilityBuffer,
-                fitting.RequirePersistentInstanceId().Value,
+                fittingDestination,
                 fitting.centerPos,
                 out _),
             "module could not be routed to the fitting buffer", failures);
@@ -776,13 +787,17 @@ public static class ResearchEquipmentOverhaulDebugScenarios
                 (ItemInstanceId)weapon.instanceId,
                 fitting.centerPos,
                 WorldItemStackState.FacilityBuffer,
-                fitting.RequirePersistentInstanceId().Value,
+                fittingDestination,
                 out string weaponStackId)
                 && runtime.TryLinkToWorldStack(
                     weapon.instanceId,
                     weaponStackId,
                     CombatEquipmentWorldState.Stored),
             "equipment could not be materialized in the fitting buffer", failures);
+        ValidateModuleInstallationTargetView(
+            runtime, physicalItems, itemRepository, fitting,
+            module.instanceId, weapon.instanceId, null, failures);
+        string beforeWrongInstall = JsonUtility.ToJson(physicalItems.Capture());
         Require(!runtime.TryInstallModule(
                 weapon.instanceId,
                 module.instanceId,
@@ -792,18 +807,44 @@ public static class ResearchEquipmentOverhaulDebugScenarios
                 && wrongInstallFailure.Code
                     == FailureCode.EquipmentProgressionFacilityUnavailable,
             "wrong facility bypassed module installation authorization", failures);
+        Require(beforeWrongInstall == JsonUtility.ToJson(physicalItems.Capture()),
+            "wrong-facility module installation changed physical state", failures);
         Require(runtime.TryInstallModule(
-                weapon.instanceId, module.instanceId, 0, fitting, out _),
-            "module installation failed", failures);
+                weapon.instanceId, module.instanceId, 0, fitting,
+                out DomainFailure installationFailure),
+            $"module installation failed: {DescribeFailure(installationFailure)}", failures);
+
+        EquipmentModuleInstance replacement = runtime.CreateExpeditionModule(
+            module.definitionId, 3, restoration.centerPos,
+            WorldItemStackState.FacilityBuffer,
+            restorationDestination, identified: true);
+        bool replacementRestored = runtime.TryRestoreModule(
+            replacement.instanceId, restoration, out DomainFailure replacementFailure);
+        Require(replacementRestored,
+            "replacement module restoration failed: "
+                + DescribeFailure(replacementFailure), failures);
+        Require(replacementRestored && physicalItems.TryRouteStackToDestination(
+                    replacement.sourceStackId,
+                    WorldItemStackState.FacilityBuffer,
+                    fittingDestination,
+                    fitting.centerPos,
+                    out _),
+            "replacement module could not be prepared in the fitting buffer", failures);
+        ValidateModuleInstallationTargetView(
+            runtime, physicalItems, itemRepository, fitting,
+            replacement.instanceId, weapon.instanceId, module.instanceId, failures);
+
         Require(runtime.TryRemoveModule(
                 weapon.instanceId,
                 0,
                 fitting,
                 out EquipmentModuleInstance removed,
-                out _)
+                out DomainFailure removalFailure)
                 && removed.condition <= 0.7f
                 && removed.state == EquipmentModuleProcessState.IdentifiedDamaged,
-            "removed module was not returned as a <=70% damaged part", failures);
+            "removed module was not returned as a <=70% damaged part: "
+                + DescribeFailure(removalFailure), failures);
+        string beforeDamagedInstall = JsonUtility.ToJson(physicalItems.Capture());
         Require(!runtime.TryInstallModule(
                 weapon.instanceId,
                 module.instanceId,
@@ -811,7 +852,10 @@ public static class ResearchEquipmentOverhaulDebugScenarios
                 fitting,
                 out DomainFailure damagedFailure)
                 && damagedFailure.Code == FailureCode.ModuleNeedsRestoration,
-            "damaged module was reinstalled without restoration", failures);
+            "damaged module was reinstalled without restoration: "
+                + DescribeFailure(damagedFailure), failures);
+        Require(beforeDamagedInstall == JsonUtility.ToJson(physicalItems.Capture()),
+            "rejected damaged module installation changed physical state", failures);
 
         DungeonCombatEquipmentSaveData save = runtime.Capture();
         CombatEquipmentRuntime restored = CombatEquipmentEditorTestFactory.Create(
@@ -822,7 +866,7 @@ public static class ResearchEquipmentOverhaulDebugScenarios
             moduleCatalog: moduleCatalog, materialCatalog: EmptyResourceEconomyContentCatalog.Instance, evolutionModules: EmptyEvolutionModuleRegistry.Instance, itemStackRuntime: UnavailableEquipmentPhysicalItemGateway.Instance, calendar: new EditorFixedGameCalendar(137, 9));
         restored.PublishRestoreCandidate(
             restored.BuildRestoreCandidate(save));
-        Require(restored.ModuleInstances.Count == 1
+        Require(restored.ModuleInstances.Count == 2
                 && restored.Instances.Any(instance => instance.instanceId == weapon.instanceId),
             "equipment V6 module save round trip failed", failures);
         physicalItems.Dispose();
@@ -884,6 +928,101 @@ public static class ResearchEquipmentOverhaulDebugScenarios
                 && saveSection is IDungeonSaveSectionPreflight
                 && saveSection is IDungeonStagedSaveSection,
             "combat equipment save section is missing strict restore contracts", failures);
+    }
+
+    private static void ValidateModuleInstallationReadiness(ICollection<string> failures)
+    {
+        (string Name, bool Identified, float Condition,
+            EquipmentModuleProcessState State, int Grade, bool Tuned,
+            FailureCode? Failure)[] cases =
+        {
+            ("threshold", true, 0.75f, EquipmentModuleProcessState.Restored,
+                3, false, null),
+            ("below threshold", true, 0.7499f, EquipmentModuleProcessState.Restored,
+                3, false, FailureCode.ModuleNeedsRestoration),
+            ("unidentified", false, 1f, EquipmentModuleProcessState.Restored,
+                3, false, FailureCode.ModuleNeedsRestoration),
+            ("damaged state", true, 1f, EquipmentModuleProcessState.IdentifiedDamaged,
+                3, false, FailureCode.ModuleNeedsRestoration),
+            ("already installed", true, 1f, EquipmentModuleProcessState.Installed,
+                3, false, FailureCode.ModuleNeedsRestoration),
+            ("grade four untuned", true, 1f, EquipmentModuleProcessState.Restored,
+                4, false, FailureCode.ModuleNeedsRuneTuning),
+            ("grade four tuned", true, 0.75f, EquipmentModuleProcessState.Tuned,
+                4, true, null)
+        };
+        foreach (var value in cases)
+        {
+            EquipmentModuleInstance module = new()
+            {
+                identified = value.Identified, condition = value.Condition,
+                state = value.State, grade = value.Grade, runeTuned = value.Tuned
+            };
+            string before = JsonUtility.ToJson(module);
+            bool ready = EquipmentModuleInstallationRules.TryValidateReadiness(
+                module, out DomainFailure failure);
+            Require(ready == !value.Failure.HasValue
+                    && (value.Failure.HasValue
+                        ? failure.Code == value.Failure.Value : !failure.IsFailure),
+                "module installation readiness mismatch: " + value.Name, failures);
+            Require(before == JsonUtility.ToJson(module),
+                "module readiness query mutated its input: " + value.Name, failures);
+        }
+    }
+
+    private static void ValidateModuleInstallationTargetView(
+        CombatEquipmentRuntime runtime,
+        WorldItemStackRuntime physicalItems,
+        WorldItemRepository repository,
+        BuildableObject fitting,
+        string candidateId,
+        string equipmentId,
+        string installedModuleId,
+        ICollection<string> failures)
+    {
+        GameObject root = new("ModuleInstallationTargetFixture", typeof(RectTransform));
+        string before = JsonUtility.ToJson(physicalItems.Capture());
+        try
+        {
+            EquipmentProgressionCommandPanel panel = new(
+                runtime,
+                new PhysicalStockQuery(repository, physicalItems.CatalogProvider,
+                    new PhysicalItemMassQuery(physicalItems.CatalogProvider)),
+                new DomainFailureLocalizer());
+            panel.Render(root.transform, fitting, TMP_Settings.defaultFontAsset, null, null);
+            string Sanitize(string value) => value.Replace(':', '_').Replace('/', '_').Replace(' ', '_');
+            Transform row = root.transform.Find("EquipmentModuleInstallTarget_"
+                + Sanitize(candidateId) + "_" + Sanitize(equipmentId) + "_0");
+            Require(row != null, "module installation target row was not rendered", failures);
+            if (row == null) return;
+            string label = row.Find("Label").GetComponent<TMP_Text>().text;
+            string button = row.GetComponentInChildren<Button>()
+                .GetComponentInChildren<TMP_Text>().text;
+            if (string.IsNullOrEmpty(installedModuleId))
+            {
+                Require(label.Contains("빈 슬롯 1", StringComparison.Ordinal)
+                        && button == "장착",
+                    "empty module slot did not offer installation", failures);
+            }
+            else
+            {
+                EquipmentModuleInstance installed = runtime.ModuleInstances
+                    .Single(value => value.instanceId == installedModuleId);
+                Require(runtime.TryGetModuleDefinition(installed.definitionId, out var definition)
+                        && label.Contains("슬롯 1 교체", StringComparison.Ordinal)
+                        && label.Contains(definition.DisplayName, StringComparison.Ordinal)
+                        && label.Contains(installedModuleId, StringComparison.Ordinal)
+                        && !label.Contains("빈 슬롯", StringComparison.Ordinal)
+                        && button == "교체",
+                    "occupied module slot did not identify its replacement target", failures);
+            }
+            Require(before == JsonUtility.ToJson(physicalItems.Capture()),
+                "rendering module installation choices mutated physical state", failures);
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(root);
+        }
     }
 
     private static void ValidatePacing(
@@ -1115,6 +1254,9 @@ public static class ResearchEquipmentOverhaulDebugScenarios
         facility.Initialization(definition, position);
         return facility;
     }
+
+    private static string DescribeFailure(DomainFailure failure) =>
+        $"{failure.Code} [{string.Join(", ", failure.Parameters.ToArray())}]";
 
     private static void Require(bool condition, string message, ICollection<string> failures)
     {

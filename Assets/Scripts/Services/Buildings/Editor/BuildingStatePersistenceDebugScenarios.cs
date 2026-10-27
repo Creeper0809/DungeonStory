@@ -627,7 +627,7 @@ public static class BuildingStatePersistenceDebugScenarios
 [Serializable]
 internal sealed class UnlistedWorkAbility : BuildingAbility,
     IBuildingWorkCompletionAbility,
-    IBuildingRuntimeAbilityDefinition
+    IBuildingPersistentAbilityDefinition
 {
     private UnlistedWorkAbility()
     {

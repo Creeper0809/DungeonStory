@@ -1094,11 +1094,7 @@ internal sealed class SurgeryPatientProjectionSnapshot
     private readonly bool aiPaused;
     private readonly CharacterDecisionState decisionState;
     private readonly AIBrain brain;
-    private readonly AIAction bestAction;
-    private readonly bool isExecuted;
-    private readonly bool isBestActionEnd;
-    private readonly string actionPhase;
-    private readonly string actionPhaseDetail;
+    private readonly AIBrain.ProjectionCheckpoint brainCheckpoint;
 
     internal SurgeryPatientProjectionSnapshot(CharacterActor actor)
     {
@@ -1107,11 +1103,7 @@ internal sealed class SurgeryPatientProjectionSnapshot
         aiPaused = actor.IsAiPaused();
         decisionState = actor.State;
         brain = actor.Brain;
-        bestAction = brain?.bestAction;
-        isExecuted = brain?.isExecuted == true;
-        isBestActionEnd = brain?.isBestActionEnd == true;
-        actionPhase = brain?.CurrentActionPhase ?? string.Empty;
-        actionPhaseDetail = brain?.CurrentActionPhaseDetail ?? string.Empty;
+        brainCheckpoint = brain?.CaptureProjectionCheckpoint();
     }
 
     internal void Restore()
@@ -1138,29 +1130,7 @@ internal sealed class SurgeryPatientProjectionSnapshot
             return;
         }
 
-        if (!ReferenceEquals(brain.bestAction, bestAction))
-        {
-            brain.bestAction = bestAction;
-        }
-        if (brain.isExecuted != isExecuted)
-        {
-            brain.isExecuted = isExecuted;
-        }
-        if (brain.isBestActionEnd != isBestActionEnd)
-        {
-            brain.isBestActionEnd = isBestActionEnd;
-        }
-        if (!string.Equals(
-                brain.CurrentActionPhase,
-                actionPhase,
-                StringComparison.Ordinal)
-            || !string.Equals(
-                brain.CurrentActionPhaseDetail,
-                actionPhaseDetail,
-                StringComparison.Ordinal))
-        {
-            brain.SetActionPhase(actionPhase, detail: actionPhaseDetail);
-        }
+        brain.RestoreProjectionCheckpoint(brainCheckpoint);
     }
 }
 
@@ -1389,9 +1359,9 @@ public static class SurgeryRestoreFaultScenarios
         patient.SetLifecycleState(CharacterLifecycleState.OnExpedition);
         patient.SetAiPaused(false);
         patient.state = CharacterDecisionState.EXECUTE;
-        patient.Brain.bestAction = new AIAction();
-        patient.Brain.isExecuted = true;
-        patient.Brain.isBestActionEnd = false;
+        patient.Brain.SetSelectedActionForDebug(new AIAction());
+        patient.Brain.SetExecutionFlagForDebug(true);
+        patient.Brain.SetDecisionPendingForDebug(false);
         patient.Brain.SetActionPhase(
             "prior-surgery-phase",
             detail: "prior-surgery-detail");

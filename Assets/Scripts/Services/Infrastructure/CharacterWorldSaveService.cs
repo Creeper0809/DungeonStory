@@ -178,6 +178,7 @@ public sealed class CharacterWorldSaveService :
     private readonly ICharacterPopulationService characterPopulationService;
     private readonly ICaptivityOwnedCharacterIdQuery captivityOwnedCharacters;
     private readonly ISocietyIncidentOwnedCharacterIdQuery societyIncidentOwners;
+    private readonly SocietyResponseMovementProvenanceRuntime responseMovements;
     private readonly SocialReputationRuntime socialReputation;
     private readonly ICharacterIdRegistry characterIds;
     private readonly IRestoreWorldCandidatePublisher restoreWorldCandidates;
@@ -207,8 +208,10 @@ public sealed class CharacterWorldSaveService :
         IRestoreWorldCandidatePublisher restoreWorldCandidates,
         Func<IExteriorIncidentRuntime> exteriorIncidentRuntime,
         InvasionSceneRuntimeReferences invasionRuntimes,
-        OffenseSceneRuntimeReferences offenseRuntimes)
+        OffenseSceneRuntimeReferences offenseRuntimes,
+        SocietyResponseMovementProvenanceRuntime responseMovements)
     {
+        this.responseMovements = responseMovements ?? throw new ArgumentNullException(nameof(responseMovements));
         this.content = content ?? throw new ArgumentNullException(nameof(content));
         this.characterLifetimeQuery = characterLifetimeQuery
             ?? throw new ArgumentNullException(nameof(characterLifetimeQuery));
@@ -1595,7 +1598,7 @@ public sealed class CharacterWorldSaveService :
         }
     }
 
-    private static DungeonCharacterSaveData CaptureActor(Grid grid, CharacterActor actor)
+    private DungeonCharacterSaveData CaptureActor(Grid grid, CharacterActor actor)
     {
         CharacterIdentity identity = actor.Identity;
         Vector2Int gridPosition = grid.GetXY(actor.transform.position);
@@ -1605,8 +1608,9 @@ public sealed class CharacterWorldSaveService :
         AbilityMove move = actor.GetAbility<AbilityMove>();
         AbilityHaul haul = actor.GetComponent<AbilityHaul>();
         CharacterProgressionSnapshot progression = actor.Progression?.CapturePersistentState();
+        var responseMovement = responseMovements.GetState(move);
         Vector2Int? societyMovementDestination =
-            move?.SocietyResponseMovementDestination;
+            responseMovement?.SocietyResponseMovementDestination;
 
         return new DungeonCharacterSaveData
         {
@@ -1619,18 +1623,18 @@ public sealed class CharacterWorldSaveService :
             gridX = gridPosition.x,
             gridY = gridPosition.y,
             societyResponseMovementOperationId =
-                move?.SocietyResponseMovementOperationId ?? string.Empty,
+                responseMovement?.SocietyResponseMovementOperationId ?? string.Empty,
             societyResponseMovementExternalOperationId =
-                move?.SocietyResponseMovementExternalOperationId
+                responseMovement?.SocietyResponseMovementExternalOperationId
                 ?? string.Empty,
             societyResponseMovementFacilityId =
-                move?.SocietyResponseMovementFacilityId ?? string.Empty,
+                responseMovement?.SocietyResponseMovementFacilityId ?? string.Empty,
             societyResponseMovementDestinationX =
                 societyMovementDestination?.x ?? 0,
             societyResponseMovementDestinationY =
                 societyMovementDestination?.y ?? 0,
             societyResponseMovementReceiptId =
-                move?.SocietyResponseMovementReceiptId ?? string.Empty,
+                responseMovement?.SocietyResponseMovementReceiptId ?? string.Empty,
             lifecycleState = actor.CurrentLifecycleState,
             lifecycleRevision = actor.Lifecycle != null
                 ? actor.Lifecycle.LifecycleRevision
@@ -1735,7 +1739,7 @@ public sealed class CharacterWorldSaveService :
             .ToList();
     }
 
-    private static void ApplyActorState(
+    private void ApplyActorState(
         Grid grid,
         CharacterActor actor,
         DungeonCharacterSaveData source)
@@ -1784,7 +1788,7 @@ public sealed class CharacterWorldSaveService :
             throw new InvalidOperationException(
                 $"Character {source.persistentId} has Society response movement provenance but no AbilityMove.");
         }
-        move?.RestoreSocietyResponseMovementProvenance(
+        responseMovements.GetState(move)?.RestoreSocietyResponseMovementProvenance(
             source.societyResponseMovementOperationId,
             source.societyResponseMovementExternalOperationId,
             source.societyResponseMovementFacilityId,

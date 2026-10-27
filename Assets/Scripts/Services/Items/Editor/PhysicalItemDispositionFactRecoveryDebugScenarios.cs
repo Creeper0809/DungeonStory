@@ -44,14 +44,43 @@ public static class PhysicalItemDispositionFactRecoveryDebugScenarios
         return "physical-disposition/observer-required/rejection-rollback/lost-before-and-after-commit/json-fresh-owner/automatic-replay/dedup/frozen-day-name/canonical-tamper=PASS";
     }
 
-    private static void VerifyRecovery(bool commitFirst)
+    public static string RunEncodedIdentityContracts()
     {
-        using var source = new Fixture(fault: commitFirst ? 2 : 1);
+        string encoded = "faction-contract-transfer:faction-contract%3Akobold%3Awinter-fuel-demand"
+            + ":occurrence:event%3A91%3Aseasonal%3Awinter-fuel-demand%3AB040815E";
+        Require(!DomainFactValueSyntax.IsIdentity(encoded)
+            && !DomainFactValueSyntax.IsIdentity(new string('a', 193)), "Global observation identity limits changed.");
+        foreach (string operation in new[] { encoded, "qa:long:" + new string('a', 320) })
+        {
+            VerifyRecovery(false, operation);
+            VerifyRecovery(true, operation);
+        }
+        using var invalid = new Fixture();
+        string before = invalid.ItemState();
+        foreach (string operation in new[] { "qa:%", "qa:%G0", "qa:%3a", "qa:bad key", "qa:\nkey", new string('a', 2049) })
+            Require(!invalid.Service.TryCommitPending(
+                new[] { new PhysicalItemTransformInput(invalid.Repository.Records.Single().stackId, 1) },
+                PhysicalItemDispositionKind.Sink, operation, "qa-consume", out _, out _)
+                && invalid.ItemState() == before && invalid.Persistence.Capture().pendingBatchDispositions.Count == 0,
+                "Malformed physical operation mutated stock: " + operation.Length);
+        return "PHYSICAL_ENCODED_IDENTITY=PASS; raw-save-ID-preserved; legacy-key-preserved; bounded-observer-key; JSON-replay-before-after-ACK; tamper-and-malformed-rejected";
+    }
+
+    private static void VerifyRecovery(bool commitFirst, string operation = "qa:disposition:recovery")
+    {
+        using var source = new Fixture(fault: commitFirst ? 2 : 1, operation: operation);
         Require(source.Consume(out var receipt, out var pending) && receipt.IsCommitted && pending.Length > 0,
             "uncertain publication hid or reversed committed debit");
         var physical = JsonUtility.FromJson<DungeonPhysicalItemSaveData>(JsonUtility.ToJson(source.Persistence.Capture()));
         var ledger = JsonUtility.FromJson<GameplayOutcomeLedgerSaveData>(JsonUtility.ToJson(source.Ledger.CaptureGameplayOutcomes()));
         var row = physical.pendingBatchDispositions.Single();
+        var frozen = PhysicalItemDisposedFact.FromSave(row);
+        Require(receipt.OperationId == operation && row.operationId == operation
+            && DomainFactValueSyntax.IsIdentity(frozen.ObservationOperationId)
+            && DomainFactValueSyntax.IsIdentity(frozen.ObservationCommitId)
+            && (!DomainFactValueSyntax.IsIdentity(operation) || frozen.ObservationOperationId == operation)
+            && (!DomainFactValueSyntax.IsIdentity(receipt.CommitId) || frozen.ObservationCommitId == receipt.CommitId),
+            "Physical save identity or legacy observation key changed.");
         Require(row.defaultObservationDay == 3 && row.sourceFacts.Single().displayText == "소비 당시 이름"
             && !row.publicationDelivered && row.ownerRevision == receipt.OwnerRevision, "original debit context not frozen");
         CheckJoin(physical, ledger, true);
@@ -62,7 +91,7 @@ public static class PhysicalItemDispositionFactRecoveryDebugScenarios
         catch (InvalidOperationException) { rejected = true; }
         Require(rejected, "missing day defaulted silently");
 
-        using var restored = new Fixture(physical, ledger);
+        using var restored = new Fixture(physical, ledger, operation: operation);
         restored.Calendar.SetDateTime(19, 0); restored.Catalog.Name = "복원 뒤 이름";
         string before = restored.ItemState();
         restored.Service.OnRestoreCompleted(); restored.Service.Tick();
@@ -76,6 +105,7 @@ public static class PhysicalItemDispositionFactRecoveryDebugScenarios
             "same-command replay consumed or recorded twice");
         CheckJoin(confirmed, confirmedLedger, true);
         var saved = confirmed.pendingBatchDispositions.Single();
+        saved.operationId += ":tampered"; CheckJoin(confirmed, confirmedLedger, false); saved.operationId = operation;
         saved.sourceFacts[0].displayText += "-변조"; CheckJoin(confirmed, confirmedLedger, false);
         saved.sourceFacts[0].displayText = "소비 당시 이름";
         saved.defaultObservationDay++; CheckJoin(confirmed, confirmedLedger, false); saved.defaultObservationDay--;
@@ -100,9 +130,11 @@ public static class PhysicalItemDispositionFactRecoveryDebugScenarios
         private readonly DomainFactDispatcher dispatcher = new();
         private readonly string stackId;
         private readonly Fault publicationFault;
+        private readonly string operation;
         public Fixture(DungeonPhysicalItemSaveData physical = null, GameplayOutcomeLedgerSaveData savedLedger = null,
-            int fault = 0, bool subscribe = true)
+            int fault = 0, bool subscribe = true, string operation = "qa:disposition:recovery")
         {
+            this.operation = operation;
             Repository = new WorldItemRepository(new GuidPersistentIdGenerator(), new DungeonRuntimeAggregateRootStore());
             Persistence = new WorldItemPersistenceService(
                 new EquipmentEvolutionFormulaCatalogs(
@@ -141,7 +173,7 @@ public static class PhysicalItemDispositionFactRecoveryDebugScenarios
         public EditorFixedGameCalendar Calendar { get; } = new(3);
         public bool Consume(out PhysicalItemBatchDispositionReceipt receipt, out string failure) => Service.TryCommitPending(
             new[] { new PhysicalItemTransformInput(stackId, 1) }, PhysicalItemDispositionKind.Sink,
-            "qa:disposition:recovery", "qa-consume", out receipt, out failure);
+            operation, "qa-consume", out receipt, out failure);
         public string ItemState() => string.Join("|", Repository.Records.OrderBy(value => value.stackId)
             .Select(value => value.stackId + ":" + value.quantity + ":" + value.position + ":" + value.itemId));
         public void Dispose() => dispatcher.Dispose();

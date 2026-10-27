@@ -819,11 +819,11 @@ public static class CharacterAiPriorityCornerCaseDebugScenarios
 
         try
         {
-            character.ai.bestAction = new AIAction(
+            character.ai.SetSelectedActionForDebug(new AIAction(
                 actionSet,
-                AIActionPlan.WithoutDestination);
-            character.ai.isBestActionEnd = false;
-            character.ai.isExecuted = false;
+                AIActionPlan.WithoutDestination));
+            character.ai.SetDecisionPendingForDebug(false);
+            character.ai.SetExecutionFlagForDebug(false);
             CharacterAiRuntimeDiagnosticsSnapshot before =
                 character.ai.CaptureRuntimeDiagnostics();
 
@@ -860,11 +860,11 @@ public static class CharacterAiPriorityCornerCaseDebugScenarios
 
         try
         {
-            actor.ai.bestAction = new AIAction(
+            actor.ai.SetSelectedActionForDebug(new AIAction(
                 actionSet,
-                AIActionPlan.WithoutDestination);
-            actor.ai.isBestActionEnd = false;
-            actor.ai.isExecuted = false;
+                AIActionPlan.WithoutDestination));
+            actor.ai.SetDecisionPendingForDebug(false);
+            actor.ai.SetExecutionFlagForDebug(false);
             CharacterAiRuntimeDiagnosticsSnapshot before =
                 actor.ai.CaptureRuntimeDiagnostics();
 
@@ -901,10 +901,10 @@ public static class CharacterAiPriorityCornerCaseDebugScenarios
 
         try
         {
-            actor.ai.bestAction = new AIAction(
+            actor.ai.SetSelectedActionForDebug(new AIAction(
                 actionSet,
-                AIActionPlan.WithoutDestination);
-            actor.ai.isBestActionEnd = false;
+                AIActionPlan.WithoutDestination));
+            actor.ai.SetDecisionPendingForDebug(false);
             actor.ai.NotifyActionStarted();
 
             actor.SetLifecycleState(CharacterLifecycleState.Downed);
@@ -947,8 +947,8 @@ public static class CharacterAiPriorityCornerCaseDebugScenarios
             return actions.All(action =>
             {
                 AIAction running = new(action, AIActionPlan.WithoutDestination);
-                actor.ai.bestAction = running;
-                actor.ai.isBestActionEnd = false;
+                actor.ai.SetSelectedActionForDebug(running);
+                actor.ai.SetDecisionPendingForDebug(false);
                 actor.ai.NotifyActionStarted();
                 bool passed = action.IsContinuous
                     && action.MinimumDuration > 0f
@@ -956,8 +956,8 @@ public static class CharacterAiPriorityCornerCaseDebugScenarios
                     && action.CanContinue(actor, running, out _)
                     && !actor.ai.CanInterruptCurrentActionForSurvivalEmergency(
                         out _);
-                actor.ai.bestAction = null;
-                actor.ai.isBestActionEnd = true;
+                actor.ai.SetSelectedActionForDebug(null);
+                actor.ai.SetDecisionPendingForDebug(true);
                 return passed;
             });
         }
@@ -980,8 +980,8 @@ public static class CharacterAiPriorityCornerCaseDebugScenarios
         try
         {
             AIAction running = new(workActionSet, AIActionPlan.WithoutDestination);
-            actor.ai.bestAction = running;
-            actor.ai.isBestActionEnd = false;
+            actor.ai.SetSelectedActionForDebug(running);
+            actor.ai.SetDecisionPendingForDebug(false);
             actor.ai.NotifyActionStarted();
             work.isWorking = false;
             CharacterAiRuntimeDiagnosticsSnapshot before =
@@ -1022,9 +1022,9 @@ public static class CharacterAiPriorityCornerCaseDebugScenarios
         try
         {
             AIAction running = new(recreation, AIActionPlan.WithoutDestination);
-            actor.ai.bestAction = running;
-            actor.ai.isBestActionEnd = false;
-            actor.ai.isExecuted = false;
+            actor.ai.SetSelectedActionForDebug(running);
+            actor.ai.SetDecisionPendingForDebug(false);
+            actor.ai.SetExecutionFlagForDebug(false);
             actor.ai.NotifyActionStarted();
             // AbilityWork can remain true for one scheduling boundary after a
             // routine-need interruption. Preservation must follow the current
@@ -1040,8 +1040,8 @@ public static class CharacterAiPriorityCornerCaseDebugScenarios
             AIAction runningWork = new(
                 workActionSet,
                 AIActionPlan.WithoutDestination);
-            actor.ai.bestAction = runningWork;
-            actor.ai.isBestActionEnd = false;
+            actor.ai.SetSelectedActionForDebug(runningWork);
+            actor.ai.SetDecisionPendingForDebug(false);
             actor.ai.NotifyActionStarted();
             bool preservesRunningWorkWakeup =
                 DungeonWorkforceReplanService.ShouldPreserveRunningNonWorkAction(
@@ -1081,9 +1081,9 @@ public static class CharacterAiPriorityCornerCaseDebugScenarios
 
         try
         {
-            character.ai.bestAction = new AIAction(
+            character.ai.SetSelectedActionForDebug(new AIAction(
                 actionSet,
-                AIActionPlan.WithoutDestination);
+                AIActionPlan.WithoutDestination));
             AIActionFailure failure = AIActionFailure.Create(
                 AIActionFailureKind.CannotStart,
                 "forced repeated start failure");
@@ -1153,8 +1153,8 @@ public static class CharacterAiPriorityCornerCaseDebugScenarios
             AIAction action = new AIAction(
                 actionSet,
                 AIActionPlan.AtDestination(facility));
-            actor.ai.bestAction = action;
-            actor.ai.isBestActionEnd = false;
+            actor.ai.SetSelectedActionForDebug(action);
+            actor.ai.SetDecisionPendingForDebug(false);
             actor.GetAbility<AbilityShopping>()?.BeginVisitInteraction(facility);
 
             IEnumerator interaction = facility.Interact(actor.BuildingVisitor);
@@ -1230,8 +1230,8 @@ public static class CharacterAiPriorityCornerCaseDebugScenarios
             AIAction replacementAction = new AIAction(
                 replacementActionSet,
                 AIActionPlan.WithoutDestination);
-            actor.ai.bestAction = obsoleteAction;
-            actor.ai.isBestActionEnd = false;
+            actor.ai.SetSelectedActionForDebug(obsoleteAction);
+            actor.ai.SetDecisionPendingForDebug(false);
             actor.GetAbility<AbilityShopping>()?.BeginVisitInteraction(facility);
 
             IEnumerator interaction = facility.Interact(actor.BuildingVisitor);
@@ -1239,7 +1239,7 @@ public static class CharacterAiPriorityCornerCaseDebugScenarios
             int usersBeforeReplacement = facility.CurrentUserCount;
             facility.CanQueueVisit(actor.BuildingVisitor, out string queueReasonBeforeReplacement);
             facility.CanVisit(actor.BuildingVisitor, out string visitReasonBeforeReplacement);
-            actor.ai.bestAction = replacementAction;
+            actor.ai.SetSelectedActionForDebug(replacementAction);
             bool yieldedAfterReplacement = interaction.MoveNext();
             CharacterAiRuntimeDiagnosticsSnapshot diagnostics =
                 actor.ai.CaptureRuntimeDiagnostics();

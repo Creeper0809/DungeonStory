@@ -9,7 +9,7 @@ public sealed class CropGenomeDefinitionSO : DataScriptableObject
     [ContentIdentity]
     [SerializeField] private string genomeId = string.Empty;
     [ContentReference("CropDefinitionSO", "CropId")]
-    [SerializeField] private string cropId = string.Empty;
+    [ContentIdentity, SerializeField] private string cropId = string.Empty;
     [SerializeField] private string cultivarName = string.Empty;
     [TextArea, SerializeField] private string description = string.Empty;
     [SerializeField, Min(1)] private int authoringRevision = 1;

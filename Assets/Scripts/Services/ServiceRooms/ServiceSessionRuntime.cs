@@ -1212,6 +1212,9 @@ public sealed class ServiceSessionRuntime :
             supportIds = hub.Supports
                 .Select(link => link.SupportId)
                 .Where(id => !string.IsNullOrWhiteSpace(id))
+                // The contract records participating definitions. Per-instance
+                // capacity and modifiers have already been aggregated above.
+                .Distinct(StringComparer.Ordinal)
                 .ToArray()
         };
     }

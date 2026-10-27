@@ -35,187 +35,55 @@ public sealed class V20ContentResolutionService :
     private readonly ISocialRitualFactPublisher factPublisher;
     private readonly V20ContentResolutionRequestPlanner requestPlanner;
     private readonly V20FactionContractQuery factionContractQuery;
+    private readonly V20FactionContractDeliveryRuntime factionDeliveries;
     private readonly V20ContentEffectTransaction effectTransaction;
     private readonly V20ContentEffectRollback effectRollback;
     private readonly V20RetirementSchedulePlanner retirementPlanner;
     private readonly V20ContentResolutionJournal journal;
     private readonly V20ObservedLifeEventCommands observedLifeEvents;
 
-    private static V21ContentEffectExecutionRegistry RequireRegistry(V20CampaignRuntime live,
-        V21ContentEffectExecutionRegistry configured)
-    {
-        if (configured != null && !ReferenceEquals(configured, live.EffectHandlers))
-            throw new ArgumentException("Campaign and content resolution must share the same effect registry.");
-        return live.EffectHandlers;
-    }
-
-    public V20ContentResolutionService(
+    internal V20ContentResolutionService(
         V20CampaignRuntime live,
         V20StoryContentCatalog catalog,
-        ICharacterNarrativeCatalog narrativeCatalog,
         IContentRequirementEvaluator requirements,
-        ICharacterWorldQuery characters,
         ICareerPersistence careers,
-        ICareerService careerQuery,
-        IGameCalendar calendar,
-        IKinshipQuery kinship,
-        ICharacterNarrativeQuery narrativeQuery,
-        ICharacterProficiencyQuery proficiencyQuery,
-        ICharacterNarrativeCommand narrative,
-        IGriefTraumaService grief,
-        ICharacterBodyHealthCommand bodyHealth,
-        IPopulationHealthService populationHealth,
-        IDiseaseDefinitionCatalog diseases,
-        IStockQuery stock,
         IItemReservationService reservations,
-        IIdempotentAtomicItemConsumptionService atomicItems,
         IWorldItemStackRuntime items,
-        IPhysicalItemExactSourcePublicationService exactSources,
-        IWorldDropZoneQuery dropZones,
-        IGameMoneyAccount money,
         IFacilityCapabilityQuery facilities,
         IPhysicalItemBatchDispositionService physicalDispositions,
         IPhysicalFacilityItemBatchTransferGateway factionContractTransfers,
         IEconomyProjectInputOwnerPort factionContractInputOwners,
         RunAdministrativeSealDurableEquipmentRuntime administrativeSealEquipment,
         ISocialRitualFactPublisher factPublisher,
-        V21ContentEffectExecutionRegistry effectHandlers = null)
+        V20ContentResolutionRequestPlanner requestPlanner,
+        V20FactionContractQuery factionContractQuery,
+        V20FactionContractDeliveryRuntime factionDeliveries,
+        V20ContentEffectTransaction effectTransaction,
+        V20ContentEffectRollback effectRollback,
+        V20RetirementSchedulePlanner retirementPlanner,
+        V20ContentResolutionJournal journal,
+        V20ObservedLifeEventCommands observedLifeEvents)
     {
-        this.live = live ?? throw new ArgumentNullException(nameof(live));
-        this.catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
-        narrativeCatalog = narrativeCatalog
-            ?? throw new ArgumentNullException(nameof(narrativeCatalog));
-        this.requirements = requirements ?? throw new ArgumentNullException(nameof(requirements));
-        characters = characters ?? throw new ArgumentNullException(nameof(characters));
-        this.careers = careers ?? throw new ArgumentNullException(nameof(careers));
-        careerQuery = careerQuery
-            ?? throw new ArgumentNullException(nameof(careerQuery));
-        calendar = calendar ?? throw new ArgumentNullException(nameof(calendar));
-        kinship = kinship
-            ?? throw new ArgumentNullException(nameof(kinship));
-        narrativeQuery = narrativeQuery
-            ?? throw new ArgumentNullException(nameof(narrativeQuery));
-        proficiencyQuery = proficiencyQuery
-            ?? throw new ArgumentNullException(nameof(proficiencyQuery));
-        narrative = narrative ?? throw new ArgumentNullException(nameof(narrative));
-        grief = grief ?? throw new ArgumentNullException(nameof(grief));
-        bodyHealth = bodyHealth ?? throw new ArgumentNullException(nameof(bodyHealth));
-        populationHealth = populationHealth
-            ?? throw new ArgumentNullException(nameof(populationHealth));
-        diseases = diseases ?? throw new ArgumentNullException(nameof(diseases));
-        stock = stock ?? throw new ArgumentNullException(nameof(stock));
-        this.reservations = reservations
-            ?? throw new ArgumentNullException(nameof(reservations));
-        atomicItems = atomicItems
-            ?? throw new ArgumentNullException(nameof(atomicItems));
-        this.items = items ?? throw new ArgumentNullException(nameof(items));
-        exactSources = exactSources
-            ?? throw new ArgumentNullException(nameof(exactSources));
-        dropZones = dropZones ?? throw new ArgumentNullException(nameof(dropZones));
-        money = money ?? throw new ArgumentNullException(nameof(money));
-        this.facilities = facilities ?? throw new ArgumentNullException(nameof(facilities));
-        this.physicalDispositions = physicalDispositions
-            ?? throw new ArgumentNullException(nameof(physicalDispositions));
-        this.factionContractTransfers = factionContractTransfers
-            ?? throw new ArgumentNullException(nameof(factionContractTransfers));
-        this.factionContractInputOwners = factionContractInputOwners
-            ?? throw new ArgumentNullException(nameof(factionContractInputOwners));
-        this.administrativeSealEquipment = administrativeSealEquipment
-            ?? throw new ArgumentNullException(nameof(administrativeSealEquipment));
-        this.factPublisher = factPublisher
-            ?? throw new ArgumentNullException(nameof(factPublisher));
-        requestPlanner = new V20ContentResolutionRequestPlanner(
-            this.live, this.catalog, narrativeCatalog,
-            narrativeQuery, dropZones);
-        factionContractQuery = new V20FactionContractQuery(
-            this.live, this.catalog, this.items, facilities, dropZones);
-        var typedEffects = new V20ContentTypedEffectRuntime(
-            characters, bodyHealth, grief, populationHealth,
-            narrative, narrativeCatalog, narrativeQuery, diseases, RequireRegistry(this.live, effectHandlers), calendar);
-        effectRollback = new V20ContentEffectRollback(
-            this.live, characters, this.careers, bodyHealth, grief,
-            populationHealth, narrative, this.items, money, typedEffects.Handlers);
-        effectTransaction = new V20ContentEffectTransaction(
-            dropZones, this.items, money,
-            this.reservations, stock, atomicItems, exactSources, typedEffects, effectRollback);
-        retirementPlanner = new V20RetirementSchedulePlanner(this.requirements, this.careers);
-        journal = new V20ContentResolutionJournal(
-            this.live, this.careers, exactSources, this.items, money,
-            this.factPublisher, typedEffects, effectRollback, retirementPlanner);
-        observedLifeEvents = new V20ObservedLifeEventCommands(
-            this.live, this.catalog, characters, careerQuery, calendar,
-            kinship, proficiencyQuery, narrative, this.factPublisher,
-            physicalDispositions, this.reservations, effectTransaction, effectRollback, journal);
-    }
-
-    internal V20ContentResolutionService(
-        V20CampaignRuntime live,
-        V20StoryContentCatalog catalog,
-        IContentRequirementEvaluator requirements,
-        ICharacterWorldQuery characters,
-        IStockQuery stock,
-        IIdempotentAtomicItemConsumptionService atomicItems,
-        ISocialRitualFactPublisher factPublisher,
-        ICharacterNarrativeCommand narrative = null,
-        IPhysicalItemExactSourcePublicationService exactSources = null,
-        ICharacterNarrativeCatalog narrativeCatalog = null,
-        IItemReservationService reservations = null,
-        IWorldItemStackRuntime items = null,
-        IWorldDropZoneQuery dropZones = null,
-        IGameMoneyAccount money = null,
-        ICharacterBodyHealthCommand bodyHealth = null,
-        ICareerPersistence careers = null,
-        ICareerService careerQuery = null,
-        IPopulationHealthService populationHealth = null,
-        IDiseaseDefinitionCatalog diseases = null,
-        IGriefTraumaService grief = null,
-        V21ContentEffectExecutionRegistry effectHandlers = null,
-        IGameCalendar calendar = null)
-    {
-        this.live = live ?? throw new ArgumentNullException(nameof(live));
-        this.catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
-        this.requirements = requirements
-            ?? throw new ArgumentNullException(nameof(requirements));
-        characters = characters
-            ?? throw new ArgumentNullException(nameof(characters));
+        this.live = live;
+        this.catalog = catalog;
+        this.requirements = requirements;
         this.careers = careers;
-        IKinshipQuery kinship = null;
-        ICharacterNarrativeQuery narrativeQuery = narrative as ICharacterNarrativeQuery;
-        ICharacterProficiencyQuery proficiencyQuery = null;
-        stock = stock ?? throw new ArgumentNullException(nameof(stock));
         this.reservations = reservations;
-        atomicItems = atomicItems
-            ?? throw new ArgumentNullException(nameof(atomicItems));
         this.items = items;
-        facilities = null;
-        physicalDispositions = null;
-        factionContractTransfers = null;
-        factionContractInputOwners = null;
-        administrativeSealEquipment = null;
-        this.factPublisher = factPublisher
-            ?? throw new ArgumentNullException(nameof(factPublisher));
-        requestPlanner = new V20ContentResolutionRequestPlanner(
-            this.live, this.catalog, narrativeCatalog,
-            narrativeQuery, dropZones);
-        factionContractQuery = new V20FactionContractQuery(
-            this.live, this.catalog, this.items, facilities, dropZones);
-        var typedEffects = new V20ContentTypedEffectRuntime(
-            characters, bodyHealth, grief, populationHealth,
-            narrative, narrativeCatalog, narrativeQuery, diseases, RequireRegistry(this.live, effectHandlers), calendar);
-        effectRollback = new V20ContentEffectRollback(
-            this.live, characters, this.careers, bodyHealth, grief,
-            populationHealth, narrative, this.items, money, typedEffects.Handlers);
-        effectTransaction = new V20ContentEffectTransaction(
-            dropZones, this.items, money,
-            this.reservations, stock, atomicItems, exactSources, typedEffects, effectRollback);
-        retirementPlanner = new V20RetirementSchedulePlanner(this.requirements, this.careers);
-        journal = new V20ContentResolutionJournal(
-            this.live, this.careers, exactSources, this.items, money,
-            this.factPublisher, typedEffects, effectRollback, retirementPlanner);
-        observedLifeEvents = new V20ObservedLifeEventCommands(
-            this.live, this.catalog, characters, careerQuery, calendar,
-            kinship, proficiencyQuery, narrative, this.factPublisher,
-            physicalDispositions, this.reservations, effectTransaction, effectRollback, journal);
+        this.facilities = facilities;
+        this.physicalDispositions = physicalDispositions;
+        this.factionContractTransfers = factionContractTransfers;
+        this.factionContractInputOwners = factionContractInputOwners;
+        this.administrativeSealEquipment = administrativeSealEquipment;
+        this.factPublisher = factPublisher;
+        this.requestPlanner = requestPlanner;
+        this.factionContractQuery = factionContractQuery;
+        this.factionDeliveries = factionDeliveries;
+        this.effectTransaction = effectTransaction;
+        this.effectRollback = effectRollback;
+        this.retirementPlanner = retirementPlanner;
+        this.journal = journal;
+        this.observedLifeEvents = observedLifeEvents;
     }
 
     public bool CanScheduleRetirement(CharacterId characterId)
@@ -336,7 +204,7 @@ public sealed class V20ContentResolutionService :
         }
         if (request.Kind == ContentResolutionRequestKind.FactionContractOutcome
             && request.ContractSucceeded
-            && !TryValidateLiveFactionDeliveryReceipt(
+            && !factionDeliveries.TryValidateLiveFactionDeliveryReceipt(
                 request.FactionId,
                 out failure))
         {
@@ -427,7 +295,7 @@ public sealed class V20ContentResolutionService :
         string acceptedMaterialDestinationId = string.Empty;
         if ((request.Kind is ContentResolutionRequestKind.FactionContractAccept
                 or ContentResolutionRequestKind.SeasonalFactionContractAccept)
-            && !TryEnsureAcceptedMaterialInputOwner(
+            && !factionDeliveries.TryEnsureAcceptedMaterialInputOwner(
                 candidate,
                 request.FactionId,
                 out acceptedMaterialOwnerEnsured,
@@ -451,7 +319,7 @@ public sealed class V20ContentResolutionService :
         }
         catch
         {
-            CompensateAcceptedMaterialOwnerOrThrow(
+            factionDeliveries.CompensateAcceptedMaterialOwnerOrThrow(
                 acceptedMaterialOwnerEnsured,
                 acceptedMaterialDestinationId,
                 "candidate-prepare-failed");
@@ -465,7 +333,7 @@ public sealed class V20ContentResolutionService :
         }
         catch
         {
-            CompensateAcceptedMaterialOwnerOrThrow(
+            factionDeliveries.CompensateAcceptedMaterialOwnerOrThrow(
                 acceptedMaterialOwnerEnsured,
                 acceptedMaterialDestinationId,
                 "effect-owner-capture-failed");
@@ -484,9 +352,11 @@ public sealed class V20ContentResolutionService :
         Exception transactionFailure = null;
         bool durableRecoveryPending = false;
         bool recoveryPublished = false;
+        bool resolutionEffectsStarted = false;
         DurableFacilityEquipmentUseEvidence administrativeEquipment = null;
         bool CommitResolution()
         {
+            resolutionEffectsStarted = true;
             try
             {
                 if (!effectTransaction.TryCommitEffects(
@@ -668,8 +538,11 @@ public sealed class V20ContentResolutionService :
 
         if (!transactionCommitted)
         {
-            effectRollback.RestoreEffectOwners(ownersBefore, request.ActionId);
-            CompensateAcceptedMaterialOwnerOrThrow(
+            // 인장 공급 대기는 효과 실행 전이다. 전체 물품을 되돌리면 방금 만든
+            // 실제 배송 요청도 사라져 재시도가 영원히 공급 대기에 머문다.
+            if (resolutionEffectsStarted)
+                effectRollback.RestoreEffectOwners(ownersBefore, request.ActionId);
+            factionDeliveries.CompensateAcceptedMaterialOwnerOrThrow(
                 acceptedMaterialOwnerEnsured,
                 acceptedMaterialDestinationId,
                 "content-transaction-failed");
@@ -775,92 +648,14 @@ public sealed class V20ContentResolutionService :
                         ?? ObservedIncidentResponsePhase.None)
                     != ObservedIncidentResponsePhase.None));
 
-    public bool RequiresAdvance => live.CaptureFactions().factions
-        .Where(value => value != null)
-        .Any(value => FactionContractDeliveryOutbox.HasPending(value)
-            || value.deliveryTerminalCleanupPending
-            || (!string.IsNullOrWhiteSpace(value.activeContractId)
-                && catalog.Contracts.Any(contract =>
-                    contract != null
-                    && string.Equals(
-                        contract.StableId,
-                        value.activeContractId,
-                        StringComparison.Ordinal)
-                    && FactionContractMaterialRules.HasMaterialRequirements(
-                        contract))));
+    public bool RequiresAdvance => factionDeliveries.RequiresAdvance;
 
     public void ValidateBeforeCapture()
     {
         factPublisher.AssertIdle();
         foreach (var recovery in live.CaptureMilestones().pendingContentResolutions)
             V20ContentRecoveryEvidence.RequirePhysicalReceipts(recovery, items as IPhysicalEffectReceiptQuery);
-        FactionCampaignStateSaveData[] states = live.CaptureFactions().factions
-            .Where(value => value != null)
-            .ToArray();
-        Dictionary<string, FactionCampaignStateSaveData> campaignPending = states
-            .Where(FactionContractDeliveryOutbox.HasPending)
-            .ToDictionary(
-                value => value.deliveryOperationId,
-                value => value,
-                StringComparer.Ordinal);
-
-        foreach (FactionCampaignStateSaveData state in campaignPending.Values)
-        {
-            if (!FactionContractDeliveryOutbox.HasCanonicalPending(state)
-                || !factionContractTransfers.TryGetPending(
-                    state.deliveryOperationId,
-                    out PhysicalItemBatchDispositionReceipt physical)
-                || !FactionContractDeliveryOutbox.ReceiptMatchesSaved(
-                    state,
-                    physical))
-            {
-                throw new InvalidOperationException(
-                    "Faction-contract save capture crossed a campaign/physical "
-                    + $"receipt transition for '{state.factionId}'.");
-            }
-        }
-
-        foreach (FactionCampaignStateSaveData state in states.Where(value =>
-                     !string.IsNullOrEmpty(value.activeContractOccurrenceId)
-                     && !string.IsNullOrEmpty(value.activeContractId)))
-        {
-            FactionContractDefinitionSO contract = catalog.Contracts
-                .FirstOrDefault(value => value != null
-                    && string.Equals(
-                        value.StableId,
-                        state.activeContractId,
-                        StringComparison.Ordinal)
-                    && !string.IsNullOrEmpty(value.seasonalEventId));
-            if (contract == null
-                || !FactionContractMaterialRules.HasMaterialRequirements(contract))
-                continue;
-            string operationId = FactionContractDeliveryOutbox.FormatOperationId(
-                contract.StableId,
-                state.activeContractOccurrenceId);
-            if (factionContractTransfers.TryGetPending(operationId, out _)
-                && !campaignPending.ContainsKey(operationId))
-            {
-                throw new InvalidOperationException(
-                    "Faction-contract save capture crossed the physical-commit/"
-                    + $"campaign-record transition for seasonal occurrence "
-                    + $"'{state.activeContractOccurrenceId}'.");
-            }
-        }
-
-        foreach (FactionContractDefinitionSO contract in catalog.Contracts
-                     .Where(value => string.IsNullOrEmpty(value.seasonalEventId))
-                     .Where(FactionContractMaterialRules.HasMaterialRequirements))
-        {
-            string operationId = FactionContractDeliveryOutbox.FormatOperationId(
-                contract.StableId);
-            if (factionContractTransfers.TryGetPending(operationId, out _)
-                && !campaignPending.ContainsKey(operationId))
-            {
-                throw new InvalidOperationException(
-                    "Faction-contract save capture crossed the physical-commit/"
-                    + $"campaign-record transition for '{contract.StableId}'.");
-            }
-        }
+        factionDeliveries.ValidateBeforeCapture();
 
         SocietyEventWorldSaveData societySnapshot = live.CaptureSociety();
         _ = live.PrepareSociety(societySnapshot);
@@ -921,437 +716,11 @@ public sealed class V20ContentResolutionService :
         return factionContractQuery.GetContracts(factionId);
     }
 
-    public void AdvanceFactionContractDeliveries(
-        int absoluteDay,
-        RunMilestoneEvaluationSnapshot requirements)
-    {
-        if (requirements == null)
-            return;
-        foreach (FactionCampaignStateSaveData snapshot in
-                 live.CaptureFactions().factions
-                     .Where(value => value != null)
-                     .OrderBy(value => value.factionId, StringComparer.Ordinal))
+    public void AdvanceFactionContractDeliveries(int absoluteDay, RunMilestoneEvaluationSnapshot requirements) =>
+        factionDeliveries.AdvanceFactionContractDeliveries(absoluteDay, requirements, request =>
         {
-            AdvanceFactionContractDelivery(
-                snapshot.factionId,
-                Math.Max(1, absoluteDay),
-                requirements);
-        }
-    }
+            bool succeeded = TryExecute(request, out _, out DomainFailure failure);
+            return (succeeded, failure);
+        });
 
-    private void AdvanceFactionContractDelivery(
-        string factionId,
-        int absoluteDay,
-        RunMilestoneEvaluationSnapshot requirements)
-    {
-        if (!live.TryGetFaction(
-                factionId,
-                out FactionCampaignStateSaveData state))
-            return;
-
-        if (state.deliveryTerminalCleanupPending)
-        {
-            if (!TryRetireFactionContractInputOwner(
-                    state,
-                    out string retireFailure))
-            {
-                PublishDeliveryFailure(factionId, retireFailure);
-                return;
-            }
-            state = RequireLiveFaction(factionId);
-        }
-
-        if (state.deliveryCommitPhase ==
-            FactionContractDeliveryCommitPhase.RewardPublished)
-        {
-            if (!TryGetMatchingPendingReceipt(
-                    state,
-                    out PhysicalItemBatchDispositionReceipt receipt,
-                    out string receiptFailure))
-            {
-                PublishDeliveryFailure(factionId, receiptFailure);
-                return;
-            }
-            if (!factionContractTransfers.Acknowledge(
-                    receipt.CommitId,
-                    out string acknowledgementFailure))
-            {
-                PublishDeliveryFailure(factionId, acknowledgementFailure);
-                return;
-            }
-            PublishFactionMutation(
-                factionId,
-                (V20CampaignRuntime candidate, out string mutationFailure) =>
-                    ((IFactionCampaignDeliveryCommand)candidate)
-                        .TryClearDeliveryOutbox(
-                            factionId,
-                            out mutationFailure),
-                "faction-contract-outbox-clear");
-            return;
-        }
-
-        if (state.deliveryCommitPhase ==
-            FactionContractDeliveryCommitPhase.PhysicalCommitted)
-        {
-            ContentResolutionRequest outcome = new()
-            {
-                ActionId = V21ContentAlertActionIds.FactionContractOutcome(
-                    factionId,
-                    succeeded: true),
-                Kind = ContentResolutionRequestKind.FactionContractOutcome,
-                FactionId = factionId,
-                ContractSucceeded = true,
-                AbsoluteDay = absoluteDay,
-                Requirements = requirements
-            };
-            if (!TryExecute(outcome, out _, out DomainFailure outcomeFailure))
-                PublishDeliveryFailure(
-                    factionId,
-                    outcomeFailure.Code.ToString());
-            return;
-        }
-
-        if (string.IsNullOrWhiteSpace(state.activeContractId))
-            return;
-        FactionContractDefinitionSO contract = catalog.Contracts.FirstOrDefault(value =>
-            string.Equals(
-                value.StableId,
-                state.activeContractId,
-                StringComparison.Ordinal));
-        IReadOnlyDictionary<string, int> material =
-            FactionContractMaterialRules.BuildMaterialRequirements(contract);
-        if (material.Count == 0)
-            return;
-        if (!state.activeContractInputOwnerActive
-            || string.IsNullOrWhiteSpace(state.activeContractDestinationId))
-        {
-            PublishDeliveryFailure(
-                factionId,
-                "faction-contract-input-owner-inactive");
-            return;
-        }
-
-        string operationId = FactionContractDeliveryOutbox.FormatOperationId(
-            contract.StableId,
-            state.activeContractOccurrenceId);
-        if (factionContractTransfers.TryGetPending(
-                operationId,
-                out PhysicalItemBatchDispositionReceipt existingReceipt))
-        {
-            PublishFactionMutation(
-                factionId,
-                (V20CampaignRuntime candidate, out string mutationFailure) =>
-                    ((IFactionCampaignDeliveryCommand)candidate)
-                        .TryRecordDeliveryReceipt(
-                            factionId,
-                            FactionContractDeliveryReceipt.FromPhysical(
-                                existingReceipt),
-                            out mutationFailure),
-                "faction-contract-existing-receipt-record");
-            return;
-        }
-
-        Vector2Int destination = new(
-            state.activeContractDestinationX,
-            state.activeContractDestinationY);
-        bool requestFailed = false;
-        string requestFailure = string.Empty;
-        foreach (KeyValuePair<string, int> required in material)
-        {
-            int assigned = factionContractQuery.CountFactionContractQuantity(
-                state.activeContractDestinationId,
-                required.Key,
-                stack => stack.State is WorldItemStackState.Loose
-                    or WorldItemStackState.Stored
-                    or WorldItemStackState.FacilityOutputBuffer
-                    or WorldItemStackState.Carried
-                    or WorldItemStackState.InTransit
-                    or WorldItemStackState.FacilityBuffer);
-            int missing = Math.Max(0, required.Value - assigned);
-            if (missing <= 0)
-                continue;
-            if (!items.TryRequestItemDelivery(
-                    required.Key,
-                    missing,
-                    destination,
-                    state.activeContractDestinationId,
-                    out int requested,
-                    out requestFailure)
-                || requested != missing)
-            {
-                requestFailed = true;
-                if (string.IsNullOrWhiteSpace(requestFailure))
-                {
-                    requestFailure =
-                        $"faction-contract-delivery-request-partial:"
-                        + $"{required.Key}:{requested}/{missing}";
-                }
-                break;
-            }
-        }
-        if (requestFailed)
-        {
-            PublishDeliveryFailure(factionId, requestFailure);
-            return;
-        }
-
-        bool allArrived = material.All(required =>
-            factionContractQuery.CountFactionContractQuantity(
-                state.activeContractDestinationId,
-                required.Key,
-                stack => stack.State == WorldItemStackState.FacilityBuffer)
-            >= required.Value);
-        if (!allArrived)
-        {
-            PublishDeliveryFailure(factionId, string.Empty);
-            return;
-        }
-
-        if (absoluteDay > state.activeContractDeadlineAbsoluteDay)
-        {
-            PublishDeliveryFailure(
-                factionId,
-                "faction-contract-deadline-expired-before-transfer");
-            return;
-        }
-        if (!this.requirements.TryEvaluate(
-                FactionContractMaterialRules.BuildNonMaterialRequirements(
-                    contract),
-                requirements,
-                Array.Empty<string>(),
-                out DomainFailure eligibilityFailure))
-        {
-            PublishDeliveryFailure(
-                factionId,
-                "faction-contract-non-material-condition:"
-                + eligibilityFailure.Code);
-            return;
-        }
-
-        if (!factionContractTransfers.TryCommitTransferPending(
-                state.activeContractDestinationId,
-                material,
-                operationId,
-                FactionContractDeliveryOutbox.TransferReason,
-                out PhysicalItemBatchDispositionReceipt transferReceipt,
-                out string transferFailure))
-        {
-            PublishDeliveryFailure(factionId, transferFailure);
-            return;
-        }
-        PublishFactionMutation(
-            factionId,
-            (V20CampaignRuntime candidate, out string mutationFailure) =>
-                ((IFactionCampaignDeliveryCommand)candidate)
-                    .TryRecordDeliveryReceipt(
-                        factionId,
-                        FactionContractDeliveryReceipt.FromPhysical(
-                            transferReceipt),
-                        out mutationFailure),
-            "faction-contract-receipt-record");
-    }
-
-    private bool TryEnsureAcceptedMaterialInputOwner(
-        V20CampaignRuntime candidate,
-        string factionId,
-        out bool ensured,
-        out string destinationId,
-        out DomainFailure failure)
-    {
-        ensured = false;
-        destinationId = string.Empty;
-        failure = DomainFailure.None;
-        if (!candidate.TryGetFaction(
-                factionId,
-                out FactionCampaignStateSaveData state))
-            return true;
-        FactionContractDefinitionSO contract = catalog.Contracts.FirstOrDefault(value =>
-            string.Equals(
-                value.StableId,
-                state.activeContractId,
-                StringComparison.Ordinal));
-        IReadOnlyDictionary<string, int> material =
-            FactionContractMaterialRules.BuildMaterialRequirements(contract);
-        if (material.Count == 0)
-            return true;
-
-        destinationId = state.activeContractDestinationId;
-        if (!factionContractInputOwners.TryEnsure(
-                EconomyProjectInputOwnerAuthority.FactionContractDomain,
-                state.activeContractDestinationOwnerId,
-                destinationId,
-                new Vector2Int(
-                    state.activeContractDestinationX,
-                    state.activeContractDestinationY),
-                EconomyProjectInputOwnerAnchorKind.ReservedTarget,
-                string.Empty,
-                material,
-                0L,
-                0L,
-                string.Empty,
-                out EconomyProjectInputOwnerProjection projection,
-                out string ownerFailure))
-        {
-            failure = new DomainFailure(
-                FailureCode.ProductionOutputUnavailable);
-            return false;
-        }
-        ensured = true;
-        if (!((IFactionCampaignDeliveryCommand)candidate)
-                .TrySetInputOwnerProjection(
-                    factionId,
-                    projection.CapacityGrams,
-                    projection.MassAuthorityRevision,
-                    projection.Fingerprint,
-                    out string projectionFailure))
-        {
-            CompensateAcceptedMaterialOwnerOrThrow(
-                true,
-                destinationId,
-                projectionFailure);
-            ensured = false;
-            failure = new DomainFailure(
-                FailureCode.ProductionOutputUnavailable);
-            return false;
-        }
-        return true;
-    }
-
-    private void CompensateAcceptedMaterialOwnerOrThrow(
-        bool ensured,
-        string destinationId,
-        string reason)
-    {
-        if (!ensured)
-            return;
-        if (!factionContractInputOwners.TryRetireDestination(
-                EconomyProjectInputOwnerAuthority.FactionContractDomain,
-                destinationId,
-                EconomyProjectInputOwnerAuthority.FactionContractTerminalReason,
-                out string failureReason))
-        {
-            throw new InvalidOperationException(
-                $"Faction-contract accept failed ({reason}) and input-owner compensation failed: "
-                + failureReason);
-        }
-    }
-
-    private bool TryValidateLiveFactionDeliveryReceipt(
-        string factionId,
-        out DomainFailure failure)
-    {
-        failure = DomainFailure.None;
-        if (!live.TryGetFaction(
-                factionId,
-                out FactionCampaignStateSaveData state))
-        {
-            failure = new DomainFailure(FailureCode.ExternalInfluenceUnavailable);
-            return false;
-        }
-        FactionContractDefinitionSO contract = catalog.Contracts.FirstOrDefault(value =>
-            string.Equals(
-                value.StableId,
-                state.activeContractId,
-                StringComparison.Ordinal));
-        if (!FactionContractMaterialRules.HasMaterialRequirements(contract))
-            return true;
-        if (!TryGetMatchingPendingReceipt(state, out _, out _))
-        {
-            failure = new DomainFailure(FailureCode.ItemTransferStackUnavailable);
-            return false;
-        }
-        return true;
-    }
-
-    private bool TryGetMatchingPendingReceipt(
-        FactionCampaignStateSaveData state,
-        out PhysicalItemBatchDispositionReceipt receipt,
-        out string failureReason)
-    {
-        receipt = default;
-        if (!FactionContractDeliveryOutbox.HasCanonicalPending(state)
-            || !factionContractTransfers.TryGetPending(
-                state.deliveryOperationId,
-                out receipt)
-            || !FactionContractDeliveryOutbox.ReceiptMatchesSaved(
-                state,
-                receipt))
-        {
-            failureReason =
-                "faction-contract-delivery-receipt-missing-or-mismatch";
-            return false;
-        }
-        failureReason = string.Empty;
-        return true;
-    }
-
-    private bool TryRetireFactionContractInputOwner(
-        FactionCampaignStateSaveData state,
-        out string failureReason)
-    {
-        if (state == null || !state.activeContractInputOwnerActive)
-        {
-            failureReason = string.Empty;
-            return true;
-        }
-        if (!factionContractInputOwners.TryRetireDestination(
-                EconomyProjectInputOwnerAuthority.FactionContractDomain,
-                state.activeContractDestinationId,
-                EconomyProjectInputOwnerAuthority.FactionContractTerminalReason,
-                out failureReason))
-            return false;
-        PublishFactionMutation(
-            state.factionId,
-            (V20CampaignRuntime candidate, out string mutationFailure) =>
-                ((IFactionCampaignDeliveryCommand)candidate)
-                    .TryMarkInputOwnerRetired(
-                        state.factionId,
-                        out mutationFailure),
-            "faction-contract-input-owner-retire");
-        return true;
-    }
-
-    private delegate bool FactionCandidateMutation(
-        V20CampaignRuntime candidate,
-        out string failure);
-
-    private void PublishFactionMutation(
-        string factionId,
-        FactionCandidateMutation mutation,
-        string operation)
-    {
-        V20CampaignRuntime candidate = live.CreateContentResolutionCandidate(physicalDispositions);
-        if (!mutation(candidate, out string failure))
-            throw new InvalidOperationException(
-                $"{operation} rejected faction '{factionId}': {failure}");
-        live.PublishFactions(live.PrepareFactions(candidate.CaptureFactions()));
-    }
-
-    private void PublishDeliveryFailure(string factionId, string reason)
-    {
-        FactionCampaignStateSaveData state = RequireLiveFaction(factionId);
-        string canonical = reason?.Trim() ?? string.Empty;
-        if (string.Equals(
-                state.deliveryFailureReason,
-                canonical,
-                StringComparison.Ordinal))
-            return;
-        PublishFactionMutation(
-            factionId,
-            (V20CampaignRuntime candidate, out string mutationFailure) =>
-                ((IFactionCampaignDeliveryCommand)candidate)
-                    .TrySetDeliveryFailure(
-                        factionId,
-                        canonical,
-                        out mutationFailure),
-            "faction-contract-delivery-status");
-    }
-
-    private FactionCampaignStateSaveData RequireLiveFaction(string factionId)
-    {
-        if (!live.TryGetFaction(factionId, out FactionCampaignStateSaveData state))
-            throw new InvalidOperationException(
-                $"Unknown faction contract campaign '{factionId}'.");
-        return state;
-    }
 }

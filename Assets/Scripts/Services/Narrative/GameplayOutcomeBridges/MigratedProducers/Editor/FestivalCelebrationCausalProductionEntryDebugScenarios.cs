@@ -5,6 +5,7 @@ using System.Globalization;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.ExceptionServices;
+using System.Runtime.Serialization;
 using DungeonStory.Buildings;
 using DungeonStory.Foundation;
 using DungeonStory.Operation;
@@ -279,6 +280,7 @@ public static class FestivalCelebrationCausalProductionEntryDebugScenarios
     {
         private readonly string causalRunId;
         private readonly CustomerAiDebugScenarios.CustomerAiScenarioWorld world;
+        private readonly CharacterWorldSaveService actorSave;
         private readonly DungeonRuntimeAggregateRootStore aggregateRoots = new();
         private readonly MigratedProducerOutcomeEditorFixture outcomes;
         private readonly MigratedProducerOutcomeProbeTransaction probe;
@@ -349,6 +351,14 @@ public static class FestivalCelebrationCausalProductionEntryDebugScenarios
             world = new CustomerAiDebugScenarios.CustomerAiScenarioWorld();
             try
             {
+                // 캐릭터 단위 저장과 복원은 같은 이동 provenance 소유자를 사용한다.
+                actorSave = (CharacterWorldSaveService)FormatterServices.GetUninitializedObject(
+                    typeof(CharacterWorldSaveService));
+                FieldInfo responseMovements = typeof(CharacterWorldSaveService).GetField(
+                    "responseMovements", BindingFlags.Instance | BindingFlags.NonPublic)
+                    ?? throw new InvalidOperationException(
+                        "Character actor save requires movement provenance authority.");
+                responseMovements.SetValue(actorSave, new SocietyResponseMovementProvenanceRuntime());
                 venueDefinition = Object.Instantiate(
                     AssetDatabase.LoadAssetAtPath<BuildingSO>(
                         "Assets/Resources/SO/Building/ResearchOverhaul/RF87_추모실.asset")
@@ -1013,7 +1023,7 @@ public static class FestivalCelebrationCausalProductionEntryDebugScenarios
                 Invoke(
                     typeof(CharacterWorldSaveService),
                     "ApplyActorState",
-                    null,
+                    actorSave,
                     world.Grid,
                     actor,
                     dto);
@@ -1260,7 +1270,7 @@ public static class FestivalCelebrationCausalProductionEntryDebugScenarios
             (DungeonCharacterSaveData)Invoke(
                 typeof(CharacterWorldSaveService),
                 "CaptureActor",
-                null,
+                actorSave,
                 world.Grid,
                 actor));
 

@@ -121,11 +121,11 @@ public static class CharacterAiNaturalnessDebugScenarios
                 bool legacyBlocked = !brain.DecideAction() && brain.IsExternalIntentCurrent(lease);
                 // Execution boundary also rejects a stale externally supplied
                 // selection without starting it or revoking the valid lease.
-                brain.bestAction = action;
+                brain.SetSelectedActionForDebug(action);
                 bool executionBlocked = !actor.TryExecuteSelectedAiAction(out failure)
                     && failure.Kind == AIActionFailureKind.CannotStart && !action.HasStarted
                     && brain.IsExternalIntentCurrent(lease);
-                brain.bestAction = null;
+                brain.SetSelectedActionForDebug(null);
                 bool released = brain.EndExternallyDrivenAction(lease, clearFailures: true);
                 bool selectedAfterRelease = released && brain.TryCommitActionCandidate(candidate, out failure)
                     && actor.TryExecuteSelectedAiAction(out failure) && action.HasStarted;
@@ -826,7 +826,7 @@ public static class CharacterAiNaturalnessDebugScenarios
                 deprivation);
             AIAction runningWork = new AIAction { actionset = workAction };
             runningWork.MarkStarted(Mathf.Max(0f, Time.time - 1f));
-            actor.Brain.bestAction = runningWork;
+            actor.Brain.SetSelectedActionForDebug(runningWork);
 
             bool workCanInterrupt = !pipeline.HasLockedAction(actor)
                 && pipeline.CanInterruptCurrentAction(actor);
@@ -841,7 +841,7 @@ public static class CharacterAiNaturalnessDebugScenarios
 
             AIAction runningHardLock = new AIAction { actionset = hardLockAction };
             runningHardLock.MarkStarted(Mathf.Max(0f, Time.time - 1f));
-            actor.Brain.bestAction = runningHardLock;
+            actor.Brain.SetSelectedActionForDebug(runningHardLock);
             bool hardLockPreserved = pipeline.HasLockedAction(actor)
                 && !pipeline.CanInterruptCurrentAction(actor)
                 && actor.Brain.bestAction == runningHardLock;

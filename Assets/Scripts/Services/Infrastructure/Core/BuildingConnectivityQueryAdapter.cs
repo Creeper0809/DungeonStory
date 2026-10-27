@@ -16,5 +16,5 @@ public sealed class BuildingConnectivityQueryAdapter :
         grid.IsConnectedWithAny(positions);
 
     public bool IsConnected(Vector2Int start, int associatedId) =>
-        grid.IsConnected(start, associatedId);
+        grid.IsConnectedToBuilding(start, associatedId);
 }
