@@ -1,0 +1,76 @@
+FIRST_RUN_OBJECTIVE PASS
+[PASS] CONTROLLED_PARTY_COMMIT committed=True; message=준비한 사장과 직원으로 새 런을 시작했습니다.; tierZero=changed=True;columns=27->29;startX=17;entrance=(17, 0); liveStaff=2; inactiveStaffObjects=0; customerPoolInactive=0; actors=Miru:-54756:character:staff:1:02:active=True,Roma:-54688:character:staff:1:01:active=True; diagnostics=prepared-1:name=Roma;go=-54660;id=character:staff:1:01;active=False || prepared-2:name=Miru;go=-54728;id=character:staff:1:02;active=False || scan:name=Roma;go=-54660;id=character:staff:1:01;active=True;retained=True || scan:name=Miru;go=-54728;id=character:staff:1:02;active=True;retained=True || retained:name=Roma;go=-54660;id=character:staff:1:01;active=True || retained:name=Miru;go=-54728;id=character:staff:1:02;active=True
+[PASS] GAMEPLAY_PARTY_READY Leon:active=True,lifecycle=Active,dead=False,move=True,work=True,role=Owner | Miru:active=True,lifecycle=Active,dead=False,move=True,work=True,role=Regular | Roma:active=True,lifecycle=Active,dead=False,move=True,work=True,role=Regular
+[PASS] SCENE_TRANSITION_INPUT_RELEASED transition blocker destroyed before product UI interaction
+[PASS] DI_SCOPE active game container resolved
+[PASS] OBJECTIVE_RUNTIME runtime resolved
+[PASS] INITIAL_OBJECTIVE AcquireBlueprint
+[PASS] OBJECTIVE_HIDDEN panelExists=False; active=False
+[PASS] NO_PRODUCT_OBJECTIVE_PANEL panelExists=False; active=False
+[PASS] POINTER_TARGET shop tab
+[PASS] POINTER_RAYCAST shop tab->Text (TMP)
+[PASS] POINTER_TARGET daily blueprint attempt 1
+[INFO] SCROLL_POSITION_FALLBACK P0Action_ShopDaily_3; normalized=1->0.542; targetY0=512.3; targetY1=-221.32; visible=True; point=(532.23, 114.70)
+[PASS] POINTER_RAYCAST daily blueprint attempt 1->P0Action_ShopDaily_3
+[PASS] PUBLIC_BLUEPRINT_PURCHASE offer=3; blueprint=6101; attempts=1; acquired=True; physical=True; money=5000->4880; cost=120; queue=0->0
+[PASS] POST_PURCHASE_OBJECTIVE CompleteResearch
+[PASS] DAILY_OFFER_DUPLICATE_REJECTED 구매 실패: 이미 구매한 일일 상품입니다. / 자금 4880 -> 4880
+[PASS] DAILY_PURCHASE_SAVE_JSON sealed current-day checkpoint before research advances the clock
+[PASS] POINTER_TARGET shop tab close
+[PASS] POINTER_RAYCAST shop tab close->Text (TMP)
+[PASS] RESEARCH_ARCHIVE_READY 연구용책장@(36, 2)
+[PASS] BLUEPRINT_AT_DROPOFF state=Loose; pos=(16, 0)
+[PASS] BLUEPRINT_ARCHIVE_DESTINATION_CLAIM_EXACT destination=research-archive:building:7003db45f3784515a1205f8c6277f242; facility=building:7003db45f3784515a1205f8c6277f242; drop=(36, 2)
+[PASS] BLUEPRINT_ARCHIVE_CAPACITY_EXACT max=1200g; revision=1; reserved=0g
+[PASS] BLUEPRINT_UNIT_MASS_EXACT item=research-blueprint:6101; mass=150g
+[PASS] BLUEPRINT_ARCHIVE_DELIVERY_ASSIGNED destination=research-archive:building:7003db45f3784515a1205f8c6277f242; expected=research-archive:building:7003db45f3784515a1205f8c6277f242
+[PASS] BLUEPRINT_HAUL_PLAN_READY actor=Miru; destination=research-archive:building:7003db45f3784515a1205f8c6277f242; stacks=stack:95b2ddf8e4784808bb978987a838cb13
+[PASS] BLUEPRINT_AI_HAUL_OWNERSHIP_OBSERVED destination=research-archive:building:7003db45f3784515a1205f8c6277f242; stack=stack:95b2ddf8e4784808bb978987a838cb13
+[PASS] BLUEPRINT_ARCHIVE_COMMITTED_CARRIED_MASS destination=research-archive:building:7003db45f3784515a1205f8c6277f242; expected=150g
+[PASS] BLUEPRINT_AI_HAUL_TO_ARCHIVE elapsed=15.6s; 연구용책장
+[PASS] BLUEPRINT_AI_HAUL_OWNERSHIP_CLEAN state=FacilityBuffer; reserved=0; committed=0; mass=150g
+[PASS] BLUEPRINT_PROJECT_MAPPING research:commerce:expansion
+[PASS] RESEARCH_WORKER_READY Miru
+[PASS] BLUEPRINT_NODE_CONDITION_ACTIVATED state=Locked; blocker=Missing prerequisite research: 상업 진열
+[PASS] PROJECT_AUTO_QUEUE 상업 확장 연구 경로를 대기열에 등록했습니다.; added=3
+[PASS] RESEARCH_WORKER_AND_FACILITY_READY worker=Miru; facility=연구책상
+[PASS] RESEARCH_ARCANE_INDEX_SEQUENCE_AUTHORITY destination=facility-input:exact:durable-equipment:research.arcane-index:building:e004f5e5d00d41aebc315092d4725610:00000001; sequence=1; capacity=1300g
+[PASS] RESEARCH_ARCANE_INDEX_HAULER_BRAIN Miru
+[PASS] RESEARCH_ARCANE_INDEX_EXACT_SUPPLY_REQUEST spawned=True; durability=True; status=Applied; failure=
+[PASS] RESEARCH_ARCANE_INDEX_DOMAIN_ACTION_COMPLETE delivery action authority finished within the original haul deadline
+[PASS] RESEARCH_ARCANE_INDEX_AI_HAUL_TO_SEQUENCE preferred=True; action=True; starts=2->4; delivered=True; destination=facility-input:exact:durable-equipment:research.arcane-index:building:e004f5e5d00d41aebc315092d4725610:00000001; actual=FacilityBuffer/facility-input:exact:durable-equipment:research.arcane-index:building:e004f5e5d00d41aebc315092d4725610:00000001/durability=0.0001
+[PASS] RESEARCH_WORKER_STABILIZED 연구 검증 중 생존 결핍과 붕괴를 격리함
+[PASS] RESEARCH_PRIORITY_COMMAND 연구책상
+[PASS] RESEARCH_AI_ACTION_AVAILABLE 연구 작업 액션을 다음 판단에 예약함
+[PASS] RESEARCH_ARCANE_INDEX_DEPLETION_DRAIN_EXACT phase=ClosedAwaitingCheckpointGc; revoked=True; input=1/1300g; released=1/1300g; stack=Loose/
+[PASS] RESEARCH_EQUIPMENT_DRAIN_SAVE_JSON actual aggregate capture/preflight and sealed JSON before replacement; sections=104; expectedSequence=1; sameAuthority=True; capturedSection=True; savedSection=True; liveBefore={"version":1,"nextAssignmentSequence":2,"revision":11,"slots":[{"logicalOwnerDomain":"research.arcane-index","ownerSubjectId":"building:e004f5e5d00d41aebc315092d4725610","policyId":"policy:research.arcane-index","policyRevision":1,"capacityPolicyKind":"definition-mass","usabilityPolicyKind":"component-durability-positive","ownerFacilityId":"building:e004f5e5d00d41aebc315092d4725610","dropPositionX":35,"dropPositionY":2,"assignmentSequence":1,"assignmentFingerprint":"464a3b0f3aba6a1e8a2179ba26d69a9731482111eb66f3d1473c9d3328c3722f","maximumMassGrams":1300,"sourceAuthorityRevision":3,"sourceAuthorityFingerprint":"6ba2980a61b6ae9bbb01ba849dd4f7c995be29243173a157c671f1a6808056b6","lifecyclePhase":3,"closeReasonCode":"equipment-exhausted","authoritiesRevoked":true,"drainParentOperationId":"durable-equipment-slot-drain:research.arcane-index:building:e004f5e5d00d41aebc315092d4725610:00000001","drainStepOperationId":"durable-equipment-slot-drain:research.arcane-index:building:e004f5e5d00d41aebc315092d4725610:00000001:custody","drainOwnerStableId":"durable-equipment-slot-owner:research.arcane-index:building:e004f5e5d00d41aebc315092d4725610:00000001","drainOwnerSubjectId":"building:e004f5e5d00d41aebc315092d4725610","drainOwnerFacilityId":"building:e004f5e5d00d41aebc315092d4725610","drainSourceDestinationId":"facility-input:exact:durable-equipment:research.arcane-index:building:e004f5e5d00d41aebc315092d4725610:00000001","drainSourceAuthorityFingerprint":"6ba2980a61b6ae9bbb01ba849dd4f7c995be29243173a157c671f1a6808056b6","drainRequestFingerprint":"b0983aa9f7d449872d312121af9fdae29fc3bac351477f9dca60d179c2270840","drainOwnerGridX":35,"drainOwnerGridY":2,"drainPhase":5,"drainSourceActorCount":0,"drainCompletedActorCount":0,"drainSourceOperationCount":0,"drainReleasedOperationCount":0,"drainInputQuantity":1,"drainInputMassGrams":1300,"drainReleasedQuantity":1,"drainReleasedMassGrams":1300,"drainCommitId":"production-input-destination-custody-drain-commit:469a96d9c8529ddac6fd40268108278f29c47fa7f3c795f6a87489cf21ca4e19","drainReceiptFingerprint":"4294b04e714cb4f8dae9a320f67e0906236f2ed78fb16e30774b3124eb38f1ca"}]}; captured={"version":1,"nextAssignmentSequence":2,"revision":11,"slots":[{"logicalOwnerDomain":"research.arcane-index","ownerSubjectId":"building:e004f5e5d00d41aebc315092d4725610","policyId":"policy:research.arcane-index","policyRevision":1,"capacityPolicyKind":"definition-mass","usabilityPolicyKind":"component-durability-positive","ownerFacilityId":"building:e004f5e5d00d41aebc315092d4725610","dropPositionX":35,"dropPositionY":2,"assignmentSequence":1,"assignmentFingerprint":"464a3b0f3aba6a1e8a2179ba26d69a9731482111eb66f3d1473c9d3328c3722f","maximumMassGrams":1300,"sourceAuthorityRevision":3,"sourceAuthorityFingerprint":"6ba2980a61b6ae9bbb01ba849dd4f7c995be29243173a157c671f1a6808056b6","lifecyclePhase":3,"closeReasonCode":"equipment-exhausted","authoritiesRevoked":true,"drainParentOperationId":"durable-equipment-slot-drain:research.arcane-index:building:e004f5e5d00d41aebc315092d4725610:00000001","drainStepOperationId":"durable-equipment-slot-drain:research.arcane-index:building:e004f5e5d00d41aebc315092d4725610:00000001:custody","drainOwnerStableId":"durable-equipment-slot-owner:research.arcane-index:building:e004f5e5d00d41aebc315092d4725610:00000001","drainOwnerSubjectId":"building:e004f5e5d00d41aebc315092d4725610","drainOwnerFacilityId":"building:e004f5e5d00d41aebc315092d4725610","drainSourceDestinationId":"facility-input:exact:durable-equipment:research.arcane-index:building:e004f5e5d00d41aebc315092d4725610:00000001","drainSourceAuthorityFingerprint":"6ba2980a61b6ae9bbb01ba849dd4f7c995be29243173a157c671f1a6808056b6","drainRequestFingerprint":"b0983aa9f7d449872d312121af9fdae29fc3bac351477f9dca60d179c2270840","drainOwnerGridX":35,"drainOwnerGridY":2,"drainPhase":5,"drainSourceActorCount":0,"drainCompletedActorCount":0,"drainSourceOperationCount":0,"drainReleasedOperationCount":0,"drainInputQuantity":1,"drainInputMassGrams":1300,"drainReleasedQuantity":1,"drainReleasedMassGrams":1300,"drainCommitId":"production-input-destination-custody-drain-commit:469a96d9c8529ddac6fd40268108278f29c47fa7f3c795f6a87489cf21ca4e19","drainReceiptFingerprint":"4294b04e714cb4f8dae9a320f67e0906236f2ed78fb16e30774b3124eb38f1ca"}]}; saved={"version":1,"nextAssignmentSequence":2,"revision":11,"slots":[{"logicalOwnerDomain":"research.arcane-index","ownerSubjectId":"building:e004f5e5d00d41aebc315092d4725610","policyId":"policy:research.arcane-index","policyRevision":1,"capacityPolicyKind":"definition-mass","usabilityPolicyKind":"component-durability-positive","ownerFacilityId":"building:e004f5e5d00d41aebc315092d4725610","dropPositionX":35,"dropPositionY":2,"assignmentSequence":1,"assignmentFingerprint":"464a3b0f3aba6a1e8a2179ba26d69a9731482111eb66f3d1473c9d3328c3722f","maximumMassGrams":1300,"sourceAuthorityRevision":3,"sourceAuthorityFingerprint":"6ba2980a61b6ae9bbb01ba849dd4f7c995be29243173a157c671f1a6808056b6","lifecyclePhase":3,"closeReasonCode":"equipment-exhausted","authoritiesRevoked":true,"drainParentOperationId":"durable-equipment-slot-drain:research.arcane-index:building:e004f5e5d00d41aebc315092d4725610:00000001","drainStepOperationId":"durable-equipment-slot-drain:research.arcane-index:building:e004f5e5d00d41aebc315092d4725610:00000001:custody","drainOwnerStableId":"durable-equipment-slot-owner:research.arcane-index:building:e004f5e5d00d41aebc315092d4725610:00000001","drainOwnerSubjectId":"building:e004f5e5d00d41aebc315092d4725610","drainOwnerFacilityId":"building:e004f5e5d00d41aebc315092d4725610","drainSourceDestinationId":"facility-input:exact:durable-equipment:research.arcane-index:building:e004f5e5d00d41aebc315092d4725610:00000001","drainSourceAuthorityFingerprint":"6ba2980a61b6ae9bbb01ba849dd4f7c995be29243173a157c671f1a6808056b6","drainRequestFingerprint":"b0983aa9f7d449872d312121af9fdae29fc3bac351477f9dca60d179c2270840","drainOwnerGridX":35,"drainOwnerGridY":2,"drainPhase":5,"drainSourceActorCount":0,"drainCompletedActorCount":0,"drainSourceOperationCount":0,"drainReleasedOperationCount":0,"drainInputQuantity":1,"drainInputMassGrams":1300,"drainReleasedQuantity":1,"drainReleasedMassGrams":1300,"drainCommitId":"production-input-destination-custody-drain-commit:469a96d9c8529ddac6fd40268108278f29c47fa7f3c795f6a87489cf21ca4e19","drainReceiptFingerprint":"4294b04e714cb4f8dae9a320f67e0906236f2ed78fb16e30774b3124eb38f1ca"}]}
+[PASS] RESEARCH_ARCANE_INDEX_REPLACEMENT_AI_HAUL spawned=True; sequence=2; requested=True; action=True; starts=4->5; delivered=True; ready=True; current=운반; failure=
+[PASS] RESEARCH_FIRST_APPROVED_WU revision=8->12; generic=1.926/6; cycle=6; project=0->0
+[PASS] RESEARCH_FIRST_APPROVED_COMMIT project=research:commerce:logistics; approved=6.6; delta=6.6; starts=1; events=1
+[PASS] RESEARCH_FIRST_COMMIT_MODIFIERS actual=6.6; expected=6.6; cycle=6; contribution=1; meta=1; sequenceIndex=True; rawIndex=False; residue=False; instant=False
+[PASS] RESEARCH_FIRST_COMMIT_CONSERVATION approved=6.6; delta=6.6; aggregateSample=0->0
+[PASS] RESEARCH_AFTER_REPLACEMENT_COMMAND 
+[INFO] RESEARCH_RESUME_PROGRESS elapsed=17.1; scale=8; fixed=0.1599999; working=False; routine=False; pending=False; resets=22/3; running=False; executed=False; ended=True; generic=0/0; progress=6.6; action=운반; phase=; detail=; failure=; tools=stack:b4cce98c9f8543b3b20ca0a09e4465bb/Loose//durability=0|stack:64de1c30591f41228a6f245592a5f681/FacilityBuffer/facility-input:exact:durable-equipment:research.arcane-index:building:e004f5e5d00d41aebc315092d4725610:00000002/durability=160
+[INFO] RESEARCH_RESUME_PROGRESS elapsed=22.3; scale=8; fixed=0.1599999; working=True; routine=True; pending=False; resets=22/3; running=True; executed=True; ended=False; generic=3.84781/6; progress=6.6; action=일하기; phase=연구 64%; detail=; failure=; tools=stack:b4cce98c9f8543b3b20ca0a09e4465bb/Loose//durability=0|stack:64de1c30591f41228a6f245592a5f681/FacilityBuffer/facility-input:exact:durable-equipment:research.arcane-index:building:e004f5e5d00d41aebc315092d4725610:00000002/durability=160
+[PASS] RESEARCH_NEXT_CYCLE_COMMAND 
+[INFO] RESEARCH_RESUME_PROGRESS elapsed=27.7; scale=8; fixed=0.1599999; working=True; routine=True; pending=False; resets=24/3; running=True; executed=True; ended=False; generic=0/0; progress=13.2; action=일하기; phase=작업대 접근; detail=; failure=; tools=stack:b4cce98c9f8543b3b20ca0a09e4465bb/Loose//durability=0|stack:64de1c30591f41228a6f245592a5f681/FacilityBuffer/facility-input:exact:durable-equipment:research.arcane-index:building:e004f5e5d00d41aebc315092d4725610:00000002/durability=159.94
+[PASS] PROJECT_COMPLETED_BY_WORK_ROUTINE project=research:commerce:logistics; purchasedTarget=research:commerce:expansion; starts=3; elapsed=32.6s
+[PASS] POST_RESEARCH_OBJECTIVE DefendInvasion
+[NOT_RUN] PHYSICAL_RESEARCH_FLOW_CAPTURE headless gameplay connection verification
+[CONTROLLED] BASIC_PURCHASE_UNLOCK building=0; UI purchase regression setup, not research completion evidence
+[PASS] BASIC_REPLENISHMENT_OFFER affordable unlocked basic facility
+[PASS] BASIC_REJECTED_PURCHASE_UNCHANGED missing key and invalid offer; retry uses the same valid key
+[PASS] POINTER_TARGET basic shop tab
+[PASS] POINTER_RAYCAST basic shop tab->Text (TMP)
+[PASS] POINTER_TARGET basic facility first purchase
+[INFO] SCROLL_POSITION_FALLBACK P0Action_ShopBasic_0; normalized=0.492->0.013; targetY0=123.55; targetY1=-538.48; visible=True; point=(532.23, 114.70)
+[PASS] POINTER_RAYCAST basic facility first purchase->P0Action_ShopBasic_0
+[PASS] POINTER_TARGET basic facility second purchase
+[PASS] POINTER_RAYCAST basic facility second purchase->P0Action_ShopBasic_0
+[PASS] BASIC_FACILITY_REPURCHASE offer=복도; cost=88; kits=0->2; money=4816->4640; sequence=1->3
+[PASS] POINTER_TARGET basic shop tab close
+[PASS] POINTER_RAYCAST basic shop tab close->Text (TMP)
+[PASS] OBJECTIVE_HIDDEN panelExists=False; active=False
+[PASS] NO_PRODUCT_OBJECTIVE_PANEL panelExists=False; active=False
+[NOT_RUN] SCREEN_CAPTURE headless gameplay connection verification
+capturedErrors=0; capturedWarnings=0

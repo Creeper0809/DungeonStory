@@ -120,7 +120,7 @@ public sealed class ApparelWorkOrderRuntime :
         get => authority.Version;
         private set => authority.Version = value;
     }
-    public IReadOnlyList<ApparelWorkOrderSaveData> Orders => orders;
+    public IReadOnlyList<ApparelWorkOrderSaveData> Orders => orders.Select(Clone).ToArray();
 
     public CraftQualityAttemptEstimate CaptureQualityEstimate(string orderId)
     {

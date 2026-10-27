@@ -5959,3 +5959,47 @@ native-destructive-drain-current-r3은 Title/owner selection까지만 PASS하고
 - 검증: 기존 analyzer Verify PASS(rootCatalogReferences=3), Python CI91개 PASS, DSB001~DSB008 바이너리 재현 PASS. r189 표적4묶음과 r190 실제 이동은 PASS이며 각 소스 label을 보존한다. 최종 현재 입력 CI와 원격 통합은 별도 확인한다.
 - 실제 배송에서 인장 공급 대기까지 전체 효과 롤백을 적용해 새 배송 요청을 지우는 결함을 재현했다. 효과 실행 전에는 캠페인 보상/소비를 시작하지 않았으므로 전체 물품 롤백을 하지 않고 계약 입력 소유자만 보상 정리한다. 효과 실행 후 실패의 기존 롤백/전진 복구는 유지한다. 실제 pending 물품 요청1개 유지, 운반, JSON 복원, 보상 및 ACK 재시도와 기존 효과 실패 검사를 수용 조건으로 삼는다.
 - r193에서 인장 배송23.64게임초와 수락 재시도는 통과했고 숯8개도 실제 목적지에 도착했다. 이후 물리 영수증 관찰자가 URI escape 작업 ID를 일반 stable ID로 취급해 거절했다. 저장 원본 operation/commit ID와 기존 정상 기록 키는 유지하고, 인코딩/긴 합성 ID만 물리 fact 경계에서 SHA256 기반 관찰 키로 변환한다. 전역192자/문자 제한은 유지하며 잘못된 escape, 공백/제어문자, 2048자 초과 입력은 거절한다. 저장 원본/관찰 키 조인과 변조 거절을 별도 표적으로 검증한다.
+## R28 main 구조 재감사 - 완료
+
+- 기준 main c979d18e1. 기존 구조 Verify는 baseline 변경 없이 PASS다. 현재 Runtime2985파일, 루트 직접 참조3이며 mutableStatics/contentEscapes/directSessionMutations는0이다. 이것은 공개 DTO의 중첩 필드 쓰기나 캐시 의미의 안전성까지 증명하지 않는다.
+- 처음 의존 분석은 이동된 provenance 파일을 포함한 옛 Bee 입력 때문에 project-fallback으로 내려가 Editor까지 포함했다. 이 결과는 최종 그래프로 쓰지 않는다. 외부 rsp에서 기존 옵션/metadata를 보존하고 현재 analyzer의 default 소유2200파일로 source 목록만 맞춰 재분석했다. 추가3/삭제1이 R27 실제 diff와 일치하며 최종 bee-rsp/metadata427/누락0, edge18748/SCC21이다. Assets/Architecture 생성물은 바꾸지 않았다.
+- AI 세션 캐시는 grid/start/traversal만 확인해 broker의 context/door/cost-policy 판정을 우회한다. 위험 overlay 변경 뒤 명령 거절 재시도 경로가 남는다. 문 변경은 명시적 brain 무효화가 있으므로 같은 결함으로 확대하지 않는다.
+- GrowthState의 외부 transaction 쓰기와 조회 중 만료 buff 삭제, 일반 조회의 live DTO 반환을 구분해 조사한다. clone을 이미 사용하는 포획/동물/과부하와 상태 자체가 명령 권위인 Codex/Meta/Blueprint 객체는 일괄 결함으로 세지 않는다.
+- 원본에서 검사기 해석 결과와 Inspector 후보가 달라지는 고정 키 Aliases 손실 및 로컬 anatomy/boss pending 미반영을 확인했다. UI의 현재 값과 일치하는 하드코딩 문구는 필수 수정에서 제외한다.
+
+- 최종 판정: 필수 원인7묶음. 경로 캐시의 중복 유효성 권위, 성장 writer/조회 삭제, 가변 원본 조회21경계, 소비 정보/실행 지원 불일치, fixed-key Aliases 손실, local pending 혼용, ID1805 운영 정책 결합이다. 원본 반환은 확정 구조 결함과 실제 잘못된 writer 실행 여부를 구별해 보고한다. 최종 상세와 비수정 판정은 docs/dev/code-structure-review-main-r28-20261027.md를 따른다.
+
+## R28 수정 계약
+
+- 경로 캐시 유효성은 기존 broker 한 곳이 결정하고 session은 urgent/deferred만 소유한다. 정상 캐시 적중과 budget 거절을 보존한다.
+- GrowthState의 읽기는 복사본으로, 내부 명령과 발동 checkpoint/rollback은 Progression 권위로 모은다. DTO/JSON 필드와 사실 발행 순서, useCount/cooldown/ACK의 한 번 적용을 보존한다.
+- 21경계는 공개 조회의 scalar/중첩 목록을 모두 분리하되 내부 명령의 조회까지 복사본으로 바꾸어 mutation이 사라지지 않게 한다. 이미 존재하는 Clone와 owner 명령을 우선 재사용한다. 기존 가변 DTO 이름/직렬화 필드는 바꾸지 않는다.
+- 소비 인덱스는 연료/발전/충전의 현재 능력과 실제 조건을 읽는다. 직접 배분 지원은 기존 provider Supports가 권위이며 정보상의 소비를 새 배송 구현 완료로 확대하지 않는다.
+- 작성기는 resolved 계약과 pending SerializedProperty를 사용한다. 방어 제어 요구는 기존 정의에 명시하며 기존1805 및 다른 정의의 행동과 저장 호환을 보존한다. 사용자 수동 연결 작업은 없다.
+
+## R28 소스 통합 동결
+
+- 7개 원인과 21개 조회 경계에 수정을 적용했다. 의료/수술 명령 out 결과도 복사하며 내부 명령은 원본을 유지한다. 저장 DTO/버전/ID 형식 변경은 없다. 방어 SO의 자동 제어 요구 bool만 추가했고 기존 1805 에셋만 true다.
+- 성장 발동과 복구의 쓰기는 기존 소유자 내부 명령으로 옮겼다. 조회 중 buff 삭제를 제거했고 draft 알림/공개 조회는 복사한다. 기존 Editor 초기 조건과 고의 rewind 주입은 Editor 전용 private-field helper로 명시하여 player 쓰기 API를 만들지 않았다. 조회 수명이 바뀐 retry/완료/작업 호출자는 ID로 다시 조회한다.
+- 새 표적 batch는 query-contracts, authoring-contracts, progression-contracts다. 복사 경계 통제 fixture와 실제 Gameplay/저장/Title cold restore/skill targeting, 필수 영향 CI를 구별한다. 아직 현재 소스 컴파일/실행 PASS는 아니다.
+
+## R28 의료 명령 연결 보완
+
+CharacterMedicalRuntime의 out/lookup 복사 이후 V20ObservedIncidentResponseRuntime이 반환 객체의 societyResponseOperationId/ReceiptId를 직접 바꾸던 연결도 소유자 명령으로 전환한다. 기존 저장 필드는 유지하며 요청과 receipt 연결, 실패 롤백과 provenance 해제를 같은 비교 명령으로 수행한다. AbilityRescue는 안정화/운반/치료 명령 뒤 현재 주문을 다시 읽고, SurgeryWorkExecutionHandler는 최종 resultRolled를 현재 주문에서 판단한다. 공개 mutable 접근이나 새 manager를 만들지 않는다.
+
+## R28 조회 복사 비용과 Undo 격리
+
+CharacterIdentity.DisplayName과 CharacterNarrativeRequestOwnerBinding은 이름/요청 revision만 필요하므로 CharacterProgression의 immutable scalar 조회를 사용한다. 성장 DTO나 원본 목록은 노출하지 않으며 기존 가용성/rollback guard와 값 의미를 유지한다. Inspector Undo의 Addressables derived cache 초기화는 기존 ContentReferenceSelectionDebugScenarios.RunWithUndoIsolation으로 원래 JSON/hash/dirty를 복구한다. source manifest에서 설정을 제외하거나 변경된 native 결과를 수용하지 않는다.
+
+## R28 변경 없는 실행 증거의 보존 범위
+
+r208에서 통과한 contracts3와 first-play/cold-shop/skill-targeting6개의 관련 게임 코드/에셋/설정은 의료 Play 준비 보완 이후에도 byte 변화0이다. r208과 최종 후보의 전체 입력 차이는 CharacterAiAutonomousMedicalPlayModeVerifier.cs와 Wim040ObservedIncidentLiveRunner.cs 두 Editor fixture뿐이어야 재사용할 수 있다. archive 도구는 그 정확한 집합 외의 변화가 있으면 거절하며 각 실행의 actual source label/digest/changedInputsSinceRun을 보존한다. old6을 최종 소스 PASS로 이름 바꾸지 않고 allRunsAtFinalSource=false를 명시한다. 두 의료 실행과 필수 영향CI5는 최종 소스가 필요하다.
+
+
+R28 R01 재현의 준비 원인: 기존 의료 fixture는 availableActions를 AIRescue 하나로 바꿨다. 추가 공급이 운반 요청을 만들면 WorkforceReplanService가 빠진 AIHaul을 채우려고 UseStaffWorkActions를 호출하며 실행 종료 flag를 바꾼다. 정상 직원의 행동 목록을 유지하고 구조 작업 우선순위/선호만 사용하는 준비로 수정한다. missing haul이면 명시적 setup 실패다. Runtime 보호/치료 수치/75초/회복/typed failure0/invariant0 검사는 그대로 유지한다.
+
+
+R28 의료 관측 시간 결정: r217에서 간이침대의 첫 치료58.08 완료와 추가 치료34.10/51.48449, 약품2회 실제 소비를 관측했다. 구조 시작1/실패0/불변식0/누수0이므로 중단 결함은 해소됐고 남은 실패는 원래75초의 총 실행 예산이다. R02로 대상을 바꾸거나 부상을 줄이지 않는다. 실제 두 회차 총109.56449 작업 중92.18(약84%)가75초 안에 진행돼 나머지 약17.38과 관측 여유를 포함한120초를 이 Editor 시나리오의 고정 상한으로 사용한다. entry 전체180초/설정15초/치료 예산7/원래 회복, typed completion, 실패0, 불변식0, console0 조건은 유지한다. 이 변경은 관측 예산 조정이며 검사 수치 불변이라고 보고하지 않는다. Runtime timeout/치료/저장 계약은 바꾸지 않는다.
+
+
+R28 게시 증거 형식: native source manifest/동기화 receipt의 원문 JSON에는 Windows CRLF가 있다. Git의 LF 정규화가 기대 SHA를 바꾸는 것을 staged-byte 검사에서 발견했다. StructureR28의 json/txt/log는 -text로 지정해 원문 바이트를 그대로 보관한다. 기대 SHA나 원문/검증 manifest는 바꾸지 않으며 Native/CI의 source/config 바인딩에도 변화가 없다.

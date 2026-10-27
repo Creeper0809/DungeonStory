@@ -125,7 +125,7 @@ public static class StartPartyPreparationPlayModeVerifier
                          && !candidate.IsOwner
                          && !candidate.IsReserve))
         {
-            CharacterSkillDraft draft = member.Progression.Drafts.First(item => item != null
+            CharacterSkillDraft draft = CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(member.Progression).drafts.First(item => item != null
                 && item.kind == CharacterSkillKind.Active
                 && item.unlockLevel == 1);
             draft.candidates = new List<CharacterSkillInstance>
@@ -152,7 +152,7 @@ public static class StartPartyPreparationPlayModeVerifier
             };
             draft.isReady = true;
             draft.requestSubmitted = false;
-            member.Progression.GrowthState.passiveSkills.Add(new CharacterSkillInstance
+            CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(member.Progression).passiveSkills.Add(new CharacterSkillInstance
             {
                 id = $"fast-passive-{member.Index}",
                 displayName = $"{member.Progression.GrowthState.displayName}의 습관",

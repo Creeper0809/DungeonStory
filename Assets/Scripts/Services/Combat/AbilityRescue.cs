@@ -286,6 +286,8 @@ public sealed class AbilityRescue : MonoBehaviour
             yield break;
         }
 
+        if (!RefreshOrder(ref order))
+            yield break;
         while (!order.stabilized)
         {
             rescueStageForDiagnostics = "stabilization";
@@ -308,6 +310,8 @@ public sealed class AbilityRescue : MonoBehaviour
             float work = CalculateMedicalWorkPerSecond() * gameClock.DeltaTime;
             float beforeWork = order.completedStabilizationWork;
             medicalCommands.AdvanceStabilization(order.orderId, actor, work);
+            if (!RefreshOrder(ref order))
+                yield break;
             actor.Brain?.NotifyGameplayWorkProgress(
                 Mathf.Max(0f, order.completedStabilizationWork - beforeWork));
             if (IsActionCancelled(expectedAction))
@@ -341,6 +345,8 @@ public sealed class AbilityRescue : MonoBehaviour
             yield break;
         }
 
+        if (!RefreshOrder(ref order))
+            yield break;
         if (!medicalQuery.TryGetTreatmentFacility(
                 order,
                 out BuildableObject facility))
@@ -410,6 +416,8 @@ public sealed class AbilityRescue : MonoBehaviour
             float work = CalculateMedicalWorkPerSecond() * gameClock.DeltaTime;
             float beforeWork = order.completedTreatmentWork;
             medicalCommands.AdvanceTreatment(order.orderId, actor, work);
+            if (!RefreshOrder(ref order))
+                yield break;
             actor.Brain?.NotifyGameplayWorkProgress(
                 Mathf.Max(0f, order.completedTreatmentWork - beforeWork));
             if (IsActionCancelled(expectedAction))
@@ -550,6 +558,18 @@ public sealed class AbilityRescue : MonoBehaviour
             resolution.Path = path;
             yield break;
         }
+    }
+
+    private bool RefreshOrder(ref CharacterMedicalOrder order)
+    {
+        if (order != null && medicalQuery.TryGetOrder(order.orderId, out var current))
+        {
+            order = current;
+            return true;
+        }
+        Fail(order, CharacterMedicalStatusCode.RescueInterrupted,
+            "medical-order-missing-after-command");
+        return false;
     }
 
     private void Fail(

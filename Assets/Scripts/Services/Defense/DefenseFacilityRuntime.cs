@@ -191,7 +191,7 @@ public sealed class DefenseFacilityRuntime : IDefenseFacilityRuntime
             return false;
         }
 
-        if (facility.BuildingData?.id == 1805
+        if (facility.Defense.requiresAutomaticControl
             && facilityNetwork?.HasAutomaticControl(facility) != true
             && facilities.FindOperational(
                 ResearchFacilityCommandKind.DefenseControl).Count == 0)

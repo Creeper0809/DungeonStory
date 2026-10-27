@@ -4809,6 +4809,8 @@ public static partial class ProductionPreparedOutputFullPersistenceDebugScenario
 
     private sealed class EmptyDistributionQuery : IProductionDistributionQuery
     {
+        public bool SupportsConsumerKind(ProductionConsumerKind kind) => false;
+
         public IReadOnlyList<ProductionConsumerRouteState> GetRouteStates(
             ProductionBillId billId) =>
             Array.Empty<ProductionConsumerRouteState>();

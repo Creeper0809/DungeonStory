@@ -13,6 +13,115 @@ using UnityEngine;
 /// </summary>
 public static class DefenseFacilityServiceOutcomeDebugScenarios
 {
+    public static void RunR28ForAutomation()
+    {
+        BuildingSO launcherDefinition = UnityEditor.AssetDatabase.LoadAssetAtPath<BuildingSO>(
+            "Assets/Resources/SO/Building/P1/DefenseWallLauncher.asset");
+        BuildingSO controlDefinition = UnityEditor.AssetDatabase.LoadAssetAtPath<BuildingSO>(
+            "Assets/Resources/SO/Building/P1/DefenseControlDesk.asset");
+        Require(launcherDefinition?.id == 1805
+            && launcherDefinition.Defense.requiresAutomaticControl,
+            "The current wall launcher lost its automatic-control requirement.");
+        Require(!new DefenseFacilityData().requiresAutomaticControl
+            && !JsonUtility.FromJson<DefenseFacilityData>("{\"enabled\":true}")
+                .requiresAutomaticControl,
+            "Existing definitions without the new policy no longer default to false.");
+        string launcherBefore = UnityEditor.EditorJsonUtility.ToJson(launcherDefinition);
+        string abilityBefore = JsonUtility.ToJson(
+            launcherDefinition.GetAbility<BuildingDefenseAbility>());
+        BuildingDefenseAbility restoredAbility = JsonUtility.FromJson<BuildingDefenseAbility>(abilityBefore);
+        Require(restoredAbility.settings.requiresAutomaticControl
+            && JsonUtility.ToJson(restoredAbility) == abilityBefore,
+            "Building defense ability JSON did not preserve the policy and existing settings.");
+
+        using DefenseFacilityDebugScenarios.DefenseScenarioWorld scene = new();
+        BuildingSO copiedDefinition = UnityEngine.Object.Instantiate(launcherDefinition);
+        scene.TrackScriptableObject(copiedDefinition);
+        copiedDefinition.id = 91805;
+        BuildingSO globalControlDefinition = UnityEngine.Object.Instantiate(controlDefinition);
+        scene.TrackScriptableObject(globalControlDefinition);
+        globalControlDefinition.id = 91801;
+        globalControlDefinition.ConfigureGameplayExecution(
+            globalControlDefinition.UseClassification, ResearchFacilityCommandKind.DefenseControl);
+        DefenseFacility launcher = scene.PlaceDefense(launcherDefinition, new Vector2Int(2, 0));
+        DefenseFacility copiedLauncher = scene.PlaceDefense(copiedDefinition, new Vector2Int(4, 0));
+        DefenseFacility ordinary = scene.PlaceDefense("P1_SpikeTrap", new Vector2Int(6, 0));
+        DefenseFacility localControl = scene.PlaceDefense(controlDefinition, new Vector2Int(3, 0));
+        DefenseFacility globalControl = scene.PlaceDefense(globalControlDefinition, new Vector2Int(20, 0));
+        Require(!ordinary.Defense.requiresAutomaticControl,
+            "An existing ordinary defense facility unexpectedly requires automatic control.");
+        string ordinaryBefore = UnityEditor.EditorJsonUtility.ToJson(ordinary.BuildingData);
+        string launcherId = launcher.RequirePersistentInstanceId().Value;
+        string copiedId = copiedLauncher.RequirePersistentInstanceId().Value;
+        FixtureWorld world = new(launcher, copiedLauncher, ordinary);
+        FixturePower power = new();
+        DefenseFacilityNetworkRuntime network = new(world, power);
+        FixturePhysical physical = new();
+        DefenseFacilityRuntime CreateRuntime(DungeonRuntimeAggregateRootStore root) => new(
+            UnavailableEquipmentPhysicalItemGateway.Instance, physical, new FixtureInputOwner(),
+            CharacterAiEditorTestDependencies.GameClock, CharacterAiEditorTestDependencies.GameEvents,
+            power, network, new FacilityCapabilityQuery(world), root);
+        DefenseFacilityRuntime runtime = CreateRuntime(new DungeonRuntimeAggregateRootStore());
+
+        foreach (DefenseFacility facility in new[] { launcher, copiedLauncher })
+        {
+            Require(!network.HasAutomaticControl(facility)
+                && !runtime.CanActivate(facility, null, DefenseTriggerTiming.OnEnter, out DomainFailure failure)
+                && failure.Code == FailureCode.DefenseAutomaticControlUnavailable,
+                "A control-required definition activated without control: " + facility.BuildingData.id);
+        }
+        Require(network.HasAutomaticControl(ordinary)
+            && runtime.CanActivate(ordinary, null, DefenseTriggerTiming.OnEnter, out _),
+            "A false-policy facility changed behavior without a control link.");
+
+        world.SetFacilities(launcher, copiedLauncher, ordinary, localControl);
+        foreach (DefenseFacility facility in new[] { launcher, copiedLauncher })
+        {
+            Require(network.GetSnapshot(facility).ControlDesk == localControl
+                && network.HasAutomaticControl(facility)
+                && runtime.CanActivate(facility, null, DefenseTriggerTiming.OnEnter, out _),
+                "The local control link did not enable a required definition.");
+        }
+        power.Powered = false;
+        Require(!network.HasAutomaticControl(launcher)
+            && !runtime.CanActivate(launcher, null, DefenseTriggerTiming.OnEnter, out DomainFailure noPower)
+            && noPower.Code == FailureCode.DefenseAutomaticControlUnavailable,
+            "An unpowered local control link was treated as available.");
+
+        // 전역 DefenseControl 조회는 기존대로 지역 거리와 전력 조회에 종속되지 않는다.
+        world.SetFacilities(launcher, copiedLauncher, ordinary, globalControl);
+        foreach (DefenseFacility facility in new[] { launcher, copiedLauncher })
+        {
+            Require(!network.HasAutomaticControl(facility)
+                && runtime.CanActivate(facility, null, DefenseTriggerTiming.OnEnter, out _),
+                "The existing global DefenseControl path lost its independent meaning.");
+        }
+
+        string savedJson = JsonUtility.ToJson(runtime.CaptureState());
+        DefenseFacilitySaveData saved = JsonUtility.FromJson<DefenseFacilitySaveData>(savedJson);
+        Require(saved.facilities.Any(record => record.facilityPersistentId == launcherId)
+            && saved.facilities.Any(record => record.facilityPersistentId == copiedId)
+            && !savedJson.Contains("requiresAutomaticControl"),
+            "Runtime persistence changed identity or took ownership of the definition policy.");
+        DefenseFacilityRuntime restored = CreateRuntime(new DungeonRuntimeAggregateRootStore());
+        restored.PublishRestoreState(restored.PrepareRestoreState(saved));
+        Require(JsonUtility.ToJson(restored.CaptureState()) == savedJson
+            && launcher.RequirePersistentInstanceId().Value == launcherId
+            && copiedLauncher.RequirePersistentInstanceId().Value == copiedId,
+            "JSON restore changed existing defense state or persistent instance identity.");
+        world.SetFacilities(launcher, copiedLauncher, ordinary);
+        Require(!restored.CanActivate(launcher, null, DefenseTriggerTiming.OnEnter, out DomainFailure restoredFailure)
+            && restoredFailure.Code == FailureCode.DefenseAutomaticControlUnavailable
+            && restored.CanActivate(ordinary, null, DefenseTriggerTiming.OnEnter, out _),
+            "Restored facilities did not continue to use their definition policies.");
+        Require(physical.CommitCount == 0
+            && UnityEditor.EditorJsonUtility.ToJson(launcherDefinition) == launcherBefore
+            && UnityEditor.EditorJsonUtility.ToJson(ordinary.BuildingData) == ordinaryBefore
+            && JsonUtility.ToJson(launcherDefinition.GetAbility<BuildingDefenseAbility>()) == abilityBefore,
+            "Control queries changed physical supply or authored ability settings.");
+        Debug.Log("R28_DEFENSE_AUTOMATIC_CONTROL_POLICY=PASS");
+    }
+
     public static void RunObserverFocusedForBatchMode()
     {
         string output = Environment.GetEnvironmentVariable("DUNGEONSTORY_AUDIT_REMEDIATION_OUTPUT");
@@ -586,13 +695,17 @@ public static class DefenseFacilityServiceOutcomeDebugScenarios
 
     private sealed class FixtureWorld : ICharacterWorldQuery, IBuildingWorldQuery
     {
-        private readonly BuildableObject[] buildings;
-        internal FixtureWorld(DefenseFacility facility) =>
-            buildings = new BuildableObject[] { facility };
+        private BuildableObject[] buildings;
+        internal FixtureWorld(params DefenseFacility[] facilities) => SetFacilities(facilities);
+        internal void SetFacilities(params DefenseFacility[] facilities)
+        {
+            buildings = facilities.Cast<BuildableObject>().ToArray();
+            BuildingVersion++;
+        }
         public int CharacterVersion => 0;
         public IReadOnlyList<CharacterActor> Characters =>
             Array.Empty<CharacterActor>();
-        public int BuildingVersion => 1;
+        public int BuildingVersion { get; private set; }
         public IReadOnlyList<BuildableObject> Buildings => buildings;
     }
 
@@ -620,10 +733,11 @@ public static class DefenseFacilityServiceOutcomeDebugScenarios
 
     private sealed class FixturePower : IPowerInfrastructureQuery
     {
+        internal bool Powered = true;
         public int Version => 0;
         public IReadOnlyList<PowerNetworkSnapshot> Networks =>
             Array.Empty<PowerNetworkSnapshot>();
-        public bool IsPowered(BuildableObject building) => true;
+        public bool IsPowered(BuildableObject building) => Powered;
         public bool TryGetNode(BuildableObject building,
             out PowerNodeSnapshot snapshot)
         {

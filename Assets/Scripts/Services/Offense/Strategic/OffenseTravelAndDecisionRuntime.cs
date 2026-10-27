@@ -348,7 +348,7 @@ public sealed class OffenseTravelRuntime : IOffenseTravelRuntime,
     }
 
     public IReadOnlyCollection<OffenseTravelStateData> ActiveTravel =>
-        states.Values;
+        states.Values.Select(Clone).ToArray();
     public event Action<string, OffenseTravelStepResult> StepCompleted;
     public event Action<string, string> DecisionRequired;
     public event Action<string, string> SiteReached;
@@ -699,7 +699,11 @@ public sealed class OffenseTravelRuntime : IOffenseTravelRuntime,
 
     public bool TryGetState(string expeditionId, out OffenseTravelStateData state)
     {
-        return states.TryGetValue(expeditionId ?? string.Empty, out state);
+        bool found = states.TryGetValue(
+            expeditionId ?? string.Empty,
+            out OffenseTravelStateData current);
+        state = found ? Clone(current) : null;
+        return found;
     }
 
     public bool TryRemove(string expeditionId)

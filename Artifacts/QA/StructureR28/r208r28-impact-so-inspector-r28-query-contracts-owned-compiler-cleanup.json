@@ -1,0 +1,13 @@
+{
+  "label": "r208r28-impact-so-inspector-r28-query-contracts",
+  "ownerPid": 3128035,
+  "actions": [
+    {
+      "pid": 3130510,
+      "start": "1384722667",
+      "sid": 3128035
+    }
+  ],
+  "remaining": [],
+  "terminal": true
+}

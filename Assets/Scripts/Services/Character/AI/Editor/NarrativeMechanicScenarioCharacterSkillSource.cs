@@ -463,7 +463,7 @@ public sealed class NarrativeMechanicScenarioCharacterSkillSource
         string scenarioId,
         int requestRevision)
     {
-        CharacterGrowthState growth = progression.GrowthState;
+        CharacterGrowthState growth = CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(progression);
         growth.EnsureCollections();
         growth.initialized = true;
         growth.autoChooseDrafts = false;

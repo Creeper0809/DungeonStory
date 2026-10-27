@@ -112,7 +112,7 @@ public static class CharacterSkillActivationOutcomeDebugScenarios
             "mood",
             "small");
         if (!ownerFixed)
-            source.Actor.Progression.GrowthState.passiveSkills.Add(skill.Clone());
+            CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(source.Actor.Progression).passiveSkills.Add(skill.Clone());
         source.Actor.Progression.ConstructSkillActivationRuntime(
             outcomes.Transaction);
         int factorsBefore = source.Actor.Stats
@@ -289,7 +289,7 @@ public static class CharacterSkillActivationOutcomeDebugScenarios
             CharacterUltimateDomain.Management,
             "mood",
             "small");
-        source.Actor.Progression.GrowthState.ultimate = skill.Clone();
+        CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(source.Actor.Progression).ultimate = skill.Clone();
         var world = new TestWorldRegistry();
         world.RegisterCharacter(source.Actor);
         var events = new GameEventBus();
@@ -344,7 +344,7 @@ public static class CharacterSkillActivationOutcomeDebugScenarios
             "light");
         skill.target = CharacterSkillTarget.Enemy;
         skill.targetingMode = CharacterSkillTargetingMode.PlayerSelected;
-        source.Actor.Progression.GrowthState.passiveSkills.Add(skill.Clone());
+        CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(source.Actor.Progression).passiveSkills.Add(skill.Clone());
         source.Actor.Progression.ConstructSkillActivationRuntime(
             outcomes.Transaction);
 
@@ -419,7 +419,7 @@ public static class CharacterSkillActivationOutcomeDebugScenarios
             "light");
         skill.target = CharacterSkillTarget.Enemy;
         skill.targetingMode = CharacterSkillTargetingMode.PlayerSelected;
-        source.Actor.Progression.GrowthState.ultimate = skill.Clone();
+        CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(source.Actor.Progression).ultimate = skill.Clone();
         var world = new TestWorldRegistry();
         world.RegisterCharacter(source.Actor);
         world.RegisterCharacter(witness.Actor);
@@ -504,7 +504,7 @@ public static class CharacterSkillActivationOutcomeDebugScenarios
             CharacterUltimateDomain.Management,
             "mood",
             "small");
-        source.Actor.Progression.GrowthState.ultimate = skill.Clone();
+        CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(source.Actor.Progression).ultimate = skill.Clone();
         var rejectingObserver = new RejectingActivationObserver();
         using var rejectedOutcomes = new CharacterSkillActivationEditorFixture(
             "run:g13-reject-ultimate",
@@ -581,7 +581,7 @@ public static class CharacterSkillActivationOutcomeDebugScenarios
             CharacterUltimateDomain.Management,
             "mood",
             "small");
-        source.Actor.Progression.GrowthState.ultimate = skill.Clone();
+        CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(source.Actor.Progression).ultimate = skill.Clone();
         var uncertainPublisher = new UncertainActivationFactPublisher(
             outcomes.Dispatcher);
         var uncertainPublications =
@@ -647,8 +647,8 @@ public static class CharacterSkillActivationOutcomeDebugScenarios
         using var restoredSource = new ActorFixture(
             "uncertain-restored-source",
             sourceId);
-        restoredSource.Actor.Progression.GrowthState.ultimate = skill.Clone();
-        restoredSource.Actor.Progression.GrowthState.useLimits = restoredLimits;
+        CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(restoredSource.Actor.Progression).ultimate = skill.Clone();
+        CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(restoredSource.Actor.Progression).useLimits = restoredLimits;
         restoredSource.Actor.Stats.RestoreMoodDeliveryTransactionState(
             retainedStats,
             publish: false);
@@ -747,7 +747,7 @@ public static class CharacterSkillActivationOutcomeDebugScenarios
             "standard");
         skill.target = CharacterSkillTarget.Enemy;
         skill.targetingMode = CharacterSkillTargetingMode.PlayerSelected;
-        source.Actor.Progression.GrowthState.ultimate = skill.Clone();
+        CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(source.Actor.Progression).ultimate = skill.Clone();
         CharacterCombatAbilityDefinition ability =
             CharacterSkillRuntimeEffects.ToCombatAbility(
                 skill,
@@ -897,7 +897,7 @@ public static class CharacterSkillActivationOutcomeDebugScenarios
             CharacterUltimateDomain.None,
             "work_speed",
             "small");
-        source.Actor.Progression.GrowthState.passiveSkills.Add(skill.Clone());
+        CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(source.Actor.Progression).passiveSkills.Add(skill.Clone());
         var request = new CharacterSkillAutomaticActivationRequest(
             new CharacterSkillExecutionContext(
                 source.Actor,
@@ -967,7 +967,7 @@ public static class CharacterSkillActivationOutcomeDebugScenarios
             CharacterSkillInstance skill = CreateSkill("skill:c1:actual-pointer-ui");
             skill.targetingMode = CharacterSkillTargetingMode.PlayerSelected;
             skill.effectArea = CharacterSkillEffectArea.Single;
-            source.Progression.GrowthState.activeSkills.Add(skill.Clone());
+            CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(source.Progression).activeSkills.Add(skill.Clone());
             var input = new TargetingInput();
             var cameraObject = new GameObject("C1 Pointer Camera", typeof(Camera));
             cameraObject.transform.SetParent(root.transform, false);
@@ -1126,7 +1126,7 @@ public static class CharacterSkillActivationOutcomeDebugScenarios
         CharacterSkillInstance skill = CreateSkill("skill:c1:targeting");
         skill.targetingMode = CharacterSkillTargetingMode.PlayerSelected;
         skill.effectArea = CharacterSkillEffectArea.Single;
-        source.Actor.Progression.GrowthState.activeSkills.Add(skill.Clone());
+        CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(source.Actor.Progression).activeSkills.Add(skill.Clone());
         var world = new TestWorldRegistry();
         world.RegisterCharacter(source.Actor);
         world.RegisterCharacter(recipient.Actor);
@@ -1269,7 +1269,7 @@ public static class CharacterSkillActivationOutcomeDebugScenarios
             calendar: EditorFixedGameCalendar.Instance);
         CharacterSkillInstance skill = CreateSkill(
             "skill:a05:owner-command-entry");
-        source.Actor.Progression.GrowthState.activeSkills.Add(skill.Clone());
+        CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(source.Actor.Progression).activeSkills.Add(skill.Clone());
         var world = new TestWorldRegistry();
         world.RegisterCharacter(source.Actor);
         world.RegisterCharacter(recipient.Actor);
@@ -1380,7 +1380,7 @@ public static class CharacterSkillActivationOutcomeDebugScenarios
             nodeOutcomes.Ledger);
         CharacterSkillInstance skill = CreateSkill(
             "skill:a05:expedition-entry");
-        source.Actor.Progression.GrowthState.activeSkills.Add(skill.Clone());
+        CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(source.Actor.Progression).activeSkills.Add(skill.Clone());
         GameObject root = new("A05 Expedition Production Entry");
         try
         {
@@ -1454,7 +1454,7 @@ public static class CharacterSkillActivationOutcomeDebugScenarios
             calendar: EditorFixedGameCalendar.Instance);
         CharacterActor[] recipients = { first.Actor, second.Actor };
         CharacterSkillInstance skill = CreateSkill("skill:a05:exact");
-        source.Actor.Progression.GrowthState.activeSkills.Add(skill.Clone());
+        CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(source.Actor.Progression).activeSkills.Add(skill.Clone());
         CharacterSkillUseLimitState sourceBefore = Limits(source.Actor).Clone();
         CharacterSkillUseLimitState firstBefore = Limits(first.Actor).Clone();
         CharacterSkillUseLimitState secondBefore = Limits(second.Actor).Clone();
@@ -1525,9 +1525,9 @@ public static class CharacterSkillActivationOutcomeDebugScenarios
                 source.Actor.Progression.GrowthState.activeSkills),
             "Tampered mechanics hash survived save validation.");
 
-        source.Actor.Progression.GrowthState.useLimits = sourceBefore.Clone();
-        first.Actor.Progression.GrowthState.useLimits = firstBefore.Clone();
-        second.Actor.Progression.GrowthState.useLimits = secondBefore.Clone();
+        CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(source.Actor.Progression).useLimits = sourceBefore.Clone();
+        CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(first.Actor.Progression).useLimits = firstBefore.Clone();
+        CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(second.Actor.Progression).useLimits = secondBefore.Clone();
         first.Actor.Stats.RestoreMoodDeliveryTransactionState(
             firstStatsBefore,
             publish: false);
@@ -1564,7 +1564,7 @@ public static class CharacterSkillActivationOutcomeDebugScenarios
         CharacterSkillInstance skill = CreateAutomaticSkill("skill:c1:automatic-owner-rewind",
             CharacterSkillKind.Passive, CharacterSkillTrigger.WorkCompleted,
             CharacterUltimateDomain.None, "mood", "small");
-        source.Actor.Progression.GrowthState.passiveSkills.Add(skill.Clone());
+        CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(source.Actor.Progression).passiveSkills.Add(skill.Clone());
         var context = new CharacterSkillExecutionContext(source.Actor,
             CharacterSkillTrigger.WorkCompleted, "work-completed:c1:automatic-owner-rewind:1",
             workTypeId: BuiltInWorkTypeIds.Clean);
@@ -1580,7 +1580,7 @@ public static class CharacterSkillActivationOutcomeDebugScenarios
                 && key == sameKey && committedOwner == ActorFingerprint(source.Actor)
                 && Count(outcomes.Ledger) == 1,
             "A valid completed automatic event did not replay without mutation: " + failure);
-        source.Actor.Progression.GrowthState.useLimits = beforeLimits.Clone();
+        CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(source.Actor.Progression).useLimits = beforeLimits.Clone();
         source.Actor.Stats.RestoreMoodDeliveryTransactionState(beforeStats, publish: false);
         string rewoundOwner = ActorFingerprint(source.Actor);
         string ledgerBefore = JsonUtility.ToJson(outcomes.Ledger.CaptureGameplayOutcomes());

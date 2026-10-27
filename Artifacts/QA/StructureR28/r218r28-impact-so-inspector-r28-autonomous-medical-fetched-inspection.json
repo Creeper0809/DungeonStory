@@ -1,0 +1,84 @@
+{
+  "label": "r218r28-impact-so-inspector-r28-autonomous-medical",
+  "source": {
+    "phase": "repair-project-verified",
+    "label": "r218r28",
+    "file_count": 21746,
+    "removed": [],
+    "drift": []
+  },
+  "busy": false,
+  "status.json": {
+    "phase": "finished",
+    "report": {
+      "exit_code": 0,
+      "seconds": 260,
+      "stop_reason": null,
+      "source_label": "r218r28",
+      "compiler_error_count": 0,
+      "source_drift": []
+    },
+    "updated_at_utc": "2026-10-27T15:34:16.529399+00:00"
+  },
+  "run-summary.json": {
+    "exit_code": 0,
+    "seconds": 260,
+    "stop_reason": null,
+    "source_label": "r218r28",
+    "compiler_error_count": 0,
+    "source_drift": []
+  },
+  "isolated-display.json": {
+    "display": ":90",
+    "privateExecutable": "/home/vulpo/codex-unity-validation-20261021/private-gui/usr/bin/Xvfb",
+    "authenticated": true,
+    "tcpDisabled": true,
+    "windowProbe": true,
+    "terminal": true,
+    "mode": "batchmode with graphics",
+    "persistenceRoot": "/home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Artifacts/QA/r218r28-impact-so-inspector-r28-autonomous-medical/persistent-data",
+    "pid": 363946,
+    "arguments": [
+      "/home/vulpo/codex-unity-validation-20261021/private-gui/usr/bin/Xvfb",
+      ":90",
+      "-screen",
+      "0",
+      "1920x1080x24",
+      "-nolisten",
+      "tcp",
+      "-auth",
+      "/home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Artifacts/QA/r218r28-impact-so-inspector-r28-autonomous-medical/inspector.xauthority",
+      "-noreset"
+    ]
+  },
+  "owned-process-cleanup.json": {
+    "pid": 363973,
+    "exitCode": 0,
+    "actions": [],
+    "terminal": true
+  },
+  "logBytes": 81270,
+  "diagnostics": [
+    "- Loaded All Assemblies, in  0.796 seconds",
+    "AssetDatabase: script compilation time: 90.427824s",
+    "- Loaded All Assemblies, in  3.323 seconds",
+    "R28_MEDICAL_PREPARATION=PASS; controlled official starting-party command",
+    "CHARACTER_AI_AUTONOMOUS_MEDICAL=PASS; failures=0",
+    "R28_AUTONOMOUS_MEDICAL=PASS; actual AI stabilization/carry/treatment; original assertions retained"
+  ],
+  "memAvailable": [
+    "MemAvailable:   10360840 kB"
+  ],
+  "reports": [
+    "headless-editor-bootstrap.json",
+    "owned-process-cleanup.json",
+    "status.json",
+    "owned-compiler-cleanup.json",
+    "command.txt",
+    "autonomous-medical.txt",
+    "run-summary.json",
+    "diagnostics.redacted.txt",
+    "xdpyinfo.txt",
+    "isolated-display.json"
+  ]
+}

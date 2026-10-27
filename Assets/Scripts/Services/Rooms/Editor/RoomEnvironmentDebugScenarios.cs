@@ -214,7 +214,7 @@ public static class RoomEnvironmentDebugScenarios
                 && Mathf.Approximately(query.GetWorkDurationMultiplier(world.MainFixture, BuiltInWorkTypeIds.Rest), 1f),
             "Recovery or repair work incorrectly used the room environment multiplier.");
 
-        world.MainFixture.FacilityState.cleanliness = 0f;
+        world.MainFixture.SetCleanliness(0f);
         facilityCache.MarkDynamicStateDirty();
         Require(query.TryGetSnapshot(world.MainFixture, out RoomEnvironmentSnapshot dirty),
             "Room environment query failed after dynamic state invalidation.");

@@ -1,0 +1,83 @@
+{
+  "label": "r218r28-impact-so-inspector-r28-medical-transfer",
+  "source": {
+    "phase": "repair-project-verified",
+    "label": "r218r28",
+    "file_count": 21746,
+    "removed": [],
+    "drift": []
+  },
+  "busy": false,
+  "status.json": {
+    "phase": "finished",
+    "report": {
+      "exit_code": 0,
+      "seconds": 140,
+      "stop_reason": null,
+      "source_label": "r218r28",
+      "compiler_error_count": 0,
+      "source_drift": []
+    },
+    "updated_at_utc": "2026-10-27T15:36:56.820494+00:00"
+  },
+  "run-summary.json": {
+    "exit_code": 0,
+    "seconds": 140,
+    "stop_reason": null,
+    "source_label": "r218r28",
+    "compiler_error_count": 0,
+    "source_drift": []
+  },
+  "isolated-display.json": {
+    "display": ":90",
+    "privateExecutable": "/home/vulpo/codex-unity-validation-20261021/private-gui/usr/bin/Xvfb",
+    "authenticated": true,
+    "tcpDisabled": true,
+    "windowProbe": true,
+    "terminal": true,
+    "mode": "batchmode with graphics",
+    "persistenceRoot": "/home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Artifacts/QA/r218r28-impact-so-inspector-r28-medical-transfer/persistent-data",
+    "pid": 416351,
+    "arguments": [
+      "/home/vulpo/codex-unity-validation-20261021/private-gui/usr/bin/Xvfb",
+      ":90",
+      "-screen",
+      "0",
+      "1920x1080x24",
+      "-nolisten",
+      "tcp",
+      "-auth",
+      "/home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Artifacts/QA/r218r28-impact-so-inspector-r28-medical-transfer/inspector.xauthority",
+      "-noreset"
+    ]
+  },
+  "owned-process-cleanup.json": {
+    "pid": 416398,
+    "exitCode": 0,
+    "actions": [],
+    "terminal": true
+  },
+  "logBytes": 87179,
+  "diagnostics": [
+    "- Loaded All Assemblies, in  0.671 seconds",
+    "AssetDatabase: script compilation time: 2.212427s",
+    "- Loaded All Assemblies, in  3.228 seconds",
+    "ARCHITECTURE_SOCIETY_MEDICAL_TRANSFER_BATCH=PASS; actual physical meal/body collapse/Society response/AIRescue; official in-memory restore and exact receipt; not disk-slot or completed-treatment proof"
+  ],
+  "memAvailable": [
+    "MemAvailable:   10435516 kB"
+  ],
+  "reports": [
+    "movement-preparation.txt",
+    "headless-editor-bootstrap.json",
+    "owned-process-cleanup.json",
+    "society-medical-transfer-actual.txt",
+    "status.json",
+    "owned-compiler-cleanup.json",
+    "command.txt",
+    "run-summary.json",
+    "diagnostics.redacted.txt",
+    "xdpyinfo.txt",
+    "isolated-display.json"
+  ]
+}

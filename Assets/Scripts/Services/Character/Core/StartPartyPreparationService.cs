@@ -668,19 +668,8 @@ public sealed class StartPartyPreparationService : IStartPartyPreparationService
         }
 
         skillGenerationService.CancelRequests(progression);
-        CharacterSkillDraft activeDraft = EnsurePreparedDraft(
-            progression,
-            CharacterSkillKind.Active,
-            1);
-        if (!activeDraft.permanentlyChosen && !activeDraft.isReady)
-            skillGenerationService.RequestDraft(progression, activeDraft);
-
-        CharacterSkillDraft passiveDraft = EnsurePreparedDraft(
-            progression,
-            CharacterSkillKind.Passive,
-            1);
-        if (!passiveDraft.permanentlyChosen && !passiveDraft.isReady)
-            skillGenerationService.RequestDraft(progression, passiveDraft);
+        progression.EnsurePreparedStartingDraft(CharacterSkillKind.Active, 1);
+        progression.EnsurePreparedStartingDraft(CharacterSkillKind.Passive, 1);
     }
 
     private void CancelStartingSkillRequests(StartPartyMemberPreparation member)
@@ -706,29 +695,6 @@ public sealed class StartPartyPreparationService : IStartPartyPreparationService
         EnsureGeneratedStartingSkills(member, member.Progression);
         EnsureGeneratedStartingSkills(member, member.prefetchedSkillProgression);
         TryBeginSkillPrefetch(member);
-    }
-
-    private CharacterSkillDraft EnsurePreparedDraft(
-        CharacterProgression progression,
-        CharacterSkillKind kind,
-        int unlockLevel)
-    {
-        CharacterSkillDraft draft = progression.GrowthState.drafts.FirstOrDefault(item => item != null
-            && !item.IsInvalidated()
-            && item.kind == kind
-            && item.unlockLevel == unlockLevel);
-        if (draft != null)
-        {
-            return draft;
-        }
-
-        draft = skillGenerationService.CreateDraft(
-            progression,
-            kind,
-            unlockLevel,
-            progression.GrowthState.skillGenerationRevision);
-        progression.GrowthState.drafts.Add(draft);
-        return draft;
     }
 
     private GameObject CreatePreviewObject(

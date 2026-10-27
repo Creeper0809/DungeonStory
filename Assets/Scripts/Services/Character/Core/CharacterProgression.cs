@@ -63,9 +63,29 @@ public sealed class CharacterProgression : MonoBehaviour, ICharacterTraitInferen
             RequireTraitStateAvailable();
             if (acquisitionRollbackPending)
                 throw new InvalidOperationException("skill-acquisition-evidence-rollback-pending");
+            return (growthState ?? new CharacterGrowthState()).Clone();
+        }
+    }
+
+    private CharacterGrowthState OwnedGrowth
+    {
+        get
+        {
+            RequireTraitStateAvailable();
+            if (acquisitionRollbackPending)
+                throw new InvalidOperationException("skill-acquisition-evidence-rollback-pending");
             growthState ??= new CharacterGrowthState();
             growthState.EnsureCollections();
             return growthState;
+        }
+    }
+    internal int SkillGenerationRevision => OwnedGrowth.skillGenerationRevision;
+    internal string InitializedDisplayName
+    {
+        get
+        {
+            CharacterGrowthState current = OwnedGrowth;
+            return current.initialized ? current.displayName : string.Empty;
         }
     }
     public CharacterNarrativeLedger NarrativeLedger
@@ -78,19 +98,19 @@ public sealed class CharacterProgression : MonoBehaviour, ICharacterTraitInferen
     }
     public int AcquiredTraitRevision
     { get { RequireTraitStateAvailable(); return acquiredTraitState?.revision ?? 0; } }
-    public CharacterPotentialGrade PotentialGrade => GrowthState.potentialGrade;
-    public IReadOnlyList<CharacterSkillInstance> ActiveSkills => GrowthState.activeSkills;
-    public IReadOnlyList<CharacterSkillInstance> PassiveSkills => GrowthState.passiveSkills;
+    public CharacterPotentialGrade PotentialGrade => OwnedGrowth.potentialGrade;
+    public IReadOnlyList<CharacterSkillInstance> ActiveSkills => OwnedGrowth.activeSkills.Select(value => value.Clone()).ToArray();
+    public IReadOnlyList<CharacterSkillInstance> PassiveSkills => OwnedGrowth.passiveSkills.Select(value => value.Clone()).ToArray();
     public IReadOnlyList<CharacterSkillInstance> OwnerFixedSkills =>
         CharacterOwnerFixedSkillUtility.GetSkills(actor?.Identity?.Data, settingsProvider?.Settings);
-    public CharacterSkillInstance Ultimate => GrowthState.ultimate;
-    public IReadOnlyList<CharacterSkillDraft> Drafts => GrowthState.drafts;
+    public CharacterSkillInstance Ultimate => OwnedGrowth.ultimate?.Clone();
+    public IReadOnlyList<CharacterSkillDraft> Drafts => OwnedGrowth.drafts.Select(value => value?.Clone()).ToArray();
     public IReadOnlyList<string> LearnedSkillIds
     {
         get
         {
             RebuildLegacySkillViews();
-            return learnedSkillIds;
+            return learnedSkillIds.ToArray();
         }
     }
     public IReadOnlyList<string> EquippedSkillIds
@@ -98,7 +118,7 @@ public sealed class CharacterProgression : MonoBehaviour, ICharacterTraitInferen
         get
         {
             RebuildLegacySkillViews();
-            return equippedSkillIds;
+            return equippedSkillIds.ToArray();
         }
     }
 
@@ -332,10 +352,10 @@ public sealed class CharacterProgression : MonoBehaviour, ICharacterTraitInferen
     public void SetAutoChooseSkillDrafts(bool autoChoose)
     {
         EnsureInitialized();
-        GrowthState.autoChooseDrafts = autoChoose;
+        OwnedGrowth.autoChooseDrafts = autoChoose;
         if (autoChoose)
         {
-            foreach (CharacterSkillDraft draft in GrowthState.drafts
+            foreach (CharacterSkillDraft draft in OwnedGrowth.drafts
                 .Where(item => item != null
                     && item.kind == CharacterSkillKind.Active
                     && item.isReady
@@ -364,7 +384,7 @@ public sealed class CharacterProgression : MonoBehaviour, ICharacterTraitInferen
             return false;
         }
         EnsureInitialized();
-        CharacterSkillDraft draft = GrowthState.drafts.FirstOrDefault(item => item != null
+        CharacterSkillDraft draft = OwnedGrowth.drafts.FirstOrDefault(item => item != null
             && !item.IsInvalidated()
             && item.kind == CharacterSkillKind.Active
             && item.unlockLevel == unlockLevel);
@@ -378,10 +398,10 @@ public sealed class CharacterProgression : MonoBehaviour, ICharacterTraitInferen
         {
             CharacterSkillInstance chosen = draft.ChosenSkill;
             if (chosen != null
-                && !GrowthState.activeSkills.Any(skill => skill != null
+                && !OwnedGrowth.activeSkills.Any(skill => skill != null
                     && string.Equals(skill.id, chosen.id, StringComparison.Ordinal)))
             {
-                GrowthState.activeSkills.Add(chosen.Clone());
+                OwnedGrowth.activeSkills.Add(chosen.Clone());
                 RebuildLegacySkillViews();
                 NotifyChangedWithoutAffectingCommittedState();
             }
@@ -402,7 +422,7 @@ public sealed class CharacterProgression : MonoBehaviour, ICharacterTraitInferen
             return false;
         }
 
-        if (GrowthState.activeSkills.Count >= GetSlotProfile().NormalActiveSlots)
+        if (OwnedGrowth.activeSkills.Count >= GetSlotProfile().NormalActiveSlots)
         {
             message = "일반 액티브 슬롯이 모두 찼습니다.";
             return false;
@@ -413,8 +433,8 @@ public sealed class CharacterProgression : MonoBehaviour, ICharacterTraitInferen
             {
                 draft.permanentlyChosen = true;
                 draft.chosenIndex = candidateIndex;
-                GrowthState.activeSkills.Add(selectedSkill.Clone());
-                GrowthState.nextActiveDraftHasPity = draft.grantsUpperRarityPity;
+                OwnedGrowth.activeSkills.Add(selectedSkill.Clone());
+                OwnedGrowth.nextActiveDraftHasPity = draft.grantsUpperRarityPity;
             }, out message))
         {
             if (string.Equals(message, "evidence-binding-invalid", StringComparison.Ordinal))
@@ -454,7 +474,7 @@ public sealed class CharacterProgression : MonoBehaviour, ICharacterTraitInferen
         EnsureInitialized();
         return RequireProfileProjector().ResolveSelectedTraits(
             actor,
-            GrowthState);
+            OwnedGrowth);
     }
 
     private bool traitReactionRollbackPending;
@@ -465,7 +485,7 @@ public sealed class CharacterProgression : MonoBehaviour, ICharacterTraitInferen
     string ICharacterTraitInferenceAuthority.IdentityDisplayName =>
         actor.Identity?.DisplayName;
     string ICharacterTraitInferenceAuthority.GrowthDisplayName =>
-        GrowthState.displayName;
+        OwnedGrowth.displayName;
     IGameplayOutcomeEvidenceUseTransaction
         ICharacterTraitInferenceAuthority.EvidenceUseTransaction => evidenceUseTransaction;
 
@@ -683,7 +703,7 @@ public sealed class CharacterProgression : MonoBehaviour, ICharacterTraitInferen
         EnsureInitialized();
         return RequireProfileProjector().GetEffectiveRuntimeProfile(
             actor,
-            GrowthState);
+            OwnedGrowth);
     }
 
     public CharacterSkillSlotProfile GetSlotProfile()
@@ -785,7 +805,7 @@ public sealed class CharacterProgression : MonoBehaviour, ICharacterTraitInferen
     {
         return Ultimate != null
             && Ultimate.ultimateDomain == domain
-            && GrowthState.useLimits.CanUse(domain, serial);
+            && OwnedGrowth.useLimits.CanUse(domain, serial);
     }
 
     public bool TryMarkUltimateUsed(CharacterUltimateDomain domain, int serial)
@@ -795,23 +815,120 @@ public sealed class CharacterProgression : MonoBehaviour, ICharacterTraitInferen
             return false;
         }
 
-        GrowthState.useLimits.MarkUsed(domain, serial);
+        OwnedGrowth.useLimits.MarkUsed(domain, serial);
         Changed?.Invoke();
         return true;
+    }
+
+    internal CharacterSkillUseLimitState CaptureSkillUseLimits() =>
+        OwnedGrowth.useLimits.Clone();
+
+    internal void RestoreSkillUseLimits(CharacterSkillUseLimitState snapshot)
+    {
+        OwnedGrowth.useLimits = (snapshot
+            ?? throw new ArgumentNullException(nameof(snapshot))).Clone();
+    }
+
+    internal void RecordManualSkillCooldown(string skillId, int useCount,
+        long readyAbsoluteHour)
+    {
+        if (string.IsNullOrWhiteSpace(skillId) || useCount < 1 || readyAbsoluteHour < 0)
+            throw new ArgumentException("Invalid manual skill cooldown command.");
+        CharacterSkillUseLimitState limits = OwnedGrowth.useLimits;
+        limits.manualSkillCooldowns ??= new List<CharacterManualSkillCooldownState>();
+        var cooldown = limits.manualSkillCooldowns.SingleOrDefault(value =>
+            value != null && string.Equals(value.skillId, skillId, StringComparison.Ordinal));
+        if (cooldown == null)
+        {
+            cooldown = new CharacterManualSkillCooldownState { skillId = skillId };
+            limits.manualSkillCooldowns.Add(cooldown);
+        }
+        cooldown.useCount = useCount;
+        cooldown.readyAbsoluteHour = readyAbsoluteHour;
+    }
+
+    internal void ApplyManualSkillBuff(string sourceId, CharacterSkillInstance skill,
+        long absoluteHour, long expiresAbsoluteHour)
+    {
+        if (string.IsNullOrWhiteSpace(sourceId) || skill == null
+            || absoluteHour < 0 || expiresAbsoluteHour <= absoluteHour)
+            throw new ArgumentException("Invalid manual skill buff command.");
+        CharacterSkillUseLimitState limits = OwnedGrowth.useLimits;
+        limits.manualSkillBuffs ??= new List<CharacterManualSkillBuffState>();
+        limits.manualSkillBuffs.RemoveAll(value => value == null
+            || value.expiresAbsoluteHour <= absoluteHour
+            || value.sourceCharacterId == sourceId && value.skillId == skill.id);
+        limits.manualSkillBuffs.Add(new CharacterManualSkillBuffState
+        {
+            sourceCharacterId = sourceId,
+            skillId = skill.id,
+            expiresAbsoluteHour = expiresAbsoluteHour,
+            frozenSkill = skill.Clone()
+        });
+    }
+
+    internal void RecordAutomaticSkillUse(CharacterAutomaticSkillActivationState activation,
+        CharacterUltimateDomain domain, int serial, bool markUltimateUsed)
+    {
+        if (activation == null || string.IsNullOrWhiteSpace(activation.eventKeySha256))
+            throw new ArgumentException("Invalid automatic skill use command.");
+        CharacterSkillUseLimitState limits = OwnedGrowth.useLimits;
+        limits.automaticSkillActivations ??= new List<CharacterAutomaticSkillActivationState>();
+        if (limits.automaticSkillActivations.Any(value =>
+                value?.eventKeySha256 == activation.eventKeySha256))
+            throw new InvalidOperationException("Automatic skill use is already committed.");
+        limits.automaticSkillActivations.Add(activation.Clone());
+        if (markUltimateUsed) limits.MarkUsed(domain, serial);
+    }
+
+    internal void RecordSkillActivationCommit(long revision,
+        CharacterSkillActivationCommitState committed)
+    {
+        CharacterSkillUseLimitState limits = OwnedGrowth.useLimits;
+        if (committed == null || committed.ownerRevision != revision
+            || revision != checked(limits.activationSequence + 1L))
+            throw new InvalidOperationException("Skill activation revision changed before commit.");
+        limits.activationSequence = revision;
+        limits.lastSkillActivation = committed.Clone();
+    }
+
+    internal void FinalizeSkillActivationObservation(long revision, string fingerprint)
+    {
+        CharacterSkillUseLimitState limits = OwnedGrowth.useLimits;
+        if (limits.activationSequence != revision || limits.lastSkillActivation == null
+            || limits.lastSkillActivation.ownerRevision != revision
+            || string.IsNullOrWhiteSpace(fingerprint))
+            throw new InvalidOperationException("Skill activation observation has no matching owner.");
+        limits.lastSkillActivation.canonicalPayloadHash = fingerprint;
+        limits.lastSkillActivation.observationPending = false;
+    }
+
+    internal void EnsurePreparedStartingDraft(CharacterSkillKind kind, int unlockLevel)
+    {
+        CharacterSkillDraft draft = OwnedGrowth.drafts.FirstOrDefault(item => item != null
+            && !item.IsInvalidated() && item.kind == kind && item.unlockLevel == unlockLevel);
+        if (draft == null)
+        {
+            draft = generationService.CreateDraft(this, kind, unlockLevel,
+                OwnedGrowth.skillGenerationRevision);
+            OwnedGrowth.drafts.Add(draft);
+        }
+        if (!draft.permanentlyChosen && !draft.isReady)
+            generationService.RequestDraft(this, draft);
     }
 
     public void MarkGenerationRequestPending(string requestKey)
     {
         if (!string.IsNullOrWhiteSpace(requestKey)
-            && !GrowthState.pendingRequestKeys.Contains(requestKey, StringComparer.Ordinal))
+            && !OwnedGrowth.pendingRequestKeys.Contains(requestKey, StringComparer.Ordinal))
         {
-            GrowthState.pendingRequestKeys.Add(requestKey);
+            OwnedGrowth.pendingRequestKeys.Add(requestKey);
         }
     }
 
     public void MarkGenerationRequestCompleted(string requestKey)
     {
-        GrowthState.pendingRequestKeys.RemoveAll(key => string.Equals(key, requestKey, StringComparison.Ordinal));
+        OwnedGrowth.pendingRequestKeys.RemoveAll(key => string.Equals(key, requestKey, StringComparison.Ordinal));
     }
 
     public void OnDraftReady(CharacterSkillDraft draft)
@@ -823,10 +940,10 @@ public sealed class CharacterProgression : MonoBehaviour, ICharacterTraitInferen
             return;
         }
 
-        DraftReady?.Invoke(draft);
+        DraftReady?.Invoke(draft.Clone());
         if (draft.kind == CharacterSkillKind.Active)
         {
-            if (GrowthState.autoChooseDrafts)
+            if (OwnedGrowth.autoChooseDrafts)
             {
                 int bestIndex = ChooseBestCandidateIndex(draft);
                 TryChooseActiveSkill(draft.unlockLevel, bestIndex, confirmed: true, out _);
@@ -867,7 +984,7 @@ public sealed class CharacterProgression : MonoBehaviour, ICharacterTraitInferen
         return new CharacterProgressionSnapshot(
             Level,
             CurrentExperience,
-            GrowthState.Clone(),
+            OwnedGrowth.Clone(),
             NarrativeLedger.Clone(),
             CaptureAcquiredTraitState());
     }
@@ -905,7 +1022,7 @@ public sealed class CharacterProgression : MonoBehaviour, ICharacterTraitInferen
         narrativeLedger = snapshot.NarrativeLedger?.Clone() ?? new CharacterNarrativeLedger();
         acquiredTraitState = restoredAcquiredTraits;
         InvalidateEffectiveRuntimeProfile();
-        GrowthState.EnsureCollections();
+        OwnedGrowth.EnsureCollections();
         RebuildLegacySkillViews();
         EnsureInitialized();
         WarmEffectiveRuntimeProfile();
@@ -975,40 +1092,40 @@ public sealed class CharacterProgression : MonoBehaviour, ICharacterTraitInferen
         }
 
         generationService?.CancelRequests(this);
-        GrowthState.skillGenerationRevision++;
-        GrowthState.initialized = true;
-        GrowthState.displayName = displayName?.Trim() ?? string.Empty;
-        GrowthState.origin = origin?.Trim() ?? string.Empty;
-        GrowthState.traitSelectionAuthorityVersion =
+        OwnedGrowth.skillGenerationRevision++;
+        OwnedGrowth.initialized = true;
+        OwnedGrowth.displayName = displayName?.Trim() ?? string.Empty;
+        OwnedGrowth.origin = origin?.Trim() ?? string.Empty;
+        OwnedGrowth.traitSelectionAuthorityVersion =
             CharacterGrowthState.CurrentTraitSelectionAuthorityVersion;
-        GrowthState.traitSelectionAuthorityOrigin =
+        OwnedGrowth.traitSelectionAuthorityOrigin =
             CharacterTraitSelectionAuthorityOrigin.PreparedSelection;
-        GrowthState.traitIds = traitIds?
+        OwnedGrowth.traitIds = traitIds?
             .Distinct()
             .Take(maximumTraitCount)
             .ToList() ?? new List<int>();
-        GrowthState.startingProfile = startingProfile?.Clone()
+        OwnedGrowth.startingProfile = startingProfile?.Clone()
             ?? new CharacterStartingProfileState();
-        GrowthState.startingProficiencies = (preparedStartingProficiencies
+        OwnedGrowth.startingProficiencies = (preparedStartingProficiencies
                 ?? CharacterStartingProficiencyRules.Create(
                     startingProficiencySeed ?? generationSeed))
             .Select(value => value.Clone())
             .ToList();
         CharacterStartingProficiencyRules.Validate(
-            GrowthState.startingProficiencies);
-        GrowthState.potentialGrade = potential;
-        GrowthState.generationSeed = generationSeed;
-        GrowthState.autoChooseDrafts = autoChooseDrafts;
-        GrowthState.activeSkills.Clear();
-        GrowthState.passiveSkills.Clear();
-        GrowthState.ultimate = null;
-        GrowthState.drafts.Clear();
-        GrowthState.pendingRequestKeys.Clear();
-        GrowthState.nextActiveDraftHasPity = false;
+            OwnedGrowth.startingProficiencies);
+        OwnedGrowth.potentialGrade = potential;
+        OwnedGrowth.generationSeed = generationSeed;
+        OwnedGrowth.autoChooseDrafts = autoChooseDrafts;
+        OwnedGrowth.activeSkills.Clear();
+        OwnedGrowth.passiveSkills.Clear();
+        OwnedGrowth.ultimate = null;
+        OwnedGrowth.drafts.Clear();
+        OwnedGrowth.pendingRequestKeys.Clear();
+        OwnedGrowth.nextActiveDraftHasPity = false;
         acquiredTraitState = new CharacterAcquiredTraitAggregateState();
         InvalidateEffectiveRuntimeProfile();
         WarmEffectiveRuntimeProfile();
-        ReplacePreparedIdentityNarrativeEvidence(GrowthState.startingProfile);
+        ReplacePreparedIdentityNarrativeEvidence(OwnedGrowth.startingProfile);
         if (ensureInitialDrafts)
         {
             EnsureUnlockedDrafts();
@@ -1198,7 +1315,7 @@ public sealed class CharacterProgression : MonoBehaviour, ICharacterTraitInferen
     private void EnsureInitialized()
     {
         level = Mathf.Clamp(level, 1, MaxLevel);
-        GrowthState.EnsureCollections();
+        OwnedGrowth.EnsureCollections();
         acquiredTraitState ??= new CharacterAcquiredTraitAggregateState();
         acquiredTraitState.EnsureCollections();
         if (actor?.Identity?.Data == null)
@@ -1208,7 +1325,7 @@ public sealed class CharacterProgression : MonoBehaviour, ICharacterTraitInferen
 
         RequireProfileProjector().EnsureInitialized(
             actor,
-            GrowthState,
+            OwnedGrowth,
             SkillSettings);
     }
 
@@ -1219,7 +1336,7 @@ public sealed class CharacterProgression : MonoBehaviour, ICharacterTraitInferen
             generationService?.CancelRequests(this);
             return;
         }
-        if (generationService == null || !GrowthState.initialized)
+        if (generationService == null || !OwnedGrowth.initialized)
         {
             return;
         }
@@ -1230,21 +1347,21 @@ public sealed class CharacterProgression : MonoBehaviour, ICharacterTraitInferen
             EnsureDraft(CharacterSkillKind.Active, unlockLevel);
         }
 
-        if (GrowthState.passiveSkills.Count == 0
+        if (OwnedGrowth.passiveSkills.Count == 0
             && !HasDraft(CharacterSkillKind.Passive, 1))
         {
             EnsureDraft(CharacterSkillKind.Passive, 1);
         }
 
         if (Level >= settings.secondPassiveMinimumLevel
-            && GrowthState.passiveSkills.Count < GetSlotProfile().PassiveSlots
+            && OwnedGrowth.passiveSkills.Count < GetSlotProfile().PassiveSlots
             && NarrativeLedger.MeaningfulRecordCount >= settings.secondPassiveMinimumRecords
             && NarrativeLedger.MeaningfulDomainCount >= settings.secondPassiveMinimumDomains)
         {
             EnsureDraft(CharacterSkillKind.Passive, settings.secondPassiveMinimumLevel);
         }
 
-        if (Level >= MaxLevel && GrowthState.ultimate == null)
+        if (Level >= MaxLevel && OwnedGrowth.ultimate == null)
         {
             EnsureDraft(CharacterSkillKind.Ultimate, MaxLevel);
         }
@@ -1263,14 +1380,14 @@ public sealed class CharacterProgression : MonoBehaviour, ICharacterTraitInferen
             this,
             kind,
             unlockLevel,
-            GrowthState.skillGenerationRevision);
-        GrowthState.drafts.Add(draft);
+            OwnedGrowth.skillGenerationRevision);
+        OwnedGrowth.drafts.Add(draft);
         generationService.RequestDraft(this, draft);
     }
 
     private bool HasDraft(CharacterSkillKind kind, int unlockLevel)
     {
-        return GrowthState.drafts.Any(item => item != null
+        return OwnedGrowth.drafts.Any(item => item != null
             && !item.IsInvalidated()
             && item.kind == kind
             && item.unlockLevel == unlockLevel);
@@ -1300,7 +1417,7 @@ public sealed class CharacterProgression : MonoBehaviour, ICharacterTraitInferen
             return;
         }
 
-        foreach (CharacterSkillDraft draft in GrowthState.drafts.Where(item => item != null
+        foreach (CharacterSkillDraft draft in OwnedGrowth.drafts.Where(item => item != null
             && !item.IsInvalidated()
             && !item.isReady
             && !item.permanentlyChosen
@@ -1340,7 +1457,7 @@ public sealed class CharacterProgression : MonoBehaviour, ICharacterTraitInferen
         if (draft.permanentlyChosen
             || draft.candidates == null
             || draft.candidates.Count == 0
-            || GrowthState.passiveSkills.Count >= GetSlotProfile().PassiveSlots)
+            || OwnedGrowth.passiveSkills.Count >= GetSlotProfile().PassiveSlots)
         {
             return;
         }
@@ -1350,7 +1467,7 @@ public sealed class CharacterProgression : MonoBehaviour, ICharacterTraitInferen
             {
                 draft.permanentlyChosen = true;
                 draft.chosenIndex = 0;
-                GrowthState.passiveSkills.Add(skill);
+                OwnedGrowth.passiveSkills.Add(skill);
             }, out string evidenceError))
         {
             throw new InvalidOperationException(evidenceError);
@@ -1375,7 +1492,7 @@ public sealed class CharacterProgression : MonoBehaviour, ICharacterTraitInferen
             {
                 draft.permanentlyChosen = true;
                 draft.chosenIndex = 0;
-                GrowthState.ultimate = skill;
+                OwnedGrowth.ultimate = skill;
             }, out string evidenceError))
         {
             throw new InvalidOperationException(evidenceError);
@@ -1383,7 +1500,7 @@ public sealed class CharacterProgression : MonoBehaviour, ICharacterTraitInferen
         if (!suppressPublicSkillNotifications)
         {
             NotifySkillUnlockedWithoutAffectingCommittedState(
-                GrowthState.ultimate,
+                OwnedGrowth.ultimate,
                 isUltimate: true);
         }
     }
@@ -1508,9 +1625,9 @@ public sealed class CharacterProgression : MonoBehaviour, ICharacterTraitInferen
             // gameplay outcome identity, journal or gameplay acquisition revision.
             // Population preparation uses the world transaction below instead.
             if (actor?.IsUnpublishedComposition != true
-                || GrowthState.startingProfile?.prepared != true || exactIds.Count != 0)
+                || OwnedGrowth.startingProfile?.prepared != true || exactIds.Count != 0)
             { error = "skill-acquisition-preview-contract-invalid"; return false; }
-            CharacterGrowthState beforePreview = GrowthState.Clone();
+            CharacterGrowthState beforePreview = OwnedGrowth.Clone();
             int[] beforePreviewUses = selected.Select(value => value.influenceUseCount).ToArray();
             try
             {
@@ -1528,7 +1645,7 @@ public sealed class CharacterProgression : MonoBehaviour, ICharacterTraitInferen
                 return false;
             }
         }
-        long beforeAcquisitionRevision = GrowthState.skillAcquisitionRevision;
+        long beforeAcquisitionRevision = OwnedGrowth.skillAcquisitionRevision;
         if (beforeAcquisitionRevision == long.MaxValue)
         {
             error = "Character skill acquisition revision is exhausted.";
@@ -1551,7 +1668,7 @@ public sealed class CharacterProgression : MonoBehaviour, ICharacterTraitInferen
         }
         catch (Exception exception) when (exception is ArgumentException or InvalidOperationException)
         { error = "skill-acquisition-fact:" + exception.Message; return false; }
-        CharacterGrowthState beforeGrowth = GrowthState.Clone();
+        CharacterGrowthState beforeGrowth = OwnedGrowth.Clone();
         int[] beforeUses = selected.Select(value => value.influenceUseCount).ToArray();
         if (!skillAcquisitions.TryBegin(characterId, out error)) return false;
         DomainFactLease lease = default;
@@ -1587,7 +1704,7 @@ public sealed class CharacterProgression : MonoBehaviour, ICharacterTraitInferen
             foreach (CharacterNarrativeFact fact in selected)
                 fact.influenceUseCount++;
             ownerCommit();
-            GrowthState.skillAcquisitionRevision = afterAcquisitionRevision;
+            OwnedGrowth.skillAcquisitionRevision = afterAcquisitionRevision;
             // Finish the fallible evidence guard before publication; its sealed
             // tokens still support rollback on a known pre-commit rejection.
             if (prepared != null && !prepared.TrySealOwnerCommitForJointOutcome(out error)) return false;
@@ -1692,9 +1809,9 @@ public sealed class CharacterProgression : MonoBehaviour, ICharacterTraitInferen
     {
         learnedSkillIds.Clear();
         equippedSkillIds.Clear();
-        foreach (CharacterSkillInstance skill in GrowthState.activeSkills
-            .Concat(GrowthState.passiveSkills)
-            .Append(GrowthState.ultimate)
+        foreach (CharacterSkillInstance skill in OwnedGrowth.activeSkills
+            .Concat(OwnedGrowth.passiveSkills)
+            .Append(OwnedGrowth.ultimate)
             .Where(item => item != null && item.IsReady))
         {
             if (!learnedSkillIds.Contains(skill.id, StringComparer.Ordinal))
@@ -1717,7 +1834,7 @@ public sealed class CharacterProgression : MonoBehaviour, ICharacterTraitInferen
 
     private void WarmEffectiveRuntimeProfile()
     {
-        RequireProfileProjector().Warm(actor, GrowthState);
+        RequireProfileProjector().Warm(actor, OwnedGrowth);
     }
 
     private CharacterProgressionProfileProjector RequireProfileProjector()

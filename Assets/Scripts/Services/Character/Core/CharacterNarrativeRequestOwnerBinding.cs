@@ -27,14 +27,14 @@ public sealed class CharacterNarrativeRequestOwnerBinding
         CharacterActor actor = progression?.Actor;
         if (actor == null || actor.Identity == null || actor.Lifecycle == null
             || !actor.Identity.TypedPersistentId.IsValid || actor.IsDead
-            || progression.GrowthState.skillGenerationRevision < 0)
+            || progression.SkillGenerationRevision < 0)
             throw new InvalidOperationException("INCOMPLETE_OWNER_BINDING: a valid persistent identity, living owner and valid revisions are required.");
         return new CharacterNarrativeRequestOwnerBinding
         {
             version = CurrentVersion,
             persistentId = actor.Identity.PersistentId,
             lifecycleRevision = actor.Lifecycle.LifecycleRevision,
-            generationRevision = progression.GrowthState.skillGenerationRevision
+            generationRevision = progression.SkillGenerationRevision
         };
     }
 
@@ -45,7 +45,7 @@ public sealed class CharacterNarrativeRequestOwnerBinding
             && actor.Lifecycle != null && actor.Identity != null
             && string.Equals(persistentId, actor.Identity.PersistentId, StringComparison.Ordinal)
             && lifecycleRevision == actor.Lifecycle.LifecycleRevision
-            && generationRevision == progression.GrowthState.skillGenerationRevision;
+            && generationRevision == progression.SkillGenerationRevision;
         reason = matches ? string.Empty : "STALE_OWNER: request creation identity or lifecycle/generation revision no longer matches; missing legacy bindings cannot be rebound.";
         return matches;
     }

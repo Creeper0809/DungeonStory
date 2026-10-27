@@ -594,7 +594,8 @@ public static class OffenseStrategicDebugScenarios
             new OffenseHexCoord(2, 1),
             routingGoal
         };
-        foreach (OffenseHexTileState tile in routingWorld.Tiles)
+        OffenseWorldSaveData routingState = routingWorld.Capture();
+        foreach (OffenseHexTileState tile in routingState.tiles)
         {
             tile.blocked = true;
             tile.hasRoad = false;
@@ -611,6 +612,7 @@ public static class OffenseStrategicDebugScenarios
         {
             ConfigureRoutingTile(step, hasRoad: true);
         }
+        routingWorld.Restore(routingState);
 
         Require(
             routingWorld.TryFindPath(
@@ -651,14 +653,14 @@ public static class OffenseStrategicDebugScenarios
             cheapRoadCost + 0.0001f < directCost,
             "저비용 도로 우회 경로가 직선보다 저렴하지 않습니다.");
 
-        Require(
-            routingWorld.TryGetTile(cheapRoadRoute[1], out OffenseHexTileState blockedDetour),
-            "차단할 도로 우회 타일을 찾지 못했습니다.");
+        routingState = routingWorld.Capture();
+        OffenseHexTileState blockedDetour = routingState.tiles.Single(
+            tile => tile.Coord == cheapRoadRoute[1]);
         blockedDetour.blocked = true;
-        Require(
-            routingWorld.TryGetTile(directRoute[1], out OffenseHexTileState blockedDirect),
-            "차단할 직선 경로 타일을 찾지 못했습니다.");
+        OffenseHexTileState blockedDirect = routingState.tiles.Single(
+            tile => tile.Coord == directRoute[1]);
         blockedDirect.blocked = true;
+        routingWorld.Restore(routingState);
         Require(
             !routingWorld.TryFindPath(
                 routingStart,
@@ -672,9 +674,8 @@ public static class OffenseStrategicDebugScenarios
 
         void ConfigureRoutingTile(OffenseHexCoord coord, bool hasRoad)
         {
-            Require(
-                routingWorld.TryGetTile(coord, out OffenseHexTileState tile),
-                $"경로 검증 타일 {coord}을 찾지 못했습니다.");
+            OffenseHexTileState tile = routingState.tiles.Single(
+                candidate => candidate.Coord == coord);
             tile.blocked = false;
             tile.hasRoad = hasRoad;
             tile.terrain = OffenseHexTerrain.Plains;
@@ -856,15 +857,19 @@ public static class OffenseStrategicDebugScenarios
         Require(frozen.TryGetState("freeze:clock", out OffenseTravelStateData frozenState),
             "동결 시간 검증 이동 상태가 없습니다.");
         float frozenFirstSeconds = frozenState.activeSegmentDurationSeconds;
-        Require(frozenWorld.TryGetTile(first, out OffenseHexTileState frozenTile),
-            "동결 시간 검증 첫 타일이 없습니다.");
+        OffenseWorldSaveData frozenWorldState = frozenWorld.Capture();
+        OffenseHexTileState frozenTile = frozenWorldState.tiles.Single(
+            tile => tile.Coord == first);
         frozenTile.terrain = OffenseHexTerrain.Mountain;
         frozenTile.hasRoad = true;
+        frozenWorld.Restore(frozenWorldState);
         frozen.Tick(frozenFirstSeconds - 0.001f);
-        Require(frozenState.CurrentCoord == frozenWorld.DungeonCoord,
+        Require(frozen.TryGetState("freeze:clock", out frozenState)
+            && frozenState.CurrentCoord == frozenWorld.DungeonCoord,
             "구간 진입 뒤 지형 변경이 확정 시간을 소급 변경했습니다.");
         frozen.Tick(0.002f);
-        Require(frozenState.CurrentCoord == first,
+        Require(frozen.TryGetState("freeze:clock", out frozenState)
+            && frozenState.CurrentCoord == first,
             "동결된 첫 구간 시간이 끝나도 이동하지 않았습니다.");
 
         OffenseHexWorldSimulation forcedWorld = CreateTravelClockWorld(catalog, 18034);
@@ -899,7 +904,8 @@ public static class OffenseStrategicDebugScenarios
             0f,
             "강제 이동 이전 elapsed 폐기");
         forced.Tick(2.5f * 0.65f - 0.001f);
-        Require(forcedState.CurrentCoord == first,
+        Require(forced.TryGetState("forced:clock", out forcedState)
+            && forcedState.CurrentCoord == first,
             "강제 이동 이전 elapsed가 다음 구간에 이월됐습니다.");
 
         OffenseHexWorldSimulation eventWorld = CreateTravelClockWorld(catalog, 18035);
@@ -953,6 +959,8 @@ public static class OffenseStrategicDebugScenarios
             "사건 정지 elapsed 폐기");
         Require(eventTravel.TryResumeAfterDecision("event:2"),
             "사건 정지 이동을 재개하지 못했습니다.");
+        Require(eventTravel.TryGetState("event:2", out eventState),
+            "재개한 사건 이동 상태가 없습니다.");
         RequireApproximately(
             eventState.progressToNextTile,
             0f,
@@ -1191,7 +1199,8 @@ public static class OffenseStrategicDebugScenarios
         int seed)
     {
         OffenseHexWorldSimulation world = CreateWorld(catalog, seed);
-        foreach (OffenseHexTileState tile in world.Tiles)
+        OffenseWorldSaveData state = world.Capture();
+        foreach (OffenseHexTileState tile in state.tiles)
         {
             tile.blocked = true;
             tile.hasRoad = false;
@@ -1203,6 +1212,7 @@ public static class OffenseStrategicDebugScenarios
         Configure(new OffenseHexCoord(2, 0), OffenseHexTerrain.Plains, hasRoad: true);
         Configure(new OffenseHexCoord(3, 0), OffenseHexTerrain.Hills, hasRoad: false);
         Configure(new OffenseHexCoord(1, 1), OffenseHexTerrain.Plains, hasRoad: false);
+        world.Restore(state);
         return world;
 
         void Configure(
@@ -1210,8 +1220,8 @@ public static class OffenseStrategicDebugScenarios
             OffenseHexTerrain terrain,
             bool hasRoad)
         {
-            Require(world.TryGetTile(coord, out OffenseHexTileState tile),
-                $"이동 시계 검증 타일 {coord}을 찾지 못했습니다.");
+            OffenseHexTileState tile = state.tiles.Single(
+                candidate => candidate.Coord == coord);
             tile.blocked = false;
             tile.terrain = terrain;
             tile.hasRoad = hasRoad;
@@ -1250,14 +1260,17 @@ public static class OffenseStrategicDebugScenarios
             "긴급 거점이 징후 단계에서 시작하지 않았습니다.");
         Require(world.TryMitigateUrgentSite(siteId, 1f),
             "긴급 거점을 완화하지 못했습니다.");
-        Require(site.mitigation <= 0.6001f,
+        Require(world.TryGetUrgentSite(siteId, out site)
+            && site.mitigation <= 0.6001f,
             "긴급 거점 완화가 60% 상한을 넘었습니다.");
 
         world.AdvanceHours(12f);
-        Require(site.stage == OffenseUrgentSiteStage.Warning,
+        Require(world.TryGetUrgentSite(siteId, out site)
+            && site.stage == OffenseUrgentSiteStage.Warning,
             "12시간 후 경고 단계가 되지 않았습니다.");
         world.AdvanceHours(18f);
-        Require(site.stage == OffenseUrgentSiteStage.Crisis,
+        Require(world.TryGetUrgentSite(siteId, out site)
+            && site.stage == OffenseUrgentSiteStage.Crisis,
             "경고 18시간 후 위기 단계가 되지 않았습니다.");
         Require(
             ((IWorldThreatModifierQuery)world)
@@ -1265,10 +1278,12 @@ public static class OffenseStrategicDebugScenarios
                 .EffectiveStrength > 0f,
             "위기 거점이 실제 위협 보정을 만들지 않았습니다.");
         world.AdvanceHours(24f);
-        Require(site.stage == OffenseUrgentSiteStage.Withdrawing,
+        Require(world.TryGetUrgentSite(siteId, out site)
+            && site.stage == OffenseUrgentSiteStage.Withdrawing,
             "위기 24시간 후 철수 준비 단계가 되지 않았습니다.");
         world.AdvanceHours(6f);
-        Require(site.stage == OffenseUrgentSiteStage.Expired,
+        Require(world.TryGetUrgentSite(siteId, out site)
+            && site.stage == OffenseUrgentSiteStage.Expired,
             "철수 준비 6시간 후 긴급 거점이 만료되지 않았습니다.");
     }
 
@@ -2742,7 +2757,8 @@ public static class OffenseStrategicDebugScenarios
             "중도 복원 확정 구간 시간");
         OffenseHexCoord restoredMidSegmentCoord = restoredTravelState.CurrentCoord;
         restoredTravel.Tick(0.1f);
-        Require(restoredTravelState.CurrentCoord == restoredMidSegmentCoord,
+        Require(restoredTravel.TryGetState(expeditionId, out restoredTravelState)
+            && restoredTravelState.CurrentCoord == restoredMidSegmentCoord,
             "중도 복원 직후 활성 구간이 조기 완료됐습니다.");
         RequireApproximately(
             restoredTravelState.progressToNextTile,
@@ -2812,6 +2828,7 @@ public static class OffenseStrategicDebugScenarios
 
         OffenseWorldSaveData aState = world.Capture();
         string aJson = JsonUtility.ToJson(aState);
+        object[] aReferences = CaptureHexWorldReferences(world);
         OffenseHexTileState aTile = world.Tiles
             .OrderBy(value => value.Coord)
             .First();
@@ -2865,11 +2882,9 @@ public static class OffenseStrategicDebugScenarios
                 aJson,
                 StringComparison.Ordinal)
             && world.TryGetTile(aTile.Coord, out OffenseHexTileState stagedTile)
-            && ReferenceEquals(stagedTile, aTile)
             && world.TryGetSite(aSite.siteId, out OffenseWorldSiteStateData stagedSite)
-            && ReferenceEquals(stagedSite, aSite)
             && world.TryGetUrgentSite(aUrgentId, out OffenseUrgentSiteStateData stagedUrgent)
-            && ReferenceEquals(stagedUrgent, aUrgent),
+            && SameHexWorldReferences(aReferences, world),
             "staged B 복원이 publish 전에 live A 또는 객체 참조를 변경했습니다.");
         participant.DiscardRestoreCandidate();
         Require(string.Equals(
@@ -2877,11 +2892,9 @@ public static class OffenseStrategicDebugScenarios
                 aJson,
                 StringComparison.Ordinal)
             && world.TryGetTile(aTile.Coord, out OffenseHexTileState discardedTile)
-            && ReferenceEquals(discardedTile, aTile)
             && world.TryGetSite(aSite.siteId, out OffenseWorldSiteStateData discardedSite)
-            && ReferenceEquals(discardedSite, aSite)
             && world.TryGetUrgentSite(aUrgentId, out OffenseUrgentSiteStateData discardedUrgent)
-            && ReferenceEquals(discardedUrgent, aUrgent),
+            && SameHexWorldReferences(aReferences, world),
             "discard가 live A의 바이트 또는 객체 참조를 보존하지 못했습니다.");
         Require(
             world.TrySpawnUrgentSite(
@@ -2895,6 +2908,7 @@ public static class OffenseStrategicDebugScenarios
             "discard가 A의 다음 긴급 거점 ID sequence를 보존하지 못했습니다.");
 
         world.Restore(aState);
+        aReferences = CaptureHexWorldReferences(world);
         aTile = world.Tiles.OrderBy(value => value.Coord).First();
         aSite = world.Sites
             .OrderBy(value => value.siteId, StringComparer.Ordinal)
@@ -2920,11 +2934,9 @@ public static class OffenseStrategicDebugScenarios
                 aJson,
                 StringComparison.Ordinal)
             && world.TryGetTile(aTile.Coord, out OffenseHexTileState rolledBackTile)
-            && ReferenceEquals(rolledBackTile, aTile)
             && world.TryGetSite(aSite.siteId, out OffenseWorldSiteStateData rolledBackSite)
-            && ReferenceEquals(rolledBackSite, aSite)
             && world.TryGetUrgentSite(aUrgentId, out OffenseUrgentSiteStateData rolledBackUrgent)
-            && ReferenceEquals(rolledBackUrgent, aUrgent),
+            && SameHexWorldReferences(aReferences, world),
             "rollback이 live A의 바이트 또는 원래 객체 참조를 복원하지 못했습니다.");
         Require(
             world.TrySpawnUrgentSite(
@@ -2940,6 +2952,7 @@ public static class OffenseStrategicDebugScenarios
         participant.BeginRestoreCandidate();
         world.Restore(bState);
         participant.PublishRestoreCandidate();
+        object[] bReferences = CaptureHexWorldReferences(world);
         OffenseHexTileState publishedBTile = world.Tiles
             .OrderBy(value => value.Coord)
             .First();
@@ -2959,15 +2972,13 @@ public static class OffenseStrategicDebugScenarios
             && world.TryGetTile(
                 publishedBTile.Coord,
                 out OffenseHexTileState completedBTile)
-            && ReferenceEquals(completedBTile, publishedBTile)
             && world.TryGetSite(
                 publishedBSite.siteId,
                 out OffenseWorldSiteStateData completedBSite)
-            && ReferenceEquals(completedBSite, publishedBSite)
             && world.TryGetUrgentSite(
                 bUrgentId,
                 out OffenseUrgentSiteStateData completedBUrgent)
-            && ReferenceEquals(completedBUrgent, publishedBUrgent),
+            && SameHexWorldReferences(bReferences, world),
             "complete가 게시된 B 전체 상태 또는 객체 참조를 유지하지 못했습니다.");
 
         world.Restore(aState);
@@ -3625,6 +3636,32 @@ public static class OffenseStrategicDebugScenarios
                     StringComparison.Ordinal),
                 $"{pair.Key} {phase}가 저장 상태를 복원하지 못했습니다.");
         }
+    }
+
+    private static object[] CaptureHexWorldReferences(OffenseHexWorldSimulation world)
+    {
+        var tiles = (Dictionary<OffenseHexCoord, OffenseHexTileState>)
+            ReadPrivateReference(world, "tiles");
+        var sites = (Dictionary<string, OffenseWorldSiteStateData>)
+            ReadPrivateReference(world, "sites");
+        var urgentSites = (Dictionary<string, OffenseUrgentSiteStateData>)
+            ReadPrivateReference(world, "urgentSites");
+        return new object[] { tiles, sites, urgentSites }
+            .Concat(tiles.OrderBy(pair => pair.Key).Select(pair => (object)pair.Value))
+            .Concat(sites.OrderBy(pair => pair.Key, StringComparer.Ordinal)
+                .Select(pair => (object)pair.Value))
+            .Concat(urgentSites.OrderBy(pair => pair.Key, StringComparer.Ordinal)
+                .Select(pair => (object)pair.Value))
+            .ToArray();
+    }
+
+    private static bool SameHexWorldReferences(
+        IReadOnlyList<object> expected,
+        OffenseHexWorldSimulation world)
+    {
+        object[] current = CaptureHexWorldReferences(world);
+        return expected.Count == current.Length
+            && expected.Zip(current, ReferenceEquals).All(value => value);
     }
 
     private static object ReadPrivateReference(object owner, string fieldName)

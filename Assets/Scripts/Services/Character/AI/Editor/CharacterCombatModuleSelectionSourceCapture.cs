@@ -58,7 +58,7 @@ internal static class CharacterCombatModuleSelectionSourceCapture
             draft,
             settings,
             exactEvidence);
-        actor.Progression.GrowthState.drafts.Add(draft);
+        CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(actor.Progression).drafts.Add(draft);
         actor.Progression.MarkGenerationRequestPending(draft.requestKey);
         draft.requestSubmitted = true;
         JObject checkpoint = CaptureCheckpoint(
@@ -330,7 +330,7 @@ internal static class CharacterCombatModuleSelectionSourceCapture
                    checkpoint))
         {
             BindSkillDependencies(actor.Progression, settings, actor.Ledger);
-            CharacterSkillDraft draft = actor.Progression.GrowthState.drafts
+            CharacterSkillDraft draft = CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(actor.Progression).drafts
                 .Single(value => value != null
                     && value.formulaVersion
                         >= CharacterSkillFormulaGeneration

@@ -167,7 +167,8 @@ public sealed class SurgeryWorkExecutionHandler :
         // Once rolled, the surgery aggregate owns the exact terminal delivery,
         // including a pending ACK. A generic event is not a substitute for it.
         result.CompletionIdentityAlreadyPublished =
-            order.resultRolled;
+            surgery.TryGetOrder(order.orderId, out SurgeryOrder terminalOrder)
+            && terminalOrder.resultRolled;
         result.Failure = executionFailure;
     }
 }

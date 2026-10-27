@@ -1,13 +1,33 @@
 # DungeonStory Current Task Plan
 
+## 현재 Goal - R28 수정과 실행 검증 및 main 통합
+
+Status: in_progress / 사용자 승인. 시작 main c979d18e1, branch codex/fix-structure-r28. 감사 보고서 원인7개와 원본 노출21경계를 모두 처리한다. 저장 DTO/필드/기존 영수증 형식과 검사 기준은 유지한다.
+
+1. 완료: 경로 검색 유효성 단일화, 성장 명령/조회 소유권과 21개 원본 노출 경계를 수정했다. r208 native query/progression과 실제 첫 진행, Title cold load/반복 슬롯 로드, skill targeting을 통과했다. 전체 입력 중 이후 변경은 의료 Editor fixture 두 파일뿐이며 실제 source binding을 보존한다.
+2. 완료: 소비 정보/지원 경로, 고정 키와 pending Inspector, 방어 제어 요구를 기존 정책에 연결했다. r208 실제 Inspector/Undo, 지원 UI, 소비 정보와 방어 정책은 source drift0으로 통과했다. 새 registry/manager나 크기 목적 분할은 없다.
+3. 완료: 모든 작성자 READY/FROZEN. SOURCE_EDIT CLOSED, UNITY_VERIFY OPEN. r218에서 간이침대 추가 치료/완전 회복과 실제 의료 사건/AIRescue/JSON 복원을 모두 통과했다. 통과8개 native의 실제 source와 불변 차이2개를 봉인했고 최종 인덱스 실패0이다. 현재 소스 영향 CI5도 모두 exit0/CS0/console0/drift0으로 완료했고 전체104섹션 월드 복원/기준 상태 복구를 확인했다. 로컬의 별도 R80 실행은 보존하고 CUHA를 사용한다.
+4. 진행 중: 최종 diff/증거 검토와 소유 파일 선별 후 commit/push, PR 생성/attach, GitHub CI 성공, main 병합과 병합 후 CI를 완료한다.
+
+작업 창: 이 worktree를 연 Unity는0이다. CUHA r218r28 입력21746개 동기화/drift0 확인 후 메인 단독 Unity 검증 중이다. 메인과 모든 작성자 READY/FROZEN, SOURCE_EDIT CLOSED, UNITY_VERIFY CLOSED. 원본 Documents의 별도 R80 Unity와 사용자 앱은 보존했다. 실행별 Unity/display/compiler terminal까지 확인했다.
+
+## 현재 작업 - main 구조 재감사 R28
+
+Status: completed / 사용자 요청은 실제 코드와 의존 관계의 재검사다. 기준 main c979d18e17f7bc821775079c612b49b1ae5dad43, branch codex/audit-structure-r28. 게임 소스와 실제 등록/호출 경계를 확인하며 SDK 구현과 원본 checkout의 별도 변경은 제외한다.
+
+1. 완료: 현재 원본 목록과 기존 Roslyn 지표/의존 그래프를 외부 폴더에서 대조했다. baseline 무변경 Verify PASS, 최종 bee-rsp의 default2200파일/metadata427/누락0이다.
+2. 완료: S01~S11의 실제 수정과 남은 고위험 조회/쓰기/캐시/작성/소비 경계를 직접 대조했다. 줄 수나 SCC 크기로 결함을 만들지 않았다.
+3. 완료: code-structure-review-main-r28-20261027.md에 필수 원인7묶음, 그중 원본 노출21경계, 최소 수정과 비수정 판정을 기록했다.
+4. 완료: 보고서 원본 링크43개/broken0, 입력8553개 SHA 변경0/추가0, 게임 소스/에셋 diff0과 origin/main...HEAD 0/0을 확인했다. Unity와 새 commit/push는 실행하지 않았다.
+
 ## 현재 Goal - 구조 감사 S01~S11 수정과 main 통합
 
-Status: in_progress / 사용자 승인. branch codex/fix-structure-r27, 기준 c2ff169b8. origin/main21b381a66 대비 이전 승인 SO 커밋1개를 포함한다. 원본 Documents checkout의 AI 변경과 실행 중 Unity는 별도 작업이며 건드리지 않는다.
+Status: completed / branch codex/fix-structure-r27의 검증과 GitHub 통합 완료. PR24, main c979d18e1, PR CI40492758156와 main CI40493240626 모두 success. 아래는 검증 당시 단계 기록이며 현재 조사는 위 R28을 따른다. 원본 Documents checkout의 별도 변경은 보존한다.
 
 1. 완료: S01 상점 일일 제한 저장, S03/S11 UI 공용 규칙과 생성 함수, S04/S09/S10 공용 참조 판정, S05 게시 ID 선언을 반영하고 관련 작성/장착/상점 실행과 복원을 검증했다.
 2. 완료: S02 Brain 종료와 복원 권위, S06 사건 소유 이동 증빙, S07 시설 소비 실행, S08 세력 배송과 조립 책임을 옮기고 실제 이동/소비/배송과 실패/복원/재시도를 검증했다. 기존 저장 표현과 영수증 계약은 유지한다.
 3. 완료: 실제 첫 진행, 구매 당일 저장의 새 프로세스31검사와 구형 저장23검사 PASS. r199 최종 CI5묶음도 exit0/compile0/console0/source drift0으로 모두 PASS했다. 구조 baseline 무변경 Verify PASS, root 참조3이며 인덱스 내용/freshness 실패0이다. 실패와 중단 이력 및 소스 연속성은 보고서와 실행 manifest에 보존했다.
-4. 통합 단계: 이 커밋은 최종 검증을 마친 입력이다. commit/push와 PR 생성/attach 후 GitHub CI, main 병합과 병합 후 CI를 확인한다. GitHub 통합 결과는 해당 PR과 Actions 기록을 따른다.
+4. 완료: commit/push와 PR24 생성/attach, PR CI 성공 후 main c979d18e1 병합, 병합 후 CI 성공을 확인했다. Goal complete. 실제 결과는 GitHub PR과 Actions 기록을 따른다.
 
 작업 창: 메인이 담당한 CUHA Unity와 격리 display의 종료를 확인했다. r199 입력21736개 SHA drift0이며 소스 동결을 유지한 채 Git 통합한다. 원본 checkout의 별도 작업과 사용자 앱은 건드리지 않는다.
 

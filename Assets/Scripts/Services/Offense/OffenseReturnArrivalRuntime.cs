@@ -234,7 +234,8 @@ public sealed class OffenseReturnArrivalRuntime :
             ?? throw new ArgumentNullException(nameof(settlements));
     }
 
-    public IReadOnlyList<OffenseReturnArrivalState> Arrivals => arrivals;
+    public IReadOnlyList<OffenseReturnArrivalState> Arrivals =>
+        aggregateState.Arrivals.Select(value => value.Clone()).ToArray();
     public string LastPublicationFailure => settlements.LastFailure;
     public IReadOnlyList<OffenseExpeditionArrivalReceipt> GetSettlementReceipts(
         string expeditionId)

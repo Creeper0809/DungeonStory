@@ -7028,3 +7028,60 @@ C3 native-destructive-drain-current-r3은 메모리 중단 없이 Title/owner �
 최종 r121sn의 SO authoring260초, Inspector150초, effects560초, core190초, character160초, world250초, crop190초가 모두 native0/C#0/consoleErrors0/drift0으로 완료됐다. source72a4ca27a89469682d6e4d4b379c3c81d593d3664f5d5c8e85d3b2d67b338bbe, configca67916ce8dde4a7f92660d364a30acfaded193341d81ffa6456d23e4e37cb3d, 전체 입력21654개와 C# 등4752개를 결합했다. 실제 월드104섹션 저장, 공식 복원, 원래 상태 복구가 일치하며 작물 PlayMode 실행과 복원도 완료했다.
 
 현재 증거는 Artifacts/QA/ImpactCI/verification.json, n01-n07-verification.json, n-so-inspector-isolation.json, world-round-trip.txt다. 이전 실패와 R/U/I의 SO 증거를 덮어 PASS로 바꾸지 않았고 과거 영향 증거 링크는 main1f1f990a2에 고정했다. 최종 인덱스 생성, query5개, 내용/링크/최신성 검사 failure0이며 Python67개와 identity3544/10607, analyzer DSB001~DSB008 결과를 확인했다. Unity0/lockfree로 검증 창을 닫았으며 원본 Documents checkout은 보존했다. 원격 통합 결과는 실제 PR과 CI가 완료된 뒤 외부 n01-n07-integration-final.json에 기록한다.
+
+## 2026-10-27 R28 main 구조 재감사 완료
+
+- main c979d18e1과 0/0 일치. Runtime2985 정적 Verify PASS/baseline 무변경, default graph2200/metadata427/누락0/edge18748/SCC21, asmdef45 순환0.
+- docs/dev/code-structure-review-main-r28-20261027.md에 원인7묶음과 원본 조회21경계, 실제 호출/에셋, 최소 수정과 비수정 판정을 기록했다. 이전 S01~S11 정적 연결을 다시 대조했다.
+- 외부 structure-audit-r28/verification.json PASS: 입력8553개 SHA 변경0/추가0, source/Resources diff0, 링크43/broken0/중간 점0. 게임 코드/에셋 편집, 인덱스 재생성, Unity 실행과 새 commit/push 없음.
+- 이전 R27 GitHub 통합은 PR24/main c979d18e1, PR CI40492758156/main CI40493240626 success로 마감한 상태다. 이번 보고서는 이후 재감사 결과이며 실행 재현 PASS를 주장하지 않는다.
+
+## 2026-10-27 R28 소스 동결과 검증 시작
+
+모든 작성자 READY/FROZEN. 메인 조회/명령 통합과 Editor 초기 조건 전환을 마쳤고 SOURCE_EDIT CLOSED, UNITY_VERIFY OPEN이다. CUHA r28-pre-sync에서 r199r27 입력 drift0, Unity0/lockfree, 여유 RAM 약10GiB를 확인했다. 원본 Documents checkout의 별도 R80 실행은 보존한다. 현재 R28 소스 native 컴파일과 실행은 아직 미실행이다. 외부 도구/증거: C:/Users/vulpo/Documents/Codex/2026-10-27/structure-remediation-r28.
+
+## R28 첫 native 결과와 의료 호출자 보완
+
+r202r28 query-contracts는220초/native1, C#오류0, source drift0, 격리 display/owned process terminal이다. 문/작물/운반품 snapshot 검사는 PASS였으나 새 의류 취소 fixture의 facility: ID가 실제 building: 조건에서 거절되어 전체 검사는 FAIL로 보존했다. 정상 취소/제거/Version+1 기대는 그대로 두고 올바른 시설 ID를 기존 Restore 경로로 준비했다.
+
+Unity0/operation.lock free를 확인한 SOURCE_EDIT에서 의료/Society provenance의 외부 원본 쓰기를 소유자 비교 명령으로 옮겼다. 중복은 불변 성공, 충돌/잘못된 receipt는 불변 실패, stale 해제는 다른 응답을 지우지 못한다. 실제 rescue와 surgery 명령 후 진행/완료 조회도 갱신한다. 기존 autonomous medical 실제 안정화/운반/치료 검사의 assertion과 시간 제한을 재사용하며 새 batch는 격리 출력과 종료만 관리한다. 모두 READY/FROZEN, r203r28로 동기화하여 재검증한다. r202의 부분 결과를 최신 소스 PASS로 수용하지 않는다.
+
+## R28 r205 이후 표적 실행과 검증 환경 보완
+
+- r203은 새 Editor batch의 Foundation using 누락 한 원인(CS0246 중복 로그3)으로 native1/150초였다. r204는 기존6GiB 메모리 시작 기준에서 Unity 미실행으로 거절됐다. r202/r203의 VBCSCompiler orphan2개, 합계 약5.4GiB를 각 검증의 env 출력 경로/SID/PID start와 정확한 Unity compiler 경로로 확인해 SIGTERM했다. 다른 프로세스는 대상에 포함하지 않았다. 여유 약10GiB로 복구됐고, 이후 sequence는 각 실행의 own compiler 종료까지 별도 증거로 확인한다.
+- r205 query180이 아닌220초/native1/CS0/drift0. 11개 경계 fixture 뒤 새 일반 참조 검사에서 Array.Empty 공유를 가변 원본으로 잘못 판정했다. 고정 길이0 배열만 공유 허용하고, 값이 있는 seasonal wildlife 중첩 배열의 실제 변조/원본 보존을 추가했다.
+- r206 query는180초/native0/CS0/drift0, 세 snapshot fixture와 경로 정책/medical/surgery restore fault/facility JSON 상태 검사가 모두 통과했다. 같은 label authoring은80초/native0/CS0이며 실제 Inspector/소비 경로/방어 정책의 기능 marker는 모두 PASS였지만 AddressableAssetSettings.asset drift1로 전체 FAIL이다. Undo가 m_currentHash 한 필드를0으로 바꾼 정확한 byte delta를 보존했고, 다른 byte 변경0을 확인한 뒤 전용 QA 프로젝트의 원래 source bytes만 복구했다. 기존 RunWithUndoIsolation을 R28 batch에 적용하며 설정 JSON/hash/dirty 전체 복원과 native post-source0 조건을 유지한다.
+- r207은 동기화만 했다. 이름/요청 revision의 반복 조회가 GrowthState 전체 복사를 만들던 두 hot caller는 immutable scalar 조회로 연결했다. 현재 구조 Verify는 baseline/ownership overrides 무변경 PASS다. 최종 후보 r208r28 입력21746개 SHA drift0을 동결했고 query/authoring/progression을 다시 실행한다. 이전 source의 PASS를 r208 PASS로 수용하지 않는다.
+
+## R28 r208 통과 결과와 의료 Play 준비 보완
+
+- r208 query230초, authoring70초, progression150초가 native0/CS0/source drift0으로 완료됐다. A05 caller detail21행은 해당 progression native 종료시각/150초 범위 안의 UTC와 단일 PASS를 확인해 회수했다. first-play150초, cold-shop100초, skill-targeting80초도 native0/CS0/drift0이다. fresh Unity의 Title LoadGame/104섹션/반복 슬롯 로드, 실제 UI/카메라/physics callback과 invalid retry 및 한 번의 cooldown/buff/outcome을 확인했다.
+- r208 autonomous-medical은 옛 수기 목적지 때문에 치료 재료를 소비하지 못했고 실패했다. 실제 owner-issued destination과 TryValidate를 사용하도록 준비를 바꿨다. r209는 첫 치료 후 추가 치료의 공급이 없어 실패했다. 원래 eligible medicine 수7을 총 예산으로 유지하고, 소유자 supply sequence별로 유효한 목적지에 한 회분씩 준비하도록 수정했다. 기존75초/완전 회복/typed completion/failure0/invariant0 조건은 유지한다.
+- r210 autonomous-medical200초, r211 autonomous-medical200초는 실제 회복/typed success/leak0/invariant0, native0/CS0/drift0으로 통과했다. r210 medical-transfer는 방문객의 Drafts 복사본을 준비하던 누락으로 실패했고 Editor 초기 조건 helper로 전환했다. r211 medical-transfer110초는 물리 식사 이전의 초기 체력 준비에서 실패했다. 레거시 체력 차이를 해부학 피해 명령에 그대로 넣던 준비를 같은 목표값의 신체 owner ApplySnapshot으로 변경했다. 25%+1, 준비 중 living/active, 실제 오염 식사의 수량/사건/쓰러짐 조건은 유지했다. 실패 시 신체 값을 추가 기록한다.
+- r212는 SSH payload ACK 실패로 적용 전 중단됐다. 서버는 r211/drift0/Unity0/lockfree로 보존됐으며 전송 단위를 기존1KiB로 되돌렸다. r213을 새 번호로 동기화 중이다. 이후 의료 연결을 먼저, autonomous-medical을 다음에 실행한다. 아직 최종 의료 연결과 필수 영향CI5, GitHub 통합은 미완료다.
+
+
+## R28 r213 의료 실제 실행과 후속 재현
+
+medical-transfer230초는 실제 식사/쓰러짐/Society/AIRescue와 공식 in-memory JSON 복원, exact receipt/위조 거절을 native0/CS0/drift0으로 통과했다. autonomous-medical160초는 간이침대 R01에서 첫 치료 후 Active 복귀 전에 다른 행동이 시작되어 TreatmentInterrupted/epoch invariant와 최종 미회복3건으로 실패했다. 과거 정식침대 R02 성공을 현재 성공으로 세지 않는다. Unity/display/owned compiler terminal 및 lockfree를 확인해 메인 EDIT_READY로 Editor fixture 한 파일만 연다. 무순서 First 대신 기존 정의 ID/위치 순으로 같은 R01을 재현하고, 주문/공급/행동/terminal 전이를 기록한다. 75초/치료 예산7/회복/실패0/불변식0 조건과 Runtime/에셋은 유지한다. 수정 후 READY/FROZEN으로 현재 native를 재개한다.
+
+r214는 진단/결정 순서만 동기화했고 Unity를 실행하지 않았다. 그 종료 확인 전 시작한 r215는 prior source label 조건에서 적용 전에 거절됐다. r214 입력21746개/drift0/lockfree를 확인했고, 모든 작성/전송 종료 후 r216에 정상 authored action 목록을 유지하는 최종 준비를 동결한다. r215 실패 payload는 보존하고 같은 label을 재사용하지 않는다.
+
+
+r216 autonomous250초는 CS0/drift0/console0이며 normal authored actions를 유지하자 typed failure0/invariant0을 만족했다. 다만 다른 AI가 정지된 fixture에서 강제 우선 운반 요청이 구조를 정상 취소해 회복/typed completion2건이 실패했다. 이는 work role 경쟁을 보장하는 검사가 아니므로 게임의 강제 운반 정책을 바꾸지 않는다. main EDIT_READY 후 같은 fixture에서 기존 WorkPriorities 명령으로 Haul Off/Rescue Priority1을 명시하고 원래 Haul 우선순위를 cleanup에서 복원한다. 정상 행동 목록/실패 R01 선택/75초/약품 예산7/원래19검사와 전이 기록은 유지한다. 구조 전담 조건의 실제 AI 치료이며 자연 운반/경쟁 작업 증거로 확대하지 않는다. READY/FROZEN 후 r217 의료 두 경계를 재개한다.
+
+r217 autonomous250초: CS0/drift0/console0, 구조1/실패0/불변식0/누수0. R01 첫 회차58.08 완료 및 둘째34.10/51.48449까지 실제 진행했고75초 총 예산에서 회복/typed completion은 미완료였다. 실패를 그대로 보존한다. main EDIT_READY 후 위 실측 근거로 시나리오 관측 상한만120초로 조정하고 R01/부상/의료 효과/원래19개 판정 및 entry180초는 유지했다. READY/FROZEN, r218에서 최종 의료 두 경계와 영향CI를 확인한다.
+
+
+## R28 native 표적 검증 마감
+
+r218 autonomous260초와 medical-transfer140초가 exit0/CS0/console0/drift0으로 완료됐고 각 Unity/display/compiler terminal을 확인했다. 간이침대 약품2회, 의식/이동0.39 Active 복귀, typed 완료1/실패0/불변식0/누수0과 실제 식사/쓰러짐/Society/의료 도착/공식 JSON 복원/영수증을 확인했다. archive_structure_evidence.py가 r208 불변6 + r218 의료2의 정확한 소스 차이2개를 검증해 StructureR28에 실행8/파일62/manifest를 봉인했다. allRunsAtFinalSource=false이며 과거 결과를 현재 PASS로 이름 바꾸지 않았다. 최종 인덱스 r218-close는 내용/링크/freshness 실패0이다. 현재 소스 영향 CI5를 순차 실행 중이며 GitHub 통합은 아직 완료 전이다.
+
+
+## R28 최종 영향 CI 마감
+
+r218 현재 소스 core250초, character190초, effects1170초, crop200초, world250초 모두 exit0/CS0/console0/input drift0. 각 owned Unity/display/compiler terminal을 확인했다. 전체 월드104섹션/건물138/캐릭터3/원정1/침입1과 canonical baseline 복구, 지식 진행/방어/침입 rollback/retry가 통과했다. script8c4bfa289549fb0d96792195436dbb6a348a2951b22318b34007988ba73b8d89, configef88068560f78103e54f07311493fe05cb6a4889ec9586c88af0362591990ebb. 이전 r199 receipt SHA7dce4ce399cac784fe30d7ef8bad495fa1fe30209e408a996704e1c7a25798e7를 그대로 보존하고 현재 ImpactCI receipt를 기록/검증했다. 전체 월드 원문 SHA0d2f6ac54fdff0d08663456235d611dc3c086d480c870be766b827fd4ab68a3d도 StructureR28에 보존했다. 최종 인덱스 내용/링크/freshness 실패0, 새 보고서 링크44개 오류0와 새 저자 문장의 중간점0 확인. Unity 창 닫힘/소스 동결 유지, Git 선별/게시/PR/main 통합으로 진행한다.
+
+Git 선별 단계에서 source manifest JSON의 CRLF가 LF로 정규화돼 원문 SHA가 달라지는 것을 커밋 전에 검출했다. R28 증거 파일을 -text로 보관하도록 수정하고 같은 소유 파일 목록만 다시 stage한다. Native/CI 입력이나 기대 SHA는 변경하지 않는다.
+
+선택형 Git 서식 검사는 새 Editor fixture R28RemainingQuerySnapshotDebugScenarios.cs 끝의 추가 빈 줄1건을 보고했다. 이는 컴파일/기능/저장/소스 바인딩 실패가 아니며, 검증한 C# 바이트를 보존해 그대로 전달한다. 이 서식 결과를 PASS로 바꾸거나 필수 Native/CI 검사 조건을 수정하지 않는다.

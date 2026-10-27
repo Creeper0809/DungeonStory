@@ -217,7 +217,7 @@ public sealed partial class CharacterMedicalRuntime :
                 ordersView = ReadOnlyView.List(current);
             }
 
-            return ordersView;
+            return ordersView.Select(CharacterMedicalOrderPersistence.Clone).ToArray();
         }
     }
 
@@ -425,6 +425,16 @@ public sealed partial class CharacterMedicalRuntime :
         out CharacterMedicalOrder order,
         out DomainFailure failure)
     {
+        bool success = TryReserveBestOrderOwned(rescuer, out order, out failure);
+        order = order == null ? null : CharacterMedicalOrderPersistence.Clone(order);
+        return success;
+    }
+
+    private bool TryReserveBestOrderOwned(
+        CharacterActor rescuer,
+        out CharacterMedicalOrder order,
+        out DomainFailure failure)
+    {
         order = null;
         failure = DomainFailure.None;
         if (rescuer == null
@@ -463,6 +473,17 @@ public sealed partial class CharacterMedicalRuntime :
     }
 
     public bool TryReserveOrderForPatient(
+        CharacterActor rescuer,
+        CharacterActor patient,
+        out CharacterMedicalOrder order,
+        out DomainFailure failure)
+    {
+        bool success = TryReserveOrderForPatientOwned(rescuer, patient, out order, out failure);
+        order = order == null ? null : CharacterMedicalOrderPersistence.Clone(order);
+        return success;
+    }
+
+    private bool TryReserveOrderForPatientOwned(
         CharacterActor rescuer,
         CharacterActor patient,
         out CharacterMedicalOrder order,
@@ -514,7 +535,60 @@ public sealed partial class CharacterMedicalRuntime :
         return true;
     }
 
+    public bool TrySetSocietyResponseBinding(
+        string orderId, string expectedOperationId, string operationId,
+        string receiptId, out DomainFailure failure)
+    {
+        failure = DomainFailure.None;
+        expectedOperationId ??= string.Empty;
+        operationId ??= string.Empty;
+        receiptId ??= string.Empty;
+        CharacterMedicalOrder current = aggregateState.Orders.FirstOrDefault(
+            value => string.Equals(value.orderId, orderId, StringComparison.Ordinal));
+        if (current == null)
+        {
+            failure = new DomainFailure(FailureCode.CharacterMedicalOrderUnavailable, orderId);
+            return false;
+        }
+        if (operationId.Length == 0 && receiptId.Length > 0
+            || expectedOperationId.Length > 0 && operationId.Length > 0
+                && !string.Equals(expectedOperationId, operationId, StringComparison.Ordinal))
+        {
+            failure = new DomainFailure(FailureCode.CharacterMedicalParticipantsInvalid,
+                "society-response-binding-invalid");
+            return false;
+        }
+        string currentOperation = current.societyResponseOperationId ?? string.Empty;
+        string currentReceipt = current.societyResponseReceiptId ?? string.Empty;
+        if (string.Equals(currentOperation, operationId, StringComparison.Ordinal)
+            && string.Equals(currentReceipt, receiptId, StringComparison.Ordinal))
+            return true;
+        if (!string.Equals(currentOperation, expectedOperationId, StringComparison.Ordinal)
+            || operationId.Length > 0 && currentReceipt.Length > 0
+                && !string.Equals(currentReceipt, receiptId, StringComparison.Ordinal))
+        {
+            failure = new DomainFailure(FailureCode.CharacterMedicalOrderUnavailable,
+                "society-response-binding-conflict");
+            return false;
+        }
+        CharacterMedicalOrder owned = orders.Single(value =>
+            string.Equals(value.orderId, orderId, StringComparison.Ordinal));
+        owned.societyResponseOperationId = operationId;
+        owned.societyResponseReceiptId = receiptId;
+        return true;
+    }
+
     public bool TryRequestTreatment(
+        CharacterActor patient,
+        out CharacterMedicalOrder order,
+        out DomainFailure failure)
+    {
+        bool success = TryRequestTreatmentOwned(patient, out order, out failure);
+        order = order == null ? null : CharacterMedicalOrderPersistence.Clone(order);
+        return success;
+    }
+
+    private bool TryRequestTreatmentOwned(
         CharacterActor patient,
         out CharacterMedicalOrder order,
         out DomainFailure failure)
@@ -575,6 +649,14 @@ public sealed partial class CharacterMedicalRuntime :
     }
 
     public bool TryGetOrder(string orderId, out CharacterMedicalOrder order)
+    {
+        CharacterMedicalOrder found = aggregateState.Orders.FirstOrDefault(value =>
+            string.Equals(value.orderId, orderId, StringComparison.Ordinal));
+        order = found == null ? null : CharacterMedicalOrderPersistence.Clone(found);
+        return order != null;
+    }
+
+    private bool TryFindOwnedOrder(string orderId, out CharacterMedicalOrder order)
     {
         order = orders.FirstOrDefault(item => string.Equals(
             item.orderId,
@@ -1302,7 +1384,7 @@ public sealed partial class CharacterMedicalRuntime :
         out DomainFailure failure)
     {
         failure = DomainFailure.None;
-        if (!TryGetOrder(orderId, out CharacterMedicalOrder order))
+        if (!TryFindOwnedOrder(orderId, out CharacterMedicalOrder order))
         {
             failure = new DomainFailure(
                 FailureCode.CharacterMedicalOrderMissing,
@@ -1509,7 +1591,7 @@ public sealed partial class CharacterMedicalRuntime :
         CharacterActor rescuer,
         out CharacterMedicalOrder order)
     {
-        return TryGetOrder(orderId, out order)
+        return TryFindOwnedOrder(orderId, out order)
             && order.IsActive
             && order.state !=
                 CharacterMedicalOrderState.MaterialDestinationDraining

@@ -491,7 +491,7 @@ public static class AgeConditionAnatomyProjectionDebugScenarios
             actor.EnsureRuntimeState();
             actor.Identity.SetPersistentId(
                 "character:qa:age-anatomy:ambiguous");
-            CharacterGrowthState growth = actor.Progression.GrowthState;
+            CharacterGrowthState growth = CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(actor.Progression);
             growth.initialized = true;
             growth.displayName = "동결 노화 환자";
             string frozenName = actor.Identity.DisplayName;

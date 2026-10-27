@@ -1,0 +1,84 @@
+{
+  "label": "r208r28-impact-so-inspector-r28-skill-targeting",
+  "source": {
+    "phase": "repair-project-verified",
+    "label": "r208r28",
+    "file_count": 21746,
+    "removed": [],
+    "drift": []
+  },
+  "busy": false,
+  "status.json": {
+    "phase": "finished",
+    "report": {
+      "exit_code": 0,
+      "seconds": 80,
+      "stop_reason": null,
+      "source_label": "r208r28",
+      "compiler_error_count": 0,
+      "source_drift": []
+    },
+    "updated_at_utc": "2026-10-27T13:48:39.379379+00:00"
+  },
+  "run-summary.json": {
+    "exit_code": 0,
+    "seconds": 80,
+    "stop_reason": null,
+    "source_label": "r208r28",
+    "compiler_error_count": 0,
+    "source_drift": []
+  },
+  "isolated-display.json": {
+    "display": ":90",
+    "privateExecutable": "/home/vulpo/codex-unity-validation-20261021/private-gui/usr/bin/Xvfb",
+    "authenticated": true,
+    "tcpDisabled": true,
+    "windowProbe": true,
+    "terminal": true,
+    "mode": "batchmode with graphics",
+    "persistenceRoot": "/home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Artifacts/QA/r208r28-impact-so-inspector-r28-skill-targeting/persistent-data",
+    "pid": 3306581,
+    "arguments": [
+      "/home/vulpo/codex-unity-validation-20261021/private-gui/usr/bin/Xvfb",
+      ":90",
+      "-screen",
+      "0",
+      "1920x1080x24",
+      "-nolisten",
+      "tcp",
+      "-auth",
+      "/home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Artifacts/QA/r208r28-impact-so-inspector-r28-skill-targeting/inspector.xauthority",
+      "-noreset"
+    ]
+  },
+  "owned-process-cleanup.json": {
+    "pid": 3306612,
+    "exitCode": 0,
+    "actions": [],
+    "terminal": true
+  },
+  "logBytes": 53085,
+  "diagnostics": [
+    "- Loaded All Assemblies, in  0.605 seconds",
+    "AssetDatabase: script compilation time: 2.029595s",
+    "- Loaded All Assemblies, in  3.326 seconds",
+    "ARCHITECTURE_SKILL_TARGETING_BATCH=PASS; actual UI/Play callbacks/camera/physics; invalid retry; one cooldown/buff/outcome; official baseline restored"
+  ],
+  "memAvailable": [
+    "MemAvailable:   10441128 kB"
+  ],
+  "reports": [
+    "movement-preparation.txt",
+    "headless-editor-bootstrap.json",
+    "owned-process-cleanup.json",
+    "skill-targeting-actual.txt",
+    "status.json",
+    "owned-compiler-cleanup.json",
+    "command.txt",
+    "skill-targeting-baseline-world.json",
+    "run-summary.json",
+    "diagnostics.redacted.txt",
+    "xdpyinfo.txt",
+    "isolated-display.json"
+  ]
+}

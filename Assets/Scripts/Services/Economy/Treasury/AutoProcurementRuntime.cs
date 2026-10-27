@@ -59,7 +59,7 @@ public sealed class PaidFacilityContractRuntime : IPaidFacilityContractRuntime
             ?? NeutralMilestoneGameplayModifierQuery.Instance;
     }
 
-    public IReadOnlyList<PaidFacilityContractState> Contracts => contracts;
+    public IReadOnlyList<PaidFacilityContractState> Contracts => contracts.Select(CloneContract).ToArray();
 
     bool IBuildingPaidFacilityContractPort.CanBeginUse(
         IBuildingWorldEntryPort facility,
@@ -87,7 +87,20 @@ public sealed class PaidFacilityContractRuntime : IPaidFacilityContractRuntime
         RemoveFacility(RequireBuildableFacility(facility));
     }
 
-    public PaidFacilityContractState GetContract(BuildableObject facility)
+    public PaidFacilityContractState GetContract(BuildableObject facility) =>
+        CloneContract(FindOwnedContract(facility));
+
+    private static PaidFacilityContractState CloneContract(PaidFacilityContractState source) =>
+        source == null ? null : new PaidFacilityContractState
+        {
+            contractId = source.contractId,
+            facilityPersistentId = source.facilityPersistentId,
+            dailyCost = source.dailyCost,
+            active = source.active,
+            lastSettledDay = source.lastSettledDay
+        };
+
+    private PaidFacilityContractState FindOwnedContract(BuildableObject facility)
     {
         string facilityId = ResolveFacilityId(facility);
         return contracts.FirstOrDefault(contract =>
@@ -111,7 +124,7 @@ public sealed class PaidFacilityContractRuntime : IPaidFacilityContractRuntime
 
         if (ability.chargeMode == PaidFacilityChargeMode.DailyContract)
         {
-            PaidFacilityContractState contract = GetContract(facility);
+            PaidFacilityContractState contract = FindOwnedContract(facility);
             if (contract?.active == true)
             {
                 failureReason = string.Empty;
@@ -228,7 +241,7 @@ public sealed class PaidFacilityContractRuntime : IPaidFacilityContractRuntime
         }
 
         SynchronizeFacility(facility);
-        PaidFacilityContractState contract = GetContract(facility);
+        PaidFacilityContractState contract = FindOwnedContract(facility);
         if (contract == null)
         {
             failureReason = "시설 계약 상태를 찾지 못했습니다.";

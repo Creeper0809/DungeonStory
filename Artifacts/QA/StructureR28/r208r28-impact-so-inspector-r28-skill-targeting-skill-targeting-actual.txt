@@ -1,0 +1,6 @@
+scope=actual GameplayScene prepared workers, production staff UI Button event, camera/collider/raycast/UI ports and automatic Play Update/OnDisable; controlled input and local real transaction/observer; not hardware input or official pending skill world restore
+PASS actual StaffWorkPriorityPanel/Button pointer event -> controller; automatic Play disable/enable, Escape and selection cancel; GraphicRaycaster blocks world command; effects/outcomes unchanged
+PASS production camera + actual recipient collider + PhysicsWorldPointerRaycaster + automatic controller Update; invalid target retains retry; valid retry commits one cooldown/buff/outcome; repeated pointer/cancel inert for skill state
+PASS official whole-world baseline restored after actual UI/pointer fixture
+consoleErrors=0
+result=PASS

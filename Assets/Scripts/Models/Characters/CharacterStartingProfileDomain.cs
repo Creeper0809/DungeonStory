@@ -67,7 +67,6 @@ public sealed class CharacterStartingProfileState
 
     public CharacterStartingProfileState Clone()
     {
-        EnsureCollections();
         return new CharacterStartingProfileState
         {
             prepared = prepared,
@@ -80,7 +79,7 @@ public sealed class CharacterStartingProfileState
             ageBand = ageBand,
             biologicalAgeYears = biologicalAgeYears,
             proficiencyCap = proficiencyCap,
-            initialAgeConditionIds = initialAgeConditionIds
+            initialAgeConditionIds = (initialAgeConditionIds ?? new List<string>())
                 .Where(value => !string.IsNullOrWhiteSpace(value))
                 .Select(value => value.Trim())
                 .Distinct(StringComparer.Ordinal)

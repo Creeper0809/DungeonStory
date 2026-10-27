@@ -45,8 +45,11 @@ public static class FactionCargoPublicationDebugScenarios
         }
         void AssertActors(FactionRouteState route, string[] ids, string phase)
         {
+            FactionRouteState snapshot = runtime.Routes.Single(value => value.routeId == route.routeId);
             Require(route.actorsSpawned && route.reinforcementActorIds.SequenceEqual(ids)
-                && ReferenceEquals(route, runtime.Routes.Single(value => value.routeId == route.routeId)),
+                && ReferenceEquals(route, domain.Routes.Single(value => value.routeId == route.routeId))
+                && !ReferenceEquals(route, snapshot)
+                && JsonUtility.ToJson(route) == JsonUtility.ToJson(snapshot),
                 phase + ": completion did not update the current authoritative faction route.");
             foreach (string id in ids)
             {

@@ -166,10 +166,12 @@ public sealed class OffenseHexWorldSimulation :
     public int WorldDay { get; private set; } = 1;
     public float WorldHour { get; private set; }
     public OffenseHexCoord DungeonCoord => new OffenseHexCoord(0, 0);
-    public IReadOnlyCollection<OffenseHexTileState> Tiles => tiles.Values;
-    public IReadOnlyCollection<OffenseWorldSiteStateData> Sites => sites.Values;
+    public IReadOnlyCollection<OffenseHexTileState> Tiles =>
+        tiles.Values.Select(CloneTile).ToArray();
+    public IReadOnlyCollection<OffenseWorldSiteStateData> Sites =>
+        sites.Values.Select(CloneSite).ToArray();
     public IReadOnlyCollection<OffenseUrgentSiteStateData> UrgentSites =>
-        urgentSites.Values;
+        urgentSites.Values.Select(CloneUrgentSite).ToArray();
     public event Action Changed;
 
     public void Start()
@@ -229,10 +231,21 @@ public sealed class OffenseHexWorldSimulation :
         Changed?.Invoke();
     }
 
-    public bool TryGetTile(OffenseHexCoord coord, out OffenseHexTileState tile) =>
-        tiles.TryGetValue(coord, out tile);
+    public bool TryGetTile(OffenseHexCoord coord, out OffenseHexTileState tile)
+    {
+        bool found = tiles.TryGetValue(coord, out OffenseHexTileState current);
+        tile = found ? CloneTile(current) : null;
+        return found;
+    }
 
     public bool TryGetSite(string siteId, out OffenseWorldSiteStateData site)
+    {
+        bool found = TryFindSite(siteId, out OffenseWorldSiteStateData current);
+        site = found ? CloneSite(current) : null;
+        return found;
+    }
+
+    private bool TryFindSite(string siteId, out OffenseWorldSiteStateData site)
     {
         site = null;
         return !string.IsNullOrWhiteSpace(siteId)
@@ -243,14 +256,16 @@ public sealed class OffenseHexWorldSimulation :
         string siteId,
         out OffenseUrgentSiteStateData site)
     {
-        site = null;
-        return !string.IsNullOrWhiteSpace(siteId)
-            && urgentSites.TryGetValue(siteId, out site);
+        OffenseUrgentSiteStateData current = null;
+        bool found = !string.IsNullOrWhiteSpace(siteId)
+            && urgentSites.TryGetValue(siteId, out current);
+        site = found ? CloneUrgentSite(current) : null;
+        return found;
     }
 
     public bool TryRevealSite(string siteId)
     {
-        if (!TryGetSite(siteId, out OffenseWorldSiteStateData site)
+        if (!TryFindSite(siteId, out OffenseWorldSiteStateData site)
             || site.state != OffenseWorldSiteState.Hidden)
         {
             return false;
@@ -263,7 +278,7 @@ public sealed class OffenseHexWorldSimulation :
 
     public bool TryResolveSite(string siteId)
     {
-        if (!TryGetSite(siteId, out OffenseWorldSiteStateData site)
+        if (!TryFindSite(siteId, out OffenseWorldSiteStateData site)
             || !site.IsActive)
         {
             return false;
@@ -276,7 +291,7 @@ public sealed class OffenseHexWorldSimulation :
 
     public bool TryEngageSite(string siteId)
     {
-        if (!TryGetSite(siteId, out OffenseWorldSiteStateData site)
+        if (!TryFindSite(siteId, out OffenseWorldSiteStateData site)
             || site.state != OffenseWorldSiteState.Revealed)
         {
             return false;

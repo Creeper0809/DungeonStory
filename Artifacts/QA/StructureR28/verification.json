@@ -1,0 +1,747 @@
+{
+  "schema": "structure-r28-v1",
+  "scope": "R28 contracts3 and actual play5; not exhaustive gameplay or balance certification",
+  "finalSourceLabel": "r218r28",
+  "sourceInputCount": 21746,
+  "sourceManifestSha256": "67d861aa5cddafb511924d474ac4e420b4306ae862812b90bb1c438e7d024f84",
+  "sourceInputsSha256": "c68e3e18530e4541e90c4751f94e8bd6ed72111b4f0c477433819bdf20c31956",
+  "currentSource": {
+    "digest": "8c4bfa289549fb0d96792195436dbb6a348a2951b22318b34007988ba73b8d89",
+    "count": 4798,
+    "pathsDigest": "78708613985b1ae9ad656f2d1780bf03dfce18defda5269d7736bb364119b86f"
+  },
+  "sourceEvidence": [
+    {
+      "path": "Artifacts/QA/StructureR28/repair-r218r28.json",
+      "sha256": "67d861aa5cddafb511924d474ac4e420b4306ae862812b90bb1c438e7d024f84",
+      "bytes": 4586144,
+      "originalPath": "C:\\Users\\vulpo\\Documents\\Codex\\2026-10-27\\structure-remediation-r28\\repair-r218r28.json",
+      "originalSha256": "67d861aa5cddafb511924d474ac4e420b4306ae862812b90bb1c438e7d024f84",
+      "originalBytes": 4586144
+    },
+    {
+      "path": "Artifacts/QA/StructureR28/stage-r218r28-receipt.json",
+      "sha256": "a5756a463888591df3036e1b30f05efeb8a6c268b7aefd453f5c42732a9dc988",
+      "bytes": 713,
+      "originalPath": "C:\\Users\\vulpo\\Documents\\Codex\\2026-10-27\\structure-remediation-r28\\stage-r218r28-receipt.json",
+      "originalSha256": "a5756a463888591df3036e1b30f05efeb8a6c268b7aefd453f5c42732a9dc988",
+      "originalBytes": 713
+    },
+    {
+      "path": "Artifacts/QA/StructureR28/repair-r208r28.json",
+      "sha256": "2bd3ed05529809f5f76d240c3c8e381d4e9f0b765dcbd209d1e43285a7617f1b",
+      "bytes": 4586144,
+      "originalPath": "C:\\Users\\vulpo\\Documents\\Codex\\2026-10-27\\structure-remediation-r28\\repair-r208r28.json",
+      "originalSha256": "2bd3ed05529809f5f76d240c3c8e381d4e9f0b765dcbd209d1e43285a7617f1b",
+      "originalBytes": 4586144
+    },
+    {
+      "path": "Artifacts/QA/StructureR28/stage-r208r28-receipt.json",
+      "sha256": "5e5f0b44df011ccc81c4f5d06178af17488b28d7600b80ab09a410ed670104c5",
+      "bytes": 1516,
+      "originalPath": "C:\\Users\\vulpo\\Documents\\Codex\\2026-10-27\\structure-remediation-r28\\stage-r208r28-receipt.json",
+      "originalSha256": "5e5f0b44df011ccc81c4f5d06178af17488b28d7600b80ab09a410ed670104c5",
+      "originalBytes": 1516
+    }
+  ],
+  "runs": [
+    {
+      "label": "r208r28-impact-so-inspector-r28-query-contracts",
+      "actualSourceLabel": "r208r28",
+      "actualSourceDigest": "ec6c720003e625923c0533eeb3e5aea4fdf526d1dfad89082d1fcbbc6a04c138",
+      "classification": "retained-unaffected-source",
+      "entryPoint": "R28StructureRemediationBatch.RunQueryContracts",
+      "completionMarker": "R28_query-contracts=PASS",
+      "report": "query-contracts.txt",
+      "summary": {
+        "exit_code": 0,
+        "seconds": 230,
+        "stop_reason": null,
+        "source_label": "r208r28",
+        "compiler_error_count": 0,
+        "source_drift": []
+      },
+      "changedInputsSinceRun": [
+        "Assets/Scripts/Services/Combat/Editor/CharacterAiAutonomousMedicalPlayModeVerifier.cs",
+        "Assets/Scripts/Services/Run/Editor/Wim040ObservedIncidentLiveRunner.cs"
+      ],
+      "evidence": [
+        {
+          "path": "Artifacts/QA/StructureR28/r208r28-impact-so-inspector-r28-query-contracts-run-summary.json",
+          "sha256": "37f60be43514c88c5030eb26e16ec07393cc6e2236d024c85ba0f1aa33e808de",
+          "bytes": 141,
+          "originalPath": "C:\\Users\\vulpo\\Documents\\Codex\\2026-10-27\\structure-remediation-r28\\r208r28-impact-so-inspector-r28-query-contracts\\run-summary.json",
+          "originalSha256": "37f60be43514c88c5030eb26e16ec07393cc6e2236d024c85ba0f1aa33e808de",
+          "originalBytes": 141
+        },
+        {
+          "path": "Artifacts/QA/StructureR28/r208r28-impact-so-inspector-r28-query-contracts-fetched-inspection.json",
+          "sha256": "3ab2e92ad6710960959b44892f3f073abcec1cbc714a10d1cfabe2374007b191",
+          "bytes": 2602,
+          "originalPath": "C:\\Users\\vulpo\\Documents\\Codex\\2026-10-27\\structure-remediation-r28\\r208r28-impact-so-inspector-r28-query-contracts\\fetched-inspection.json",
+          "originalSha256": "3ab2e92ad6710960959b44892f3f073abcec1cbc714a10d1cfabe2374007b191",
+          "originalBytes": 2602
+        },
+        {
+          "path": "Artifacts/QA/StructureR28/r208r28-impact-so-inspector-r28-query-contracts-owned-process-cleanup.json",
+          "sha256": "4928977be8230ec059dcb0fc68f3fea460e638ec5a8d7fcc996894671a1e984b",
+          "bytes": 74,
+          "originalPath": "C:\\Users\\vulpo\\Documents\\Codex\\2026-10-27\\structure-remediation-r28\\r208r28-impact-so-inspector-r28-query-contracts\\owned-process-cleanup.json",
+          "originalSha256": "4928977be8230ec059dcb0fc68f3fea460e638ec5a8d7fcc996894671a1e984b",
+          "originalBytes": 74
+        },
+        {
+          "path": "Artifacts/QA/StructureR28/r208r28-impact-so-inspector-r28-query-contracts-owned-compiler-cleanup.json",
+          "sha256": "0427dc1851d1fdfb31013c8b2df4dab7d96af2a88379e3308c236c62ed32584b",
+          "bytes": 230,
+          "originalPath": "C:\\Users\\vulpo\\Documents\\Codex\\2026-10-27\\structure-remediation-r28\\r208r28-impact-so-inspector-r28-query-contracts\\owned-compiler-cleanup.json",
+          "originalSha256": "0427dc1851d1fdfb31013c8b2df4dab7d96af2a88379e3308c236c62ed32584b",
+          "originalBytes": 230
+        },
+        {
+          "path": "Artifacts/QA/StructureR28/r208r28-impact-so-inspector-r28-query-contracts-isolated-display.json",
+          "sha256": "f2afb63197d7074454323713630f5ef19267fc1d9c2f1528cee189187fc07474",
+          "bytes": 800,
+          "originalPath": "C:\\Users\\vulpo\\Documents\\Codex\\2026-10-27\\structure-remediation-r28\\r208r28-impact-so-inspector-r28-query-contracts\\isolated-display.json",
+          "originalSha256": "f2afb63197d7074454323713630f5ef19267fc1d9c2f1528cee189187fc07474",
+          "originalBytes": 800
+        },
+        {
+          "path": "Artifacts/QA/StructureR28/r208r28-impact-so-inspector-r28-query-contracts-unity.redacted.log",
+          "sha256": "f4a14be2562932b1ace8c02e42079d84c4789e2ba7df24afce141cc9daa75ff2",
+          "bytes": 72147,
+          "originalPath": "C:\\Users\\vulpo\\Documents\\Codex\\2026-10-27\\structure-remediation-r28\\r208r28-impact-so-inspector-r28-query-contracts\\unity.redacted.log",
+          "originalSha256": "c824cf51a362041ac4cabbfea5896abd61eac5c5cd04035bff82061e89367ab9",
+          "originalBytes": 73961,
+          "redaction": "Player-connection network identifiers only; outcome and error lines retained"
+        },
+        {
+          "path": "Artifacts/QA/StructureR28/r208r28-impact-so-inspector-r28-query-contracts-query-contracts.txt",
+          "sha256": "984a18fc0646688b230385940ce22a2512dfee8e66e4ec7d77640d4d85fa6688",
+          "bytes": 250,
+          "originalPath": "C:\\Users\\vulpo\\Documents\\Codex\\2026-10-27\\structure-remediation-r28\\r208r28-impact-so-inspector-r28-query-contracts\\query-contracts.txt",
+          "originalSha256": "984a18fc0646688b230385940ce22a2512dfee8e66e4ec7d77640d4d85fa6688",
+          "originalBytes": 250
+        }
+      ]
+    },
+    {
+      "label": "r208r28-impact-so-inspector-r28-authoring-contracts",
+      "actualSourceLabel": "r208r28",
+      "actualSourceDigest": "ec6c720003e625923c0533eeb3e5aea4fdf526d1dfad89082d1fcbbc6a04c138",
+      "classification": "retained-unaffected-source",
+      "entryPoint": "R28StructureRemediationBatch.RunAuthoringContracts",
+      "completionMarker": "R28_authoring-contracts=PASS",
+      "report": "authoring-contracts.txt",
+      "summary": {
+        "exit_code": 0,
+        "seconds": 70,
+        "stop_reason": null,
+        "source_label": "r208r28",
+        "compiler_error_count": 0,
+        "source_drift": []
+      },
+      "changedInputsSinceRun": [
+        "Assets/Scripts/Services/Combat/Editor/CharacterAiAutonomousMedicalPlayModeVerifier.cs",
+        "Assets/Scripts/Services/Run/Editor/Wim040ObservedIncidentLiveRunner.cs"
+      ],
+      "evidence": [
+        {
+          "path": "Artifacts/QA/StructureR28/r208r28-impact-so-inspector-r28-authoring-contracts-run-summary.json",
+          "sha256": "1e33ca8880e3c62707194f83dd152a1f64aa42030a77104620c30cc679e714e3",
+          "bytes": 140,
+          "originalPath": "C:\\Users\\vulpo\\Documents\\Codex\\2026-10-27\\structure-remediation-r28\\r208r28-impact-so-inspector-r28-authoring-contracts\\run-summary.json",
+          "originalSha256": "1e33ca8880e3c62707194f83dd152a1f64aa42030a77104620c30cc679e714e3",
+          "originalBytes": 140
+        },
+        {
+          "path": "Artifacts/QA/StructureR28/r208r28-impact-so-inspector-r28-authoring-contracts-fetched-inspection.json",
+          "sha256": "f22791cad67c301a0c17b79b8cf46af3528ed502792c97fba259ac5bca6de798",
+          "bytes": 2885,
+          "originalPath": "C:\\Users\\vulpo\\Documents\\Codex\\2026-10-27\\structure-remediation-r28\\r208r28-impact-so-inspector-r28-authoring-contracts\\fetched-inspection.json",
+          "originalSha256": "f22791cad67c301a0c17b79b8cf46af3528ed502792c97fba259ac5bca6de798",
+          "originalBytes": 2885
+        },
+        {
+          "path": "Artifacts/QA/StructureR28/r208r28-impact-so-inspector-r28-authoring-contracts-owned-process-cleanup.json",
+          "sha256": "11f112ecfff45a8fb871f98230ac9818023141a89791bf6a89f37e9ff1bc379e",
+          "bytes": 74,
+          "originalPath": "C:\\Users\\vulpo\\Documents\\Codex\\2026-10-27\\structure-remediation-r28\\r208r28-impact-so-inspector-r28-authoring-contracts\\owned-process-cleanup.json",
+          "originalSha256": "11f112ecfff45a8fb871f98230ac9818023141a89791bf6a89f37e9ff1bc379e",
+          "originalBytes": 74
+        },
+        {
+          "path": "Artifacts/QA/StructureR28/r208r28-impact-so-inspector-r28-authoring-contracts-owned-compiler-cleanup.json",
+          "sha256": "195857854155d8029f178a2d51c805fe33bc200755ec7a5de86d25425934b546",
+          "bytes": 147,
+          "originalPath": "C:\\Users\\vulpo\\Documents\\Codex\\2026-10-27\\structure-remediation-r28\\r208r28-impact-so-inspector-r28-authoring-contracts\\owned-compiler-cleanup.json",
+          "originalSha256": "195857854155d8029f178a2d51c805fe33bc200755ec7a5de86d25425934b546",
+          "originalBytes": 147
+        },
+        {
+          "path": "Artifacts/QA/StructureR28/r208r28-impact-so-inspector-r28-authoring-contracts-isolated-display.json",
+          "sha256": "d2516447bee781c796c3197e6c1d205b9c4668f84b7000e828ad209333125cc3",
+          "bytes": 808,
+          "originalPath": "C:\\Users\\vulpo\\Documents\\Codex\\2026-10-27\\structure-remediation-r28\\r208r28-impact-so-inspector-r28-authoring-contracts\\isolated-display.json",
+          "originalSha256": "d2516447bee781c796c3197e6c1d205b9c4668f84b7000e828ad209333125cc3",
+          "originalBytes": 808
+        },
+        {
+          "path": "Artifacts/QA/StructureR28/r208r28-impact-so-inspector-r28-authoring-contracts-unity.redacted.log",
+          "sha256": "bba55d14fc3898a09d77db7ead2b1f8b233dec2d452bbf0fb4ed202b3c747e9d",
+          "bytes": 51222,
+          "originalPath": "C:\\Users\\vulpo\\Documents\\Codex\\2026-10-27\\structure-remediation-r28\\r208r28-impact-so-inspector-r28-authoring-contracts\\unity.redacted.log",
+          "originalSha256": "47390c0eee5d2798d747474aa85aad0b668be455000f24f88ec4928e79a45398",
+          "originalBytes": 53056,
+          "redaction": "Player-connection network identifiers only; outcome and error lines retained"
+        },
+        {
+          "path": "Artifacts/QA/StructureR28/r208r28-impact-so-inspector-r28-authoring-contracts-authoring-contracts.txt",
+          "sha256": "984a18fc0646688b230385940ce22a2512dfee8e66e4ec7d77640d4d85fa6688",
+          "bytes": 250,
+          "originalPath": "C:\\Users\\vulpo\\Documents\\Codex\\2026-10-27\\structure-remediation-r28\\r208r28-impact-so-inspector-r28-authoring-contracts\\authoring-contracts.txt",
+          "originalSha256": "984a18fc0646688b230385940ce22a2512dfee8e66e4ec7d77640d4d85fa6688",
+          "originalBytes": 250
+        }
+      ]
+    },
+    {
+      "label": "r208r28-impact-so-inspector-r28-progression-contracts",
+      "actualSourceLabel": "r208r28",
+      "actualSourceDigest": "ec6c720003e625923c0533eeb3e5aea4fdf526d1dfad89082d1fcbbc6a04c138",
+      "classification": "retained-unaffected-source",
+      "entryPoint": "R28StructureRemediationBatch.RunProgressionContracts",
+      "completionMarker": "R28_progression-contracts=PASS",
+      "report": "progression-contracts.txt",
+      "summary": {
+        "exit_code": 0,
+        "seconds": 150,
+        "stop_reason": null,
+        "source_label": "r208r28",
+        "compiler_error_count": 0,
+        "source_drift": []
+      },
+      "changedInputsSinceRun": [
+        "Assets/Scripts/Services/Combat/Editor/CharacterAiAutonomousMedicalPlayModeVerifier.cs",
+        "Assets/Scripts/Services/Run/Editor/Wim040ObservedIncidentLiveRunner.cs"
+      ],
+      "evidence": [
+        {
+          "path": "Artifacts/QA/StructureR28/r208r28-impact-so-inspector-r28-progression-contracts-run-summary.json",
+          "sha256": "c55a63937c67317d267cbc389013f82eea9edc4f045097a2eb8106669f429bfc",
+          "bytes": 141,
+          "originalPath": "C:\\Users\\vulpo\\Documents\\Codex\\2026-10-27\\structure-remediation-r28\\r208r28-impact-so-inspector-r28-progression-contracts\\run-summary.json",
+          "originalSha256": "c55a63937c67317d267cbc389013f82eea9edc4f045097a2eb8106669f429bfc",
+          "originalBytes": 141
+        },
+        {
+          "path": "Artifacts/QA/StructureR28/r208r28-impact-so-inspector-r28-progression-contracts-fetched-inspection.json",
+          "sha256": "52d527b0655dd395babb15835ba7e0f0962d489106ac1b9b179cc076cc52c125",
+          "bytes": 2303,
+          "originalPath": "C:\\Users\\vulpo\\Documents\\Codex\\2026-10-27\\structure-remediation-r28\\r208r28-impact-so-inspector-r28-progression-contracts\\fetched-inspection.json",
+          "originalSha256": "52d527b0655dd395babb15835ba7e0f0962d489106ac1b9b179cc076cc52c125",
+          "originalBytes": 2303
+        },
+        {
+          "path": "Artifacts/QA/StructureR28/r208r28-impact-so-inspector-r28-progression-contracts-owned-process-cleanup.json",
+          "sha256": "264fb6e8921c899ca81d779033d5fdb5a679d5c77bb293bdf3d18d2f18cd1032",
+          "bytes": 74,
+          "originalPath": "C:\\Users\\vulpo\\Documents\\Codex\\2026-10-27\\structure-remediation-r28\\r208r28-impact-so-inspector-r28-progression-contracts\\owned-process-cleanup.json",
+          "originalSha256": "264fb6e8921c899ca81d779033d5fdb5a679d5c77bb293bdf3d18d2f18cd1032",
+          "originalBytes": 74
+        },
+        {
+          "path": "Artifacts/QA/StructureR28/r208r28-impact-so-inspector-r28-progression-contracts-owned-compiler-cleanup.json",
+          "sha256": "7ea5e22b1168b6a9697302a050027d15a33cb4df657c28cb51ae744a9904c589",
+          "bytes": 149,
+          "originalPath": "C:\\Users\\vulpo\\Documents\\Codex\\2026-10-27\\structure-remediation-r28\\r208r28-impact-so-inspector-r28-progression-contracts\\owned-compiler-cleanup.json",
+          "originalSha256": "7ea5e22b1168b6a9697302a050027d15a33cb4df657c28cb51ae744a9904c589",
+          "originalBytes": 149
+        },
+        {
+          "path": "Artifacts/QA/StructureR28/r208r28-impact-so-inspector-r28-progression-contracts-isolated-display.json",
+          "sha256": "d51d1500b518a550446dc8920f596299bfb831d35133564283fc1cd0a05737bd",
+          "bytes": 812,
+          "originalPath": "C:\\Users\\vulpo\\Documents\\Codex\\2026-10-27\\structure-remediation-r28\\r208r28-impact-so-inspector-r28-progression-contracts\\isolated-display.json",
+          "originalSha256": "d51d1500b518a550446dc8920f596299bfb831d35133564283fc1cd0a05737bd",
+          "originalBytes": 812
+        },
+        {
+          "path": "Artifacts/QA/StructureR28/r208r28-impact-so-inspector-r28-progression-contracts-unity.redacted.log",
+          "sha256": "ef2cde1d45967192663b14be878522fe316e8038cfbd5563479753d2470344e3",
+          "bytes": 42482,
+          "originalPath": "C:\\Users\\vulpo\\Documents\\Codex\\2026-10-27\\structure-remediation-r28\\r208r28-impact-so-inspector-r28-progression-contracts\\unity.redacted.log",
+          "originalSha256": "c702c08a3a7c2c5a5eb1ce6c9b695b0ce25b3976be37d581372de4961dd0fee5",
+          "originalBytes": 44316,
+          "redaction": "Player-connection network identifiers only; outcome and error lines retained"
+        },
+        {
+          "path": "Artifacts/QA/StructureR28/r208r28-impact-so-inspector-r28-progression-contracts-progression-contracts.txt",
+          "sha256": "984a18fc0646688b230385940ce22a2512dfee8e66e4ec7d77640d4d85fa6688",
+          "bytes": 250,
+          "originalPath": "C:\\Users\\vulpo\\Documents\\Codex\\2026-10-27\\structure-remediation-r28\\r208r28-impact-so-inspector-r28-progression-contracts\\progression-contracts.txt",
+          "originalSha256": "984a18fc0646688b230385940ce22a2512dfee8e66e4ec7d77640d4d85fa6688",
+          "originalBytes": 250
+        },
+        {
+          "path": "Artifacts/QA/StructureR28/r208r28-impact-so-inspector-r28-progression-contracts-a05-caller-boundaries.txt",
+          "sha256": "55c3d5589169ed16706230c837a7b8127581043439e646a8c8a49b92bee07ff8",
+          "bytes": 2687,
+          "originalPath": "C:\\Users\\vulpo\\Documents\\Codex\\2026-10-27\\structure-remediation-r28\\r208r28-impact-so-inspector-r28-progression-contracts\\a05-caller-boundaries.txt",
+          "originalSha256": "55c3d5589169ed16706230c837a7b8127581043439e646a8c8a49b92bee07ff8",
+          "originalBytes": 2687
+        }
+      ]
+    },
+    {
+      "label": "r208r28-impact-so-inspector-r28-first-play",
+      "actualSourceLabel": "r208r28",
+      "actualSourceDigest": "ec6c720003e625923c0533eeb3e5aea4fdf526d1dfad89082d1fcbbc6a04c138",
+      "classification": "retained-unaffected-source",
+      "entryPoint": "FirstRunObjectivePlayModeVerifier.RequestGameplayProgressionForBatch",
+      "completionMarker": "FIRST_RUN_GAMEPLAY_BATCH=PASS",
+      "report": "first-run-progression.txt",
+      "summary": {
+        "exit_code": 0,
+        "seconds": 150,
+        "stop_reason": null,
+        "source_label": "r208r28",
+        "compiler_error_count": 0,
+        "source_drift": []
+      },
+      "changedInputsSinceRun": [
+        "Assets/Scripts/Services/Combat/Editor/CharacterAiAutonomousMedicalPlayModeVerifier.cs",
+        "Assets/Scripts/Services/Run/Editor/Wim040ObservedIncidentLiveRunner.cs"
+      ],
+      "evidence": [
+        {
+          "path": "Artifacts/QA/StructureR28/r208r28-impact-so-inspector-r28-first-play-run-summary.json",
+          "sha256": "c55a63937c67317d267cbc389013f82eea9edc4f045097a2eb8106669f429bfc",
+          "bytes": 141,
+          "originalPath": "C:\\Users\\vulpo\\Documents\\Codex\\2026-10-27\\structure-remediation-r28\\r208r28-impact-so-inspector-r28-first-play\\run-summary.json",
+          "originalSha256": "c55a63937c67317d267cbc389013f82eea9edc4f045097a2eb8106669f429bfc",
+          "originalBytes": 141
+        },
+        {
+          "path": "Artifacts/QA/StructureR28/r208r28-impact-so-inspector-r28-first-play-fetched-inspection.json",
+          "sha256": "f45470a52a8ea9680b2d9a5c1ad7431e8575dd0f6464886811356f573eb54ea9",
+          "bytes": 2469,
+          "originalPath": "C:\\Users\\vulpo\\Documents\\Codex\\2026-10-27\\structure-remediation-r28\\r208r28-impact-so-inspector-r28-first-play\\fetched-inspection.json",
+          "originalSha256": "f45470a52a8ea9680b2d9a5c1ad7431e8575dd0f6464886811356f573eb54ea9",
+          "originalBytes": 2469
+        },
+        {
+          "path": "Artifacts/QA/StructureR28/r208r28-impact-so-inspector-r28-first-play-owned-process-cleanup.json",
+          "sha256": "905ee2324e49f973ce75a078bf5c30d66062fbef627086db42e585469e983ce5",
+          "bytes": 74,
+          "originalPath": "C:\\Users\\vulpo\\Documents\\Codex\\2026-10-27\\structure-remediation-r28\\r208r28-impact-so-inspector-r28-first-play\\owned-process-cleanup.json",
+          "originalSha256": "905ee2324e49f973ce75a078bf5c30d66062fbef627086db42e585469e983ce5",
+          "originalBytes": 74
+        },
+        {
+          "path": "Artifacts/QA/StructureR28/r208r28-impact-so-inspector-r28-first-play-owned-compiler-cleanup.json",
+          "sha256": "9e19d37734cbc72df6030dac59125bc1efbd164c41e1eccc689d77d3b53dce61",
+          "bytes": 138,
+          "originalPath": "C:\\Users\\vulpo\\Documents\\Codex\\2026-10-27\\structure-remediation-r28\\r208r28-impact-so-inspector-r28-first-play\\owned-compiler-cleanup.json",
+          "originalSha256": "9e19d37734cbc72df6030dac59125bc1efbd164c41e1eccc689d77d3b53dce61",
+          "originalBytes": 138
+        },
+        {
+          "path": "Artifacts/QA/StructureR28/r208r28-impact-so-inspector-r28-first-play-isolated-display.json",
+          "sha256": "167d1c6b5084f59ec503047ef492f4601e24d507e85fdd91d60bee764c6f5158",
+          "bytes": 790,
+          "originalPath": "C:\\Users\\vulpo\\Documents\\Codex\\2026-10-27\\structure-remediation-r28\\r208r28-impact-so-inspector-r28-first-play\\isolated-display.json",
+          "originalSha256": "167d1c6b5084f59ec503047ef492f4601e24d507e85fdd91d60bee764c6f5158",
+          "originalBytes": 790
+        },
+        {
+          "path": "Artifacts/QA/StructureR28/r208r28-impact-so-inspector-r28-first-play-unity.redacted.log",
+          "sha256": "70bdfc9956e407668022c260ef7bb24d966b398f799522553c681ea06ea61c30",
+          "bytes": 50296,
+          "originalPath": "C:\\Users\\vulpo\\Documents\\Codex\\2026-10-27\\structure-remediation-r28\\r208r28-impact-so-inspector-r28-first-play\\unity.redacted.log",
+          "originalSha256": "7b94e2fd63413bd5860d33e0ae2061cf2653cbd6b648193e0934d2dd7d170676",
+          "originalBytes": 52130,
+          "redaction": "Player-connection network identifiers only; outcome and error lines retained"
+        },
+        {
+          "path": "Artifacts/QA/StructureR28/r208r28-impact-so-inspector-r28-first-play-first-run-progression.txt",
+          "sha256": "e1ded2a847f656d005ef4fb2b2bf58c342b6ed814870464715fa003385da8e28",
+          "bytes": 15429,
+          "originalPath": "C:\\Users\\vulpo\\Documents\\Codex\\2026-10-27\\structure-remediation-r28\\r208r28-impact-so-inspector-r28-first-play\\first-run-progression.txt",
+          "originalSha256": "e1ded2a847f656d005ef4fb2b2bf58c342b6ed814870464715fa003385da8e28",
+          "originalBytes": 15429
+        },
+        {
+          "path": "Artifacts/QA/StructureR28/r208r28-impact-so-inspector-r28-first-play-first-run-daily-shop-checkpoint.json",
+          "sha256": "f98f2fca0942b63062820c8c8b44df255103adbd9542094bc586f6f17ffe4aa7",
+          "bytes": 2158527,
+          "originalPath": "C:\\Users\\vulpo\\Documents\\Codex\\2026-10-27\\structure-remediation-r28\\r208r28-impact-so-inspector-r28-first-play\\first-run-daily-shop-checkpoint.json",
+          "originalSha256": "f98f2fca0942b63062820c8c8b44df255103adbd9542094bc586f6f17ffe4aa7",
+          "originalBytes": 2158527
+        }
+      ]
+    },
+    {
+      "label": "r208r28-impact-so-inspector-r28-cold-shop",
+      "actualSourceLabel": "r208r28",
+      "actualSourceDigest": "ec6c720003e625923c0533eeb3e5aea4fdf526d1dfad89082d1fcbbc6a04c138",
+      "classification": "retained-unaffected-source",
+      "entryPoint": "R26SavedSceneRestoreBatch.RequestCurrentShopForBatch",
+      "completionMarker": "R26_COLD_SCENE_RESTORE=PASS",
+      "report": "cold-scene-restore.json",
+      "summary": {
+        "exit_code": 0,
+        "seconds": 100,
+        "stop_reason": null,
+        "source_label": "r208r28",
+        "compiler_error_count": 0,
+        "source_drift": []
+      },
+      "changedInputsSinceRun": [
+        "Assets/Scripts/Services/Combat/Editor/CharacterAiAutonomousMedicalPlayModeVerifier.cs",
+        "Assets/Scripts/Services/Run/Editor/Wim040ObservedIncidentLiveRunner.cs"
+      ],
+      "evidence": [
+        {
+          "path": "Artifacts/QA/StructureR28/r208r28-impact-so-inspector-r28-cold-shop-run-summary.json",
+          "sha256": "e6e12bd48ab0e6c59ed94cdf929999abb98c6fdc134ce960fa81d105a9604f76",
+          "bytes": 141,
+          "originalPath": "C:\\Users\\vulpo\\Documents\\Codex\\2026-10-27\\structure-remediation-r28\\r208r28-impact-so-inspector-r28-cold-shop\\run-summary.json",
+          "originalSha256": "e6e12bd48ab0e6c59ed94cdf929999abb98c6fdc134ce960fa81d105a9604f76",
+          "originalBytes": 141
+        },
+        {
+          "path": "Artifacts/QA/StructureR28/r208r28-impact-so-inspector-r28-cold-shop-fetched-inspection.json",
+          "sha256": "13b13416b91643e9e4ef7718bbbc342dad14534c7f7b2bc7a419641c7e49543a",
+          "bytes": 2355,
+          "originalPath": "C:\\Users\\vulpo\\Documents\\Codex\\2026-10-27\\structure-remediation-r28\\r208r28-impact-so-inspector-r28-cold-shop\\fetched-inspection.json",
+          "originalSha256": "13b13416b91643e9e4ef7718bbbc342dad14534c7f7b2bc7a419641c7e49543a",
+          "originalBytes": 2355
+        },
+        {
+          "path": "Artifacts/QA/StructureR28/r208r28-impact-so-inspector-r28-cold-shop-owned-process-cleanup.json",
+          "sha256": "33ace7bb7d78e862647566207b3c8967143a1024c80edb1bf2789b3f571603d7",
+          "bytes": 74,
+          "originalPath": "C:\\Users\\vulpo\\Documents\\Codex\\2026-10-27\\structure-remediation-r28\\r208r28-impact-so-inspector-r28-cold-shop\\owned-process-cleanup.json",
+          "originalSha256": "33ace7bb7d78e862647566207b3c8967143a1024c80edb1bf2789b3f571603d7",
+          "originalBytes": 74
+        },
+        {
+          "path": "Artifacts/QA/StructureR28/r208r28-impact-so-inspector-r28-cold-shop-owned-compiler-cleanup.json",
+          "sha256": "3f7261953e2db8d18d271ea7cf5a4c734aaed8ceb240e9b1fb032bdc3d683114",
+          "bytes": 137,
+          "originalPath": "C:\\Users\\vulpo\\Documents\\Codex\\2026-10-27\\structure-remediation-r28\\r208r28-impact-so-inspector-r28-cold-shop\\owned-compiler-cleanup.json",
+          "originalSha256": "3f7261953e2db8d18d271ea7cf5a4c734aaed8ceb240e9b1fb032bdc3d683114",
+          "originalBytes": 137
+        },
+        {
+          "path": "Artifacts/QA/StructureR28/r208r28-impact-so-inspector-r28-cold-shop-isolated-display.json",
+          "sha256": "53696dff8da5d81db6d4180868b9142177284b4d250da42e636ee1ffb6977ea1",
+          "bytes": 788,
+          "originalPath": "C:\\Users\\vulpo\\Documents\\Codex\\2026-10-27\\structure-remediation-r28\\r208r28-impact-so-inspector-r28-cold-shop\\isolated-display.json",
+          "originalSha256": "53696dff8da5d81db6d4180868b9142177284b4d250da42e636ee1ffb6977ea1",
+          "originalBytes": 788
+        },
+        {
+          "path": "Artifacts/QA/StructureR28/r208r28-impact-so-inspector-r28-cold-shop-unity.redacted.log",
+          "sha256": "1b673232c11d4edd40106e36e61717fc0665e88da8bb6e93f34757bf9971c00b",
+          "bytes": 49363,
+          "originalPath": "C:\\Users\\vulpo\\Documents\\Codex\\2026-10-27\\structure-remediation-r28\\r208r28-impact-so-inspector-r28-cold-shop\\unity.redacted.log",
+          "originalSha256": "3dcf26b0861fab782de7187768b369ffce8dc49ff845eb28a472ff05a8176a79",
+          "originalBytes": 51197,
+          "redaction": "Player-connection network identifiers only; outcome and error lines retained"
+        },
+        {
+          "path": "Artifacts/QA/StructureR28/r208r28-impact-so-inspector-r28-cold-shop-cold-scene-restore.json",
+          "sha256": "136ff4d6ac453c3901d61856068966f823a4c39c96430fce8a3ae72ea3a745f2",
+          "bytes": 38775,
+          "originalPath": "C:\\Users\\vulpo\\Documents\\Codex\\2026-10-27\\structure-remediation-r28\\r208r28-impact-so-inspector-r28-cold-shop\\cold-scene-restore.json",
+          "originalSha256": "136ff4d6ac453c3901d61856068966f823a4c39c96430fce8a3ae72ea3a745f2",
+          "originalBytes": 38775
+        }
+      ]
+    },
+    {
+      "label": "r208r28-impact-so-inspector-r28-skill-targeting",
+      "actualSourceLabel": "r208r28",
+      "actualSourceDigest": "ec6c720003e625923c0533eeb3e5aea4fdf526d1dfad89082d1fcbbc6a04c138",
+      "classification": "retained-unaffected-source",
+      "entryPoint": "MovementOwnershipDebugScenarios.RequestSkillTargetingForBatch",
+      "completionMarker": "ARCHITECTURE_SKILL_TARGETING_BATCH=PASS",
+      "report": "skill-targeting-actual.txt",
+      "summary": {
+        "exit_code": 0,
+        "seconds": 80,
+        "stop_reason": null,
+        "source_label": "r208r28",
+        "compiler_error_count": 0,
+        "source_drift": []
+      },
+      "changedInputsSinceRun": [
+        "Assets/Scripts/Services/Combat/Editor/CharacterAiAutonomousMedicalPlayModeVerifier.cs",
+        "Assets/Scripts/Services/Run/Editor/Wim040ObservedIncidentLiveRunner.cs"
+      ],
+      "evidence": [
+        {
+          "path": "Artifacts/QA/StructureR28/r208r28-impact-so-inspector-r28-skill-targeting-run-summary.json",
+          "sha256": "6f4df6180089ec9b073d71059a12420038c11d48a88bbfb931c9b86f283f6b6c",
+          "bytes": 140,
+          "originalPath": "C:\\Users\\vulpo\\Documents\\Codex\\2026-10-27\\structure-remediation-r28\\r208r28-impact-so-inspector-r28-skill-targeting\\run-summary.json",
+          "originalSha256": "6f4df6180089ec9b073d71059a12420038c11d48a88bbfb931c9b86f283f6b6c",
+          "originalBytes": 140
+        },
+        {
+          "path": "Artifacts/QA/StructureR28/r208r28-impact-so-inspector-r28-skill-targeting-fetched-inspection.json",
+          "sha256": "2efb24fe76aefa5cc473aa3ef8161a1e9d2408cc98ad24e0cd206cb44644c73a",
+          "bytes": 2479,
+          "originalPath": "C:\\Users\\vulpo\\Documents\\Codex\\2026-10-27\\structure-remediation-r28\\r208r28-impact-so-inspector-r28-skill-targeting\\fetched-inspection.json",
+          "originalSha256": "2efb24fe76aefa5cc473aa3ef8161a1e9d2408cc98ad24e0cd206cb44644c73a",
+          "originalBytes": 2479
+        },
+        {
+          "path": "Artifacts/QA/StructureR28/r208r28-impact-so-inspector-r28-skill-targeting-owned-process-cleanup.json",
+          "sha256": "a8a9da6536d735ef22ef13e7ae69ef6f45d86178489d196ba07d4868ca28eade",
+          "bytes": 74,
+          "originalPath": "C:\\Users\\vulpo\\Documents\\Codex\\2026-10-27\\structure-remediation-r28\\r208r28-impact-so-inspector-r28-skill-targeting\\owned-process-cleanup.json",
+          "originalSha256": "a8a9da6536d735ef22ef13e7ae69ef6f45d86178489d196ba07d4868ca28eade",
+          "originalBytes": 74
+        },
+        {
+          "path": "Artifacts/QA/StructureR28/r208r28-impact-so-inspector-r28-skill-targeting-owned-compiler-cleanup.json",
+          "sha256": "0142177f40ec96e2ad69792c20c33ed053b7d7d53b8d9cdf4de945950d907db3",
+          "bytes": 143,
+          "originalPath": "C:\\Users\\vulpo\\Documents\\Codex\\2026-10-27\\structure-remediation-r28\\r208r28-impact-so-inspector-r28-skill-targeting\\owned-compiler-cleanup.json",
+          "originalSha256": "0142177f40ec96e2ad69792c20c33ed053b7d7d53b8d9cdf4de945950d907db3",
+          "originalBytes": 143
+        },
+        {
+          "path": "Artifacts/QA/StructureR28/r208r28-impact-so-inspector-r28-skill-targeting-isolated-display.json",
+          "sha256": "3bf23c6f40eab94282085620b86a22c3915a17ce8c9e175a0e22eb325e1c71c2",
+          "bytes": 800,
+          "originalPath": "C:\\Users\\vulpo\\Documents\\Codex\\2026-10-27\\structure-remediation-r28\\r208r28-impact-so-inspector-r28-skill-targeting\\isolated-display.json",
+          "originalSha256": "3bf23c6f40eab94282085620b86a22c3915a17ce8c9e175a0e22eb325e1c71c2",
+          "originalBytes": 800
+        },
+        {
+          "path": "Artifacts/QA/StructureR28/r208r28-impact-so-inspector-r28-skill-targeting-unity.redacted.log",
+          "sha256": "e8a236088933b073152a3a56f2d8065b824e3f252456f6cfa458a458728df880",
+          "bytes": 48424,
+          "originalPath": "C:\\Users\\vulpo\\Documents\\Codex\\2026-10-27\\structure-remediation-r28\\r208r28-impact-so-inspector-r28-skill-targeting\\unity.redacted.log",
+          "originalSha256": "e2ce42689fd871d9fb128b2ff3965a48ff1b31e01fd0b8c0967dd54bc1ce9d39",
+          "originalBytes": 50258,
+          "redaction": "Player-connection network identifiers only; outcome and error lines retained"
+        },
+        {
+          "path": "Artifacts/QA/StructureR28/r208r28-impact-so-inspector-r28-skill-targeting-skill-targeting-actual.txt",
+          "sha256": "51e6cde20ce367d7973c5577c5a2aee721447867501f7801e1fb88a0f65cec76",
+          "bytes": 798,
+          "originalPath": "C:\\Users\\vulpo\\Documents\\Codex\\2026-10-27\\structure-remediation-r28\\r208r28-impact-so-inspector-r28-skill-targeting\\skill-targeting-actual.txt",
+          "originalSha256": "51e6cde20ce367d7973c5577c5a2aee721447867501f7801e1fb88a0f65cec76",
+          "originalBytes": 798
+        }
+      ]
+    },
+    {
+      "label": "r218r28-impact-so-inspector-r28-autonomous-medical",
+      "actualSourceLabel": "r218r28",
+      "actualSourceDigest": "8c4bfa289549fb0d96792195436dbb6a348a2951b22318b34007988ba73b8d89",
+      "classification": "current-source",
+      "entryPoint": "R28AutonomousMedicalBatch.RequestForBatch",
+      "completionMarker": "R28_AUTONOMOUS_MEDICAL=PASS",
+      "report": "autonomous-medical.txt",
+      "summary": {
+        "exit_code": 0,
+        "seconds": 260,
+        "stop_reason": null,
+        "source_label": "r218r28",
+        "compiler_error_count": 0,
+        "source_drift": []
+      },
+      "changedInputsSinceRun": [],
+      "evidence": [
+        {
+          "path": "Artifacts/QA/StructureR28/r218r28-impact-so-inspector-r28-autonomous-medical-run-summary.json",
+          "sha256": "b172f383adf1426f4310d91177268f4d2227911ef7621a3248678297a2cb0e01",
+          "bytes": 141,
+          "originalPath": "C:\\Users\\vulpo\\Documents\\Codex\\2026-10-27\\structure-remediation-r28\\r218r28-impact-so-inspector-r28-autonomous-medical\\run-summary.json",
+          "originalSha256": "b172f383adf1426f4310d91177268f4d2227911ef7621a3248678297a2cb0e01",
+          "originalBytes": 141
+        },
+        {
+          "path": "Artifacts/QA/StructureR28/r218r28-impact-so-inspector-r28-autonomous-medical-fetched-inspection.json",
+          "sha256": "a7880a31cd3b5ed5d24847a94839f4cfbd437867c2736d291dacbf32999cdd63",
+          "bytes": 2494,
+          "originalPath": "C:\\Users\\vulpo\\Documents\\Codex\\2026-10-27\\structure-remediation-r28\\r218r28-impact-so-inspector-r28-autonomous-medical\\fetched-inspection.json",
+          "originalSha256": "a7880a31cd3b5ed5d24847a94839f4cfbd437867c2736d291dacbf32999cdd63",
+          "originalBytes": 2494
+        },
+        {
+          "path": "Artifacts/QA/StructureR28/r218r28-impact-so-inspector-r28-autonomous-medical-owned-process-cleanup.json",
+          "sha256": "b4df339b7f30e1bc602226fe5b7bab4a8888791289d9cd7cd36b2ee868bd7dd6",
+          "bytes": 73,
+          "originalPath": "C:\\Users\\vulpo\\Documents\\Codex\\2026-10-27\\structure-remediation-r28\\r218r28-impact-so-inspector-r28-autonomous-medical\\owned-process-cleanup.json",
+          "originalSha256": "b4df339b7f30e1bc602226fe5b7bab4a8888791289d9cd7cd36b2ee868bd7dd6",
+          "originalBytes": 73
+        },
+        {
+          "path": "Artifacts/QA/StructureR28/r218r28-impact-so-inspector-r28-autonomous-medical-owned-compiler-cleanup.json",
+          "sha256": "1a3009d364fc73b017a0a1e320ec65efdab5b438541ab05133c79994bdcd5485",
+          "bytes": 230,
+          "originalPath": "C:\\Users\\vulpo\\Documents\\Codex\\2026-10-27\\structure-remediation-r28\\r218r28-impact-so-inspector-r28-autonomous-medical\\owned-compiler-cleanup.json",
+          "originalSha256": "1a3009d364fc73b017a0a1e320ec65efdab5b438541ab05133c79994bdcd5485",
+          "originalBytes": 230
+        },
+        {
+          "path": "Artifacts/QA/StructureR28/r218r28-impact-so-inspector-r28-autonomous-medical-isolated-display.json",
+          "sha256": "facbe3f0c7440e4e9180de6681079c41e84c2e64e657b1f4ffc0b4ff776e2ebf",
+          "bytes": 805,
+          "originalPath": "C:\\Users\\vulpo\\Documents\\Codex\\2026-10-27\\structure-remediation-r28\\r218r28-impact-so-inspector-r28-autonomous-medical\\isolated-display.json",
+          "originalSha256": "facbe3f0c7440e4e9180de6681079c41e84c2e64e657b1f4ffc0b4ff776e2ebf",
+          "originalBytes": 805
+        },
+        {
+          "path": "Artifacts/QA/StructureR28/r218r28-impact-so-inspector-r28-autonomous-medical-unity.redacted.log",
+          "sha256": "460950933b44d62bbeb686a5c449659aabf5fdda9c30b97e1726bca1ac2105d3",
+          "bytes": 76007,
+          "originalPath": "C:\\Users\\vulpo\\Documents\\Codex\\2026-10-27\\structure-remediation-r28\\r218r28-impact-so-inspector-r28-autonomous-medical\\unity.redacted.log",
+          "originalSha256": "6cdae7c5f209c927f1e25b50a7ea88b8e94fc6b0bdd7423b5bc33153b5bad0f1",
+          "originalBytes": 77841,
+          "redaction": "Player-connection network identifiers only; outcome and error lines retained"
+        },
+        {
+          "path": "Artifacts/QA/StructureR28/r218r28-impact-so-inspector-r28-autonomous-medical-autonomous-medical.txt",
+          "sha256": "7102a75a52637327db6a93f97b6279981d6396a6b735c040a1a0e8dafd65445d",
+          "bytes": 3570,
+          "originalPath": "C:\\Users\\vulpo\\Documents\\Codex\\2026-10-27\\structure-remediation-r28\\r218r28-impact-so-inspector-r28-autonomous-medical\\autonomous-medical.txt",
+          "originalSha256": "7102a75a52637327db6a93f97b6279981d6396a6b735c040a1a0e8dafd65445d",
+          "originalBytes": 3570
+        }
+      ]
+    },
+    {
+      "label": "r218r28-impact-so-inspector-r28-medical-transfer",
+      "actualSourceLabel": "r218r28",
+      "actualSourceDigest": "8c4bfa289549fb0d96792195436dbb6a348a2951b22318b34007988ba73b8d89",
+      "classification": "current-source",
+      "entryPoint": "MovementOwnershipDebugScenarios.RequestMedicalTransferForBatch",
+      "completionMarker": "ARCHITECTURE_SOCIETY_MEDICAL_TRANSFER_BATCH=PASS",
+      "report": "society-medical-transfer-actual.txt",
+      "summary": {
+        "exit_code": 0,
+        "seconds": 140,
+        "stop_reason": null,
+        "source_label": "r218r28",
+        "compiler_error_count": 0,
+        "source_drift": []
+      },
+      "changedInputsSinceRun": [],
+      "evidence": [
+        {
+          "path": "Artifacts/QA/StructureR28/r218r28-impact-so-inspector-r28-medical-transfer-run-summary.json",
+          "sha256": "a42748dfc220d97419d613744d915c8bfef8ebf19c7c55ca2811477fc5cc373d",
+          "bytes": 141,
+          "originalPath": "C:\\Users\\vulpo\\Documents\\Codex\\2026-10-27\\structure-remediation-r28\\r218r28-impact-so-inspector-r28-medical-transfer\\run-summary.json",
+          "originalSha256": "a42748dfc220d97419d613744d915c8bfef8ebf19c7c55ca2811477fc5cc373d",
+          "originalBytes": 141
+        },
+        {
+          "path": "Artifacts/QA/StructureR28/r218r28-impact-so-inspector-r28-medical-transfer-fetched-inspection.json",
+          "sha256": "a6818ec6cfd8051c4ed95c50a00001ba06721581de2074a1aa9b667dcd5694ec",
+          "bytes": 2498,
+          "originalPath": "C:\\Users\\vulpo\\Documents\\Codex\\2026-10-27\\structure-remediation-r28\\r218r28-impact-so-inspector-r28-medical-transfer\\fetched-inspection.json",
+          "originalSha256": "a6818ec6cfd8051c4ed95c50a00001ba06721581de2074a1aa9b667dcd5694ec",
+          "originalBytes": 2498
+        },
+        {
+          "path": "Artifacts/QA/StructureR28/r218r28-impact-so-inspector-r28-medical-transfer-owned-process-cleanup.json",
+          "sha256": "429fc234f45c886723145f7a4380ea6980de8f61234f23d2075883339fed47fc",
+          "bytes": 73,
+          "originalPath": "C:\\Users\\vulpo\\Documents\\Codex\\2026-10-27\\structure-remediation-r28\\r218r28-impact-so-inspector-r28-medical-transfer\\owned-process-cleanup.json",
+          "originalSha256": "429fc234f45c886723145f7a4380ea6980de8f61234f23d2075883339fed47fc",
+          "originalBytes": 73
+        },
+        {
+          "path": "Artifacts/QA/StructureR28/r218r28-impact-so-inspector-r28-medical-transfer-owned-compiler-cleanup.json",
+          "sha256": "6e2d71ab8ea64e21a7b1f582ea4eb5ce4a66e016a87aea44a016bd5906bad777",
+          "bytes": 143,
+          "originalPath": "C:\\Users\\vulpo\\Documents\\Codex\\2026-10-27\\structure-remediation-r28\\r218r28-impact-so-inspector-r28-medical-transfer\\owned-compiler-cleanup.json",
+          "originalSha256": "6e2d71ab8ea64e21a7b1f582ea4eb5ce4a66e016a87aea44a016bd5906bad777",
+          "originalBytes": 143
+        },
+        {
+          "path": "Artifacts/QA/StructureR28/r218r28-impact-so-inspector-r28-medical-transfer-isolated-display.json",
+          "sha256": "f669942a7e7312ecb32b11f20109702bb92bbfd0031c12668169992dfd8e7098",
+          "bytes": 801,
+          "originalPath": "C:\\Users\\vulpo\\Documents\\Codex\\2026-10-27\\structure-remediation-r28\\r218r28-impact-so-inspector-r28-medical-transfer\\isolated-display.json",
+          "originalSha256": "f669942a7e7312ecb32b11f20109702bb92bbfd0031c12668169992dfd8e7098",
+          "originalBytes": 801
+        },
+        {
+          "path": "Artifacts/QA/StructureR28/r218r28-impact-so-inspector-r28-medical-transfer-unity.redacted.log",
+          "sha256": "fdb820ca3453313ce8dde265055e91eb27638df478d93c095554a9a3f4f6c474",
+          "bytes": 82538,
+          "originalPath": "C:\\Users\\vulpo\\Documents\\Codex\\2026-10-27\\structure-remediation-r28\\r218r28-impact-so-inspector-r28-medical-transfer\\unity.redacted.log",
+          "originalSha256": "b07132e253c74845e7466525bcd79f74328bab5b96e687b82a768590179142ec",
+          "originalBytes": 84352,
+          "redaction": "Player-connection network identifiers only; outcome and error lines retained"
+        },
+        {
+          "path": "Artifacts/QA/StructureR28/r218r28-impact-so-inspector-r28-medical-transfer-society-medical-transfer-actual.txt",
+          "sha256": "56cf6abdbc40d4040754cc10c4d78d84f83afdb8efb8a29b307ec345309bfe13",
+          "bytes": 3226,
+          "originalPath": "C:\\Users\\vulpo\\Documents\\Codex\\2026-10-27\\structure-remediation-r28\\r218r28-impact-so-inspector-r28-medical-transfer\\society-medical-transfer-actual.txt",
+          "originalSha256": "56cf6abdbc40d4040754cc10c4d78d84f83afdb8efb8a29b307ec345309bfe13",
+          "originalBytes": 3226
+        }
+      ]
+    }
+  ],
+  "allRunsAtFinalSource": false,
+  "reuseUnaffectedSourceLabel": "r208r28",
+  "reuseExpectedChangedInputs": [
+    "Assets/Scripts/Services/Combat/Editor/CharacterAiAutonomousMedicalPlayModeVerifier.cs",
+    "Assets/Scripts/Services/Run/Editor/Wim040ObservedIncidentLiveRunner.cs"
+  ],
+  "reuseChangedInputProofs": [
+    {
+      "path": "Assets/Scripts/Services/Combat/Editor/CharacterAiAutonomousMedicalPlayModeVerifier.cs",
+      "retainedSourceLabel": "r208r28",
+      "finalSourceLabel": "r218r28",
+      "retainedSha256": "329c80827c19d0de66ee2c276560e9323b7d1f807ba2c65e9985d3aa128e56de",
+      "finalSha256": "96a84bc18f6511b697ca768e2f877555259211d667d792d2303f361947e9831c",
+      "retainedBytes": 21511,
+      "finalBytes": 25528
+    },
+    {
+      "path": "Assets/Scripts/Services/Run/Editor/Wim040ObservedIncidentLiveRunner.cs",
+      "retainedSourceLabel": "r208r28",
+      "finalSourceLabel": "r218r28",
+      "retainedSha256": "a7b967de64705d5196f5352f5af4fbfc4d8c734e87832d7d461f837a1bc1c312",
+      "finalSha256": "effa0762cf661e9da0cda5e4537c230a85dd63b0497056a098192fbe91f2ae20",
+      "retainedBytes": 67960,
+      "finalBytes": 68681
+    }
+  ],
+  "sourceProofs": [
+    {
+      "label": "r218r28",
+      "digest": "8c4bfa289549fb0d96792195436dbb6a348a2951b22318b34007988ba73b8d89",
+      "manifestInputCount": 21746,
+      "inputsSha256": "c68e3e18530e4541e90c4751f94e8bd6ed72111b4f0c477433819bdf20c31956",
+      "changedInputsSinceSource": [],
+      "digestProof": "current checkout recomputation"
+    },
+    {
+      "label": "r208r28",
+      "digest": "ec6c720003e625923c0533eeb3e5aea4fdf526d1dfad89082d1fcbbc6a04c138",
+      "manifestInputCount": 21746,
+      "inputsSha256": "d35d0533870b61641e2c53aa3e778e9405deb49e3c3b0841e22878daf6ece30b",
+      "changedInputsSinceSource": [
+        "Assets/Scripts/Services/Combat/Editor/CharacterAiAutonomousMedicalPlayModeVerifier.cs",
+        "Assets/Scripts/Services/Run/Editor/Wim040ObservedIncidentLiveRunner.cs"
+      ],
+      "digestProof": "recorded SourceBefore/After consistent across contracts3 and cold restore; exact reviewed full-manifest delta"
+    }
+  ],
+  "continuity": "Six r208r28 runs retain their actual source identity after exactly these Editor fixture changes: Assets/Scripts/Services/Combat/Editor/CharacterAiAutonomousMedicalPlayModeVerifier.cs, Assets/Scripts/Services/Run/Editor/Wim040ObservedIncidentLiveRunner.cs; both medical runs use the final source. Retained results are not current-source PASS."
+}

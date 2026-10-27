@@ -334,7 +334,7 @@ public static class NarrativeControlledSkillCapture
 
     private static void ConfigureProgression(CharacterProgression progression, ParsedCase parsed)
     {
-        CharacterGrowthState growth = progression.GrowthState;
+        CharacterGrowthState growth = CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(progression);
         growth.EnsureCollections();
         growth.initialized = true;
         growth.autoChooseDrafts = false;

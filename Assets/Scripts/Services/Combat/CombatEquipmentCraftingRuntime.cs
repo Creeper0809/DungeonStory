@@ -119,7 +119,7 @@ public sealed class CombatEquipmentCraftingRuntime
     }
 
     public IReadOnlyList<CombatEquipmentCraftOrderSaveData> Queue =>
-        orders.AsReadOnly();
+        orders.Select(order => order.Clone()).ToArray();
 
     public CraftQualityAttemptEstimate CaptureQualityEstimate(string orderId)
     {

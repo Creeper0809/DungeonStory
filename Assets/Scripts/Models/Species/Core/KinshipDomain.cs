@@ -138,12 +138,35 @@ public sealed class CharacterKinshipAggregate : IKinshipQuery, IKinshipCommand
         tombstones.Values
             .OrderBy(value => value.deathAbsoluteDay)
             .ThenBy(value => value.characterId, StringComparer.Ordinal)
+            .Select(CloneTombstone)
             .ToArray();
 
-    public bool TryGetTombstone(
-        CharacterId characterId,
-        out CharacterTombstoneSaveData tombstone) =>
-        tombstones.TryGetValue(characterId, out tombstone);
+    public bool TryGetTombstone(CharacterId characterId, out CharacterTombstoneSaveData tombstone)
+    {
+        bool found = tombstones.TryGetValue(characterId, out var current);
+        tombstone = found ? CloneTombstone(current) : null;
+        return found;
+    }
+
+    private static CharacterTombstoneSaveData CloneTombstone(CharacterTombstoneSaveData value) => new()
+    {
+        characterId = value.characterId,
+        phenotypeSpeciesId = value.phenotypeSpeciesId,
+        birthAbsoluteDay = value.birthAbsoluteDay,
+        deathAbsoluteDay = value.deathAbsoluteDay,
+        famous = value.famous,
+        householdId = value.householdId,
+        generation = value.generation
+    };
+
+    private static LineageSummarySaveData CloneSummary(LineageSummarySaveData value) => new()
+    {
+        householdId = value.householdId,
+        generation = value.generation,
+        archivedCharacterCount = value.archivedCharacterCount,
+        earliestBirthDay = value.earliestBirthDay,
+        latestDeathDay = value.latestDeathDay
+    };
 
     public IReadOnlyList<CharacterId> GetParents(
         CharacterId child,
@@ -387,10 +410,12 @@ public sealed class CharacterKinshipAggregate : IKinshipQuery, IKinshipCommand
             }).ToList(),
         tombstones = tombstones.Values
             .OrderBy(value => value.characterId, StringComparer.Ordinal)
+            .Select(CloneTombstone)
             .ToList(),
         lineageSummaries = summaries.Values
             .OrderBy(value => value.householdId, StringComparer.Ordinal)
             .ThenBy(value => value.generation)
+            .Select(CloneSummary)
             .ToList()
     };
 
@@ -433,7 +458,7 @@ public sealed class CharacterKinshipAggregate : IKinshipQuery, IKinshipCommand
             if (summary == null || string.IsNullOrWhiteSpace(summary.householdId))
                 throw new InvalidOperationException("Invalid lineage summary.");
             string key = summary.householdId + ":" + summary.generation;
-            if (!result.summaries.TryAdd(key, summary))
+            if (!result.summaries.TryAdd(key, CloneSummary(summary)))
                 throw new InvalidOperationException("Duplicate lineage summary.");
         }
         return result;

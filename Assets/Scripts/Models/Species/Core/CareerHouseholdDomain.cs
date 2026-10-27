@@ -135,12 +135,18 @@ public sealed class CharacterHouseholdAggregate
     }
     public void ClearPending(CharacterId characterId) =>
         pendingAssignments.Remove(characterId);
-    public bool TryGet(CharacterId id, out CharacterRoomAssignmentSaveData assignment) =>
-        assignments.TryGetValue(id, out assignment);
-    public bool TryGetPending(
-        CharacterId id,
-        out HouseholdPendingAssignmentSaveData pending) =>
-        pendingAssignments.TryGetValue(id, out pending);
+    public bool TryGet(CharacterId id, out CharacterRoomAssignmentSaveData assignment)
+    {
+        bool found = assignments.TryGetValue(id, out var current);
+        assignment = found ? Clone(current) : null;
+        return found;
+    }
+    public bool TryGetPending(CharacterId id, out HouseholdPendingAssignmentSaveData pending)
+    {
+        bool found = pendingAssignments.TryGetValue(id, out var current);
+        pending = found ? Clone(current) : null;
+        return found;
+    }
     public IReadOnlyList<CharacterId> GetMembers(HouseholdId householdId) =>
         assignments.Values
             .Where(value => string.Equals(

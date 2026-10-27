@@ -4,6 +4,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Reflection;
 using DungeonStory.Foundation;
 using UnityEngine;
 
@@ -610,7 +611,9 @@ public sealed class ProductionOutputClearanceCombatCraftNaturalLiveDriver :
             result.Fail("combat-natural-created-order-ambiguous");
             yield break;
         }
-        CombatEquipmentCraftOrderSaveData order = created[0];
+        string orderId = created[0].orderId;
+        // 완료 시 큐에서 제거되는 원본을 읽기 전용으로 보존해 완료 영수증을 확인한다.
+        CombatEquipmentCraftOrderSaveData order = ObserveOwnedOrder(orderId);
         string[] craftableDefinitionIds = { payload.CraftDefinitionId };
         IEnumerator delivery = DriveUntil(
             request,
@@ -637,9 +640,10 @@ public sealed class ProductionOutputClearanceCombatCraftNaturalLiveDriver :
             yield break;
 
         int steps = 0;
-        while (equipment.CraftQueue.Contains(order)
+        while (ContainsOrder(orderId)
             && steps++ < scenario.MaximumProductionSteps)
         {
+            order = ObserveOwnedOrder(orderId);
             int completed = equipment.ApplyCraftWork(
                 craftableDefinitionIds,
                 Math.Max(0.1f, order.RemainingWork),
@@ -658,11 +662,11 @@ public sealed class ProductionOutputClearanceCombatCraftNaturalLiveDriver :
                 result.Fail("combat-natural-completion-identity-mismatch");
                 yield break;
             }
-            if (equipment.CraftQueue.Contains(order))
+            if (ContainsOrder(orderId))
                 yield return null;
         }
         string publishFailure = string.Empty;
-        if (equipment.CraftQueue.Contains(order)
+        if (ContainsOrder(orderId)
             || !completions.TryPublishCombatCraft(
                 request.ActionId,
                 order,
@@ -675,6 +679,29 @@ public sealed class ProductionOutputClearanceCombatCraftNaturalLiveDriver :
             yield break;
         }
         result.Complete();
+    }
+
+    private bool ContainsOrder(string orderId) => equipment.CraftQueue.Any(value =>
+        value != null
+        && string.Equals(value.orderId, orderId, StringComparison.Ordinal));
+
+    private CombatEquipmentCraftOrderSaveData ObserveOwnedOrder(string orderId)
+    {
+        if (equipment is not CombatEquipmentRuntime runtime)
+            throw new InvalidOperationException("combat-natural-owner-runtime-missing");
+        FieldInfo craftingField = typeof(CombatEquipmentRuntime).GetField(
+            "crafting", BindingFlags.Instance | BindingFlags.NonPublic)
+            ?? throw new MissingFieldException(nameof(CombatEquipmentRuntime), "crafting");
+        if (craftingField.GetValue(runtime) is not CombatEquipmentCraftingRuntime crafting)
+            throw new InvalidOperationException("combat-natural-crafting-owner-missing");
+        PropertyInfo ordersProperty = typeof(CombatEquipmentCraftingRuntime).GetProperty(
+            "orders", BindingFlags.Instance | BindingFlags.NonPublic)
+            ?? throw new MissingMemberException(nameof(CombatEquipmentCraftingRuntime), "orders");
+        if (ordersProperty.GetValue(crafting) is not List<CombatEquipmentCraftOrderSaveData> owned)
+            throw new InvalidOperationException("combat-natural-owner-orders-missing");
+        return owned.SingleOrDefault(value => value != null
+                && string.Equals(value.orderId, orderId, StringComparison.Ordinal))
+            ?? throw new InvalidOperationException("combat-natural-owner-order-missing:" + orderId);
     }
 }
 
@@ -729,9 +756,7 @@ public sealed class ProductionOutputClearanceApparelNaturalLiveDriver :
             result.Fail("apparel-natural-create-failed");
             yield break;
         }
-        ApparelWorkOrderSaveData order = orders.Orders.SingleOrDefault(value =>
-            value != null
-            && string.Equals(value.orderId, orderId, StringComparison.Ordinal));
+        ApparelWorkOrderSaveData order = FindOrder(orderId);
         if (order == null
             || !string.Equals(order.facilityInstanceId,
                 scenario.Facility.PersistentInstanceId.Value,
@@ -745,7 +770,7 @@ public sealed class ProductionOutputClearanceApparelNaturalLiveDriver :
         IEnumerator delivery = DriveUntil(
             request,
             scenario,
-            () => order.state is ApparelWorkOrderState.Ready
+            () => RequireOrder(orderId).state is ApparelWorkOrderState.Ready
                 or ApparelWorkOrderState.InProgress
                 or ApparelWorkOrderState.WaitingForOutputSpace
                 or ApparelWorkOrderState.Completed,
@@ -758,9 +783,10 @@ public sealed class ProductionOutputClearanceApparelNaturalLiveDriver :
 
         int steps = 0;
         DomainFailure firstWorkFailure = DomainFailure.None;
+        order = RequireOrder(orderId);
         ApparelWorkOrderState firstWorkFailureState = order.state;
         DomainFailure lastWorkFailure = DomainFailure.None;
-        while (order.state != ApparelWorkOrderState.Completed
+        while ((order = RequireOrder(orderId)).state != ApparelWorkOrderState.Completed
             && steps++ < scenario.MaximumProductionSteps)
         {
             float remaining = Math.Max(
@@ -771,6 +797,7 @@ public sealed class ProductionOutputClearanceApparelNaturalLiveDriver :
                 scenario.Worker,
                 remaining,
                 out lastWorkFailure);
+            order = RequireOrder(orderId);
             if (!workApplied && !firstWorkFailure.IsFailure)
             {
                 firstWorkFailure = lastWorkFailure;
@@ -826,6 +853,14 @@ public sealed class ProductionOutputClearanceApparelNaturalLiveDriver :
         }
         result.Complete();
     }
+
+    private ApparelWorkOrderSaveData FindOrder(string orderId) =>
+        orders.Orders.SingleOrDefault(value => value != null
+            && string.Equals(value.orderId, orderId, StringComparison.Ordinal));
+
+    private ApparelWorkOrderSaveData RequireOrder(string orderId) =>
+        FindOrder(orderId)
+        ?? throw new InvalidOperationException("apparel-natural-owner-order-missing:" + orderId);
 
     private static string FormatFailure(DomainFailure failure) =>
         failure.Code + ":" + string.Join(",", failure.Parameters.ToArray());

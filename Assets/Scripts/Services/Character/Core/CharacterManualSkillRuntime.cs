@@ -221,14 +221,11 @@ public static class CharacterManualSkillRuntime
         CharacterActor target,
         long absoluteHour)
     {
-        CharacterSkillUseLimitState limits = target?.Progression?.GrowthState?.useLimits;
+        CharacterSkillUseLimitState limits = target?.Progression?.CaptureSkillUseLimits();
         if (limits == null)
             return Array.Empty<CharacterSkillInstance>();
-        limits.manualSkillBuffs ??= new List<CharacterManualSkillBuffState>();
-        limits.manualSkillBuffs.RemoveAll(value => value == null
-            || value.frozenSkill == null
-            || value.expiresAbsoluteHour <= absoluteHour);
-        return limits.manualSkillBuffs
+        return (limits.manualSkillBuffs ?? new List<CharacterManualSkillBuffState>())
+            .Where(value => value?.frozenSkill != null && value.expiresAbsoluteHour > absoluteHour)
             .Select(value => value.frozenSkill)
             .Where(IsManualWorkSkill)
             .ToArray();
@@ -511,10 +508,9 @@ public static class CharacterManualSkillRuntime
     private static CharacterSkillUseLimitState RequireLimits(
         CharacterProgression progression)
     {
-        if (progression?.GrowthState == null)
+        if (progression == null)
             throw new InvalidOperationException("캐릭터 성장 상태가 없습니다.");
-        progression.GrowthState.useLimits ??= new CharacterSkillUseLimitState();
-        return progression.GrowthState.useLimits;
+        return progression.CaptureSkillUseLimits();
     }
 
     private static CharacterManualSkillCooldownState FindCooldown(

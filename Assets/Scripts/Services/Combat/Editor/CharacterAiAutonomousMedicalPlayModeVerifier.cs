@@ -14,8 +14,16 @@ using VContainer;
 /// </summary>
 public static class CharacterAiAutonomousMedicalPlayModeVerifier
 {
-    public const string ReportPath =
-        "Artifacts/QA/character-ai-autonomous-medical-playmode.txt";
+    public static string ReportPath
+    {
+        get
+        {
+            string output = Environment.GetEnvironmentVariable("DUNGEONSTORY_AUDIT_REMEDIATION_OUTPUT");
+            return string.IsNullOrWhiteSpace(output)
+                ? "Artifacts/QA/character-ai-autonomous-medical-playmode.txt"
+                : Path.Combine(output, "autonomous-medical.txt");
+        }
+    }
     private const string PendingFlagPath =
         "Temp/character-ai-autonomous-medical-playmode.flag";
 
@@ -57,7 +65,9 @@ public static class CharacterAiAutonomousMedicalPlayModeVerifier
 public sealed class CharacterAiAutonomousMedicalPlayModeRunner : MonoBehaviour
 {
     private const float SetupTimeoutRealtime = 15f;
-    private const float ScenarioTimeoutRealtime = 75f;
+    // The authored simple bed needs two treatment cycles for this injury.
+    // Keep the complete-recovery and zero-failure assertions across both cycles.
+    private const float ScenarioTimeoutRealtime = 120f;
 
     private readonly List<string> checks = new();
     private readonly List<string> failures = new();
@@ -72,10 +82,12 @@ public sealed class CharacterAiAutonomousMedicalPlayModeRunner : MonoBehaviour
     private CharacterBodyHealthRuntime bodyHealth;
     private ICharacterMedicalQuery medicalQuery;
     private ICharacterMedicalCommand medicalCommands;
+    private ICharacterMedicalSupplyDestinationRuntime medicalSupplyDestinations;
     private IWorldItemStackRuntime items;
     private IResourceEconomyContentCatalog resources;
     private CharacterBodyHealthSnapshot originalPatientBody;
     private float originalTimeScale;
+    private WorkPriorityLevel? originalHaulPriority;
 
     private IEnumerator Start()
     {
@@ -135,6 +147,7 @@ public sealed class CharacterAiAutonomousMedicalPlayModeRunner : MonoBehaviour
         bodyHealth = scope.Container.Resolve<CharacterBodyHealthRuntime>();
         medicalQuery = scope.Container.Resolve<ICharacterMedicalQuery>();
         medicalCommands = scope.Container.Resolve<ICharacterMedicalCommand>();
+        medicalSupplyDestinations = scope.Container.Resolve<ICharacterMedicalSupplyDestinationRuntime>();
         items = scope.Container.Resolve<IWorldItemStackRuntime>();
         resources = scope.Container.Resolve<IResourceEconomyContentCatalog>();
 
@@ -154,6 +167,8 @@ public sealed class CharacterAiAutonomousMedicalPlayModeRunner : MonoBehaviour
 
         brain = rescuer.Brain;
         originalActions = brain.availableActions;
+        Check(originalActions.Any(action => action?.actionset is AIHaul),
+            "AUTHORED_HAUL_ACTION", "Keep normal hauling available for treatment-supply requests.");
         originalPatientBody = bodyHealth.GetSnapshot(patient);
         foreach (KeyValuePair<CharacterCondition, float> pair in rescuer.Stats.StatSnapshot)
             rescuerStats[pair.Key] = pair.Value;
@@ -170,9 +185,13 @@ public sealed class CharacterAiAutonomousMedicalPlayModeRunner : MonoBehaviour
         if (rescuer.TryGetAbility(out AbilityWork work))
         {
             work.SetDutyState(AbilityWork.DutyState.OnDuty);
+            originalHaulPriority = work.WorkPriorities.GetPriority(BuiltInWorkTypeIds.Haul);
+            work.WorkPriorities.SetPriority(BuiltInWorkTypeIds.Haul, WorkPriorityLevel.Off);
             work.WorkPriorities.SetPriority(
                 BuiltInWorkTypeIds.Rescue,
                 WorkPriorityLevel.Priority1);
+            Check(work.WorkPriorities.GetPriority(BuiltInWorkTypeIds.Haul) == WorkPriorityLevel.Off,
+                "MEDICAL_DUTY_SETUP", "Controlled rescue duty; unrelated AI remains paused; not competing-work arbitration proof.");
         }
         Check(bodyHealth != null && medicalQuery != null && medicalCommands != null,
             "MEDICAL_RUNTIME", "resolved");
@@ -180,7 +199,6 @@ public sealed class CharacterAiAutonomousMedicalPlayModeRunner : MonoBehaviour
 
     private IEnumerator VerifyAutonomousRescueAndTreatment()
     {
-        AIAction rescueAction = originalActions.First(action => action?.actionset is AIRescue);
         CharacterBodyHealthSnapshot before = bodyHealth.GetSnapshot(patient);
         List<CharacterBodyPartHealthState> injured = before.Parts.Select(ClonePart).ToList();
         foreach (CharacterBodyPartHealthState part in injured)
@@ -209,11 +227,13 @@ public sealed class CharacterAiAutonomousMedicalPlayModeRunner : MonoBehaviour
         Check(order != null, "AUTOMATIC_MEDICAL_ORDER", order?.orderId ?? "missing");
         if (order == null) yield break;
 
-        int medicine = SeedTreatmentSupply(order);
-        Check(medicine > 0, "PHYSICAL_MEDICINE_SUPPLY", $"seeded={medicine}");
+        int medicine = 0;
+        int medicineBudget = resources.Items.Count(item => item != null
+            && item.Kind == ResourceItemKind.Medicine && item.SupportsInjuryTreatment);
+        int seededSupplySequence = 0;
+        string medicineDestination = string.Empty;
 
         brain.StopCurrentActionForReplan("autonomous-medical-setup");
-        brain.availableActions = new[] { rescueAction };
         brain.PreferActionOnNextDecision<AIRescue>(300f);
         CharacterAiRuntimeGateSnapshot gateBefore = brain.CaptureRuntimeGateSnapshot();
         rescuer.SetAiPaused(false);
@@ -228,6 +248,7 @@ public sealed class CharacterAiAutonomousMedicalPlayModeRunner : MonoBehaviour
         string observedFailure = string.Empty;
         string observedFailureTrace = string.Empty;
         string lastOrder = string.Empty;
+        string lastTransition = string.Empty;
         float deadline = Time.realtimeSinceStartup + ScenarioTimeoutRealtime;
         while (Time.realtimeSinceStartup < deadline)
         {
@@ -245,6 +266,31 @@ public sealed class CharacterAiAutonomousMedicalPlayModeRunner : MonoBehaviour
             }
             if (medicalQuery.TryGetOrder(order.orderId, out CharacterMedicalOrder current))
             {
+                string transition = $"{current.state}/{current.statusCode}; "
+                    + $"supply={current.treatmentSupplyOperationSequence}; "
+                    + $"starts={liveGate.ActionStarts}; failed={liveGate.ActionFailed}; "
+                    + $"invariants={liveGate.InvariantAnomalies}; rescuer={current.rescuerId}; "
+                    + $"action={brain.bestAction?.actionset?.GetInstanceID()}";
+                if (!string.Equals(lastTransition, transition, StringComparison.Ordinal))
+                {
+                    lastTransition = transition;
+                    AbilityRescue ability = rescuer.GetComponent<AbilityRescue>();
+                    checks.Add("MEDICAL_TRANSITION\tINFO\t" + transition
+                        + $"; work={current.completedTreatmentWork}/{current.requiredTreatmentWork}"
+                        + $"; consumed={current.treatmentSupplyConsumed}; actionName={brain.CurrentActionDebugLabel}"
+                        + $"; terminal={ability?.LastRescueTerminalForDiagnostics}"
+                        + $"; invariant={brain.LastInvariantAnomalyDetailForDiagnostics}");
+                }
+                if (medicine < medicineBudget && !current.treatmentSupplyConsumed
+                    && current.completedTreatmentWork <= 0.001f
+                    && current.treatmentSupplyOperationSequence != seededSupplySequence
+                    && !string.IsNullOrWhiteSpace(current.treatmentMaterialDestinationId))
+                {
+                    int supplied = SeedTreatmentSupply(current);
+                    medicine += supplied;
+                    if (supplied > 0) seededSupplySequence = current.treatmentSupplyOperationSequence;
+                    medicineDestination = current.treatmentMaterialDestinationId;
+                }
                 lastOrder = $"{current.state}/{current.statusCode}; "
                     + $"stab={current.completedStabilizationWork:0.##}/"
                     + $"{current.requiredStabilizationWork:0.##}; "
@@ -271,6 +317,8 @@ public sealed class CharacterAiAutonomousMedicalPlayModeRunner : MonoBehaviour
         Check(selected, "RESCUE_BT_SELECTED",
             $"selected={selected}; phase={brain.CurrentActionPhase}; failure={brain.LastActionFailure}");
         Check(abilityRan, "RESCUE_ABILITY_RAN", $"observed={abilityRan}");
+        Check(medicine > 0 && medicine <= medicineBudget, "PHYSICAL_MEDICINE_SUPPLY",
+            $"seeded={medicine}; originalBudget={medicineBudget}; ownedDestination={medicineDestination}");
         Check(stabilizing, "AUTONOMOUS_STABILIZATION", lastOrder);
         Check(carrying && physicallyCarried, "AUTONOMOUS_PHYSICAL_CARRY",
             $"carrying={carrying}; parented={physicallyCarried}; {lastOrder}");
@@ -300,14 +348,21 @@ public sealed class CharacterAiAutonomousMedicalPlayModeRunner : MonoBehaviour
     private int SeedTreatmentSupply(CharacterMedicalOrder order)
     {
         if (order == null || items == null || resources == null) return 0;
-        string destination = WorldItemStackRuntime.FacilityInputDestinationPrefix
-            + $"medical:{order.orderId}";
+        string destination = order.treatmentMaterialDestinationId;
+        if (string.IsNullOrWhiteSpace(destination)
+            || !medicalSupplyDestinations.TryValidate(order, out _))
+            throw new InvalidOperationException("Medical fixture requires the actual owner's validated supply destination.");
         int total = 0;
         foreach (ResourceItemDefinitionSO medicine in resources.Items
                      .Where(item => item != null
                          && item.Kind == ResourceItemKind.Medicine
-                         && item.SupportsInjuryTreatment)
-                     .OrderBy(item => item.ItemId, StringComparer.Ordinal))
+                         && item.SupportsInjuryTreatment
+                         && (order.treatmentSupply != CharacterMedicalSupplyKind.Medicine
+                             || string.IsNullOrWhiteSpace(order.treatmentItemId)
+                             || item.ItemId == order.treatmentItemId))
+                     .OrderByDescending(item => item.TreatmentPotency)
+                     .ThenBy(item => item.ItemId, StringComparer.Ordinal)
+                     .Take(1))
         {
             if (items.SpawnItemAt(
                     medicine.ItemId,
@@ -326,9 +381,13 @@ public sealed class CharacterAiAutonomousMedicalPlayModeRunner : MonoBehaviour
         BuildableObject facility = UnityEngine.Object.FindObjectsByType<BuildableObject>(
                 FindObjectsInactive.Exclude,
                 FindObjectsSortMode.None)
-            .FirstOrDefault(building => building != null
+            .Where(building => building != null
                 && !building.isDestroy
-                && building.BuildingData?.GetAbility<BuildingMedicalAbility>() != null);
+                && building.BuildingData?.GetAbility<BuildingMedicalAbility>() != null)
+            .OrderBy(building => building.BuildingData.id)
+            .ThenBy(building => building.centerPos.y)
+            .ThenBy(building => building.centerPos.x)
+            .FirstOrDefault();
         GridSystemManager manager = UnityEngine.Object.FindFirstObjectByType<GridSystemManager>(
             FindObjectsInactive.Include);
         Grid grid = manager?.grid;
@@ -384,6 +443,9 @@ public sealed class CharacterAiAutonomousMedicalPlayModeRunner : MonoBehaviour
             brain.RequestImmediateReplan(clearFailures: true);
         }
         if (rescuer != null) rescuer.Stats.Stats = rescuerStats;
+        if (originalHaulPriority.HasValue && rescuer != null
+            && rescuer.TryGetAbility(out AbilityWork work))
+            work.WorkPriorities.SetPriority(BuiltInWorkTypeIds.Haul, originalHaulPriority.Value);
         rescuer?.SetAiPaused(false);
         if (patient != null && originalPatientBody.Parts != null)
             bodyHealth?.ApplySnapshot(patient, originalPatientBody, "verifier-cleanup");

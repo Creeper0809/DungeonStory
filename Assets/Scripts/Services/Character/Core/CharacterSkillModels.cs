@@ -634,8 +634,7 @@ public sealed class CharacterGrowthState
 
     public CharacterGrowthState Clone()
     {
-        EnsureCollections();
-        return new CharacterGrowthState
+        var copy = new CharacterGrowthState
         {
             initialized = initialized,
             autoChooseDrafts = autoChooseDrafts,
@@ -643,24 +642,26 @@ public sealed class CharacterGrowthState
             generationSeed = generationSeed,
             origin = origin,
             displayName = displayName,
-            startingProfile = startingProfile.Clone(),
-            startingProficiencies = startingProficiencies
+            startingProfile = startingProfile?.Clone() ?? new CharacterStartingProfileState(),
+            startingProficiencies = (startingProficiencies ?? new List<CharacterStartingProficiencyExperience>())
                 .Where(item => item != null)
                 .Select(item => item.Clone())
                 .ToList(),
             traitSelectionAuthorityVersion = traitSelectionAuthorityVersion,
             traitSelectionAuthorityOrigin = traitSelectionAuthorityOrigin,
-            traitIds = traitIds.ToList(),
-            activeSkills = activeSkills.Where(item => item != null).Select(item => item.Clone()).ToList(),
-            passiveSkills = passiveSkills.Where(item => item != null).Select(item => item.Clone()).ToList(),
+            traitIds = (traitIds ?? new List<int>()).ToList(),
+            activeSkills = (activeSkills ?? new List<CharacterSkillInstance>()).Where(item => item != null).Select(item => item.Clone()).ToList(),
+            passiveSkills = (passiveSkills ?? new List<CharacterSkillInstance>()).Where(item => item != null).Select(item => item.Clone()).ToList(),
             ultimate = ultimate?.Clone(),
-            drafts = drafts.Where(item => item != null).Select(item => item.Clone()).ToList(),
-            pendingRequestKeys = pendingRequestKeys.ToList(),
-            useLimits = useLimits.Clone(),
+            drafts = (drafts ?? new List<CharacterSkillDraft>()).Where(item => item != null).Select(item => item.Clone()).ToList(),
+            pendingRequestKeys = (pendingRequestKeys ?? new List<string>()).ToList(),
+            useLimits = useLimits?.Clone() ?? new CharacterSkillUseLimitState(),
             nextActiveDraftHasPity = nextActiveDraftHasPity,
             skillGenerationRevision = skillGenerationRevision,
             skillAcquisitionRevision = skillAcquisitionRevision
         };
+        copy.EnsureCollections();
+        return copy;
     }
 }
 

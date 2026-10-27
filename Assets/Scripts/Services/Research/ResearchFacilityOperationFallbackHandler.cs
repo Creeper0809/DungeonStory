@@ -159,7 +159,8 @@ public sealed class ResearchFacilityOperationFallbackHandler :
         {
             return 0;
         }
-        if (order.state != ApparelWorkOrderState.Completed)
+        if (apparelOrders.Orders.FirstOrDefault(value => value?.orderId == order.orderId)?.state
+            != ApparelWorkOrderState.Completed)
         {
             return 0;
         }

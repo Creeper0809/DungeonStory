@@ -5986,6 +5986,8 @@ public static partial class ProductionEconomyDebugScenarios
     {
         public static readonly EmptyProductionDistributionQuery Instance = new();
 
+        public bool SupportsConsumerKind(ProductionConsumerKind kind) => false;
+
         public IReadOnlyList<ProductionConsumerRouteState> GetRouteStates(
             ProductionBillId billId) =>
             Array.Empty<ProductionConsumerRouteState>();

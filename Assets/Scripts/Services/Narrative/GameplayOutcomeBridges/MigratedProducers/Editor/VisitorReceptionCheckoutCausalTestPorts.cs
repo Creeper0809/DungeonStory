@@ -182,6 +182,11 @@ internal static class VisitorReceptionCheckoutCausalTestPorts
             out CharacterMedicalOrder order,
             out DomainFailure failure) => throw Unsupported(
                 nameof(ICharacterMedicalCommand) + "." + nameof(TryReserveOrderForPatient));
+        public bool TrySetSocietyResponseBinding(
+            string orderId, string expectedOperationId, string operationId,
+            string receiptId, out DomainFailure failure) => throw Unsupported(
+                nameof(ICharacterMedicalCommand) + "." + nameof(TrySetSocietyResponseBinding));
+
         public bool TryRequestTreatment(
             CharacterActor patient,
             out CharacterMedicalOrder order,

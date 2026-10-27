@@ -297,7 +297,7 @@ public static class DiseaseAnatomyBurdenProjectionDebugScenarios
             actor.EnsureRuntimeState();
             actor.Identity.SetPersistentId(
                 "character:qa:disease-anatomy:ambiguous");
-            CharacterGrowthState growth = actor.Progression.GrowthState;
+            CharacterGrowthState growth = CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(actor.Progression);
             growth.initialized = true;
             growth.displayName = "동결 환자";
             string frozenName = actor.Identity.DisplayName;

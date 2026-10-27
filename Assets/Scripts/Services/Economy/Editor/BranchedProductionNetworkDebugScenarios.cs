@@ -2,11 +2,263 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
+using DungeonStory.Foundation;
+using TMPro;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.UI;
 
 public static class BranchedProductionNetworkDebugScenarios
 {
+    public static void RunR28ForAutomation()
+    {
+        ResourceGameContentCatalog content = new(new UnityGameContentRootLoader());
+        ResourceEconomyContentCatalog catalog = new(content);
+        BuildingSO[] buildings = new[] { 1000, 9810, 9811, 9812, 1037, 1607 }
+            .Select(id => content.GetAll<BuildingSO>().Single(building => building.id == id))
+            .ToArray();
+        string[] before = buildings.Select(building => EditorJsonUtility.ToJson(building)).ToArray();
+        bool[] dirtyBefore = buildings.Select(building => EditorUtility.IsDirty(building)).ToArray();
+        IWorldItemStackRuntime emptyItems = R28CallProxy.Create<IWorldItemStackRuntime>(
+            (method, _) => method.Name switch
+            {
+                "get_ItemStackVersion" => 0,
+                nameof(IWorldItemStackRuntime.GetAllStacks) => Array.Empty<WorldItemStackSnapshot>(),
+                _ => throw new InvalidOperationException("Unexpected item mutation: " + method.Name)
+            });
+        ResourceUsageIndex index = new(
+            catalog, emptyItems, new ResourceCombatEquipmentCatalog(content), content);
+        RequireR28Link(index, "resource:log", "facility-fuel:1000");
+        RequireR28Link(index, "material:low-fuel", "power-fuel:9810");
+        RequireR28Link(index, "resource:mana-crystal", "power-fuel:9812");
+        RequireR28Link(index, "resource:mana-crystal", "golem-recharge:1037");
+        RequireR28Link(index, "resource:log", "facility:1607:supply:fuel");
+        RequireR28(!index.GetConsumers("material:low-fuel")
+            .Any(link => link.consumerId == "power-fuel:9811"),
+            "The fuel-free water generator was indexed as a fuel consumer.");
+        foreach (string itemId in new[] { "resource:log", "material:low-fuel", "resource:mana-crystal" })
+        {
+            IReadOnlyList<ProductionConsumerLink> links = index.GetConsumers(itemId);
+            RequireR28(links.Select(link => link.consumerId).Distinct().Count() == links.Count,
+                "Explicit consumption and generic supply produced duplicate consumer IDs.");
+        }
+
+        BuildingSO isolatedFuel = ScriptableObject.CreateInstance<BuildingSO>();
+        try
+        {
+            BuildingAbilityCollection abilities = new();
+            abilities.Add(new BuildingFuelConsumerAbility());
+            isolatedFuel.ReplaceAbilities(abilities);
+            RequireR28(!SurvivalFacilityWorkRules.IsEnvironmentalFuelConsumerDefinition(isolatedFuel),
+                "A fuel field without an environmental consumption capability was accepted.");
+            abilities.Add(new BuildingTemperatureAbility());
+            RequireR28(SurvivalFacilityWorkRules.IsEnvironmentalFuelConsumerDefinition(isolatedFuel),
+                "An environmental fuel consumer was rejected.");
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(isolatedFuel);
+        }
+
+        VerifyR28SupportedRoutes(catalog, index);
+        for (int i = 0; i < buildings.Length; i++)
+        {
+            RequireR28(before[i] == EditorJsonUtility.ToJson(buildings[i])
+                && dirtyBefore[i] == EditorUtility.IsDirty(buildings[i]),
+                "Read-only usage queries changed a current building asset: " + buildings[i].name);
+        }
+        Debug.Log("R28_RESOURCE_USAGE_AND_ROUTE_SUPPORT=PASS");
+    }
+
+    private static void VerifyR28SupportedRoutes(
+        IResourceEconomyContentCatalog catalog,
+        ResourceUsageIndex index)
+    {
+        ProductionConsumerLink supported = index.GetConsumers("resource:log")
+            .First(link => link.kind == ProductionConsumerKind.RecipeInput);
+        ProductionConsumerLink unsupported = index.GetConsumers("resource:log")
+            .Single(link => link.consumerId == "facility-fuel:1000");
+        IProductionDependencyCatalog dependencies = R28CallProxy.Create<IProductionDependencyCatalog>(
+            (method, args) => method.Name == nameof(IProductionDependencyCatalog.GetConsumers)
+                ? (string)args[0] == "resource:log"
+                    ? new[] { supported, unsupported }
+                    : Array.Empty<ProductionConsumerLink>()
+                : throw new InvalidOperationException("Unexpected dependency query: " + method.Name));
+        DungeonRuntimeAggregateRootStore roots = new();
+        ProductionAggregateStateStore state = new(roots);
+        ProductionBillRecord bill = ProductionBillRecord.Create(
+            new ProductionBillId("r28:route-support"), "source:logging",
+            new BuildingInstanceId("r28:source"), ProductionOrderMode.RepeatForever,
+            0, 0, ProductionBatchStage.None, "r28:materials");
+        bill.ReplaceDistributionPolicy(ProductionDistributionMode.FixedRatio,
+            Array.Empty<ProductionConsumerRoutePolicy>());
+        new ProductionAggregateStateSession(roots).AddBill(bill);
+        R28DemandProvider provider = new();
+        IProductionAssemblyBridge bridge = R28CallProxy.Create<IProductionAssemblyBridge>(
+            (method, _) => method.Name == "get_Facilities"
+                ? Array.Empty<ProductionFacilityHandle>()
+                : method.Name == nameof(IProductionAssemblyBridge.CaptureOutputCapability)
+                    ? throw new InvalidOperationException("R28 read-only projection has no materializer.")
+                    : throw new NotSupportedException("Unexpected physical operation: " + method.Name));
+        ProductionDistributionRuntime runtime = new(
+            state, catalog, dependencies, new[] { provider }, bridge,
+            R28CallProxy.Create<IProductionPreparedOutputRoutingAuthority>(),
+            R28CallProxy.Create<IProductionPreparedOutputExactRouteLifecycle>(),
+            R28CallProxy.Create<IGameClock>((method, _) => method.Name switch
+            {
+                "get_DeltaTime" => 1f,
+                "get_IsPaused" => false,
+                _ => throw new NotSupportedException(method.Name)
+            }));
+        RequireR28(runtime.SupportsConsumerKind(ProductionConsumerKind.RecipeInput)
+            && !runtime.SupportsConsumerKind(ProductionConsumerKind.FacilitySupply),
+            "Distribution support did not follow the registered provider.");
+        RequireR28(runtime.GetRouteStates(bill.billId).Single().policy.consumerId == supported.consumerId,
+            "Default route queries included an unsupported consumer.");
+        runtime.Tick();
+        RequireR28(bill.routePolicies.Count == 1
+            && bill.routePolicies[0].consumerId == supported.consumerId,
+            "New route policies included an unsupported consumer.");
+        ProductionConsumerRoutePolicy savedUnsupported = new()
+        {
+            consumerId = unsupported.consumerId, enabled = true,
+            priority = 83, weight = 7, minimumReserve = 4, targetStock = 9
+        };
+        ProductionConsumerRoutePolicy savedMissing = new()
+        {
+            consumerId = "r28:removed-consumer", priority = 62, weight = 3
+        };
+        string savedUnsupportedJson = JsonUtility.ToJson(savedUnsupported);
+        string savedMissingJson = JsonUtility.ToJson(savedMissing);
+        bill.AddRoute(savedUnsupported);
+        bill.AddRoute(savedMissing);
+        runtime.Tick();
+        RequireR28(bill.routePolicies.Count == 3
+            && JsonUtility.ToJson(savedUnsupported) == savedUnsupportedJson
+            && JsonUtility.ToJson(savedMissing) == savedMissingJson,
+            "Policy synchronization changed or discarded a saved unsupported route.");
+        IReadOnlyList<ProductionConsumerRouteState> states = runtime.GetRouteStates(bill.billId);
+        RequireR28(states.Single(value => value.policy.consumerId == unsupported.consumerId)
+                .blockedReason == "consumer-provider-unavailable"
+            && states.Single(value => value.policy.consumerId == savedMissing.consumerId)
+                .blockedReason == "consumer-definition-unavailable",
+            "Saved unsupported routes did not retain explicit blocked states.");
+        RequireR28(ProductionDistributionPlanner.SelectNext(
+                ProductionDistributionMode.FixedRatio, states)?.consumerId == supported.consumerId,
+            "Unsupported routes changed the existing supported distribution choice.");
+
+        R28RouteCommands commands = new();
+        ProductionRoutePanelPresenter presenter = new(
+            commands, catalog, dependencies, runtime, new R28UiText());
+        ProductionBillSnapshot fresh = new() { RecipeId = bill.recipeId };
+        RequireR28(presenter.BuildRoutePolicies(fresh).Single().consumerId == supported.consumerId,
+            "Fresh UI policies included an unsupported consumer.");
+        ProductionBillSnapshot snapshot = new()
+        {
+            BillId = bill.billId, RecipeId = bill.recipeId,
+            DistributionMode = bill.distributionMode,
+            RoutePolicies = bill.routePolicies.Select(policy => policy.Clone()).ToArray(),
+            RouteStates = states
+        };
+        GameObject panel = new("R28RouteSupportFixture", typeof(RectTransform));
+        try
+        {
+            List<GameObject> created = new();
+            presenter.Render(panel.transform, snapshot, 0, null, created, _ => { });
+            ProductionConsumerRoutePolicy[] policies = presenter.BuildRoutePolicies(snapshot).ToArray();
+            for (int i = 0; i < policies.Length; i++)
+            {
+                Transform row = panel.transform.Find($"ProductionRoute_0_{i}");
+                bool canEdit = policies[i].consumerId == supported.consumerId;
+                RequireR28(row != null && row.GetComponentsInChildren<Button>().Length == (canEdit ? 3 : 0),
+                    "The route UI exposed adjustment controls for an unsupported policy.");
+                if (!canEdit)
+                {
+                    RequireR28(row.GetComponentsInChildren<TMP_Text>().Any(label =>
+                            label.text.Contains("consumer-provider-unavailable")
+                            || label.text.Contains("consumer-definition-unavailable")),
+                        "The read-only route did not explain why it is blocked.");
+                }
+            }
+            Button priority = panel.GetComponentsInChildren<Button>()
+                .Single(button => button.name.StartsWith("ProductionRoutePriorityPlus_", StringComparison.Ordinal));
+            priority.onClick.Invoke();
+            RequireR28(commands.Routes.Single(policy => policy.consumerId == supported.consumerId).priority
+                    == states.Single(value => value.policy.consumerId == supported.consumerId).policy.priority + 1
+                && JsonUtility.ToJson(commands.Routes.Single(policy => policy.consumerId == unsupported.consumerId))
+                    == savedUnsupportedJson,
+                "Editing a supported route changed a saved unsupported policy.");
+            provider.Enabled = false;
+            RequireR28(!runtime.SupportsConsumerKind(ProductionConsumerKind.RecipeInput),
+                "Distribution support was copied instead of queried from registered providers.");
+            int calls = commands.Calls;
+            priority.onClick.Invoke();
+            RequireR28(commands.Calls == calls,
+                "A stale control edited a route after its provider stopped supporting it.");
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(panel);
+        }
+    }
+
+    private static void RequireR28Link(ResourceUsageIndex index, string itemId, string consumerId) =>
+        RequireR28(index.GetConsumers(itemId).Count(link => link.consumerId == consumerId
+            && link.kind == ProductionConsumerKind.FacilitySupply) == 1,
+            "Missing or duplicate explicit consumer: " + consumerId);
+
+    private static void RequireR28(bool condition, string message)
+    {
+        if (!condition) throw new InvalidOperationException(message);
+    }
+
+    private sealed class R28DemandProvider : IProductionConsumerDemandProvider
+    {
+        public bool Enabled = true;
+        public bool Supports(ProductionConsumerKind kind) =>
+            Enabled && kind == ProductionConsumerKind.RecipeInput;
+        public void Collect(ProductionConsumerDemandContext context,
+            ICollection<ProductionConsumerDemandTarget> destination) => destination.Add(new()
+            {
+                RuntimeConsumerId = context.Link.consumerId,
+                DestinationId = "r28:recipe-input", DemandQuantity = 2, ReservationLimit = 2
+            });
+    }
+
+    private sealed class R28RouteCommands : IProductionDistributionPolicyCommand
+    {
+        public int Calls;
+        public IReadOnlyList<ProductionConsumerRoutePolicy> Routes;
+        public ProductionBillCommandResult SetDistributionPolicy(ProductionBillId billId,
+            ProductionDistributionMode mode, IReadOnlyList<ProductionConsumerRoutePolicy> routes)
+        {
+            Calls++;
+            Routes = routes.Select(route => route.Clone()).ToArray();
+            return ProductionBillCommandResult.Success(billId);
+        }
+    }
+
+    private sealed class R28UiText : IProductionUiTextQuery
+    {
+        public string Get(ProductionUiTextId textId, params object[] arguments) =>
+            textId + ":" + string.Join(",", arguments);
+    }
+
+    public class R28CallProxy : DispatchProxy
+    {
+        private Func<MethodInfo, object[], object> invoke;
+        public static T Create<T>(Func<MethodInfo, object[], object> invoke = null) where T : class
+        {
+            T proxy = DispatchProxy.Create<T, R28CallProxy>();
+            ((R28CallProxy)(object)proxy).invoke = invoke;
+            return proxy;
+        }
+        protected override object Invoke(MethodInfo targetMethod, object[] args) =>
+            invoke != null ? invoke(targetMethod, args)
+                : throw new NotSupportedException("Unexpected operation: " + targetMethod.Name);
+    }
+
     public static ProductionNetworkCoverageSnapshot LastCoverage { get; private set; }
 
     private static readonly HashSet<string> StrategicIntermediates = new(

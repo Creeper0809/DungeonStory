@@ -140,13 +140,25 @@ public sealed class SurgeryAggregateStateStore : ISurgeryOrderDemandQuery
             ?? throw new ArgumentNullException(nameof(rootStore));
     }
 
+    private SurgeryAggregateState ReadState => rootStore.GetOrCreate(
+        () => new SurgeryAggregateState());
+
     public SurgeryAggregateState State => rootStore.GetOrCreateWritable(
         () => new SurgeryAggregateState(),
         state => state.Clone());
 
-    public IReadOnlyList<SurgeryOrder> ActiveOrders => State.Orders
+    public IReadOnlyList<SurgeryOrder> ActiveOrders => ReadState.Orders
         .Where(order => order != null && order.IsActive)
+        .Select(SurgeryStateCloner.CloneOrder)
         .ToArray();
+
+    public bool TryGetOrderSnapshot(string orderId, out SurgeryOrder order)
+    {
+        SurgeryOrder found = ReadState.Orders.Find(value => value != null
+            && string.Equals(value.orderId, orderId, StringComparison.Ordinal));
+        order = found == null ? null : SurgeryStateCloner.CloneOrder(found);
+        return order != null;
+    }
 
     public bool IsRestoreStaging => rootStore.IsRestoreStaging;
 

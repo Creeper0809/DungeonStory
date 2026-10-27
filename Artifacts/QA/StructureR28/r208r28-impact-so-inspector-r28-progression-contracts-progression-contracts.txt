@@ -1,0 +1,5 @@
+result=PASS
+sourceBefore=ec6c720003e625923c0533eeb3e5aea4fdf526d1dfad89082d1fcbbc6a04c138
+sourceAfter=ec6c720003e625923c0533eeb3e5aea4fdf526d1dfad89082d1fcbbc6a04c138
+consoleErrors=0
+boundary=focused contracts; actual gameplay is recorded separately

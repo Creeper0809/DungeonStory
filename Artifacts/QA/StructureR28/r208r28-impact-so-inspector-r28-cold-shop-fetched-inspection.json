@@ -1,0 +1,82 @@
+{
+  "label": "r208r28-impact-so-inspector-r28-cold-shop",
+  "source": {
+    "phase": "repair-project-verified",
+    "label": "r208r28",
+    "file_count": 21746,
+    "removed": [],
+    "drift": []
+  },
+  "busy": false,
+  "status.json": {
+    "phase": "finished",
+    "report": {
+      "exit_code": 0,
+      "seconds": 100,
+      "stop_reason": null,
+      "source_label": "r208r28",
+      "compiler_error_count": 0,
+      "source_drift": []
+    },
+    "updated_at_utc": "2026-10-27T13:46:49.577373+00:00"
+  },
+  "run-summary.json": {
+    "exit_code": 0,
+    "seconds": 100,
+    "stop_reason": null,
+    "source_label": "r208r28",
+    "compiler_error_count": 0,
+    "source_drift": []
+  },
+  "isolated-display.json": {
+    "display": ":90",
+    "privateExecutable": "/home/vulpo/codex-unity-validation-20261021/private-gui/usr/bin/Xvfb",
+    "authenticated": true,
+    "tcpDisabled": true,
+    "windowProbe": true,
+    "terminal": true,
+    "mode": "batchmode with graphics",
+    "persistenceRoot": "/home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Artifacts/QA/r208r28-impact-so-inspector-r28-cold-shop/persistent-data",
+    "pid": 3281091,
+    "arguments": [
+      "/home/vulpo/codex-unity-validation-20261021/private-gui/usr/bin/Xvfb",
+      ":90",
+      "-screen",
+      "0",
+      "1920x1080x24",
+      "-nolisten",
+      "tcp",
+      "-auth",
+      "/home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Artifacts/QA/r208r28-impact-so-inspector-r28-cold-shop/inspector.xauthority",
+      "-noreset"
+    ]
+  },
+  "owned-process-cleanup.json": {
+    "pid": 3281124,
+    "exitCode": 0,
+    "actions": [],
+    "terminal": true
+  },
+  "logBytes": 54024,
+  "diagnostics": [
+    "- Loaded All Assemblies, in  0.770 seconds",
+    "AssetDatabase: script compilation time: 1.855639s",
+    "- Loaded All Assemblies, in  2.983 seconds",
+    "R26_COLD_SCENE_RESTORE=PASS; fresh Unity process; Title LoadGame; real sealed checkpoint; 104 sections; repeat slot load"
+  ],
+  "memAvailable": [
+    "MemAvailable:   10374284 kB"
+  ],
+  "reports": [
+    "headless-editor-bootstrap.json",
+    "owned-process-cleanup.json",
+    "status.json",
+    "owned-compiler-cleanup.json",
+    "command.txt",
+    "cold-scene-restore.json",
+    "run-summary.json",
+    "diagnostics.redacted.txt",
+    "xdpyinfo.txt",
+    "isolated-display.json"
+  ]
+}

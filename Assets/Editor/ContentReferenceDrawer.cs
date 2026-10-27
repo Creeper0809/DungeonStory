@@ -53,13 +53,11 @@ public sealed class ContentReferenceDrawer : PropertyDrawer
         try
         {
             var entries = ContentReferenceSelection.Entries(resolved, property);
-            var aliases = (reference.Aliases ?? string.Empty).Split(new[] { '|' }, StringSplitOptions.RemoveEmptyEntries);
+            var aliases = (resolved.Aliases ?? string.Empty).Split(new[] { '|' }, StringSplitOptions.RemoveEmptyEntries);
             string current = ContentReferenceSelection.ReadId(property, kind.Value, reference.EmptyNumericId);
             var matches = entries.Where(value => ContentReferenceCatalog.Matches(resolved, value.Id, current)).ToArray();
             bool contextual = requested == ContentReferenceKind.EffectTarget && kind == ContentReferenceKind.Faction;
-            bool contextId = contextual && (current == "affected-faction" || current == "requesting-faction");
-            bool valid = current.Length == 0 || contextId || aliases.Any(value => ContentReferenceCatalog.Matches(resolved, value, current)) || matches.Length == 1
-                || kind is ContentReferenceKind.AnatomyNode or ContentReferenceKind.GameplayValueTarget && matches.Length > 0;
+            bool valid = ContentReferenceSelection.IsCurrentValid(reference, resolved, current, entries);
             Rect line = new(position.x, position.y, position.width, EditorGUIUtility.singleLineHeight);
             if (kind == ContentReferenceKind.AnatomyNode || kind == ContentReferenceKind.ExpeditionChoice
                 || kind is ContentReferenceKind.InvasionPattern or ContentReferenceKind.SkillCapability
@@ -70,14 +68,7 @@ public sealed class ContentReferenceDrawer : PropertyDrawer
                 || ContentReferenceCatalog.IsKeyReference(kind.Value)
                 || contextual || aliases.Length > 0)
             {
-                var options = new List<(string Id, string Label)> { ("", "None") };
-                if (contextual)
-                {
-                    options.Add(("affected-faction", "발생한 사건의 세력 (affected-faction)"));
-                    options.Add(("requesting-faction", "요청한 세력 (requesting-faction)"));
-                }
-                options.AddRange(aliases.Select(value => (value, "호환/문맥 키: " + value)));
-                options.AddRange(entries.Select(value => (value.Id, value.Label + " / " + value.Id)));
+                var options = ContentReferenceSelection.PopupOptions(reference, resolved, entries);
                 int selected = options.FindIndex(value => ContentReferenceCatalog.Matches(resolved, value.Id, current));
                 if (selected < 0)
                 {
@@ -145,6 +136,36 @@ public static class ContentReferenceSelection
         public readonly string Id;
         public readonly string Label;
         public Entry(ScriptableObject asset, string id, string label = null) { Asset = asset; Id = id; Label = label ?? asset?.name ?? id; }
+    }
+
+    internal static List<(string Id, string Label)> PopupOptions(
+        ContentReferenceAttribute requested, ContentReferenceAttribute resolved,
+        IReadOnlyList<Entry> candidates)
+    {
+        var options = new List<(string Id, string Label)> { ("", "None") };
+        if (requested.Kind == ContentReferenceKind.EffectTarget && resolved.Kind == ContentReferenceKind.Faction)
+        {
+            options.Add(("affected-faction", "발생한 사건의 세력 (affected-faction)"));
+            options.Add(("requesting-faction", "요청한 세력 (requesting-faction)"));
+        }
+        options.AddRange((resolved.Aliases ?? string.Empty)
+            .Split(new[] { '|' }, StringSplitOptions.RemoveEmptyEntries)
+            .Select(value => (value, "호환/문맥 키: " + value)));
+        options.AddRange(candidates.Select(value => (value.Id, value.Label + " / " + value.Id)));
+        return options;
+    }
+
+    internal static bool IsCurrentValid(ContentReferenceAttribute requested,
+        ContentReferenceAttribute resolved, string current, IReadOnlyList<Entry> candidates)
+    {
+        int matches = candidates.Count(value => ContentReferenceCatalog.Matches(resolved, value.Id, current));
+        bool contextId = requested.Kind == ContentReferenceKind.EffectTarget && resolved.Kind == ContentReferenceKind.Faction
+            && (current == "affected-faction" || current == "requesting-faction");
+        return current.Length == 0 || contextId
+            || (resolved.Aliases ?? string.Empty).Split('|')
+                .Any(value => ContentReferenceCatalog.Matches(resolved, value, current))
+            || matches == 1
+            || resolved.Kind is ContentReferenceKind.AnatomyNode or ContentReferenceKind.GameplayValueTarget && matches > 0;
     }
 
     public static ContentReferenceKind? ResolveKind(ContentReferenceKind kind, SerializedProperty property)
@@ -304,12 +325,11 @@ public static class ContentReferenceSelection
             return all.Where(entry => ((AnatomyProfileSO)entry.Asset).ProfileId == profileId.stringValue).ToArray();
         }
         if (reference.Kind == ContentReferenceKind.AnatomyNode
-            && property.serializedObject.targetObject is AnatomyProfileSO profile)
-            return profile.Nodes.Where(node => node != null)
-                .Select(node => new Entry(profile, node.NodeId)).ToArray();
+            && property.serializedObject.targetObject is AnatomyProfileSO)
+            return PendingOwnerEntries(reference, property);
         if (reference.Kind == ContentReferenceKind.EnemyAbility && property.propertyPath.Contains("bossPhases.")
-            && property.serializedObject.targetObject is EnemyArchetypeDefinitionSO enemy)
-            return all.Where(value => enemy.abilityIds.Contains(value.Id)).ToArray();
+            && property.serializedObject.targetObject is EnemyArchetypeDefinitionSO)
+            return PendingOwnerEntries(reference, property);
         if (reference.Kind == ContentReferenceKind.EnemyArchetype && property.name == "objectiveTargetId"
             && property.serializedObject.targetObject is OffenseEncounterSO)
         {
@@ -345,7 +365,22 @@ public static class ContentReferenceSelection
                     CopyPendingValue(field, copy.FindProperty(field.propertyPath));
             }
             copy.ApplyModifiedPropertiesWithoutUndo();
-            return catalog.Entries(reference, pending, ReadOwner(pending, property.propertyPath)).Select(entry =>
+            object owner = ReadOwner(pending, property.propertyPath);
+            IEnumerable<ContentReferenceCatalog.Entry> candidates;
+            if (reference.Kind == ContentReferenceKind.AnatomyNode && pending is AnatomyProfileSO profile)
+            {
+                string selfParent = property.name == "parentNodeId" && owner is AnatomyNodeDefinition node
+                    ? node.NodeId : null;
+                candidates = profile.Nodes.Where(value => value != null
+                        && !string.IsNullOrWhiteSpace(value.NodeId) && value.NodeId != selfParent)
+                    .Select(value => new ContentReferenceCatalog.Entry(profile, value.NodeId));
+            }
+            else if (reference.Kind == ContentReferenceKind.EnemyAbility && pending is EnemyArchetypeDefinitionSO enemy
+                && property.propertyPath.Contains("bossPhases."))
+                candidates = catalog.Entries(reference).Where(value => enemy.abilityIds?.Contains(value.Id) == true);
+            else
+                candidates = catalog.Entries(reference, pending, owner);
+            return candidates.Select(entry =>
                 new Entry(entry.Asset == pending ? original : entry.Asset, entry.Id, entry.Label)).ToArray();
         }
         finally { UnityEngine.Object.DestroyImmediate(pending); }

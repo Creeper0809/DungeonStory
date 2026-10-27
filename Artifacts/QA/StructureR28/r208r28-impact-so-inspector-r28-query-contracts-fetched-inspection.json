@@ -1,0 +1,86 @@
+{
+  "label": "r208r28-impact-so-inspector-r28-query-contracts",
+  "source": {
+    "phase": "repair-project-verified",
+    "label": "r208r28",
+    "file_count": 21746,
+    "removed": [],
+    "drift": []
+  },
+  "busy": false,
+  "status.json": {
+    "phase": "finished",
+    "report": {
+      "exit_code": 0,
+      "seconds": 230,
+      "stop_reason": null,
+      "source_label": "r208r28",
+      "compiler_error_count": 0,
+      "source_drift": []
+    },
+    "updated_at_utc": "2026-10-27T13:35:43.854395+00:00"
+  },
+  "run-summary.json": {
+    "exit_code": 0,
+    "seconds": 230,
+    "stop_reason": null,
+    "source_label": "r208r28",
+    "compiler_error_count": 0,
+    "source_drift": []
+  },
+  "isolated-display.json": {
+    "display": ":90",
+    "privateExecutable": "/home/vulpo/codex-unity-validation-20261021/private-gui/usr/bin/Xvfb",
+    "authenticated": true,
+    "tcpDisabled": true,
+    "windowProbe": true,
+    "terminal": true,
+    "mode": "batchmode with graphics",
+    "persistenceRoot": "/home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Artifacts/QA/r208r28-impact-so-inspector-r28-query-contracts/persistent-data",
+    "pid": 3128001,
+    "arguments": [
+      "/home/vulpo/codex-unity-validation-20261021/private-gui/usr/bin/Xvfb",
+      ":90",
+      "-screen",
+      "0",
+      "1920x1080x24",
+      "-nolisten",
+      "tcp",
+      "-auth",
+      "/home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Artifacts/QA/r208r28-impact-so-inspector-r28-query-contracts/inspector.xauthority",
+      "-noreset"
+    ]
+  },
+  "owned-process-cleanup.json": {
+    "pid": 3128035,
+    "exitCode": 0,
+    "actions": [],
+    "terminal": true
+  },
+  "logBytes": 77390,
+  "diagnostics": [
+    "- Loaded All Assemblies, in  0.803 seconds",
+    "AssetDatabase: script compilation time: 136.340500s",
+    "- Loaded All Assemblies, in  3.199 seconds",
+    "R28_ACCESS_ECOLOGY_CARRY_SNAPSHOTS=PASS",
+    "R28_OWNED_QUERY_SNAPSHOTS=PASS",
+    "R28_REMAINING_QUERY_SNAPSHOTS=PASS; boundary=controlled reads; command/restore evidence separate",
+    "FACILITY_USE_EXECUTION_STATE=PASS; scope=state-json-clone-phase-acknowledgement-invariants; coroutine-save-hook-resume=not-covered",
+    "R28_query-contracts=PASS"
+  ],
+  "memAvailable": [
+    "MemAvailable:   10409344 kB"
+  ],
+  "reports": [
+    "headless-editor-bootstrap.json",
+    "owned-process-cleanup.json",
+    "status.json",
+    "owned-compiler-cleanup.json",
+    "command.txt",
+    "run-summary.json",
+    "diagnostics.redacted.txt",
+    "xdpyinfo.txt",
+    "isolated-display.json",
+    "query-contracts.txt"
+  ]
+}

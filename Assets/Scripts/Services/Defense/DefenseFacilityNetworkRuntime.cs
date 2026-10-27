@@ -125,7 +125,7 @@ public sealed class DefenseFacilityNetworkRuntime :
     public bool HasAutomaticControl(DefenseFacility facility)
     {
         return facility != null
-            && (facility.BuildingData?.id != 1805
+            && (facility.Defense?.requiresAutomaticControl != true
                 || GetSnapshot(facility).HasControlLink);
     }
 

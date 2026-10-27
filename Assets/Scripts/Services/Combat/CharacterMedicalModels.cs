@@ -228,6 +228,10 @@ public interface ICharacterMedicalQuery
 
 public interface ICharacterMedicalCommand
 {
+    bool TrySetSocietyResponseBinding(
+        string orderId, string expectedOperationId, string operationId,
+        string receiptId, out DomainFailure failure);
+
     bool TryReserveBestOrder(
         CharacterActor rescuer,
         out CharacterMedicalOrder order,

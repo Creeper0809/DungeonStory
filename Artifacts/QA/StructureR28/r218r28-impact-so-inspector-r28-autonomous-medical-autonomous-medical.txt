@@ -1,0 +1,33 @@
+CHARACTER_AI_AUTONOMOUS_MEDICAL_PLAYMODE
+checks=29; failures=0; consoleIssues=0
+case	result	detail
+LIVE_SCOPE	PASS	DungeonRuntimeSystems
+LIVE_MEDICAL_ACTORS	PASS	workers=3
+AUTHORED_RESCUE_ACTION	PASS	eligible=3
+AUTHORED_HAUL_ACTION	PASS	Keep normal hauling available for treatment-supply requests.
+MEDICAL_FACILITY	PASS	R01_간이침대
+MEDICAL_DUTY_SETUP	PASS	Controlled rescue duty; unrelated AI remains paused; not competing-work arbitration proof.
+MEDICAL_RUNTIME	PASS	resolved
+PATIENT_DOWNED	PASS	state=Downed
+AUTOMATIC_MEDICAL_ORDER	PASS	medical:1
+MEDICAL_TRANSITION	INFO	AwaitingRescue/AwaitingRescue; supply=1; starts=0; failed=0; invariants=0; rescuer=; action=; work=0/58.08; consumed=False; actionName=대기; terminal=none; invariant=
+MEDICAL_TRANSITION	INFO	AwaitingRescue/PreparingTransfer; supply=1; starts=1; failed=0; invariants=0; rescuer=character:staff:1:01; action=79388; work=0/58.08; consumed=False; actionName=구조; terminal=revision=1; source=ai-rescue; order=medical:1; terminal=pending; invariant=
+MEDICAL_TRANSITION	INFO	Carrying/Carrying; supply=1; starts=1; failed=0; invariants=0; rescuer=character:staff:1:01; action=79388; work=0/58.08; consumed=False; actionName=구조; terminal=revision=1; source=ai-rescue; order=medical:1; terminal=pending; invariant=
+MEDICAL_TRANSITION	INFO	Treating/SupplyUnavailable; supply=1; starts=1; failed=0; invariants=0; rescuer=character:staff:1:01; action=79388; work=0/58.08; consumed=False; actionName=구조; terminal=revision=1; source=ai-rescue; order=medical:1; terminal=pending; invariant=
+MEDICAL_TRANSITION	INFO	Treating/Treating; supply=2; starts=1; failed=0; invariants=0; rescuer=character:staff:1:01; action=79388; work=2.623063/58.08; consumed=True; actionName=구조; terminal=revision=1; source=ai-rescue; order=medical:1; terminal=pending; invariant=
+MEDICAL_TRANSITION	INFO	Treating/AdditionalTreatmentRequired; supply=2; starts=1; failed=0; invariants=0; rescuer=character:staff:1:01; action=79388; work=0/51.48449; consumed=False; actionName=구조; terminal=revision=1; source=ai-rescue; order=medical:1; terminal=pending; invariant=
+MEDICAL_TRANSITION	INFO	Treating/Treating; supply=3; starts=1; failed=0; invariants=0; rescuer=character:staff:1:01; action=79388; work=2.623063/51.48449; consumed=True; actionName=구조; terminal=revision=1; source=ai-rescue; order=medical:1; terminal=pending; invariant=
+MEDICAL_TRANSITION	INFO	Completed/TreatmentCompleted; supply=3; starts=1; failed=0; invariants=0; rescuer=; action=79388; work=51.48449/51.48449; consumed=False; actionName=구조; terminal=revision=1; source=ai-rescue; order=medical:1; terminal=pending; invariant=
+RESCUE_BT_SELECTED	PASS	selected=True; phase=; failure=
+RESCUE_ABILITY_RAN	PASS	observed=True
+PHYSICAL_MEDICINE_SUPPLY	PASS	seeded=2; originalBudget=7; ownedDestination=facility-input:exact:medical.character-supply:medical:1:00000001
+AUTONOMOUS_STABILIZATION	PASS	Completed/TreatmentCompleted; stab=0/8; treat=51.48/51.48
+AUTONOMOUS_PHYSICAL_CARRY	PASS	carrying=True; parented=True; Completed/TreatmentCompleted; stab=0/8; treat=51.48/51.48
+AUTONOMOUS_BED_TREATMENT	PASS	Completed/TreatmentCompleted; stab=0/8; treat=51.48/51.48
+AUTONOMOUS_RECOVERY	PASS	state=Active; downed=False; consciousness=0.39; mobility=0.39
+RESCUE_ACTION_STARTED	PASS	starts=0->1
+RESCUE_TYPED_COMPLETION	PASS	completed=0->1; failed=0->0; observedFailure=; trace=
+RESCUE_NO_RUNTIME_OWNERSHIP_LEAK	PASS	paths=0; reservations=0
+RESCUE_NO_INVARIANT_ANOMALY	PASS	invariants=0->0
+CONSOLE_WARNING_ERROR_ZERO	PASS	
+RESULT=PASS; failures=0

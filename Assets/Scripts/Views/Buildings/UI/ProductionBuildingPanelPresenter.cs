@@ -24,6 +24,7 @@ public sealed class ProductionPanelOrderContext
         IProductionBillOrderCommand billCommands,
         IResourceEconomyContentCatalog catalog,
         IProductionDependencyCatalog dependencies,
+        IProductionDistributionQuery distribution,
         IProductionBillWorkExecution workExecution,
         ICharacterWorldQuery characterWorld,
         IInGameNarrativeTextQuery narrativeText)
@@ -34,6 +35,7 @@ public sealed class ProductionPanelOrderContext
         Catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
         Dependencies = dependencies
             ?? throw new ArgumentNullException(nameof(dependencies));
+        Distribution = distribution ?? throw new ArgumentNullException(nameof(distribution));
         WorkExecution = workExecution
             ?? throw new ArgumentNullException(nameof(workExecution));
         CharacterWorld = characterWorld
@@ -46,6 +48,7 @@ public sealed class ProductionPanelOrderContext
     public IProductionBillOrderCommand BillCommands { get; }
     public IResourceEconomyContentCatalog Catalog { get; }
     public IProductionDependencyCatalog Dependencies { get; }
+    public IProductionDistributionQuery Distribution { get; }
     public IProductionBillWorkExecution WorkExecution { get; }
     public ICharacterWorldQuery CharacterWorld { get; }
     public IInGameNarrativeTextQuery NarrativeText { get; }
@@ -150,6 +153,7 @@ public sealed class ProductionBuildingPanelPresenter :
             billCommands,
             catalog,
             dependencies,
+            orders.Distribution,
             surroundings.ProductionUiText);
     }
 

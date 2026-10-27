@@ -793,7 +793,9 @@ public sealed class SurgeryPlayModeVerificationRunner : MonoBehaviour
                 exactClaim
                     ? $"destination={materialClaim.DestinationId}; facility={materialClaim.OwnerFacilityId}; drop={materialClaim.DropPosition}"
                     : $"destination={order.materialDestinationId}; drop={table.centerPos}; claim missing or mismatched");
-            order.risk.successChance = SurgeryPlayModeVerifier.IsW01ClinicalFailureVerification ? 0f : 1f;
+            SetOrderSuccessChanceForFixture(order.orderId,
+                SurgeryPlayModeVerifier.IsW01ClinicalFailureVerification ? 0f : 1f);
+            order = RequireCurrentOrder(order.orderId);
             bool pipedProcessWaterRouteExists = requiresProcessWater
                 && fluidQuery != null
                 && fluidQuery.TryGetNetwork(table, out _);
@@ -868,7 +870,7 @@ public sealed class SurgeryPlayModeVerificationRunner : MonoBehaviour
             bool surgeonPriorityIssued = false;
             bool surgeonPriorityAccepted = false;
             string surgeonPriorityFailure = string.Empty;
-            while (order.IsActive)
+            while ((order = RequireCurrentOrder(liveOrderId)).IsActive)
             {
                 if (SurgeryPlayModeVerifier.IsW01PublicationRecoveryVerification
                     && commandAckFaultCount == 1)
@@ -961,7 +963,9 @@ public sealed class SurgeryPlayModeVerificationRunner : MonoBehaviour
                     // The runtime recalculates risk when the surgeon reserves the
                     // order. Pin only the final QA outcome after that reservation;
                     // movement, hauling, materials, and work remain fully real.
-                    order.risk.successChance = SurgeryPlayModeVerifier.IsW01ClinicalFailureVerification ? 0f : 1f;
+                    SetOrderSuccessChanceForFixture(liveOrderId,
+                        SurgeryPlayModeVerifier.IsW01ClinicalFailureVerification ? 0f : 1f);
+                    order = RequireCurrentOrder(liveOrderId);
                 }
 
                 if (Time.timeScale <= 0f)
@@ -1015,6 +1019,7 @@ public sealed class SurgeryPlayModeVerificationRunner : MonoBehaviour
                     }
                 }
 
+                order = RequireCurrentOrder(liveOrderId);
                 observedStates.Add(order.state);
                 if (!currentFormatRestorePerformed
                     && order.state == SurgeryOrderState.Procedure
@@ -1767,12 +1772,14 @@ public sealed class SurgeryPlayModeVerificationRunner : MonoBehaviour
 
         CurrentStage = "packaged-anesthetic-surgery-execution";
         float deadline = Time.realtimeSinceStartup + OverallTimeoutSeconds;
-        while (packagedOrder.IsActive
+        string packagedOrderId = packagedOrder.orderId;
+        while ((packagedOrder = RequireCurrentOrder(packagedOrderId)).IsActive
                && Time.realtimeSinceStartup < deadline)
         {
             if (packagedOrder.risk != null)
             {
-                packagedOrder.risk.successChance = 1f;
+                SetOrderSuccessChanceForFixture(packagedOrderId, 1f);
+                packagedOrder = RequireCurrentOrder(packagedOrderId);
             }
             foreach (CharacterActor actor in characters.Characters
                          .Where(candidate => candidate != null
@@ -1856,6 +1863,29 @@ public sealed class SurgeryPlayModeVerificationRunner : MonoBehaviour
                 scope,
                 requiredAnesthetic);
         }
+    }
+
+    private SurgeryOrder RequireCurrentOrder(string orderId)
+    {
+        if (surgery == null || !surgery.TryGetOrder(orderId, out SurgeryOrder order))
+            throw new InvalidOperationException("Surgery fixture lost its current order: " + orderId);
+        return order;
+    }
+
+    private void SetOrderSuccessChanceForFixture(string orderId, float successChance)
+    {
+        if (surgery is not SurgeryRuntime runtime)
+            throw new InvalidOperationException("Surgery fixture requires the production order owner.");
+        var field = typeof(SurgeryRuntime).GetField("stateStore",
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
+            ?? throw new InvalidOperationException("Surgery fixture could not locate the owned state store.");
+        var store = field.GetValue(runtime) as SurgeryAggregateStateStore
+            ?? throw new InvalidOperationException("Surgery fixture has no owned state store.");
+        SurgeryOrder owned = store.State.Orders.SingleOrDefault(value => value != null
+            && string.Equals(value.orderId, orderId, StringComparison.Ordinal));
+        if (owned?.risk == null)
+            throw new InvalidOperationException("Surgery fixture lost its owned risk: " + orderId);
+        owned.risk.successChance = successChance;
     }
 
     private IEnumerator VerifyReturnedVialWarehouseAndProductionReuse(

@@ -89,11 +89,12 @@ public sealed class InvasionCampaignRuntime :
             .Get("invasion:campaign");
     }
 
-    public IReadOnlyList<HumanInvasionBranchState> Branches =>
+    public IReadOnlyList<HumanInvasionBranchState> Branches => OwnedBranches.Select(Clone).ToArray();
+    private IReadOnlyList<HumanInvasionBranchState> OwnedBranches =>
         branches.Values.OrderBy(value => value.branchId, StringComparer.Ordinal)
             .ToArray();
-    public IReadOnlyList<HumanSupportSiteState> SupportSites => supportSites;
-    public IReadOnlyList<ScheduledInvasionOperationState> Operations => operations;
+    public IReadOnlyList<HumanSupportSiteState> SupportSites => supportSites.Select(Clone).ToArray();
+    public IReadOnlyList<ScheduledInvasionOperationState> Operations => operations.Select(Clone).ToArray();
 
     public void Start()
     {
@@ -110,7 +111,14 @@ public sealed class InvasionCampaignRuntime :
         daySubscription = null;
     }
 
-    public bool TryGetBranch(
+    public bool TryGetBranch(string branchId, out HumanInvasionBranchState branch)
+    {
+        bool found = TryFindOwnedBranch(branchId, out var current);
+        branch = found ? Clone(current) : null;
+        return found;
+    }
+
+    private bool TryFindOwnedBranch(
         string branchId,
         out HumanInvasionBranchState branch)
     {
@@ -133,7 +141,7 @@ public sealed class InvasionCampaignRuntime :
         site.alive = false;
         site.connected = false;
         site.destroyedDay = currentDay;
-        if (TryGetBranch(site.branchId, out HumanInvasionBranchState branch))
+        if (TryFindOwnedBranch(site.branchId, out HumanInvasionBranchState branch))
         {
             branch.strength = Mathf.Max(0f, branch.strength - 25f);
             branch.operational = branch.strength > 0f;
@@ -146,7 +154,10 @@ public sealed class InvasionCampaignRuntime :
     }
 
     public ScheduledInvasionOperationState ScheduleNextOperation(float threat)
-        => CreateOperation(threat, currentDay, string.Empty);
+    {
+        var operation = CreateOperation(threat, currentDay, string.Empty);
+        return operation == null ? null : Clone(operation);
+    }
 
     public ScheduledInvasionOperationState ScheduleMilestonePressureOperation(
         float threat,
@@ -177,7 +188,7 @@ public sealed class InvasionCampaignRuntime :
                 throw new InvalidOperationException(
                     "A milestone-pressure operation changed its source day.");
             }
-            return existing;
+            return Clone(existing);
         }
 
         ScheduledInvasionOperationState operation = CreateOperation(
@@ -185,7 +196,7 @@ public sealed class InvasionCampaignRuntime :
             sourceAbsoluteDay,
             requiredSource);
         created = operation != null;
-        return operation;
+        return operation == null ? null : Clone(operation);
     }
 
     public ScheduledInvasionOperationState ClaimOrScheduleNextOperation(
@@ -200,7 +211,7 @@ public sealed class InvasionCampaignRuntime :
             .OrderBy(value => value.scheduledDay)
             .ThenBy(value => value.operationId, StringComparer.Ordinal)
             .FirstOrDefault();
-        return pending ?? ScheduleNextOperation(threat);
+        return pending == null ? ScheduleNextOperation(threat) : Clone(pending);
     }
 
     public void RecordOperationStarted(
@@ -255,7 +266,7 @@ public sealed class InvasionCampaignRuntime :
         string sourceOwnerId)
     {
         EnsureInitialized();
-        HumanInvasionBranchState primary = Branches
+        HumanInvasionBranchState primary = OwnedBranches
             .Where(value => value.operational)
             .OrderByDescending(value => value.strength
                 + random.NextFloat() * Mathf.Clamp(threat, 0f, 100f) * 0.2f)
@@ -292,7 +303,7 @@ public sealed class InvasionCampaignRuntime :
 
     public float GetBranchStrengthMultiplier(string branchId)
     {
-        return TryGetBranch(branchId, out HumanInvasionBranchState branch)
+        return TryFindOwnedBranch(branchId, out HumanInvasionBranchState branch)
             ? Mathf.Lerp(0.35f, 1.35f, branch.strength / 100f)
             : 1f;
     }
@@ -304,7 +315,7 @@ public sealed class InvasionCampaignRuntime :
         {
             currentDay = currentDay,
             operationSequence = operationSequence,
-            branches = Branches.Select(Clone).ToList(),
+            branches = OwnedBranches.Select(Clone).ToList(),
             supportSites = supportSites.Select(Clone).ToList(),
             operations = operations.Select(Clone).ToList()
         };
@@ -432,7 +443,7 @@ public sealed class InvasionCampaignRuntime :
             .OrderBy(tile => tile.Coord)
             .ToArray();
         int index = 0;
-        foreach (HumanInvasionBranchState branch in Branches)
+        foreach (HumanInvasionBranchState branch in OwnedBranches)
         {
             for (int siteIndex = 0; siteIndex < 2; siteIndex++)
             {
@@ -559,7 +570,7 @@ public sealed class InvasionCampaignRuntime :
 
     private List<string> SelectParticipants(string primaryId)
     {
-        return Branches
+        return OwnedBranches
             .Where(value => value.operational
                 && (value.branchId == primaryId || value.strength >= 65f))
             .OrderByDescending(value => value.branchId == primaryId)
@@ -602,14 +613,14 @@ public sealed class InvasionCampaignRuntime :
 
     private float GetStrength(string branchId)
     {
-        return TryGetBranch(branchId, out HumanInvasionBranchState branch)
+        return TryFindOwnedBranch(branchId, out HumanInvasionBranchState branch)
             ? branch.strength
             : 0f;
     }
 
     private string BranchName(string branchId)
     {
-        return TryGetBranch(branchId, out HumanInvasionBranchState branch)
+        return TryFindOwnedBranch(branchId, out HumanInvasionBranchState branch)
             ? branch.displayName
             : branchId;
     }

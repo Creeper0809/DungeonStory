@@ -169,9 +169,10 @@ public sealed class CharacterCarryPresentation : MonoBehaviour
     {
         CharacterCarriedItemSaveData selected = null;
         float selectedWeight = float.MinValue;
-        for (int i = 0; i < inventory.Items.Count; i++)
+        var items = inventory.Items;
+        for (int i = 0; i < items.Count; i++)
         {
-            CharacterCarriedItemSaveData item = inventory.Items[i];
+            CharacterCarriedItemSaveData item = items[i];
             if (item == null || item.quantity <= 0)
             {
                 continue;

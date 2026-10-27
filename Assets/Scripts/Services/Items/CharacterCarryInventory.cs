@@ -292,7 +292,8 @@ public sealed class CharacterCarryInventory : MonoBehaviour, ICombatAmmunitionIn
     private IEnvironmentalWorkwearCommand environmentalWorkwearCommands;
     private IEquippedApparelPhysicalMassQuery equippedApparelMass;
 
-    public IReadOnlyList<CharacterCarriedItemSaveData> Items => carriedItems;
+    public IReadOnlyList<CharacterCarriedItemSaveData> Items =>
+        carriedItems.Select(CloneCarriedItem).ToArray();
     public Vector2Int OwnerGridPosition => actor != null
         ? actor.GetNowXY()
         : Vector2Int.RoundToInt(transform.position);

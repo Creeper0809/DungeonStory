@@ -27,9 +27,9 @@ internal sealed class V20SocietyEventRuntime : ISocietyEventQuery, IGuestRequest
     private SocietyEventAggregateState Society => societyState.Current;
     private SocietyEventAggregateState WritableSociety => societyState.Writable;
     public IReadOnlyList<V20ActiveEventSaveData> ActiveSocietyEvents =>
-        Society.Data.activeEvents.AsReadOnly();
+        Society.Data.activeEvents.Select(value => JsonClone(value)).ToArray();
     public IReadOnlyList<V20ActiveEventSaveData> RecentResolvedSocietyEvents =>
-        Society.Data.recentResolvedEvents.AsReadOnly();
+        Society.Data.recentResolvedEvents.Select(value => JsonClone(value)).ToArray();
 
     public bool TryResolveSocietyEvent(
         string instanceId,
