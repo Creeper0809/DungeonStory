@@ -7085,3 +7085,10 @@ r218 현재 소스 core250초, character190초, effects1170초, crop200초, worl
 Git 선별 단계에서 source manifest JSON의 CRLF가 LF로 정규화돼 원문 SHA가 달라지는 것을 커밋 전에 검출했다. R28 증거 파일을 -text로 보관하도록 수정하고 같은 소유 파일 목록만 다시 stage한다. Native/CI 입력이나 기대 SHA는 변경하지 않는다.
 
 선택형 Git 서식 검사는 새 Editor fixture R28RemainingQuerySnapshotDebugScenarios.cs 끝의 추가 빈 줄1건을 보고했다. 이는 컴파일/기능/저장/소스 바인딩 실패가 아니며, 검증한 C# 바이트를 보존해 그대로 전달한다. 이 서식 결과를 PASS로 바꾸거나 필수 Native/CI 검사 조건을 수정하지 않는다.
+
+
+## R28 GitHub 통합 완료
+
+소유210파일 commit2a069eb244fca01a9a8a9144f7409331b821bfc7, 실제 committed evidence73개 SHA 일치 및 tracked dirty0을 확인했다. 현재 commit vs c979d18e1에서 게시3544개/필드12501개 호환성 PASS, 변경 범위210개가 요구한 CI5와 과거 V27 바이트/현재 입력 바인딩 PASS. branch push 원격 head 일치 후 PR25 생성/attach, PR CI40541933364 success를 확인했다. 기대 head2a069eb24로 main02bee0cc0cd60faf033d29d9a7d97b3f977f6850 병합, feature와 main tree 동일 및 병합 후 push CI40542843065 success를 확인했다. 원본 Documents/R80 및 무관한 QA는 보존했다.
+
+현재 마감은 보고서/task_plan/progress 문서3개만 갱신한다. 코드 병합의 Assets/Packages/ProjectSettings subtree 및 모든 다른 입력/증거는 그대로 유지하고 문서-only diff/링크로 확인한다. 이 문서 마감을 새로운 Native 실행이나 새로운 code-CI PASS로 표시하지 않는다. 실제 증거/링크는 R28 보고서와 외부 github-code-integration.json에 보존한다.

@@ -212,3 +212,13 @@ Editor 준비 코드의 직접 설정은 명시적 fixture 초기화 또는 기�
 [현재 전체 월드 복원 원문](../../Artifacts/QA/StructureR28/r218r28-ci-world-full-report.txt)은 등록/캡처/복원104섹션 일치, 건물138개/캐릭터3/원정1/침입1, canonical baseline 복구와 진행/방어/침입 rollback/retry를 확인한다. consoleWarnings=0, consoleErrors=0이다. starting party는 공식 명령으로 준비한 통제 조건이며 학습 데이터나 사람의 승인으로 표시하지 않는다.
 
 현재 script digest는 `8c4bfa289549fb0d96792195436dbb6a348a2951b22318b34007988ba73b8d89`, Unity configuration digest는 `ef88068560f78103e54f07311493fe05cb6a4889ec9586c88af0362591990ebb`다. Git 게시 때 동일 코드/입력과 증거 바이트를 대조한다. source edit와 Unity verify는 모두 닫혔으며 이후는 GitHub 통합 단계다.
+
+
+## GitHub 통합 완료
+
+- 소스/증거 commit: `2a069eb244fca01a9a8a9144f7409331b821bfc7`.
+- [PR25](https://github.com/Creeper0809/DungeonStory/pull/25) 생성/attach와 [PR CI](https://github.com/Creeper0809/DungeonStory/actions/runs/40541933364) 성공을 확인했다.
+- main 코드 병합: `02bee0cc0cd60faf033d29d9a7d97b3f977f6850`. 병합 tree가 검증한 feature commit과 동일함을 확인했고 [병합 후 push CI](https://github.com/Creeper0809/DungeonStory/actions/runs/40542843065)도 성공했다.
+- 완료 기록은 이 보고서와 task_plan.md/progress.md만 갱신한다. Assets/Packages/ProjectSettings와 그 밖의 설정/증거는 코드 병합 commit 그대로다. 문서 마감에 Unity나 전체 데이터 검증을 반복하지 않는다.
+
+R28의7개 원인과21개 원본 노출 경계의 수정/필수 검증/원격 통합은 완료했다. 의미 없는 클래스/파일 분할과 검사 도구/baseline 완화는 없다. 간이침대의 관측 상한 조정과 선택형 Git 서식 경고1건은 위 기록과 progress.md에 구별해 보존한다. 전체 게임의 모든 미래 실행 조합에 대한 무결점 인증으로 해석하지 않는다.
