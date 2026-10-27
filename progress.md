@@ -1,10 +1,12 @@
 ## R27 S01~S11 수정과 최종 검증 2026-10-27
 
+게시 ID CI의 최종 실물 대조도 PASS했다. main21b381a66 대비 에셋3544/보호 필드12501개를 확인했고 공식9개는 같은 커밋의 입력과 현재 source/config에 묶인 Unity 증거를 검증했다. 보호 기준을 완화하지 않았으며 수정한 것은 Python 검사기와 해당 반례다. 게임 입력은 r199 그대로다.
+
 보고서11항목 구현과 필요한 실행/저장/복원/재시도를 완료했다. 기존 이동 DTO와 시설/사건 영수증을 유지하며, 상점 V1의 선택적 일일 구매 이력은 구형 저장을 읽되 없던 이력을 추정하지 않는다. 관련 실제 실행9회는 Artifacts/QA/StructureR27/verification.json에 실제 소스 label과 후속 변경 경계를 기록했다. 구매 당일 저장의 새 프로세스 로드31검사와 구형 저장23검사가 통과했고 저장 입력 SHA를 보존했다.
 
 최종 r199 CI는 effects1260초/core250초/character190초/crop200초/world240초 모두 정상 종료, 컴파일 오류0/콘솔 오류0/전체21736입력 drift0이다. 월드 실제 저장 복원은 건물138/인물3/원정1/침입1과 연구/방어/침입 실패 후 재시도, 경고0을 확인했다. 최종 source=2d0e78ce9d4fb64bcf224f0b34e53b7d3a4e766beb9d5d047c5b21dda57af3fb, configuration=407cba880355a24b755d8b4575b2606cbe9fe381dd1f31f89f2a267acc062fbb. 증거는 Artifacts/QA/ImpactCI/verification.json이다. CUHA 소유 프로세스/격리 display 종료와 operation lock 해제도 확인했다.
 
-기존 구조 baseline은 무변경이며 Verify PASS, root 참조4->3이다. Python 계약91개 및 DSB001~008 analyzer 검증 PASS, 최종 인덱스 재생성과 내용/freshness 실패0, 작성 코드/문서 diff whitespace 오류0을 확인했다. native 로그와 보고서의 출력 끝 공백은 원본 SHA 보존을 위해 그대로 둔다. r197 effects의 구형 fixture 실패와 r198 수동 중단은 전체 PASS로 바꾸지 않았다. 외부 원본 증거: C:/Users/vulpo/Documents/Codex/2026-10-27/structure-remediation-r27. 이 기록은 Git 통합 직전 검증 결과이며 PR/main CI 결과는 GitHub 기록을 따른다.
+기존 구조 baseline은 무변경이며 Verify PASS, root 참조4->3이다. 게시 ID 검사기 정합성 보완 후 Python 계약100개 및 DSB001~008 analyzer 검증 PASS, 최종 인덱스 재생성과 내용/freshness 실패0, 작성 코드/문서 diff whitespace 오류0을 확인했다. native 로그와 보고서의 출력 끝 공백은 원본 SHA 보존을 위해 그대로 둔다. r197 effects의 구형 fixture 실패와 r198 수동 중단은 전체 PASS로 바꾸지 않았다. 외부 원본 증거: C:/Users/vulpo/Documents/Codex/2026-10-27/structure-remediation-r27. 이 기록은 Git 통합 직전 검증 결과이며 PR/main CI 결과는 GitHub 기록을 따른다.
 
 ## 전체 코드 구조 감사 완료 2026-10-27
 
