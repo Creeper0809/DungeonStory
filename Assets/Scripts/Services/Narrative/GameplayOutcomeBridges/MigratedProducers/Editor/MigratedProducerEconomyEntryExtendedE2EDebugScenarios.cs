@@ -2013,7 +2013,7 @@ public static partial class MigratedProducerEconomyEntryExtendedE2EDebugScenario
                         }
                     }
                 };
-                worker.Progression.GrowthState.passiveSkills.Add(skill);
+                CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(worker.Progression).passiveSkills.Add(skill);
                 RetailRevenueModifierSnapshot pricing =
                     shop.CaptureRevenueModifierSnapshot();
                 purchaseResult.BindPricingContext(pricing);

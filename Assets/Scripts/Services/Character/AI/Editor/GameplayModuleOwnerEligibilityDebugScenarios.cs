@@ -62,8 +62,8 @@ public static partial class GameplayModuleOwnerEligibilityDebugScenarios
             new GameplayOutcomeEvidenceUseTransaction(owner.Ledger, query));
         CharacterSkillDraft draft = service.CreateDraft(progression, CharacterSkillKind.Passive, 1,
             progression.GrowthState.skillGenerationRevision);
-        progression.GrowthState.drafts.RemoveAll(value => value.kind == draft.kind && value.unlockLevel == 1);
-        progression.GrowthState.drafts.Add(draft);
+        CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(progression).drafts.RemoveAll(value => value.kind == draft.kind && value.unlockLevel == 1);
+        CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(progression).drafts.Add(draft);
         Require(progression.PassiveSkills.Count == 0, "Aging fixture already has a passive skill.");
         CharacterSkillModuleOfferState offer = draft.moduleSelectionOffers.Single();
         GameplayOutcomeEvidenceBindingSnapshot selected = draft.outcomeEvidenceBindings.First(value =>
@@ -169,7 +169,7 @@ public static partial class GameplayModuleOwnerEligibilityDebugScenarios
             && JsonConvert.SerializeObject(savedInvalidation.outcomeEvidenceBindings)
                 == JsonConvert.SerializeObject(draft.outcomeEvidenceBindings),
             "Invalidated request lost its exact reason or evidence through draft JSON restore.");
-        progression.GrowthState.drafts[progression.GrowthState.drafts.IndexOf(draft)] = savedInvalidation;
+        CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(progression).drafts[CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(progression).drafts.IndexOf(draft)] = savedInvalidation;
         service.RequestDraft(progression, savedInvalidation);
         Require(service.PendingRequestCount == 0, "Restored invalidated request was redispatched.");
         service.Tick();
@@ -209,7 +209,9 @@ public static partial class GameplayModuleOwnerEligibilityDebugScenarios
         Action<LocalLlmResult> replacementCallback = runtime.Callbacks.Single(value =>
             service.TryCapturePendingModuleDispatch(value.Key, out _, out CharacterSkillDraft dispatched,
                 out _, out _) && dispatched.requestKey == replacement.requestKey).Value;
+        string completedRequestKey = replacement.requestKey;
         replacementCallback(new LocalLlmResult(LocalLlmRequestStatus.Succeeded, replacementJson, "", ""));
+        replacement = progression.Drafts.Single(value => value.requestKey == completedRequestKey);
         Require(replacement.permanentlyChosen && progression.PassiveSkills.Count == 1
             && progression.GrowthState.skillAcquisitionRevision == acquisitionBefore + 1,
             "The replacement current-evidence response did not acquire the passive exactly once.");
@@ -281,14 +283,14 @@ public static partial class GameplayModuleOwnerEligibilityDebugScenarios
             {
                 progression.MarkGenerationRequestCompleted(existing.requestKey);
             }
-            progression.GrowthState.drafts.Clear();
-            progression.GrowthState.pendingRequestKeys.Clear();
+            CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(progression).drafts.Clear();
+            CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(progression).pendingRequestKeys.Clear();
             CharacterSkillDraft draft = service.CreateDraft(
                 progression,
                 CharacterSkillKind.Active,
                 eligibleLevel,
                 progression.GrowthState.skillGenerationRevision);
-            progression.GrowthState.drafts.Add(draft);
+            CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(progression).drafts.Add(draft);
             string responseJson = BuildValidModuleSelectionBatchJson(
                 service,
                 draft,
@@ -428,6 +430,7 @@ public static partial class GameplayModuleOwnerEligibilityDebugScenarios
                 replacementJson,
                 string.Empty,
                 string.Empty));
+            replacement = progression.Drafts.Single(value => value.requestKey == replacementRequestKey);
             Require(replacement.isReady
                     && !replacement.permanentlyChosen
                     && replacement.candidates.Count == replacement.moduleSelectionOffers.Count,
@@ -438,11 +441,12 @@ public static partial class GameplayModuleOwnerEligibilityDebugScenarios
                     0,
                     confirmed: true,
                     out _)
-                && replacement.permanentlyChosen
+                && progression.Drafts.Single(value => value.requestKey == replacementRequestKey).permanentlyChosen
                 && progression.ActiveSkills.Count == baselineActiveCount + 1
                 && progression.GrowthState.skillAcquisitionRevision
                     == restoredAcquisitionBefore + 1,
                 "Fresh owner did not commit the replacement active exactly once.");
+            replacement = progression.Drafts.Single(value => value.requestKey == replacementRequestKey);
             committedSkillId = replacement.ChosenSkill?.id
                 ?? throw new InvalidOperationException(
                     "The committed replacement has no chosen skill.");
@@ -609,7 +613,7 @@ public static partial class GameplayModuleOwnerEligibilityDebugScenarios
             capture.CharacterId, capture.DisplayName, capture.Checkpoint);
         var runtime = new DeferredRuntime();
         var service = new CharacterSkillGenerationService(NarrativeRequestContextTestFixture.CreateEmpty(), settings, runtime, new FixedUiClock());
-        CharacterSkillDraft draft = owner.Actor.Progression.GrowthState.drafts.Single(
+        CharacterSkillDraft draft = CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(owner.Actor.Progression).drafts.Single(
             value => value.requestKey == capture.Draft.requestKey);
         service.RequestDraft(owner.Actor.Progression, draft);
         service.Tick();
@@ -658,7 +662,7 @@ public static partial class GameplayModuleOwnerEligibilityDebugScenarios
             Require(!actor.IsDead && actor.Stats.CurrentHealth > 20f, "Restored living owner is not the recovered combatant.");
             var runtime = new DeferredRuntime();
             var service = new CharacterSkillGenerationService(NarrativeRequestContextTestFixture.CreateEmpty(), settings, runtime, new FixedUiClock());
-            CharacterSkillDraft draft = actor.Progression.GrowthState.drafts.Single(value => value.requestKey == capture.Draft.requestKey);
+            CharacterSkillDraft draft = CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(actor.Progression).drafts.Single(value => value.requestKey == capture.Draft.requestKey);
             service.RequestDraft(actor.Progression, draft);
             service.Tick();
             Require(runtime.Callback != null && service.PendingRequestCount == 1,
@@ -674,7 +678,7 @@ public static partial class GameplayModuleOwnerEligibilityDebugScenarios
                 Require(actor.IsDead, "Fatal combat did not kill the same request owner.");
             }
             else if (mutation == "generation-revision")
-                actor.Progression.GrowthState.skillGenerationRevision++;
+                CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(actor.Progression).skillGenerationRevision++;
             else
                 actor.Lifecycle.SetLifecycleState(actor.CurrentLifecycleState);
 

@@ -40,8 +40,7 @@ public class CharacterIdentity : SerializedMonoBehaviour
         {
             string generatedName = actor != null
                 && actor.Progression != null
-                && actor.Progression.GrowthState.initialized
-                    ? actor.Progression.GrowthState.displayName
+                    ? actor.Progression.InitializedDisplayName
                     : string.Empty;
             if (!string.IsNullOrWhiteSpace(generatedName))
             {

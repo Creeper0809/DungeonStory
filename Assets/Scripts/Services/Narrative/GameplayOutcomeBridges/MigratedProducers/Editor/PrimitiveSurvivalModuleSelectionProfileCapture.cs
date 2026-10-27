@@ -112,7 +112,7 @@ public static partial class PrimitiveSurvivalCausalProductionEntryDebugScenarios
                    checkpoint))
         {
             CharacterProgression progression = context.SourceActor.Progression;
-            CharacterSkillDraft[] pendingDrafts = progression.GrowthState.drafts
+            CharacterSkillDraft[] pendingDrafts = CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(progression).drafts
                 .Where(value => value != null
                     && value.formulaVersion >= CharacterSkillFormulaGeneration
                         .ModuleSelectionFormulaVersion
@@ -359,7 +359,7 @@ public static partial class PrimitiveSurvivalCausalProductionEntryDebugScenarios
                 draft,
                 settings,
                 evidence);
-            source.SourceActor.Progression.GrowthState.drafts.Add(draft);
+            CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(source.SourceActor.Progression).drafts.Add(draft);
             source.SourceActor.Progression.MarkGenerationRequestPending(
                 draft.requestKey);
             draft.requestSubmitted = true;

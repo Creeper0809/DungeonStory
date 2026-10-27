@@ -181,12 +181,11 @@ public static partial class CharacterMedicalSupplyDestinationDrainRuntimeDebugSc
                 "medical delivery retry duplicated a terminal procedure");
         }
 
-        using (MedicalOutcomeFixture interrupted = new("interrupted"))
+        using (MedicalOutcomeFixture interrupted = new("interrupted", requiredStabilizationWork: 2f))
         {
             Require(interrupted.Runtime.TryGetOrder(
                     "medical:1", out CharacterMedicalOrder order),
                 "medical interruption fixture is missing its order");
-            order.requiredStabilizationWork = 2f;
             float progress = interrupted.Runtime.AdvanceStabilization(
                 "medical:1", interrupted.Rescuer, 1f);
             DungeonCharacterMedicalSaveData checkpoint =
@@ -328,7 +327,8 @@ public static partial class CharacterMedicalSupplyDestinationDrainRuntimeDebugSc
         private readonly DungeonRuntimeAggregateRootStore roots;
         private readonly IDisposable factObservationLifetime;
 
-        internal MedicalOutcomeFixture(string suffix, bool treatment = false)
+        internal MedicalOutcomeFixture(
+            string suffix, bool treatment = false, float requiredStabilizationWork = 1f)
         {
             patientObject = new GameObject("환자");
             rescuerObject = new GameObject("구조자");
@@ -380,7 +380,7 @@ public static partial class CharacterMedicalSupplyDestinationDrainRuntimeDebugSc
                     : CharacterMedicalStatusCode.AwaitingStabilization,
                 stabilized = treatment,
                 treatmentFacilityId = facilityId,
-                requiredStabilizationWork = 1f,
+                requiredStabilizationWork = requiredStabilizationWork,
                 requiredTreatmentWork = treatment ? 0.01f : 0f
             });
             aggregate.OrderSequence = 1;

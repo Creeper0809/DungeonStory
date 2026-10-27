@@ -271,11 +271,8 @@ public sealed class CharacterSkillActivationTransaction :
         try
         {
             ApplyManualActivation(source, skill, recipients, sourceId, request.AbsoluteHour, expires);
-            limits = RequireLimits(source);
-            limits.manualSkillCooldowns ??= new List<CharacterManualSkillCooldownState>();
-            cooldown = FindCooldown(limits, skill.id) ?? new CharacterManualSkillCooldownState { skillId = skill.id };
-            if (!limits.manualSkillCooldowns.Contains(cooldown)) limits.manualSkillCooldowns.Add(cooldown);
-            cooldown.useCount = checked(useBefore + 1); cooldown.readyAbsoluteHour = readyAfter;
+            source.Progression.RecordManualSkillCooldown(
+                skill.id, checked(useBefore + 1), readyAfter);
             var recipientFacts = recipients.Select((actor, index) => new CharacterSkillActivationRecipientFactData
             { characterId = CharacterPersistentIdentity.Require(actor).Value, displayName = actor.Identity?.DisplayName ?? actor.name,
                 beforeState = beforeStates[index], afterState = CanonicalState(actor) }).ToList();
@@ -284,8 +281,8 @@ public sealed class CharacterSkillActivationTransaction :
                 recipientFacts, request.ChildPublicationKeys);
             if (!facts.TryReserve(fact, out lease, out failureReason)) return false;
             string reservedKey = lease.PublicationKey;
-            limits.activationSequence = revision;
-            limits.lastSkillActivation = CapturePendingMirror(fact, reservedKey);
+            source.Progression.RecordSkillActivationCommit(
+                revision, CapturePendingMirror(fact, reservedKey));
             var delivered = publications.PublishApplied(fact, lease);
             retained = delivered.MayBeCommitted;
             if (!retained) { failureReason = delivered.Detail; return false; }
@@ -370,12 +367,11 @@ public sealed class CharacterSkillActivationTransaction :
                 && request.UltimateDomain == CharacterUltimateDomain.Management;
             if (changed.Length == 0 && !modifierOnly)
             { failureReason = "skill-automatic-activation-no-effect"; return false; }
-            limits = RequireLimits(source);
-            limits.automaticSkillActivations.Add(new CharacterAutomaticSkillActivationState
+            source.Progression.RecordAutomaticSkillUse(new CharacterAutomaticSkillActivationState
             { eventKeySha256 = eventKey, eventId = request.TriggerEventId, skillId = skill.id, activationKind = kind,
-                ownerRevision = revision, useCount = checked(useBefore + 1) });
-            if (kind == CharacterSkillActivationKind.AutomaticUltimate)
-                limits.MarkUsed(request.UltimateDomain, request.TriggerSerial);
+                ownerRevision = revision, useCount = checked(useBefore + 1) },
+                request.UltimateDomain, request.TriggerSerial,
+                kind == CharacterSkillActivationKind.AutomaticUltimate);
             if (changed.Length == 0) changed = new[] { targets.Single(target => target.CharacterId == sourceId) };
             var recipientFacts = changed.OrderBy(target => target.CharacterId, StringComparer.Ordinal)
                 .Select(target => new CharacterSkillActivationRecipientFactData
@@ -385,8 +381,8 @@ public sealed class CharacterSkillActivationTransaction :
                 recipientFacts, request.ChildPublicationKeys, request.TriggerEventId, eventKey, request.UltimateDomain, request.TriggerSerial);
             if (!facts.TryReserve(fact, out lease, out failureReason)) return false;
             string reservedKey = lease.PublicationKey;
-            limits.activationSequence = revision;
-            limits.lastSkillActivation = CapturePendingMirror(fact, reservedKey);
+            source.Progression.RecordSkillActivationCommit(
+                revision, CapturePendingMirror(fact, reservedKey));
             var delivered = publications.PublishApplied(fact, lease);
             retained = delivered.MayBeCommitted;
             if (!retained) { failureReason = delivered.Detail; return false; }
@@ -628,8 +624,7 @@ public sealed class CharacterSkillActivationTransaction :
 
         try
         {
-            limits = RequireLimits(source);
-            limits.automaticSkillActivations.Add(
+            source.Progression.RecordAutomaticSkillUse(
                 new CharacterAutomaticSkillActivationState
                 {
                     eventKeySha256 = state.EventKey,
@@ -638,12 +633,8 @@ public sealed class CharacterSkillActivationTransaction :
                     activationKind = state.Request.ActivationKind,
                     ownerRevision = state.Revision,
                     useCount = state.UseCountBefore + 1
-                });
-            limits.MarkUsed(
-                state.Request.UltimateDomain,
-                state.Request.TriggerSerial);
-            limits.activationSequence = state.Revision;
-            limits.lastSkillActivation =
+                }, state.Request.UltimateDomain, state.Request.TriggerSerial, true);
+            source.Progression.RecordSkillActivationCommit(state.Revision,
                 new CharacterSkillActivationCommitState
                 {
                     ownerRevision = state.Revision,
@@ -668,7 +659,7 @@ public sealed class CharacterSkillActivationTransaction :
                     triggerEventKeySha256 = state.EventKey,
                     ultimateDomain = state.Request.UltimateDomain,
                     triggerSerial = state.Request.TriggerSerial
-                };
+                });
             state.PreparedFact = fact;
             state.Lease = lease;
             prepared = new PreparedCharacterSkillAppliedActivation(scope, fact, lease);
@@ -717,8 +708,8 @@ public sealed class CharacterSkillActivationTransaction :
             return false;
         }
         bool wasPending = limits.lastSkillActivation.observationPending;
-        limits.lastSkillActivation.canonicalPayloadHash = delivered.Fingerprint;
-        limits.lastSkillActivation.observationPending = false;
+        source.Progression.FinalizeSkillActivationObservation(
+            fact.OwnerRevision, delivered.Fingerprint);
         if (wasPending) source.Progression.PublishSkillActivationChanged();
         return true;
     }
@@ -733,26 +724,8 @@ public sealed class CharacterSkillActivationTransaction :
     {
         foreach (CharacterActor recipient in recipients)
         {
-            CharacterSkillUseLimitState targetLimits = RequireLimits(recipient);
-            targetLimits.manualSkillBuffs ??=
-                new List<CharacterManualSkillBuffState>();
-            targetLimits.manualSkillBuffs.RemoveAll(value => value == null
-                || value.expiresAbsoluteHour <= absoluteHour
-                || (string.Equals(
-                        value.sourceCharacterId,
-                        sourceId,
-                        StringComparison.Ordinal)
-                    && string.Equals(
-                        value.skillId,
-                        skill.id,
-                        StringComparison.Ordinal)));
-            targetLimits.manualSkillBuffs.Add(new CharacterManualSkillBuffState
-            {
-                sourceCharacterId = sourceId,
-                skillId = skill.id,
-                expiresAbsoluteHour = expiresAbsoluteHour,
-                frozenSkill = skill.Clone()
-            });
+            recipient.Progression.ApplyManualSkillBuff(
+                sourceId, skill, absoluteHour, expiresAbsoluteHour);
             effects.Execute(
                 new CharacterSkillExecutionContext(
                     source,
@@ -774,7 +747,7 @@ public sealed class CharacterSkillActivationTransaction :
         CharacterSkillInstance skill = request.Skill;
         if (source == null || source.IsDead)
             failureReason = "skill-activation-source-unavailable";
-        else if (source.Progression?.GrowthState == null)
+        else if (source.Progression == null)
             failureReason = "skill-activation-source-progression-unavailable";
         else if (skill == null || !skill.IsReady)
             failureReason = "skill-activation-skill-unavailable";
@@ -997,10 +970,9 @@ public sealed class CharacterSkillActivationTransaction :
 
         internal void Rollback()
         {
-            if (hasActorSnapshot && actor?.Progression?.GrowthState != null)
+            if (hasActorSnapshot && actor?.Progression != null)
             {
-                actor.Progression.GrowthState.useLimits =
-                    limitsBefore.Clone();
+                actor.Progression.RestoreSkillUseLimits(limitsBefore);
                 actor.Stats?.RestoreMoodDeliveryTransactionState(
                     statsBefore,
                     publish: true);
@@ -1146,7 +1118,7 @@ public sealed class CharacterSkillActivationTransaction :
         failureReason = string.Empty;
         if (request.Source == null || request.Source.IsDead)
             failureReason = "skill-activation-source-unavailable";
-        else if (request.Source.Progression?.GrowthState == null)
+        else if (request.Source.Progression == null)
             failureReason = "skill-activation-source-progression-unavailable";
         else if (request.Skill == null || !request.Skill.IsReady)
             failureReason = "skill-activation-skill-unavailable";
@@ -1335,12 +1307,10 @@ public sealed class CharacterSkillActivationTransaction :
     private static CharacterSkillUseLimitState RequireLimits(
         CharacterActor actor)
     {
-        if (actor?.Progression?.GrowthState == null)
+        if (actor?.Progression == null)
             throw new InvalidOperationException(
                 "Character progression state is unavailable.");
-        actor.Progression.GrowthState.useLimits ??=
-            new CharacterSkillUseLimitState();
-        return actor.Progression.GrowthState.useLimits;
+        return actor.Progression.CaptureSkillUseLimits();
     }
 
     private static CharacterStats RequireStats(CharacterActor actor) =>
@@ -1366,8 +1336,8 @@ public sealed class CharacterSkillActivationTransaction :
         foreach (KeyValuePair<CharacterActor, CharacterSkillUseLimitState> pair
                  in limitBefore)
         {
-            if (pair.Key?.Progression?.GrowthState != null)
-                pair.Key.Progression.GrowthState.useLimits = pair.Value.Clone();
+            if (pair.Key?.Progression != null)
+                pair.Key.Progression.RestoreSkillUseLimits(pair.Value);
         }
         foreach (KeyValuePair<CharacterActor,
                      CharacterMoodDeliveryTransactionSnapshot> pair in

@@ -1461,7 +1461,7 @@ public static class V27CharacterPerformanceDebugScenarios
             "prepared");
         actor.RefreshAbilityCache();
         actor.Initialize(data);
-        actor.Progression.GrowthState.traitIds = new List<int>();
+        CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(actor.Progression).traitIds = new List<int>();
         actor.SetLifecycleState(CharacterLifecycleState.Active);
         // The fixture is already active before the runtime scope is injected, so its
         // first OnEnable cannot publish into the live registries. Reconcile through the
@@ -1710,7 +1710,7 @@ public static class V27CharacterPerformanceDebugScenarios
                         1,
                         Array.Empty<EventAlertChoice>())));
 
-            actor.Progression.GrowthState.traitIds = new List<int> { 218 };
+            CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(actor.Progression).traitIds = new List<int> { 218 };
             CharacterRelationshipMemoryService relationships = scope.Container
                 .Resolve<CharacterRelationshipMemoryService>();
             relationships.Remember(
@@ -1772,7 +1772,7 @@ public static class V27CharacterPerformanceDebugScenarios
                 originalHunger - actor.Stats.GetConditionValue(
                     CharacterCondition.HUNGER,
                     originalHunger));
-            actor.Progression.GrowthState.traitIds = originalTraits;
+            CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(actor.Progression).traitIds = originalTraits;
         }
         Debug.Log(
             "V27_CHARACTER_PERFORMANCE_CONSUMER_AUDIT=RUNNING; "

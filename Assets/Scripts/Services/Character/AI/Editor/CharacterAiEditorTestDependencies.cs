@@ -833,6 +833,18 @@ internal static class CharacterAiEditorTestDependencies
         }
     }
 
+    public static CharacterGrowthState GetOwnedGrowthForFixture(CharacterProgression progression)
+    {
+        if (progression == null)
+            throw new ArgumentNullException(nameof(progression));
+        var field = typeof(CharacterProgression).GetField(
+            "growthState",
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
+            ?? throw new MissingFieldException("CharacterProgression.growthState");
+        return field.GetValue(progression) as CharacterGrowthState
+            ?? throw new InvalidOperationException("Character progression fixture has no owned growth state.");
+    }
+
     internal static void EnsureCharacterProgression(GameObject actorObject)
     {
         if (actorObject == null)
@@ -855,11 +867,11 @@ internal static class CharacterAiEditorTestDependencies
                 GameContent,
                 new CharacterRuntimeProfileFactory(GameContent)),
             GameEvents, SkillEvidenceUse, SkillAcquisitionFacts, SkillAcquisitions);
-        progression.GrowthState.traitSelectionAuthorityVersion =
+        CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(progression).traitSelectionAuthorityVersion =
             CharacterGrowthState.CurrentTraitSelectionAuthorityVersion;
-        progression.GrowthState.traitSelectionAuthorityOrigin =
+        CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(progression).traitSelectionAuthorityOrigin =
             CharacterTraitSelectionAuthorityOrigin.PreparedSelection;
-        progression.GrowthState.traitIds ??= new List<int>();
+        CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(progression).traitIds ??= new List<int>();
     }
 
     internal static void InjectCharacterStats(
@@ -2297,6 +2309,14 @@ internal static class CharacterAiEditorTestDependencies
             out DomainFailure failure)
         {
             order = null;
+            failure = Unavailable();
+            return false;
+        }
+
+        public bool TrySetSocietyResponseBinding(
+            string orderId, string expectedOperationId, string operationId,
+            string receiptId, out DomainFailure failure)
+        {
             failure = Unavailable();
             return false;
         }

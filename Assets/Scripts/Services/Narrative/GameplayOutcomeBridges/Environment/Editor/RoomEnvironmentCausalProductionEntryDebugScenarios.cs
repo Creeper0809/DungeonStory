@@ -306,11 +306,11 @@ public static class RoomEnvironmentCausalProductionEntryDebugScenarios
             cleanSnapshot = evaluator.Evaluate(
                 roomWorld.Grid,
                 roomWorld.GetMainRoom());
-            roomWorld.MainFixture.FacilityState.cleanliness = 0f;
+            roomWorld.MainFixture.SetCleanliness(0f);
             dirtySnapshot = evaluator.Evaluate(
                 roomWorld.Grid,
                 roomWorld.GetMainRoom());
-            roomWorld.MainFixture.FacilityState.cleanliness = 100f;
+            roomWorld.MainFixture.SetCleanliness(100f);
             Require(!Mathf.Approximately(
                     cleanSnapshot.Cleanliness,
                     dirtySnapshot.Cleanliness),
@@ -497,7 +497,7 @@ public static class RoomEnvironmentCausalProductionEntryDebugScenarios
             ThrowIfDisposed();
             if (stage != 1)
                 return false;
-            roomWorld.MainFixture.FacilityState.cleanliness = 0f;
+            roomWorld.MainFixture.SetCleanliness(0f);
             int exactBefore = ExactOutcomeCount();
             bool applied = service.Apply(new RoomEnvironmentExperienceEvent(
                 actor,
@@ -644,8 +644,7 @@ public static class RoomEnvironmentCausalProductionEntryDebugScenarios
                 throw new InvalidOperationException(
                     "Room-environment facility cleanliness is invalid.");
             }
-            roomWorld.MainFixture.FacilityState.cleanliness =
-                facilityCleanliness;
+            roomWorld.MainFixture.SetCleanliness(facilityCleanliness);
             RoomEnvironmentOutcomeSaveData outcomeState =
                 Deserialize<RoomEnvironmentOutcomeSaveData>(
                     outcomeJson,

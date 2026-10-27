@@ -34,6 +34,13 @@ public static class R18MedicalPolicyReferenceDebugScenarios
             "R18_MEDICAL_POLICY_REFERENCES=PASS; procedure family rejection; condition family fallback; policy registry rejection; repair retry; unchanged source");
     }
 
+    public static void RunR28ForAutomation()
+    {
+        VerifyInspectorGUI();
+        OwnerScopedContentReferenceDebugScenarios.RunR28ForAutomation();
+        Debug.Log("R28_REFERENCE_SELECTION=PASS; resolved fixed keys; pending local owners; source preserved");
+    }
+
     // Invoke only through the isolated batch-mode Inspector contract runner.
     public static void VerifyInspectorGUI()
     {
@@ -54,13 +61,15 @@ public static class R18MedicalPolicyReferenceDebugScenarios
                     StringComparison.Ordinal));
         CharacterTraitSO traitSource = content.GetAll<CharacterTraitSO>()
             .Single(value => value.id == 301);
+        CharacterTraitSO needTraitSource = content.GetAll<CharacterTraitSO>()
+            .Single(value => value.id == CharacterTraitIdentityRuleContract.RitualFastingTraitId);
         DungeonFactionDefinitionSO factionSource =
             content.GetAll<DungeonFactionDefinitionSO>()
                 .OrderBy(value => value.StableId, StringComparer.Ordinal)
                 .First();
         ScriptableObject[] sources =
         {
-            effectSource, procedureSource, traitSource, factionSource
+            effectSource, procedureSource, traitSource, factionSource, needTraitSource
         };
         SourceSnapshot[] snapshots = sources.Select(SourceSnapshot.Capture)
             .ToArray();
@@ -90,6 +99,7 @@ public static class R18MedicalPolicyReferenceDebugScenarios
             VerifyGameplayEffectTargetInspector(window, effect);
             VerifyProcedureFamilyInspector(window, procedure, content);
             VerifyFixedTraitRuleInspector(window, trait);
+            VerifyFixedTraitRuleInspector(window, (CharacterTraitSO)clones[4]);
             VerifyFactionPolicyInspector(window, faction);
 
             Require(window.DrawCount >= 6,
@@ -181,40 +191,55 @@ public static class R18MedicalPolicyReferenceDebugScenarios
         CharacterTraitSO trait)
     {
         using SerializedObject serialized = new(trait);
-        SerializedProperty rule = RequireProperty(
-            serialized,
-            "identityRules.Array.data[0]");
-        SerializedProperty ruleId = rule.FindPropertyRelative("ruleId")
-            ?? throw new InvalidOperationException(
-                "Trait 301 ruleId property was not found.");
-        Require(rule.managedReferenceValue != null,
-            "Trait 301 has no identity rule instance.");
-        Require(CharacterTraitIdentityRuleContract.TryGetExpectedKey(
-                trait.id,
-                rule.managedReferenceValue.GetType(),
-                ruleId.name,
-                out string expected),
-            "Trait 301 did not expose its fixed rule contract.");
-        ContentReferenceAttribute requested = new(
-            ContentReferenceKind.FixedTraitRule);
-        ContentReferenceAttribute resolved =
-            ContentReferenceSelection.ResolveReference(requested, ruleId);
-        string[] aliases = (resolved?.Aliases ?? string.Empty)
-            .Split(new[] { '|' }, StringSplitOptions.RemoveEmptyEntries);
-        Require(resolved?.Kind == ContentReferenceKind.FixedTraitRule
-                && aliases.Length == 1
-                && string.Equals(
-                    aliases[0],
-                    expected,
-                    StringComparison.Ordinal)
-                && ContentReferenceSelection.Entries(resolved, ruleId).Count == 0,
-            "Trait 301 did not expose exactly one fixed rule candidate.");
-        DrawProbe(window, ruleId, "trait 301 fixed identity rule");
-        Require(string.Equals(
-                ruleId.stringValue,
-                expected,
-                StringComparison.Ordinal),
-            "Drawing the fixed trait rule changed its contract key.");
+        SerializedProperty rules = RequireProperty(serialized, "identityRules");
+        string before = EditorJsonUtility.ToJson(trait);
+        int checkedFields = 0;
+        bool checkedNeed = false;
+        for (int index = 0; index < rules.arraySize; index++)
+        {
+            SerializedProperty rule = rules.GetArrayElementAtIndex(index);
+            if (rule.managedReferenceValue == null) continue;
+            foreach (string member in new[] { "ruleId", "needId" })
+            {
+                if (!CharacterTraitIdentityRuleContract.TryGetExpectedKey(trait.id,
+                        rule.managedReferenceValue.GetType(), member, out string expected))
+                    continue;
+                SerializedProperty key = rule.FindPropertyRelative(member);
+                Require(key != null && key.stringValue == expected,
+                    $"Trait {trait.id} has no expected {member} fixture.");
+                ContentReferenceAttribute requested = new(ContentReferenceKind.FixedTraitRule);
+                ContentReferenceAttribute resolved = ContentReferenceSelection.ResolveReference(requested, key);
+                Require(resolved?.Kind == ContentReferenceKind.FixedTraitRule,
+                    "Fixed reference did not resolve to its declared kind.");
+                var candidates = ContentReferenceSelection.Entries(resolved, key);
+                var options = ContentReferenceSelection.PopupOptions(requested, resolved, candidates);
+                Require(candidates.Count == 0 && options.Count == 2
+                        && options.Count(value => value.Id == expected) == 1
+                        && ContentReferenceSelection.IsCurrentValid(requested, resolved, expected, candidates)
+                        && !ContentReferenceSelection.IsCurrentValid(requested, resolved, "unknown-fixed-key", candidates),
+                    "Actual fixed-reference popup or valid-state calculation lost its resolved key.");
+                DrawProbe(window, key, $"trait {trait.id} fixed {member}");
+                Require(key.stringValue == expected, "Drawing changed the fixed key.");
+
+                Require(!ContentIdentityProtection.IsPublished(key, out _),
+                    "The temporary fixed-key fixture must be unpublished.");
+                key.stringValue = string.Empty;
+                candidates = ContentReferenceSelection.Entries(resolved, key);
+                options = ContentReferenceSelection.PopupOptions(requested, resolved, candidates);
+                Require(options.Any(value => value.Id == expected)
+                        && ContentReferenceSelection.IsCurrentValid(requested, resolved, key.stringValue, candidates),
+                    "An unpublished blank fixed-key field has no valid expected-key option.");
+                DrawProbe(window, key, "blank unpublished fixed key");
+                ContentReferenceSelection.WriteId(key, resolved.Kind,
+                    options.Single(value => value.Id == expected).Id, resolved.EmptyNumericId);
+                Require(key.stringValue == expected && EditorJsonUtility.ToJson(trait) == before,
+                    "Fixed-key selection applied pending data or selected the wrong key.");
+                checkedFields++;
+                checkedNeed |= member == "needId";
+            }
+        }
+        Require(checkedFields > 0 && (trait.id != CharacterTraitIdentityRuleContract.RitualFastingTraitId || checkedNeed),
+            "Fixed-key coverage missed ruleId or ritual needId.");
     }
 
     private static void VerifyFactionPolicyInspector(

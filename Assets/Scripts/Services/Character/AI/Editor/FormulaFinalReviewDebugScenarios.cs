@@ -242,12 +242,12 @@ public static class FormulaFinalReviewDebugScenarios
             try { CharacterSkillFormulaGeneration.ValidateRestoredFormulaSkill(tampered, settings); }
             catch (InvalidOperationException) { rejected = true; }
             Require(rejected, "Unknown formula authorities must not be accepted on restore.");
-            actor.Progression.GrowthState.activeSkills.Add(skill);
+            CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(actor.Progression).activeSkills.Add(skill);
             string frozen = JsonUtility.ToJson(skill);
             skill = JsonUtility.FromJson<CharacterSkillInstance>(frozen);
             CharacterSkillFormulaGeneration.ValidateRestoredFormulaSkill(skill, settings);
-            actor.Progression.GrowthState.activeSkills.Clear();
-            actor.Progression.GrowthState.activeSkills.Add(skill);
+            CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(actor.Progression).activeSkills.Clear();
+            CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(actor.Progression).activeSkills.Add(skill);
             Require(CharacterSkillDrawbackEffectSourceProjection.Project(actor.Progression).Count == 0,
                 "Serialized absent stat burden was projected as a gameplay effect.");
             Require(CharacterManualSkillRuntime.TryActivateForExpedition(actor, skill.id, null,
@@ -301,7 +301,7 @@ public static class FormulaFinalReviewDebugScenarios
                 CharacterSkillKind.Ultimate, CharacterSkillTrigger.InvasionStarted,
                 CharacterUltimateDomain.Defense, settings.FindModule(id)),
                 "Supported defense formula capability was removed: " + id);
-        actor.Progression.GrowthState.passiveSkills.Clear();
+        CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(actor.Progression).passiveSkills.Clear();
         actor.Progression.RecordNarrative(CharacterNarrativeDomain.Work, "work:repair", "facility:qa",
             CharacterActivityOutcomes.Completed, day: 1);
         CharacterSkillInstance Resolve(CharacterSkillKind kind, CharacterSkillTrigger trigger)
@@ -339,7 +339,7 @@ public static class FormulaFinalReviewDebugScenarios
         }
         float Magnitude(CharacterSkillInstance skill) => CharacterSkillFormulaGeneration.RequireParameter(skill, "work_speed", "magnitude", settings);
         CharacterSkillInstance manual = Resolve(CharacterSkillKind.Active, CharacterSkillTrigger.ManualWork);
-        actor.Progression.GrowthState.activeSkills.Add(manual);
+        CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(actor.Progression).activeSkills.Add(manual);
         Require(actor.TryGetAbility(out AbilityWork work) && CharacterAiEditorTestDependencies.GameCalendar != null,
             "Fixture lacks the injected game clock.");
         Require(CharacterManualSkillRuntime.TryActivateForExpedition(actor, manual.id, null, new[] { actor },
@@ -347,22 +347,22 @@ public static class FormulaFinalReviewDebugScenarios
             activation.Transaction, out string message),
             "Manual work-speed activation failed: " + message);
         AssertWork(Magnitude(manual), "v6-manual-once");
-        actor.Progression.GrowthState.useLimits.manualSkillBuffs.Clear();
-        actor.Progression.GrowthState.activeSkills.Clear();
+        CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(actor.Progression).useLimits.manualSkillBuffs.Clear();
+        CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(actor.Progression).activeSkills.Clear();
         CharacterSkillInstance ultimate = Resolve(CharacterSkillKind.Ultimate, CharacterSkillTrigger.OperatingDayStarted);
-        actor.Progression.GrowthState.ultimate = ultimate;
-        actor.Progression.GrowthState.useLimits.managementOperatingDay = 0;
+        CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(actor.Progression).ultimate = ultimate;
+        CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(actor.Progression).useLimits.managementOperatingDay = 0;
         AssertWork(Magnitude(ultimate), "v6-ultimate-once");
         CharacterSkillInstance archived = ultimate.Clone();
         archived.formulaVersion = 5;
         archived.formulaCatalogSha256 = "adb5e6fea3a46e2e33e1e03bb89120a923811d7099f3b9c5b6fea99397b76333";
         CharacterSkillFormulaGeneration.ValidateRestoredFormulaSkill(archived, settings);
-        actor.Progression.GrowthState.ultimate = archived;
+        CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(actor.Progression).ultimate = archived;
         AssertWork(2f * Magnitude(archived), "v5-ultimate-preserved");
-        actor.Progression.GrowthState.ultimate = null;
+        CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(actor.Progression).ultimate = null;
         CharacterSkillInstance start = Resolve(CharacterSkillKind.Passive, CharacterSkillTrigger.WorkStarted);
         CharacterSkillInstance complete = Resolve(CharacterSkillKind.Passive, CharacterSkillTrigger.WorkCompleted);
-        actor.Progression.GrowthState.passiveSkills.AddRange(new[] { start, complete });
+        CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(actor.Progression).passiveSkills.AddRange(new[] { start, complete });
         AssertWork(Magnitude(start) + Magnitude(complete), "distinct-passives-once-each");
         Debug.Log("FormulaFinalReview: context fail-closed and real work-speed v6 single/v5 legacy/passive contributions passed.");
         return true;

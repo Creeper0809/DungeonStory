@@ -121,6 +121,7 @@ MonoBehaviour:
           supplyPerActivation: 1
           initialSupply: 1
           requiresPower: 0
+          requiresAutomaticControl: 1
           powerDemand: 0
           conditionLossPerActivation: 0.8
           baseJamChance: 0.01

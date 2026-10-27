@@ -1,0 +1,24 @@
+{
+  "priorStatus": {
+    "phase": "repair-project-verified",
+    "label": "r217r28",
+    "file_count": 21746,
+    "removed": [],
+    "drift": []
+  },
+  "newStatus": {
+    "phase": "repair-project-verified",
+    "label": "r218r28",
+    "file_count": 21746,
+    "removed": [],
+    "drift": []
+  },
+  "changes": [
+    {
+      "path": "Assets/Scripts/Services/Combat/Editor/CharacterAiAutonomousMedicalPlayModeVerifier.cs",
+      "oldSha256": "481b2ee9e4982068b9f820172553331fc2a764d52e906626342b8a4712315cd1",
+      "newSha256": "96a84bc18f6511b697ca768e2f877555259211d667d792d2303f361947e9831c"
+    }
+  ],
+  "backup": "/home/vulpo/codex-unity-validation-20261021/r28-source-backups/r218r28"
+}

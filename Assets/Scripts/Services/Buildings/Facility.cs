@@ -607,7 +607,7 @@ public class Facility : BuildableObject,
         }
         // Test/presentation ports can commit synchronously without using the
         // persistent outbox. Its production owner removes this atomically too.
-        FacilityState.activeUses.RemoveAll(value =>
+        OwnedFacilityState.activeUses.RemoveAll(value =>
             value.operationSequence == facilityUseReceipt.OperationSequence);
         if (!facilityUseCommit.DurablyCommitted)
         {
@@ -829,7 +829,7 @@ public class Facility : BuildableObject,
     }
 
     internal FacilityUseExecutionState FindActiveUse(string actorId) =>
-        FacilityState.activeUses.SingleOrDefault(value => value.actorId == actorId);
+        OwnedFacilityState.activeUses.SingleOrDefault(value => value.actorId == actorId);
 
     private FacilityUseExecutionState BeginExecution(
         IBuildingVisitorPort actor, ServiceSessionSnapshot session)
@@ -852,7 +852,7 @@ public class Facility : BuildableObject,
                 ? session.Contract.serviceSeconds : Facility != null ? Facility.useDuration : 1f)
                 * before.StayDurationMultiplier
         };
-        FacilityState.activeUses.Add(state);
+        OwnedFacilityState.activeUses.Add(state);
         MarkFacilityDynamicStateDirty();
         return state;
     }
@@ -1095,7 +1095,7 @@ public class Facility : BuildableObject,
             EndUse(actor);
             result = RecordFacilityUse(actor, receipt);
         }
-        FacilityState.activeUses.RemoveAll(value => value.operationSequence == receipt.OperationSequence);
+        OwnedFacilityState.activeUses.RemoveAll(value => value.operationSequence == receipt.OperationSequence);
         if (!result.DurablyCommitted)
         {
             actor?.ReportInteractionFailure(
@@ -1116,11 +1116,11 @@ public class Facility : BuildableObject,
             OperationSequence = state.operationSequence;
         }
 
-        // Other visits can publish a cloned FacilityState while this coroutine
+        // Other visits can publish a cloned OwnedFacilityState while this coroutine
         // is suspended. Always resolve the current owner; never mutate a stale clone.
-        internal FacilityUseExecutionState State => owner.FacilityState.activeUses
+        internal FacilityUseExecutionState State => owner.OwnedFacilityState.activeUses
             .Single(value => value.operationSequence == OperationSequence);
-        internal bool HasActiveOwner => owner.FacilityState.activeUses
+        internal bool HasActiveOwner => owner.OwnedFacilityState.activeUses
             .Any(value => value.operationSequence == OperationSequence);
         internal long OperationSequence { get; }
         internal string OperationId => State.operationId;

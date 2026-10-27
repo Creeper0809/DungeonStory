@@ -1,0 +1,13 @@
+{
+  "label": "r218r28-impact-so-inspector-r28-autonomous-medical",
+  "ownerPid": 363973,
+  "actions": [
+    {
+      "pid": 366550,
+      "start": "1385430902",
+      "sid": 363973
+    }
+  ],
+  "remaining": [],
+  "terminal": true
+}

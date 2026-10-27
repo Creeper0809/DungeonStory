@@ -179,7 +179,8 @@ public sealed class OffenseRegionRuntime :
         EnsureDefaultRegions();
     }
 
-    public IReadOnlyList<OffenseRegionState> Regions => regions;
+    public IReadOnlyList<OffenseRegionState> Regions =>
+        regions.Select(region => region.Clone()).ToArray();
 
     public bool TryApplyTargetPressure(
         OffenseTargetDefinition target,

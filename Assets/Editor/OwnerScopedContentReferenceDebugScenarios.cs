@@ -32,6 +32,212 @@ public static class OwnerScopedContentReferenceDebugScenarios
         Debug.Log("OWNER_SCOPED_CONTENT_REFERENCES=PASS; pending rows; local ownership; structured rejection; repair retry");
     }
 
+    public static void RunR28ForAutomation()
+    {
+        if (!Application.isBatchMode)
+            throw new InvalidOperationException("R28 local reference verification requires isolated batch mode.");
+        IGameContentCatalog content = new ResourceGameContentCatalog(new UnityGameContentRootLoader());
+        AnatomyProfileSO anatomySource = content.GetAll<AnatomyProfileSO>()
+            .First(value => value.Nodes.Count >= 2 && value.Nodes[0] != null && value.Nodes[1] != null);
+        EnemyArchetypeDefinitionSO enemySource = content.GetAll<EnemyArchetypeDefinitionSO>()
+            .First(value => value.abilityIds.Count > 0);
+        ScriptableObject[] sources = { anatomySource, enemySource };
+        string[] sourceJson = sources.Select(EditorJsonUtility.ToJson).ToArray();
+        bool[] sourceDirty = sources.Select(EditorUtility.IsDirty).ToArray();
+        ScriptableObject[] clones = sources.Select(value =>
+        {
+            ScriptableObject clone = Object.Instantiate(value);
+            clone.hideFlags = HideFlags.HideAndDontSave;
+            return clone;
+        }).ToArray();
+        string[] cloneJson = clones.Select(EditorJsonUtility.ToJson).ToArray();
+        ContentReferenceInspectorProbeWindow window =
+            ScriptableObject.CreateInstance<ContentReferenceInspectorProbeWindow>();
+        try
+        {
+            ContentReferenceSelection.Invalidate();
+            window.position = new Rect(0, 0, 720, 240);
+            window.ShowUtility();
+            VerifyPendingAnatomy(window, (AnatomyProfileSO)clones[0]);
+            VerifyPendingBossAbilities(window, (EnemyArchetypeDefinitionSO)clones[1]);
+            for (int index = 0; index < clones.Length; index++)
+                Require(EditorJsonUtility.ToJson(clones[index]) == cloneJson[index],
+                    "R28 pending/Undo verification changed its clone.");
+            Debug.Log("R28_LOCAL_REFERENCE_SELECTION=PASS; anatomy add rename delete; self parent; attachment; boss owner; mixed; undo");
+        }
+        finally
+        {
+            window.Property = null;
+            window.Close();
+            if (window != null) Object.DestroyImmediate(window);
+            foreach (ScriptableObject clone in clones)
+            {
+                Undo.ClearUndo(clone);
+                Object.DestroyImmediate(clone);
+            }
+            for (int index = 0; index < sources.Length; index++)
+                Require(EditorJsonUtility.ToJson(sources[index]) == sourceJson[index]
+                        && EditorUtility.IsDirty(sources[index]) == sourceDirty[index],
+                    "R28 local selection changed a source asset or its dirty state.");
+        }
+    }
+
+    private static void VerifyPendingAnatomy(ContentReferenceInspectorProbeWindow window, AnatomyProfileSO anatomy)
+    {
+        const string addedId = "r28-pending-node";
+        const string renamedId = "r28-renamed-node";
+        string before = EditorJsonUtility.ToJson(anatomy);
+        string originalId = anatomy.Nodes[0].NodeId;
+        ContentReferenceAttribute reference = new(ContentReferenceKind.AnatomyNode);
+        using SerializedObject serialized = new(anatomy);
+        SerializedProperty nodes = RequireProperty(serialized, "nodes");
+        int addedIndex = nodes.arraySize++;
+        SerializedProperty added = nodes.GetArrayElementAtIndex(addedIndex);
+        added.FindPropertyRelative("nodeId").stringValue = addedId;
+        added.FindPropertyRelative("parentNodeId").stringValue = addedId;
+        SerializedProperty parent = nodes.GetArrayElementAtIndex(0).FindPropertyRelative("parentNodeId");
+        parent.stringValue = addedId;
+        var candidates = ContentReferenceSelection.Entries(reference, parent);
+        Require(candidates.Any(value => value.Id == addedId)
+                && candidates.All(value => value.Id != originalId),
+            "Pending anatomy addition was missing or the owner was offered as its own parent.");
+        Require(ContentReferenceSelection.IsCurrentValid(reference, reference, addedId, candidates),
+            "Pending anatomy parent was marked invalid by the drawer.");
+        DrawProbe(window, parent, "pending anatomy parent");
+        SerializedProperty selfParent = added.FindPropertyRelative("parentNodeId");
+        candidates = ContentReferenceSelection.Entries(reference, selfParent);
+        Require(candidates.All(value => value.Id != addedId)
+                && !ContentReferenceSelection.IsCurrentValid(reference, reference, addedId, candidates),
+            "An anatomy node was allowed to select itself as parent.");
+        DrawProbe(window, selfParent, "self-parent rejection");
+
+        SerializedProperty attachments = RequireProperty(serialized, "apparelAttachments");
+        int attachmentIndex = attachments.arraySize++;
+        SerializedProperty attachment = attachments.GetArrayElementAtIndex(attachmentIndex).FindPropertyRelative("nodeId");
+        attachment.stringValue = addedId;
+        candidates = ContentReferenceSelection.Entries(reference, attachment);
+        Require(candidates.Any(value => value.Id == addedId)
+                && ContentReferenceSelection.IsCurrentValid(reference, reference, addedId, candidates),
+            "A normal apparel attachment lost its pending node reference.");
+        DrawProbe(window, attachment, "pending anatomy attachment");
+
+        nodes.GetArrayElementAtIndex(addedIndex).FindPropertyRelative("nodeId").stringValue = renamedId;
+        candidates = ContentReferenceSelection.Entries(reference, parent);
+        Require(candidates.Any(value => value.Id == renamedId)
+                && candidates.All(value => value.Id != addedId)
+                && !ContentReferenceSelection.IsCurrentValid(reference, reference, parent.stringValue, candidates),
+            "Pending anatomy rename retained the old candidate or hid the new one.");
+        var options = ContentReferenceSelection.PopupOptions(reference, reference, candidates);
+        ContentReferenceSelection.WriteId(parent, reference.Kind, options.Single(value => value.Id == renamedId).Id);
+        Require(parent.stringValue == renamedId, "Anatomy popup selection did not write its pending ID.");
+        DrawProbe(window, parent, "renamed anatomy candidate");
+        int blankIndex = nodes.arraySize++;
+        nodes.GetArrayElementAtIndex(blankIndex).FindPropertyRelative("nodeId").stringValue = string.Empty;
+        candidates = ContentReferenceSelection.Entries(reference, parent);
+        Require(candidates.All(value => value.Id.Length > 0)
+                && ContentReferenceSelection.PopupOptions(reference, reference, candidates).Count(value => value.Id.Length == 0) == 1,
+            "A blank pending anatomy row became an extra None option.");
+        nodes.DeleteArrayElementAtIndex(addedIndex);
+        candidates = ContentReferenceSelection.Entries(reference, parent);
+        Require(candidates.All(value => value.Id != renamedId)
+                && !ContentReferenceSelection.IsCurrentValid(reference, reference, parent.stringValue, candidates),
+            "A deleted pending anatomy node remained selectable.");
+        DrawProbe(window, parent, "deleted anatomy candidate");
+        Require(parent.stringValue == renamedId && EditorJsonUtility.ToJson(anatomy) == before,
+            "Anatomy selection cleared an invalid ID or applied pending changes.");
+        serialized.Update();
+
+        Undo.IncrementCurrentGroup();
+        int undoGroup = Undo.GetCurrentGroup();
+        RequireProperty(serialized, "nodes.Array.data[0].nodeId").stringValue = renamedId;
+        Require(serialized.ApplyModifiedProperties(), "Anatomy Undo probe did not change its temporary clone.");
+        Undo.CollapseUndoOperations(undoGroup);
+        Undo.FlushUndoRecordObjects();
+        Undo.PerformUndo();
+        serialized.Update();
+        parent = RequireProperty(serialized, "nodes.Array.data[1].parentNodeId");
+        candidates = ContentReferenceSelection.Entries(reference, parent);
+        Require(candidates.Any(value => value.Id == originalId)
+                && candidates.All(value => value.Id != renamedId)
+                && EditorJsonUtility.ToJson(anatomy) == before,
+            "Undo did not restore anatomy candidates and clone data.");
+        DrawProbe(window, parent, "anatomy after Undo");
+        VerifyMixedLocalReference(window, anatomy, reference, parent.propertyPath);
+    }
+
+    private static void VerifyPendingBossAbilities(ContentReferenceInspectorProbeWindow window, EnemyArchetypeDefinitionSO enemy)
+    {
+        string before = EditorJsonUtility.ToJson(enemy);
+        string previous = enemy.abilityIds[0];
+        ContentReferenceAttribute reference = new(ContentReferenceKind.EnemyAbility);
+        ContentReferenceSelection.Entry alternate = ContentReferenceSelection.Entries(reference)
+            .First(value => !enemy.abilityIds.Contains(value.Id));
+        using SerializedObject serialized = new(enemy);
+        SerializedProperty owned = RequireProperty(serialized, "abilityIds");
+        owned.arraySize = 1;
+        owned.GetArrayElementAtIndex(0).stringValue = alternate.Id;
+        SerializedProperty phases = RequireProperty(serialized, "bossPhases");
+        phases.arraySize = Math.Max(1, phases.arraySize);
+        SerializedProperty phaseAbilities = phases.GetArrayElementAtIndex(0).FindPropertyRelative("abilityIds");
+        phaseAbilities.arraySize = 1;
+        SerializedProperty selected = phaseAbilities.GetArrayElementAtIndex(0);
+        selected.stringValue = previous;
+        var candidates = ContentReferenceSelection.Entries(reference, selected);
+        Require(candidates.Count == 1 && candidates[0].Id == alternate.Id
+                && !ContentReferenceSelection.IsCurrentValid(reference, reference, previous, candidates),
+            "Boss phase selection did not use the pending owner ability list.");
+        Require(ContentReferenceSelection.TryAssign(selected, reference, alternate.Asset, out string selectionError),
+            "Pending boss ability assignment failed: " + selectionError);
+        Require(selected.stringValue == alternate.Id
+                && ContentReferenceSelection.IsCurrentValid(reference, reference, selected.stringValue, candidates),
+            "Boss selection and the drawer's valid-state calculation disagree.");
+        DrawProbe(window, selected, "pending boss ability replacement");
+        owned.arraySize = 0;
+        candidates = ContentReferenceSelection.Entries(reference, selected);
+        Require(candidates.Count == 0
+                && !ContentReferenceSelection.TryAssign(selected, reference, alternate.Asset, out _)
+                && selected.stringValue == alternate.Id,
+            "A removed owner ability remained selectable or rejection cleared the old ID.");
+        DrawProbe(window, selected, "pending boss ability deletion");
+        owned.arraySize = 1;
+        owned.GetArrayElementAtIndex(0).stringValue = string.Empty;
+        Require(ContentReferenceSelection.Entries(reference, selected).Count == 0,
+            "A blank owner ability produced a boss phase candidate.");
+        Require(EditorJsonUtility.ToJson(enemy) == before, "Boss selection applied pending data to its clone.");
+        serialized.Update();
+
+        using SerializedObject mixedSetup = new(enemy);
+        phases = RequireProperty(mixedSetup, "bossPhases");
+        phases.arraySize = Math.Max(1, phases.arraySize);
+        phaseAbilities = phases.GetArrayElementAtIndex(0).FindPropertyRelative("abilityIds");
+        phaseAbilities.arraySize = Math.Max(1, phaseAbilities.arraySize);
+        // Mixed-object queries require an existing common property on both temporary objects.
+        mixedSetup.ApplyModifiedPropertiesWithoutUndo();
+        VerifyMixedLocalReference(window, enemy, reference, "bossPhases.Array.data[0].abilityIds.Array.data[0]");
+        EditorJsonUtility.FromJsonOverwrite(before, enemy);
+        Require(EditorJsonUtility.ToJson(enemy) == before, "Boss mixed-query fixture did not restore its clone.");
+    }
+
+    private static void VerifyMixedLocalReference(ContentReferenceInspectorProbeWindow window,
+        ScriptableObject first, ContentReferenceAttribute reference, string propertyPath)
+    {
+        ScriptableObject second = Object.Instantiate(first);
+        second.hideFlags = HideFlags.HideAndDontSave;
+        try
+        {
+            using SerializedObject mixed = new(new Object[] { first, second });
+            SerializedProperty property = RequireProperty(mixed, propertyPath);
+            string previous = property.stringValue;
+            Require(ContentReferenceSelection.HasMixedContext(reference, property)
+                    && ContentReferenceSelection.Entries(reference, property).Count == 0
+                    && !ContentReferenceSelection.TryAssign(property, reference, null, out _)
+                    && property.stringValue == previous,
+                "Mixed local owners were not blocked.");
+            DrawProbe(window, property, "mixed local owner");
+        }
+        finally { Object.DestroyImmediate(second); }
+    }
+
     // Invoke only through the isolated batch-mode Inspector contract runner.
     public static void VerifyInspectorGUI()
     {

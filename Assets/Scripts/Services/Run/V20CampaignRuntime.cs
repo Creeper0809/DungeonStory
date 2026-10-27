@@ -159,7 +159,7 @@ public sealed class V20CampaignRuntime :
     public bool HasPressure(string milestoneId) =>
         milestoneRuntime.HasPressure(milestoneId);
     public IReadOnlyList<V20ActiveEventSaveData> ActiveSeasonalEvents =>
-        Seasonal.Data.activeEvents.AsReadOnly();
+        Seasonal.Data.activeEvents.Select(value => JsonClone(value)).ToArray();
 
     [GameplayInternalOnly(
         "Commits one immutable exact-count seasonal wildlife arrival plan.",
@@ -516,10 +516,11 @@ public sealed class V20CampaignRuntime :
         string factionId,
         out FactionCampaignStateSaveData state)
     {
-        state = Factions.Data.factions.FirstOrDefault(value => string.Equals(
+        var found = Factions.Data.factions.FirstOrDefault(value => string.Equals(
             value.factionId,
             Normalize(factionId),
             StringComparison.Ordinal));
+        state = found == null ? null : JsonClone(found);
         return state != null;
     }
 

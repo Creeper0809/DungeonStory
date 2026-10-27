@@ -1995,7 +1995,15 @@ public static partial class MigratedProducerEconomyServiceEntryE2EDebugScenarios
             facility.ReleaseTransientCharacterOwnership(Visitor, "qa-suspended-use-cancel");
         }
 
-        internal void RemovePausedOwnerWithoutCancellation() => facility.FacilityState.activeUses.Clear();
+        internal void RemovePausedOwnerWithoutCancellation()
+        {
+            FieldInfo stateField = typeof(BuildableObject).GetField(
+                "facilityState", BindingFlags.Instance | BindingFlags.NonPublic)
+                ?? throw new InvalidOperationException("Facility fault fixture could not locate the owned state.");
+            FacilityRuntimeState state = stateField.GetValue(facility) as FacilityRuntimeState
+                ?? throw new InvalidOperationException("Facility fault fixture has no owned state.");
+            state.activeUses.Clear();
+        }
 
         internal void ResumePausedRoutine()
         {

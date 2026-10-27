@@ -362,7 +362,7 @@ public sealed class CropEcologyAggregateState
     private bool initialSeedGrantIssued;
 
     public IReadOnlyList<CropEcologyPlotSaveData> Plots => plots.Values
-        .OrderBy(value => value.plotId, StringComparer.Ordinal).ToArray();
+        .OrderBy(value => value.plotId, StringComparer.Ordinal).Select(ClonePlot).ToArray();
 
     public bool TryClaimInitialSeedGrant(
         IReadOnlyCollection<string> baseGenomeIds,

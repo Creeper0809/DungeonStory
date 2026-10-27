@@ -35,6 +35,7 @@ public class DefenseFacilityData
     [Min(0)] public int supplyPerActivation = 1;
     [Min(0)] public int initialSupply = 1;
     public bool requiresPower;
+    public bool requiresAutomaticControl;
     [Min(0f)] public float powerDemand;
     [Min(0f)] public float conditionLossPerActivation = 1f;
     [Range(0f, 1f)] public float baseJamChance;

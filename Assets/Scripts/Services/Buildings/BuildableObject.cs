@@ -119,12 +119,14 @@ public class BuildableObject : MonoBehaviour,
     private BuildableObjectSpatialQuery SpatialQuery =>
         spatialQuery ??= new BuildableObjectSpatialQuery(transform, this);
     public int CurrentUserCount => Occupancy.CurrentUserCount;
-    public FacilityRuntimeState FacilityState => facilityState ??= new FacilityRuntimeState();
-    public long SynthesisOutcomeRevision => FacilityState.synthesisOutcomeRevision;
+    public FacilityRuntimeState FacilityState =>
+        (facilityState ?? new FacilityRuntimeState()).Clone();
+    protected FacilityRuntimeState OwnedFacilityState => facilityState ??= new FacilityRuntimeState();
+    public long SynthesisOutcomeRevision => OwnedFacilityState.synthesisOutcomeRevision;
     internal long NextVandalismOperationSequence =>
-        FacilityState.nextVandalismOperationSequence;
+        OwnedFacilityState.nextVandalismOperationSequence;
     internal FacilityVandalismCommitState LastVandalism =>
-        FacilityState.lastVandalism?.Clone()
+        OwnedFacilityState.lastVandalism?.Clone()
         ?? new FacilityVandalismCommitState();
     internal IBuildingWorldRegistryPort WorldRegistry => worldRegistry;
     internal IBuildingItemStackPort WorldItemStackRuntime => worldItemStackRuntime;
@@ -869,7 +871,7 @@ public class BuildableObject : MonoBehaviour,
     public void RestoreFacilityState(FacilityRuntimeState state)
     {
         RequireFacilityUseObservationIdle();
-        StateAndCapabilities.RestoreFacilityState(FacilityState, state);
+        StateAndCapabilities.RestoreFacilityState(OwnedFacilityState, state);
     }
 
     internal void CommitVandalismState(
@@ -880,7 +882,7 @@ public class BuildableObject : MonoBehaviour,
         if (committed.facilityId != RequirePersistentInstanceId().Value
             || committed.operationSequence != NextVandalismOperationSequence)
             throw new InvalidOperationException("Facility vandalism receipt belongs to another owner or sequence.");
-        FacilityRuntimeState candidate = FacilityState.Clone();
+        FacilityRuntimeState candidate = OwnedFacilityState.Clone();
         candidate.nextVandalismOperationSequence = checked(
             committed.operationSequence + 1L);
         candidate.lastVandalism = committed.Clone();
@@ -894,17 +896,17 @@ public class BuildableObject : MonoBehaviour,
 
     public void SetSynthesisOutcomeRevision(long revision) =>
         StateAndCapabilities.SetSynthesisOutcomeRevision(
-            FacilityState,
+            OwnedFacilityState,
             revision);
 
     public void RecordCompletedWorkCycle() =>
-        StateAndCapabilities.RecordCompletedWorkCycle(FacilityState);
+        StateAndCapabilities.RecordCompletedWorkCycle(OwnedFacilityState);
 
     public void SetCleanliness(float value) =>
-        StateAndCapabilities.SetCleanliness(FacilityState, value);
+        StateAndCapabilities.SetCleanliness(OwnedFacilityState, value);
 
     public bool HasFacilityFuelSupply =>
-        FacilityState.remainingFuelGameSeconds > 0f;
+        OwnedFacilityState.remainingFuelGameSeconds > 0f;
 
     internal void ReplaceFacilityFuelState(
         float remainingFuelGameSeconds,
@@ -912,7 +914,7 @@ public class BuildableObject : MonoBehaviour,
         FacilityFuelCommitState pendingFuel)
     {
         FacilityRuntimeState candidate = StateAndCapabilities.ReplaceFuelState(
-            FacilityState,
+            OwnedFacilityState,
             remainingFuelGameSeconds,
             nextFuelOperationSequence,
             pendingFuel);
@@ -922,7 +924,7 @@ public class BuildableObject : MonoBehaviour,
 
     internal float ConsumeFacilityFuelGameSeconds(float requestedSeconds) =>
         StateAndCapabilities.ConsumeFuelGameSeconds(
-            FacilityState,
+            OwnedFacilityState,
             requestedSeconds);
 
     public IReadOnlyList<IBuildingStateModule> GetStateModules() =>
@@ -1391,13 +1393,13 @@ public class BuildableObject : MonoBehaviour,
     internal long AllocateFacilityUseOperationSequence()
     {
         RequireFacilityUseObservationIdle();
-        if (FacilityState.nextUseOperationSequence == long.MaxValue)
+        if (OwnedFacilityState.nextUseOperationSequence == long.MaxValue)
         {
             throw new InvalidOperationException(
                 $"Facility '{RequirePersistentInstanceId().Value}' exhausted use operation identities.");
         }
-        long allocated = FacilityState.nextUseOperationSequence;
-        FacilityState.nextUseOperationSequence = checked(allocated + 1L);
+        long allocated = OwnedFacilityState.nextUseOperationSequence;
+        OwnedFacilityState.nextUseOperationSequence = checked(allocated + 1L);
         MarkFacilityDynamicStateDirty();
         return allocated;
     }
@@ -1408,7 +1410,7 @@ public class BuildableObject : MonoBehaviour,
     {
         if (pending == null)
             throw new ArgumentNullException(nameof(pending));
-        FacilityRuntimeState candidate = FacilityState.Clone();
+        FacilityRuntimeState candidate = OwnedFacilityState.Clone();
         if (candidate.IsUseAcknowledged(pending.operationSequence))
             throw new InvalidOperationException("Facility use was already acknowledged.");
         int index = candidate.pendingUses.FindIndex(value =>
@@ -1441,7 +1443,7 @@ public class BuildableObject : MonoBehaviour,
 
     internal void AcknowledgeFacilityUse(long operationSequence)
     {
-        FacilityRuntimeState candidate = FacilityState.Clone();
+        FacilityRuntimeState candidate = OwnedFacilityState.Clone();
         if (candidate.pendingUses.RemoveAll(value =>
                 value != null && value.operationSequence == operationSequence) == 0)
             return;
@@ -1472,15 +1474,15 @@ public class BuildableObject : MonoBehaviour,
 
     internal void ApplyFacilityUseMutation()
     {
-        if (FacilityState.completedUses == int.MaxValue)
+        if (OwnedFacilityState.completedUses == int.MaxValue)
         {
             throw new InvalidOperationException(
                 $"Facility '{RequirePersistentInstanceId().Value}' cannot record more visits.");
         }
 
-        FacilityState.completedUses = checked(FacilityState.completedUses + 1);
-        FacilityState.cleanliness = Mathf.Clamp(
-            FacilityState.cleanliness - 1.5f,
+        OwnedFacilityState.completedUses = checked(OwnedFacilityState.completedUses + 1);
+        OwnedFacilityState.cleanliness = Mathf.Clamp(
+            OwnedFacilityState.cleanliness - 1.5f,
             0f,
             100f);
         MarkFacilityDynamicStateDirty();

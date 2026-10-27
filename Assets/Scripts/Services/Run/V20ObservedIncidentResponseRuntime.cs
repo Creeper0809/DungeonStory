@@ -254,16 +254,15 @@ internal sealed class V20ObservedIncidentResponseRuntime
                     cancelled: false);
                 return;
             }
-            requested.societyResponseOperationId = response.operationId;
-            requested.societyResponseReceiptId = string.Empty;
+            if (!TryBindMedicalResponse(active, response, requested, string.Empty))
+                return;
             if (!incidentResponses.TryRecordObservedIncidentResponseStarted(
                     active.instanceId,
                     response.operationId,
                     requested.orderId,
                     out string startFailure))
             {
-                requested.societyResponseOperationId = string.Empty;
-                requested.societyResponseReceiptId = string.Empty;
+                ClearMedicalResponseBinding(requested.orderId, response.operationId);
                 TryFailObservedIncidentResponse(
                     active,
                     response,
@@ -313,7 +312,8 @@ internal sealed class V20ObservedIncidentResponseRuntime
             return;
         }
         string receiptId = $"medical-stabilized:{order.orderId}";
-        order.societyResponseReceiptId = receiptId;
+        if (!TryBindMedicalResponse(active, response, order, receiptId))
+            return;
         if (incidentResponses.TryRecordObservedIncidentResponseReceipt(
                 active.instanceId,
                 response.operationId,
@@ -399,16 +399,15 @@ internal sealed class V20ObservedIncidentResponseRuntime
                     return;
                 }
 
-                requested.societyResponseOperationId = response.operationId;
-                requested.societyResponseReceiptId = string.Empty;
+                if (!TryBindMedicalResponse(active, response, requested, string.Empty))
+                    return;
                 if (!incidentResponses.TryRecordObservedIncidentResponseStarted(
                         active.instanceId,
                         response.operationId,
                         requested.orderId,
                         out string startFailure))
                 {
-                    requested.societyResponseOperationId = string.Empty;
-                    requested.societyResponseReceiptId = string.Empty;
+                    ClearMedicalResponseBinding(requested.orderId, response.operationId);
                     TryFailObservedIncidentResponse(
                         active,
                         response,
@@ -579,7 +578,8 @@ internal sealed class V20ObservedIncidentResponseRuntime
             string receiptId = V20ObservedEventEvidenceRules.FormatObservedIncidentTransferReceiptId(
                     order.orderId,
                     customerId);
-            order.societyResponseReceiptId = receiptId;
+            if (!TryBindMedicalResponse(active, response, order, receiptId))
+                return;
             if (incidentResponses.TryRecordObservedIncidentResponseReceipt(
                     active.instanceId,
                     response.operationId,
@@ -895,6 +895,27 @@ internal sealed class V20ObservedIncidentResponseRuntime
              physicalEffectsApplied: false));
     }
 
+    private bool TryBindMedicalResponse(
+        V20ActiveEventSaveData active, ObservedIncidentResponseSaveData response,
+        CharacterMedicalOrder order, string receiptId)
+    {
+        if (medicalCommands.TrySetSocietyResponseBinding(
+                order.orderId, order.societyResponseOperationId,
+                response.operationId, receiptId, out DomainFailure failure))
+            return true;
+        TryFailObservedIncidentResponse(active, response,
+            "medical-response-binding-failed:" + failure.Code, cancelled: false);
+        return false;
+    }
+
+    private void ClearMedicalResponseBinding(string orderId, string operationId)
+    {
+        if (!medicalCommands.TrySetSocietyResponseBinding(
+                orderId, operationId, string.Empty, string.Empty, out DomainFailure failure))
+            throw new InvalidOperationException(
+                "medical-response-binding-release-failed:" + failure.Code);
+    }
+
     internal void ReleaseObservedIncidentResponseProvenance(
         V20ActiveEventSaveData occurrence,
         ObservedIncidentResponseSaveData response,
@@ -915,8 +936,7 @@ internal sealed class V20ObservedIncidentResponseRuntime
                 response.operationId,
                 StringComparison.Ordinal))
         {
-            order.societyResponseOperationId = string.Empty;
-            order.societyResponseReceiptId = string.Empty;
+            ClearMedicalResponseBinding(order.orderId, response.operationId);
         }
         string targetId = occurrence?.observedMealIncident?.targetCharacterId
             ?? string.Empty;

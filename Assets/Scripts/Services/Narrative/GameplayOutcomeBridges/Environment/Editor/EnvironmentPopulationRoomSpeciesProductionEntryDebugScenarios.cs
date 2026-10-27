@@ -217,7 +217,7 @@ public static partial class EnvironmentPopulationRoomSpeciesProductionEntryDebug
                     firstSnapshot.Cleanliness),
                 "First room Apply did not persist its cleanliness baseline and experience sequence.");
 
-            roomWorld.MainFixture.FacilityState.cleanliness = 0f;
+            roomWorld.MainFixture.SetCleanliness(0f);
             RoomInstance secondRoom = roomWorld.GetMainRoom();
             RoomEnvironmentSnapshot secondSnapshot = evaluator.Evaluate(
                 roomWorld.Grid,
@@ -680,7 +680,7 @@ public static partial class EnvironmentPopulationRoomSpeciesProductionEntryDebug
                 BuildingCategory.Special,
                 FacilityRole.Research | FacilityRole.Hygiene,
                 StableBuildingId(stableIdentityScope, "research-desk"));
-            result.MainFixture.FacilityState.cleanliness = 100f;
+            result.MainFixture.SetCleanliness(100f);
             result.MainFixture.BuildingData.Evolution.scores = new[]
             {
                 new FacilityEvolutionValue(FacilityEvolutionTerms.Luxury, 40f)

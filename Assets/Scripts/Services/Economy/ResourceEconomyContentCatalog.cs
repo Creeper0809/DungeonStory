@@ -800,6 +800,31 @@ public sealed class ResourceUsageIndex :
                         : $"{building.objectName} defense supply");
             }
 
+            BuildingFuelConsumerAbility fuel =
+                building.GetAbility<BuildingFuelConsumerAbility>();
+            if (SurvivalFacilityWorkRules.IsEnvironmentalFuelConsumerDefinition(building))
+            {
+                IndexBuildingSupply(
+                    building, fuel.fuelItemId, $"facility-fuel:{building.id}", "연료");
+            }
+
+            BuildingPowerProducerAbility power =
+                building.GetAbility<BuildingPowerProducerAbility>();
+            if (power?.requiresFuel == true)
+            {
+                IndexBuildingSupply(
+                    building, power.fuelItemId, $"power-fuel:{building.id}", "발전 연료");
+            }
+
+            BuildingGolemRechargeAbility recharge =
+                building.GetAbility<BuildingGolemRechargeAbility>();
+            if (recharge != null)
+            {
+                IndexBuildingSupply(
+                    building, recharge.materialItemId,
+                    $"golem-recharge:{building.id}", "골렘 충전");
+            }
+
             BuildingFacilitySupplyAbility supply =
                 building.GetAbility<BuildingFacilitySupplyAbility>();
             if (supply?.profiles == null)
@@ -976,6 +1001,25 @@ public sealed class ResourceUsageIndex :
                     "research:medical:mycelial-grafting");
             }
 
+        }
+    }
+
+    private void IndexBuildingSupply(
+        BuildingSO building,
+        string itemId,
+        string consumerId,
+        string purpose)
+    {
+        if (staticEntries.TryGetValue(itemId ?? string.Empty, out StaticUsage usage))
+        {
+            string name = string.IsNullOrWhiteSpace(building.objectName)
+                ? $"Building {building.id}"
+                : building.objectName;
+            usage.AddConsumer(
+                consumerId,
+                string.Empty,
+                ProductionConsumerKind.FacilitySupply,
+                $"{name} {purpose}");
         }
     }
 

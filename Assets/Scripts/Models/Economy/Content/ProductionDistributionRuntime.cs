@@ -43,6 +43,7 @@ public interface IProductionConsumerDemandProvider
 
 public interface IProductionDistributionQuery
 {
+    bool SupportsConsumerKind(ProductionConsumerKind kind);
     IReadOnlyList<ProductionConsumerRouteState> GetRouteStates(
         ProductionBillId billId);
 }
@@ -129,6 +130,9 @@ public sealed class ProductionDistributionRuntime :
             ?? throw new ArgumentNullException(nameof(routeLifecycle));
         this.clock = clock ?? throw new ArgumentNullException(nameof(clock));
     }
+
+    public bool SupportsConsumerKind(ProductionConsumerKind kind) =>
+        GetProviders(kind).Any();
 
     public void Tick()
     {
@@ -246,6 +250,12 @@ public sealed class ProductionDistributionRuntime :
                 .ToArray();
             if (itemStates.Length == 0)
             {
+                result.Add(new ProductionConsumerRouteState
+                {
+                    policy = policy.Clone(),
+                    displayName = policy.consumerId,
+                    blockedReason = "consumer-definition-unavailable"
+                });
                 continue;
             }
             ProductionConsumerRouteState active = itemStates
@@ -670,10 +680,7 @@ public sealed class ProductionDistributionRuntime :
         ProductionConsumerLink link)
     {
         List<ProductionConsumerDemandTarget> result = new();
-        IProductionConsumerDemandProvider[] matching = providers
-            .Where(provider => provider != null
-                && provider.Supports(link.kind))
-            .ToArray();
+        IProductionConsumerDemandProvider[] matching = GetProviders(link.kind).ToArray();
         foreach (IProductionConsumerDemandProvider provider in matching)
         {
             provider.Collect(
@@ -690,6 +697,10 @@ public sealed class ProductionDistributionRuntime :
         }
         return result;
     }
+
+    private IEnumerable<IProductionConsumerDemandProvider> GetProviders(
+        ProductionConsumerKind kind) => providers.Where(provider =>
+        provider != null && provider.Supports(kind));
 
     private static ProductionConsumerDemandTarget SelectTarget(
         RouteEvaluation evaluation)
@@ -721,11 +732,12 @@ public sealed class ProductionDistributionRuntime :
         HashSet<string> authored = recipe.Outputs
             .Where(output => output != null)
             .SelectMany(output => dependencies.GetConsumers(output.ItemId))
-            .Where(link => link != null && link.IsRealConsumer)
+            .Where(link => link != null && link.IsRealConsumer
+                && SupportsConsumerKind(link.kind))
             .Select(link => link.consumerId)
             .ToHashSet(StringComparer.Ordinal);
-        bool changed = bill.RemoveRoutes(policy => policy == null
-            || !authored.Contains(policy.consumerId)) > 0;
+        // 저장된 미지원 경로는 상태 조회에서 차단 이유를 표시하고 보존한다.
+        bool changed = bill.RemoveRoutes(policy => policy == null) > 0;
         HashSet<string> existing = bill.routePolicies
             .Select(policy => policy.consumerId)
             .ToHashSet(StringComparer.Ordinal);
@@ -757,7 +769,8 @@ public sealed class ProductionDistributionRuntime :
         return recipe.Outputs
             .Where(output => output != null)
             .SelectMany(output => dependencies.GetConsumers(output.ItemId))
-            .Where(link => link != null && link.IsRealConsumer)
+            .Where(link => link != null && link.IsRealConsumer
+                && SupportsConsumerKind(link.kind))
             .GroupBy(link => link.consumerId, StringComparer.Ordinal)
             .Select(group => new ProductionConsumerRoutePolicy
             {

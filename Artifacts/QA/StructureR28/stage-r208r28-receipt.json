@@ -1,0 +1,39 @@
+{
+  "priorStatus": {
+    "phase": "repair-project-verified",
+    "label": "r207r28",
+    "file_count": 21746,
+    "removed": [],
+    "drift": []
+  },
+  "newStatus": {
+    "phase": "repair-project-verified",
+    "label": "r208r28",
+    "file_count": 21746,
+    "removed": [],
+    "drift": []
+  },
+  "changes": [
+    {
+      "path": "Assets/Architecture/runtime-architecture-metrics-current.json",
+      "oldSha256": "1206a6d9fc31b668338c471ba9a79d5fbc4317f34a95f06d6be8936ac4afd178",
+      "newSha256": "9f97f8d22b2305ed8b8a0b2e77d29077348cddf4d7de8057e37e84b28df66574"
+    },
+    {
+      "path": "Assets/Scripts/Services/Character/Core/CharacterIdentity.cs",
+      "oldSha256": "4543627dde52fd76136826d2711217817aaf0c884af82b56efdd293ff7e0c774",
+      "newSha256": "07ec0050d8b05b1edb1c5f67751149806851c8feeb7a67deb9f25b6d18bdbbe3"
+    },
+    {
+      "path": "Assets/Scripts/Services/Character/Core/CharacterNarrativeRequestOwnerBinding.cs",
+      "oldSha256": "4ab163332200f0018ac3fbbc7831af8b2f0852d0b834eb880992062901734fd4",
+      "newSha256": "e6b512158b1fe539dba50121526f8259127a7cd220f36fe2ba87cafddbe22fb5"
+    },
+    {
+      "path": "Assets/Scripts/Services/Character/Core/CharacterProgression.cs",
+      "oldSha256": "ee8a65d539301e070c7acb010c13e776f4323653d60e80c53e35395c051836cb",
+      "newSha256": "8eb40d1f736b81a03c126088eed9025b136dfd47a6590330441f526741789277"
+    }
+  ],
+  "backup": "/home/vulpo/codex-unity-validation-20261021/r28-source-backups/r208r28"
+}

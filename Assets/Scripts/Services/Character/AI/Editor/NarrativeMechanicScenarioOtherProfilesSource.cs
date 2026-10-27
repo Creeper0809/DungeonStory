@@ -769,7 +769,7 @@ public sealed class NarrativeMechanicScenarioPersonaSource : INarrativeMechanicS
                 {
                     if(actor.Progression==null) throw NarrativeMechanicScenarioOtherProfiles.Fail("persona-evaluation-progression-missing","Customer evaluation fixture has no progression for species-authored background '"+row.Id+"'.");
                     speciesBackground=ResolveAuthoredSpeciesBackground(row.Species);
-                    actor.Progression.GrowthState.origin=speciesBackground;
+                    CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(actor.Progression).origin=speciesBackground;
                 }
                 actor.stats=NarrativeMechanicScenarioOtherProfiles.CustomerNeeds(row.NeedFocus,ordinal);
                 CustomerPersonaRuntime runtime=actor.PersonaRuntime;

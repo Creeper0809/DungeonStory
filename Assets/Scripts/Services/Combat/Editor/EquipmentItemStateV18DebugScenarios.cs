@@ -1307,7 +1307,7 @@ public static class EquipmentItemStateV18DebugScenarios
             actor.EnsureRuntimeState();
             actor.Identity.SetPersistentId("character:test-owner");
             actor.Initialization(data);
-            actor.Progression.GrowthState.displayName = "처음 지킨이";
+            CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(actor.Progression).displayName = "처음 지킨이";
             localDefinition = UnityEngine.Object.Instantiate(definition);
             FieldInfo nameField = typeof(CombatEquipmentDefinitionSO).GetField("displayName",
                 BindingFlags.Instance | BindingFlags.NonPublic);
@@ -1340,7 +1340,7 @@ public static class EquipmentItemStateV18DebugScenarios
             Require(prompt.Contains("처음 지킨이") && prompt.Contains("오래 지킨 검"),
                 "Equipment first dispatch did not capture resolved public names.");
 
-            actor.Progression.GrowthState.displayName = "나중 지킨이";
+            CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(actor.Progression).displayName = "나중 지킨이";
             data.characterName = "나중 지킨이";
             nameField.SetValue(localDefinition, "새로 붙인 검");
             int previousEvidence = probe.Instance.evolution.formulaEvidence.Count;

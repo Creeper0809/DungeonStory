@@ -32,7 +32,7 @@ public static class CharacterProgressionDebugScenarios
         skill.displayName = "Owner reference execution";
         skill.modules.Add(Module("mood", "small"));
         field.SetValue(definition, new[] { skill });
-        actor.Progression.GrowthState.passiveSkills.Clear();
+        CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(actor.Progression).passiveSkills.Clear();
         string authoredJson = EditorJsonUtility.ToJson(definition);
         float moodBefore = actor.Stats.Mood;
         const string eventId = "qa:owner-reference:work-started";
@@ -388,7 +388,7 @@ public static class CharacterProgressionDebugScenarios
             fixture.Actor.Lifecycle.RestorePersistentState(savedLifecycleState, savedLifecycleRevision);
             progression.RestorePersistentState(originalOwner);
             fixture.Actor.PublishDetachedRestore();
-            CharacterSkillDraft draft = progression.GrowthState.drafts.Single(
+            CharacterSkillDraft draft = CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(progression).drafts.Single(
                 value => value.requestKey == original.requestKey);
             string restoredDraftJson = JsonUtility.ToJson(draft);
             bool restoredDraftExact = restoredDraftJson == originalDraftJson;
@@ -820,8 +820,8 @@ public static class CharacterProgressionDebugScenarios
                 "facility:prepared-skill", CharacterActivityOutcomes.Completed, day: 1);
             CharacterSkillDraft active = CreateReadyFormulaDraftForOutcome(service, progression,
                 CharacterSkillKind.Active, 1, "준비 기술 검증자");
-            progression.GrowthState.drafts.RemoveAll(value => value?.kind == CharacterSkillKind.Active && value.unlockLevel == 1);
-            progression.GrowthState.drafts.Add(active);
+            CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(progression).drafts.RemoveAll(value => value?.kind == CharacterSkillKind.Active && value.unlockLevel == 1);
+            CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(progression).drafts.Add(active);
             string before = JsonUtility.ToJson(progression.GrowthState);
             string ledgerBefore = JsonUtility.ToJson(progression.NarrativeLedger);
             Require(!progression.TryChooseActiveSkill(1, 0, true, out string unprepared)
@@ -830,7 +830,7 @@ public static class CharacterProgressionDebugScenarios
                     && ledgerBefore == JsonUtility.ToJson(progression.NarrativeLedger),
                 "A preview without a prepared profile changed state: " + unprepared);
 
-            progression.GrowthState.startingProfile.prepared = true;
+            CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(progression).startingProfile.prepared = true;
             var events = new GameEventBus();
             progression.ConstructCharacterProgression(service, settingsProvider,
                 new CharacterProgressionNotificationApplicationAdapter(events), projector, events,
@@ -848,8 +848,8 @@ public static class CharacterProgressionDebugScenarios
                 "Prepared active selection failed: " + activeFailure);
             CharacterSkillDraft passive = CreateReadyFormulaDraftForOutcome(service, progression,
                 CharacterSkillKind.Passive, 1, "준비 기술 검증자");
-            progression.GrowthState.drafts.RemoveAll(value => value?.kind == CharacterSkillKind.Passive && value.unlockLevel == 1);
-            progression.GrowthState.drafts.Add(passive);
+            CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(progression).drafts.RemoveAll(value => value?.kind == CharacterSkillKind.Passive && value.unlockLevel == 1);
+            CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(progression).drafts.Add(passive);
             progression.OnDraftReady(passive);
             Require(progression.ActiveSkills.Count == 1 && progression.PassiveSkills.Count == 1
                     && progression.GrowthState.skillAcquisitionRevision == 0L
@@ -1305,7 +1305,7 @@ public static class CharacterProgressionDebugScenarios
                 CharacterSkillTargetingMode.PlayerSelected,
                 CharacterSkillEffectArea.Room,
                 1);
-            source.Actor.Progression.GrowthState.activeSkills.AddRange(
+            CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(source.Actor.Progression).activeSkills.AddRange(
                 new[] { self, square, random, all, room });
 
             FakeRoomLayoutCache rooms = new FakeRoomLayoutCache(new RoomInstance(
@@ -1514,7 +1514,7 @@ public static class CharacterProgressionDebugScenarios
             CharacterSkillTargetingMode.AllEligible,
             CharacterSkillEffectArea.Dungeon,
             1);
-        source.Actor.Progression.GrowthState.activeSkills.AddRange(
+        CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(source.Actor.Progression).activeSkills.AddRange(
             new[] { room, square5, square7, random, all });
 
         Require(!CharacterManualSkillRuntime.TryActivateForExpedition(
@@ -1654,12 +1654,12 @@ public static class CharacterProgressionDebugScenarios
         IEnumerable<CharacterActor> actors,
         string skillId)
     {
-        source.Progression.GrowthState.useLimits.manualSkillCooldowns
+        CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(source.Progression).useLimits.manualSkillCooldowns
             .RemoveAll(value => value != null
                 && string.Equals(value.skillId, skillId, StringComparison.Ordinal));
         foreach (CharacterActor actor in actors)
         {
-            actor.Progression.GrowthState.useLimits.manualSkillBuffs
+            CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(actor.Progression).useLimits.manualSkillBuffs
                 .RemoveAll(value => value != null
                     && string.Equals(value.skillId, skillId, StringComparison.Ordinal));
         }
@@ -2983,7 +2983,7 @@ public static class CharacterProgressionDebugScenarios
             var original = source.Actor.Progression.CaptureAcquiredTraitState().pendingRequests.Single();
             Action<LocalLlmResult> late = transport.PeekCallbackForDebug();
             string narrativeBefore = JsonUtility.ToJson(source.Actor.Progression.NarrativeLedger);
-            if (changeGeneration) source.Actor.Progression.GrowthState.skillGenerationRevision++;
+            if (changeGeneration) CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(source.Actor.Progression).skillGenerationRevision++;
             else source.Actor.Lifecycle.SetLifecycleState(source.Actor.CurrentLifecycleState);
             runtime.Tick();
             var replaced = source.Actor.Progression.CaptureAcquiredTraitState();
@@ -4544,7 +4544,7 @@ public static class CharacterProgressionDebugScenarios
     {
         using ActorFixture workerFixture = new ActorFixture(81010, "RuntimeWorker", "Slime");
         CharacterActor worker = workerFixture.Actor;
-        CharacterGrowthState growth = worker.Progression.GrowthState;
+        CharacterGrowthState growth = CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(worker.Progression);
         growth.passiveSkills.Clear();
         growth.passiveSkills.Add(new CharacterSkillInstance
         {
@@ -5462,10 +5462,10 @@ public static class CharacterProgressionDebugScenarios
             draft.nextPresentationIndex = draft.moduleSelectionOffers.Count;
             draft.isReady = true;
             draft.presentationState = CharacterSkillPresentationState.Ready;
-            progression.GrowthState.drafts.RemoveAll(value => value != null
+            CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(progression).drafts.RemoveAll(value => value != null
                 && value.kind == CharacterSkillKind.Active
                 && value.unlockLevel == 1);
-            progression.GrowthState.drafts.Add(draft);
+            CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(progression).drafts.Add(draft);
             Require(draft.candidates[0].formulaVersion > 0,
                 "Skill acquisition fixture resolved a legacy non-formula skill.");
 
@@ -5761,10 +5761,10 @@ public static class CharacterProgressionDebugScenarios
                     automatic.Kind,
                     automatic.UnlockLevel,
                     "원장 기술 검증자");
-                progression.GrowthState.drafts.RemoveAll(value => value != null
+                CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(progression).drafts.RemoveAll(value => value != null
                     && value.kind == automatic.Kind
                     && value.unlockLevel == automatic.UnlockLevel);
-                progression.GrowthState.drafts.Add(automaticDraft);
+                CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(progression).drafts.Add(automaticDraft);
                 long beforeRevision = progression.GrowthState.skillAcquisitionRevision;
                 CharacterSkillInstance selected = automaticDraft.candidates[0].Clone();
 
@@ -6593,6 +6593,7 @@ public static class CharacterProgressionDebugScenarios
                     string.Empty,
                     string.Empty));
                 service.Tick();
+                restoredDraft = restored.Drafts.First(item => item.requestKey == requestKey);
                 expectedCalls++;
                 Require(runtime.CharacterSkillCallCount == expectedCalls,
                     "A restored formula presentation slot was not submitted exactly once. "
@@ -6633,8 +6634,8 @@ public static class CharacterProgressionDebugScenarios
                         new CharacterRuntimeProfileFactory(new ResourceGameContentCatalog(new UnityGameContentRootLoader()))));
                 source.RecordNarrative(CharacterNarrativeDomain.Work, "work:frozen-skill", "facility:frozen-skill", "completed", day: 1);
                 CharacterSkillDraft draft = service.CreateDraft(source, kind, 1, revision: 7);
-                source.GrowthState.drafts.RemoveAll(value => value.kind == kind && value.unlockLevel == 1);
-                source.GrowthState.drafts.Add(draft);
+                CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(source).drafts.RemoveAll(value => value.kind == kind && value.unlockLevel == 1);
+                CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(source).drafts.Add(draft);
                 service.RequestDraft(source, draft);
                 service.Tick();
                 string originalPrompt = transport.LastPrompt;
@@ -6648,7 +6649,7 @@ public static class CharacterProgressionDebugScenarios
                 source.RecordNarrative(CharacterNarrativeDomain.Mood, "mood:after-skill-dispatch", "target:later", "positive", day: 2);
                 Require(!draft.isReady && service.PendingRequestCount > 0,
                     "Later-event fixture must leave the real asynchronous request pending.");
-                source.GrowthState.origin += " 이후 변경";
+                CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(source).origin += " 이후 변경";
                 CharacterProgressionSnapshot saved = source.CapturePersistentState();
                 service.CancelRequests(source);
                 var resumedTransport = new DelayedSkillLlmRuntime();
@@ -6683,7 +6684,7 @@ public static class CharacterProgressionDebugScenarios
                 }
                 restored.RestorePersistentState(saved);
                 resumedService.CancelRequests(restored);
-                CharacterSkillDraft resumed = restored.Drafts.Single(value => value.requestKey == draft.requestKey);
+                CharacterSkillDraft resumed = CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(restored).drafts.Single(value => value.requestKey == draft.requestKey);
                 Require(resumed.ownerBinding.Matches(restored, out string ownerFailure),
                     "Frozen-context fixture did not restore its original lifecycle: " + ownerFailure);
                 resumedService.RequestDraft(restored, resumed);
@@ -6859,7 +6860,7 @@ public static class CharacterProgressionDebugScenarios
                         StringComparison.Ordinal),
                 "Timed-out generation did not preserve its explicit failure diagnostic.");
 
-            progression.GrowthState.drafts.Add(draft);
+            CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(progression).drafts.Add(draft);
             CharacterProgressionSnapshot captured = progression.CapturePersistentState();
             CharacterProgressionSnapshot saved = new(
                 captured.Level, captured.CurrentExperience,
@@ -6897,7 +6898,7 @@ public static class CharacterProgressionDebugScenarios
                         && restoredRuntime.CharacterSkillCallCount == 0,
                     "World restore retried an exhausted skill request or changed its saved failure state.");
 
-                CharacterSkillDraft retried = restored.Drafts.Single(
+                CharacterSkillDraft retried = CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(restored).drafts.Single(
                     value => value.requestKey == draft.requestKey);
                 restoredService.RequestDraft(restored, retried);
                 Require(restoredService.PendingRequestCount == 1 && retried.requestSubmitted
@@ -7201,7 +7202,7 @@ public static class CharacterProgressionDebugScenarios
             "ReachabilityRuntime",
             "Slime");
         CharacterActor actor = fixture.Actor;
-        CharacterGrowthState growth = actor.Progression.GrowthState;
+        CharacterGrowthState growth = CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(actor.Progression);
         growth.passiveSkills.Clear();
         actor.Stats.Stats[CharacterCondition.HUNGER] = 0f;
         actor.Stats.Stats[CharacterCondition.SLEEP] = 80f;
@@ -7313,7 +7314,7 @@ public static class CharacterProgressionDebugScenarios
             81019,
             "LegacySkillSource",
             "Slime");
-        source.Actor.Progression.GrowthState.passiveSkills.Clear();
+        CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(source.Actor.Progression).passiveSkills.Clear();
         CharacterSkillInstance original = new CharacterSkillInstance
         {
             id = "qa-legacy-work-started-output",
@@ -7348,7 +7349,7 @@ public static class CharacterProgressionDebugScenarios
                 usedFallback = false
             }
         };
-        source.Actor.Progression.GrowthState.passiveSkills.Add(original);
+        CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(source.Actor.Progression).passiveSkills.Add(original);
         string exactBefore = JsonUtility.ToJson(original);
         CharacterProgressionSnapshot snapshot =
             source.Actor.Progression.CapturePersistentState();
@@ -8138,11 +8139,11 @@ public static class CharacterProgressionDebugScenarios
         {
             CharacterActor actor = fixture.Actor;
             CharacterProgression progression = actor.Progression;
-            progression.GrowthState.drafts.Clear();
-            progression.GrowthState.activeSkills.Clear();
-            progression.GrowthState.passiveSkills.Clear();
-            progression.GrowthState.pendingRequestKeys.Clear();
-            progression.GrowthState.ultimate = null;
+            CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(progression).drafts.Clear();
+            CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(progression).activeSkills.Clear();
+            CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(progression).passiveSkills.Clear();
+            CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(progression).pendingRequestKeys.Clear();
+            CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(progression).ultimate = null;
             progression.NarrativeLedger.facts.Clear();
             TestSettingsProvider provider = new TestSettingsProvider(settings);
             service = new CharacterSkillGenerationService(
@@ -8225,9 +8226,9 @@ public static class CharacterProgressionDebugScenarios
         {
             CharacterActor actor = fixture.Actor;
             CharacterProgression progression = actor.Progression;
-            progression.GrowthState.drafts.Clear();
-            progression.GrowthState.activeSkills.Clear();
-            progression.GrowthState.passiveSkills.Clear();
+            CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(progression).drafts.Clear();
+            CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(progression).activeSkills.Clear();
+            CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(progression).passiveSkills.Clear();
             progression.NarrativeLedger.facts.Clear();
             TestSettingsProvider settingsProvider = new TestSettingsProvider(settings);
             CharacterSkillGenerationService service = new CharacterSkillGenerationService(

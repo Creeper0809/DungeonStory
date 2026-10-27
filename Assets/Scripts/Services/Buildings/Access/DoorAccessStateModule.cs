@@ -15,7 +15,7 @@ public sealed class DoorAccessStateModule : IBuildingStateModule
 
     public string ModuleId => StateModuleId;
     public int CurrentVersion => 1;
-    public DoorAccessPolicyState State => state;
+    public DoorAccessPolicyState State => state.Clone();
     public long Revision => state.Revision;
 
     public bool SetGroupAllowed(DoorAccessGroup group, bool allowed)

@@ -586,12 +586,27 @@ public static class InvasionIntruderDebugScenarios
             scope.Container.Resolve<IDefenseEngagementRuntime>();
         IInvasionOwnerEvacuationService evacuation =
             scope.Container.Resolve<IInvasionOwnerEvacuationService>();
+        if (campaign is not InvasionCampaignRuntime runtime)
+            throw new InvalidOperationException("Invasion fixture requires the production campaign owner.");
+        FieldInfo stateField = typeof(InvasionCampaignRuntime).GetField(
+            "aggregateStateStore", BindingFlags.Instance | BindingFlags.NonPublic)
+            ?? throw new InvalidOperationException("Invasion fixture could not locate the owned state store.");
+        InvasionAggregateStateStore stateStore = stateField.GetValue(runtime) as InvasionAggregateStateStore
+            ?? throw new InvalidOperationException("Invasion fixture has no owned state store.");
+        InvasionCampaignAggregateState owned = stateStore.Campaign;
+        string campaignSnapshot = JsonUtility.ToJson(new InvasionCampaignSaveData
+        {
+            branches = campaign.Branches.ToList(),
+            supportSites = campaign.SupportSites.ToList(),
+            operations = campaign.Operations.ToList()
+        });
         return new InvasionLiveProjectionSnapshot(
             JsonUtility.ToJson(service.Capture()),
+            campaignSnapshot,
             rootStore.PublishedRestoreRevision,
-            campaign.Branches.ToArray(),
-            campaign.SupportSites.ToArray(),
-            campaign.Operations.ToArray(),
+            owned.Branches.Values.OrderBy(value => value.branchId, StringComparer.Ordinal).ToArray(),
+            owned.SupportSites.ToArray(),
+            owned.Operations.ToArray(),
             invasion.Director.ActiveIntruders.ToArray(),
             engagements.ActiveEngagements.ToArray(),
             evacuation.Owner,
@@ -615,6 +630,7 @@ public static class InvasionIntruderDebugScenarios
                 expected.SerializedState,
                 actual.SerializedState,
                 StringComparison.Ordinal)
+            && string.Equals(expected.CampaignSnapshot, actual.CampaignSnapshot, StringComparison.Ordinal)
             && expected.RootRevision == actual.RootRevision
             && ReferenceSequenceEqual(expected.Branches, actual.Branches)
             && ReferenceSequenceEqual(expected.SupportSites, actual.SupportSites)
@@ -773,6 +789,7 @@ public static class InvasionIntruderDebugScenarios
     {
         internal InvasionLiveProjectionSnapshot(
             string serializedState,
+            string campaignSnapshot,
             int rootRevision,
             IReadOnlyList<HumanInvasionBranchState> branches,
             IReadOnlyList<HumanSupportSiteState> supportSites,
@@ -786,6 +803,7 @@ public static class InvasionIntruderDebugScenarios
             int detachedCandidateCount)
         {
             SerializedState = serializedState;
+            CampaignSnapshot = campaignSnapshot;
             RootRevision = rootRevision;
             Branches = branches;
             SupportSites = supportSites;
@@ -800,6 +818,7 @@ public static class InvasionIntruderDebugScenarios
         }
 
         internal string SerializedState { get; }
+        internal string CampaignSnapshot { get; }
         internal int RootRevision { get; }
         internal IReadOnlyList<HumanInvasionBranchState> Branches { get; }
         internal IReadOnlyList<HumanSupportSiteState> SupportSites { get; }

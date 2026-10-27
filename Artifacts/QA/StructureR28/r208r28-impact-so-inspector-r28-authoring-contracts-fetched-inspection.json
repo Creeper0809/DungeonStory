@@ -1,0 +1,88 @@
+{
+  "label": "r208r28-impact-so-inspector-r28-authoring-contracts",
+  "source": {
+    "phase": "repair-project-verified",
+    "label": "r208r28",
+    "file_count": 21746,
+    "removed": [],
+    "drift": []
+  },
+  "busy": false,
+  "status.json": {
+    "phase": "finished",
+    "report": {
+      "exit_code": 0,
+      "seconds": 70,
+      "stop_reason": null,
+      "source_label": "r208r28",
+      "compiler_error_count": 0,
+      "source_drift": []
+    },
+    "updated_at_utc": "2026-10-27T13:37:19.872587+00:00"
+  },
+  "run-summary.json": {
+    "exit_code": 0,
+    "seconds": 70,
+    "stop_reason": null,
+    "source_label": "r208r28",
+    "compiler_error_count": 0,
+    "source_drift": []
+  },
+  "isolated-display.json": {
+    "display": ":90",
+    "privateExecutable": "/home/vulpo/codex-unity-validation-20261021/private-gui/usr/bin/Xvfb",
+    "authenticated": true,
+    "tcpDisabled": true,
+    "windowProbe": true,
+    "terminal": true,
+    "mode": "batchmode with graphics",
+    "persistenceRoot": "/home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Artifacts/QA/r208r28-impact-so-inspector-r28-authoring-contracts/persistent-data",
+    "pid": 3173510,
+    "arguments": [
+      "/home/vulpo/codex-unity-validation-20261021/private-gui/usr/bin/Xvfb",
+      ":90",
+      "-screen",
+      "0",
+      "1920x1080x24",
+      "-nolisten",
+      "tcp",
+      "-auth",
+      "/home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Artifacts/QA/r208r28-impact-so-inspector-r28-authoring-contracts/inspector.xauthority",
+      "-noreset"
+    ]
+  },
+  "owned-process-cleanup.json": {
+    "pid": 3173581,
+    "exitCode": 0,
+    "actions": [],
+    "terminal": true
+  },
+  "logBytes": 55883,
+  "diagnostics": [
+    "- Loaded All Assemblies, in  0.878 seconds",
+    "AssetDatabase: script compilation time: 2.272151s",
+    "- Loaded All Assemblies, in  3.063 seconds",
+    "R18_MEDICAL_POLICY_REFERENCE_INSPECTOR=PASS; gameplay target; anatomy family; fixed trait rule; faction policy pair; none; invalid version; undo; unchanged source",
+    "R28_LOCAL_REFERENCE_SELECTION=PASS; anatomy add rename delete; self parent; attachment; boss owner; mixed; undo",
+    "R28_REFERENCE_SELECTION=PASS; resolved fixed keys; pending local owners; source preserved",
+    "R28_RESOURCE_USAGE_AND_ROUTE_SUPPORT=PASS",
+    "R28_DEFENSE_AUTOMATIC_CONTROL_POLICY=PASS",
+    "CONTENT_REFERENCE_UNDO_ISOLATION=PASS; observedUndo=2; exactJson=true; exactHash=true; exactDirty=true",
+    "R28_authoring-contracts=PASS"
+  ],
+  "memAvailable": [
+    "MemAvailable:   10439328 kB"
+  ],
+  "reports": [
+    "headless-editor-bootstrap.json",
+    "owned-process-cleanup.json",
+    "status.json",
+    "owned-compiler-cleanup.json",
+    "command.txt",
+    "authoring-contracts.txt",
+    "run-summary.json",
+    "diagnostics.redacted.txt",
+    "xdpyinfo.txt",
+    "isolated-display.json"
+  ]
+}

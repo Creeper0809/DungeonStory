@@ -51,9 +51,9 @@ public static class CharacterSkillRuntimePlayModeVerifier
         {
             foreach (CharacterActor actor in actors)
             {
-                actor.Progression.GrowthState.ultimate = null;
-                actor.Progression.GrowthState.useLimits.managementOperatingDay = -1;
-                actor.Progression.GrowthState.useLimits.defenseInvasionSerial = -1;
+                CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(actor.Progression).ultimate = null;
+                CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(actor.Progression).useLimits.managementOperatingDay = -1;
+                CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(actor.Progression).useLimits.defenseInvasionSerial = -1;
             }
 
             CharacterSkillInstance management = CreateUltimate(
@@ -64,7 +64,7 @@ public static class CharacterSkillRuntimePlayModeVerifier
                 CharacterSkillTarget.Dungeon,
                 "output",
                 "large");
-            defender.Progression.GrowthState.ultimate = management;
+            CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(defender.Progression).ultimate = management;
             int managementAlertsBefore = CountAlerts(alerts, management.displayName);
             gameEventBus.Publish(new OperatingDayStartedEvent(7001));
             int firstManagementCount = CountAlerts(alerts, management.displayName);
@@ -93,8 +93,8 @@ public static class CharacterSkillRuntimePlayModeVerifier
                 CharacterSkillTarget.Enemy,
                 "damage",
                 "light");
-            defender.Progression.GrowthState.ultimate = defense;
-            defender.Progression.GrowthState.useLimits.defenseInvasionSerial = -1;
+            CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(defender.Progression).ultimate = defense;
+            CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(defender.Progression).useLimits.defenseInvasionSerial = -1;
             int defenseAlertsBefore = CountAlerts(alerts, defense.displayName);
             gameEventBus.Publish(
                 new InvasionSpawnedEvent(

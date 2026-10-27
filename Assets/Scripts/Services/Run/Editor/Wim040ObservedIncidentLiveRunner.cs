@@ -169,7 +169,8 @@ public sealed class Wim040ObservedIncidentLiveRunner
                         ? progression.ActiveSkills.Count > 0
                         : progression.PassiveSkills.Count > 0;
                     if (alreadyPrepared) continue;
-                    CharacterSkillDraft draft = progression.Drafts.SingleOrDefault(value =>
+                    CharacterSkillDraft draft = CharacterAiEditorTestDependencies
+                        .GetOwnedGrowthForFixture(progression).drafts.SingleOrDefault(value =>
                         value != null && value.unlockLevel == 1 && value.kind == kind);
                     Require(draft != null && !draft.IsInvalidated() && !draft.permanentlyChosen,
                         "Population preparation requires its valid level1 draft: " + profileId + "/" + kind);
@@ -682,18 +683,19 @@ public sealed class Wim040ObservedIncidentLiveRunner
             scope.Container.Resolve<ICharacterBodyHealthQuery>();
         ICharacterBodyHealthCommand bodyCommands =
             scope.Container.Resolve<ICharacterBodyHealthCommand>();
-        CharacterBodyPartHealthState torso = bodyQuery.GetSnapshot(visitor).Parts
+        CharacterBodyHealthSnapshot initialBody = bodyQuery.GetSnapshot(visitor);
+        CharacterBodyPartHealthState torso = initialBody.Parts
             .Single(value => value.bodyPart == CombatBodyPart.Torso);
         float targetTorsoHealth = torso.maxHealth * 0.25f + 1f;
         float preparationDamage = torso.currentHealth - targetTorsoHealth;
         Require(preparationDamage > 3f,
             "Fresh Customer lacks enough torso-health headroom for the controlled collapse boundary.");
-        bodyCommands.ApplyLocalizedDamage(
-            visitor,
-            CombatBodyPart.Torso,
-            preparationDamage,
-            "qa:wim040-medical-collapse-precondition",
-            allowDeath: false);
+        torso.currentHealth = targetTorsoHealth;
+        bodyCommands.ApplySnapshot(visitor, new CharacterBodyHealthSnapshot(
+                initialBody.Parts, initialBody.BloodLoss, initialBody.Suppression,
+                initialBody.Consciousness, initialBody.Manipulation,
+                initialBody.Mobility, initialBody.Downed),
+            "qa:wim040-medical-collapse-precondition");
         CharacterBodyHealthSnapshot preparedBody = bodyQuery.GetSnapshot(visitor);
         CharacterBodyPartHealthState preparedTorso = preparedBody.Parts
             .Single(value => value.bodyPart == CombatBodyPart.Torso);
@@ -708,7 +710,11 @@ public sealed class Wim040ObservedIncidentLiveRunner
             && Mathf.Abs(preparedTorso.currentHealth - targetTorsoHealth) < 0.01f
             && poisoningChance >= 0.999f,
             "Controlled precondition did not remain living/active above the canonical torso collapse boundary; poisoningChance="
-                + poisoningChance);
+                + poisoningChance + "; downed=" + preparedBody.Downed
+                + "; lifecycle=" + visitor.CurrentLifecycleState
+                + "; torso=" + preparedTorso.currentHealth + "/" + preparedTorso.maxHealth
+                + "; target=" + targetTorsoHealth + "; consciousness=" + preparedBody.Consciousness
+                + "; mobility=" + preparedBody.Mobility + "; bloodLoss=" + preparedBody.BloodLoss);
 
         cell = visitor.GetNowXY();
         int callbacksBeforeCollapse = consumed.Count;

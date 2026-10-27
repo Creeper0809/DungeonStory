@@ -172,7 +172,7 @@ public sealed class OffenseUrgentMitigationRuntime :
     public event Action Changed;
     public int Version { get; private set; }
     public IReadOnlyList<OffenseUrgentMitigationOrderStateData> Orders =>
-        ordersView ??= ReadOnlyView.List(orders);
+        (ordersView ??= ReadOnlyView.List(orders)).Select(Clone).ToArray();
 
     public void Initialize()
     {
@@ -220,7 +220,7 @@ public sealed class OffenseUrgentMitigationRuntime :
             return false;
         }
 
-        if (TryGetOrder(normalizedSiteId, out _))
+        if (TryFindOrder(normalizedSiteId, out _))
         {
             message = "이미 이 거점의 완화 작업이 진행 중입니다.";
             return false;
@@ -267,7 +267,7 @@ public sealed class OffenseUrgentMitigationRuntime :
 
     public bool TryCancel(string siteId, out string message)
     {
-        if (!TryGetOrder(siteId, out OffenseUrgentMitigationOrderStateData order))
+        if (!TryFindOrder(siteId, out OffenseUrgentMitigationOrderStateData order))
         {
             message = "취소할 완화 작업이 없습니다.";
             return false;
@@ -297,6 +297,15 @@ public sealed class OffenseUrgentMitigationRuntime :
     }
 
     public bool TryGetOrder(
+        string siteId,
+        out OffenseUrgentMitigationOrderStateData order)
+    {
+        bool found = TryFindOrder(siteId, out OffenseUrgentMitigationOrderStateData current);
+        order = found ? Clone(current) : null;
+        return found;
+    }
+
+    private bool TryFindOrder(
         string siteId,
         out OffenseUrgentMitigationOrderStateData order)
     {

@@ -9,12 +9,14 @@ public sealed class ProductionRoutePanelPresenter
     private readonly IProductionDistributionPolicyCommand billCommands;
     private readonly IResourceEconomyContentCatalog catalog;
     private readonly IProductionDependencyCatalog dependencies;
+    private readonly IProductionDistributionQuery distribution;
     private readonly IProductionUiTextQuery text;
 
     public ProductionRoutePanelPresenter(
         IProductionDistributionPolicyCommand billCommands,
         IResourceEconomyContentCatalog catalog,
         IProductionDependencyCatalog dependencies,
+        IProductionDistributionQuery distribution,
         IProductionUiTextQuery text)
     {
         this.billCommands = billCommands
@@ -22,6 +24,8 @@ public sealed class ProductionRoutePanelPresenter
         this.catalog = catalog
             ?? throw new ArgumentNullException(nameof(catalog));
         this.dependencies = dependencies;
+        this.distribution = distribution
+            ?? throw new ArgumentNullException(nameof(distribution));
         this.text = text ?? throw new ArgumentNullException(nameof(text));
     }
 
@@ -50,7 +54,8 @@ public sealed class ProductionRoutePanelPresenter
         return recipe.Outputs
             .Where(output => output != null)
             .SelectMany(output => dependencies.GetConsumers(output.ItemId))
-            .Where(link => link != null && link.IsRealConsumer)
+            .Where(link => link != null && link.IsRealConsumer
+                && distribution.SupportsConsumerKind(link.kind))
             .GroupBy(link => link.consumerId, StringComparer.Ordinal)
             .Select(group => new ProductionConsumerRoutePolicy
             {
@@ -100,6 +105,10 @@ public sealed class ProductionRoutePanelPresenter
                 font,
                 routeRowHeight);
             created.Add(controls);
+            if (!CanEditRoute(bill, policy.consumerId))
+            {
+                continue;
+            }
 
             AddAdjustment(
                 controls.transform,
@@ -164,6 +173,10 @@ public sealed class ProductionRoutePanelPresenter
             false,
             () =>
             {
+                if (!CanEditRoute(bill, source[routeIndex].consumerId))
+                {
+                    return;
+                }
                 ProductionConsumerRoutePolicy[] updated = source
                     .Select(policy => policy.Clone())
                     .ToArray();
@@ -182,6 +195,17 @@ public sealed class ProductionRoutePanelPresenter
         ProductionBillSnapshot bill,
         string consumerId)
     {
+        ProductionConsumerLink link = FindConsumer(bill, consumerId);
+        if (link == null || !distribution.SupportsConsumerKind(link.kind))
+        {
+            string reason = link == null
+                ? "consumer-definition-unavailable"
+                : "consumer-provider-unavailable";
+            string label = string.IsNullOrWhiteSpace(link?.displayName)
+                ? consumerId
+                : link.displayName;
+            return $"{label} [{consumerId}] | {text.Get(ProductionUiTextId.StatusBlocked, reason)}";
+        }
         ProductionConsumerRouteState live = bill?.RouteStates
             .FirstOrDefault(state => state?.policy != null
                 && string.Equals(
@@ -204,15 +228,33 @@ public sealed class ProductionRoutePanelPresenter
                     live.blockedReason);
             return $"{label} [{consumerId}] | {status}";
         }
+        string resolved = string.IsNullOrWhiteSpace(link.displayName)
+            ? consumerId
+            : link.displayName;
+        string inactive = text.Get(ProductionUiTextId.StatusInactiveConsumer);
+        return $"{resolved} [{consumerId}] | {inactive}";
+    }
+
+    private bool CanEditRoute(ProductionBillSnapshot bill, string consumerId)
+    {
+        ProductionConsumerLink link = FindConsumer(bill, consumerId);
+        return link != null && link.IsRealConsumer
+            && distribution.SupportsConsumerKind(link.kind);
+    }
+
+    private ProductionConsumerLink FindConsumer(
+        ProductionBillSnapshot bill,
+        string consumerId)
+    {
         if (string.IsNullOrWhiteSpace(consumerId)
             || dependencies == null
             || bill == null
             || !catalog.TryGetRecipe(bill.RecipeId, out ProductionRecipeSO recipe))
         {
-            return consumerId ?? string.Empty;
+            return null;
         }
 
-        ProductionConsumerLink link = recipe.Outputs
+        return recipe.Outputs
             .Where(output => output != null)
             .SelectMany(output => dependencies.GetConsumers(output.ItemId))
             .FirstOrDefault(candidate => candidate != null
@@ -220,10 +262,5 @@ public sealed class ProductionRoutePanelPresenter
                     candidate.consumerId,
                     consumerId,
                     StringComparison.Ordinal));
-        string resolved = link == null || string.IsNullOrWhiteSpace(link.displayName)
-            ? consumerId
-            : link.displayName;
-        string inactive = text.Get(ProductionUiTextId.StatusInactiveConsumer);
-        return $"{resolved} [{consumerId}] | {inactive}";
     }
 }

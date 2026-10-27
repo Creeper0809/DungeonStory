@@ -137,8 +137,7 @@ public sealed class SurgeryRuntime :
             requiredExecution);
     }
 
-    public IReadOnlyList<SurgeryOrder> ActiveOrders =>
-        orders.Where(order => order != null && order.IsActive).ToArray();
+    public IReadOnlyList<SurgeryOrder> ActiveOrders => stateStore.ActiveOrders;
 
     public void Tick()
     {
@@ -532,6 +531,16 @@ public sealed class SurgeryRuntime :
 
     public bool TryGetOrder(string orderId, out SurgeryOrder order)
     {
+        return stateStore.TryGetOrderSnapshot(orderId, out order);
+    }
+
+    public bool TryGetWorkFor(BuildableObject facility, out SurgeryOrder order)
+    {
+        return TryFindWorkFor(stateStore.ActiveOrders, facility, out order);
+    }
+
+    private bool TryFindOwnedOrder(string orderId, out SurgeryOrder order)
+    {
         order = orders.FirstOrDefault(candidate =>
             candidate != null
             && string.Equals(candidate.orderId, orderId, StringComparison.Ordinal));
@@ -543,12 +552,14 @@ public sealed class SurgeryRuntime :
         return TryGetWorkFor(facility, out _);
     }
 
-    public bool TryGetWorkFor(
-        BuildableObject facility,
-        out SurgeryOrder order)
+    private bool TryFindOwnedWorkFor(BuildableObject facility, out SurgeryOrder order) =>
+        TryFindWorkFor(orders, facility, out order);
+
+    private bool TryFindWorkFor(IEnumerable<SurgeryOrder> candidates,
+        BuildableObject facility, out SurgeryOrder order)
     {
         string facilityId = facilities.GetFacilityId(facility);
-        order = orders
+        order = candidates
             .Where(candidate => candidate != null
                 && candidate.IsActive
                 && !candidate.resultRolled
@@ -619,6 +630,18 @@ public sealed class SurgeryRuntime :
         out SurgeryOrder order,
         out DomainFailure failure)
     {
+        bool success = TryReserveWorkOwned(facility, doctor, origin, out order, out failure);
+        order = order == null ? null : SurgeryStateCloner.CloneOrder(order);
+        return success;
+    }
+
+    private bool TryReserveWorkOwned(
+        BuildableObject facility,
+        CharacterActor doctor,
+        CharacterCommandOrigin origin,
+        out SurgeryOrder order,
+        out DomainFailure failure)
+    {
         if (!Enum.IsDefined(typeof(CharacterCommandOrigin), origin))
             throw new ArgumentOutOfRangeException(nameof(origin));
         failure = DomainFailure.None;
@@ -638,7 +661,7 @@ public sealed class SurgeryRuntime :
             return false;
         }
 
-        if (!TryGetWorkFor(facility, out order))
+        if (!TryFindOwnedWorkFor(facility, out order))
         {
             failure = new DomainFailure(FailureCode.SurgeryOrderMissing);
             return false;
@@ -748,7 +771,7 @@ public sealed class SurgeryRuntime :
     {
         completed = false;
         failure = DomainFailure.None;
-        if (!TryGetOrder(orderId, out SurgeryOrder order)
+        if (!TryFindOwnedOrder(orderId, out SurgeryOrder order)
             || !order.IsActive)
         {
             failure = new DomainFailure(FailureCode.SurgeryOrderMissing, orderId);
@@ -932,7 +955,7 @@ public sealed class SurgeryRuntime :
         string orderId,
         CharacterActor doctor)
     {
-        if (!TryGetOrder(orderId, out SurgeryOrder order)
+        if (!TryFindOwnedOrder(orderId, out SurgeryOrder order)
             || doctor == null
             || !string.Equals(
                 order.doctorId,
@@ -975,6 +998,22 @@ public sealed class SurgeryRuntime :
     }
 
     public bool TrySchedule(
+        SurgicalSubjectRef subject,
+        string procedureId,
+        string targetNodeId,
+        string selectedPartInstanceId,
+        string preferredDoctorId,
+        string preferredFacilityId,
+        out SurgeryOrder order,
+        out DomainFailure failure)
+    {
+        bool success = TryScheduleOwned(subject, procedureId, targetNodeId, selectedPartInstanceId,
+            preferredDoctorId, preferredFacilityId, out order, out failure);
+        order = order == null ? null : SurgeryStateCloner.CloneOrder(order);
+        return success;
+    }
+
+    private bool TryScheduleOwned(
         SurgicalSubjectRef subject,
         string procedureId,
         string targetNodeId,
@@ -1244,7 +1283,7 @@ public sealed class SurgeryRuntime :
     public bool TryCancel(string orderId, out DomainFailure failure)
     {
         failure = DomainFailure.None;
-        if (!TryGetOrder(orderId, out SurgeryOrder order) || !order.IsActive)
+        if (!TryFindOwnedOrder(orderId, out SurgeryOrder order) || !order.IsActive)
         {
             failure = new DomainFailure(
                 FailureCode.SurgeryOrderMissing,

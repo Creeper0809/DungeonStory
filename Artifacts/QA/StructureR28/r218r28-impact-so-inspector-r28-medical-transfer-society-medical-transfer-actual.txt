@@ -1,0 +1,22 @@
+CONTROLLED_VISITOR_SPAWN_DRIVER: ambient loop stopped before any visit; explicit TrySpawnCharacter/entry and respawn clock remain production paths
+CONTROLLED_VISITOR_PROFILE_PREPARATION: characterDataId=2; profile=character:world:1:000002; previewOwners=character:world:1:000002,character:world:1:000001; modelInference=false; ownerCommands=OnDraftReady/TryChooseActiveSkill
+PASS ordinary active Customer persists exactly once before acquiring a Society incident owner
+PASS actual Customer/physical meal callback; quantityDelta=-1; target=character:world:1:000002; operation=consumable-operation:auto:v1:0000000000000001; instance=event:1:service-incident:forbiddenmeal:B6AC6BEF; observedCause=실제 식사 정책 위반 확인 · 대상 character:world:1:000002 · 식사 food:lavish-meat · 스택 stack:40bc6e6d4df740e9a40c3be5a3699bba · 장소 야전 식사 (17, 0)
+PASS callback exact replay, mismatched operation and non-Customer probes leave Society/meal/hunger unchanged
+PASS missing incoming visitor rejected atomically; validators=rest-observation-save-join:rest-save-owner-or-publication-duplicate
+PASS incoming ordinary Customer restored exactly once without borrowing live Society ownership; physical items/money unchanged
+PASS current whole JSON restore preserves exact incident-owned Customer/frozen cause/consumed meal
+PASS real compensation dispatcher -60 once; exact visitor ownership released; no physical/financial replay
+PASS compensation visitor BeginExit/public handoff retires the exact Customer once
+CONTROLLED_VISITOR_PROFILE_PREPARATION: characterDataId=2; profile=character:world:1:000006; previewOwners=character:world:1:000004,character:world:1:000003,character:world:1:000006,character:world:1:000005; modelInference=false; ownerCommands=OnDraftReady/TryChooseActiveSkill
+PASS controlled public exit handoff retains active contamination Customer at the same cell; not a natural exit-path claim
+PASS actual contaminated physical meal -> Contamination owner/notice; consumed stock remains -1 and current whole restore does not replay it
+PASS Contamination uses its own authored quarantine choice; transfer is not dispatched against the wrong incident kind
+PASS contamination visitor BeginExit/public handoff retires the exact Customer once
+DIAG transfer-start patient lifecycle=Downed;isDead=False;stats=97/100;bodyDowned=True;torso=9.922/45;bloodLoss=0;orderState=AwaitingRescue;stabilized=True;carried=False
+PASS actual returning medical Customer retains prior departure receipt; profile=character:world:1:000002; visits=1; departure=character.visitor-departure|visitor-exit:character:world:1:000002:1|1|0
+PASS forged returning-visitor count rejected atomically; patient/receipt/Society/order unchanged
+PASS started emergency transfer save captured exact Society/medical provenance; foreign parent operation restore rejected atomically
+PASS MedicalCollapse transfer stayed pending; actual staff AIRescue stabilized/carried the exact Downed Customer into frozen M11; medical-order arrival receipt published effects once
+scope=existing WIM040 production meal/body/Society/AIRescue route and official in-memory game-save capture/JSON/restore; not disk slot load or completed treatment
+result=PASS

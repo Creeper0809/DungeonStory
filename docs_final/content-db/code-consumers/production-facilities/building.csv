@@ -114,6 +114,7 @@ BuildingSO,content-type,,type-reference; save-restore-reference,services:run,run
 BuildingSO,content-type,,type-reference; save-restore-reference,services:run,persistence,structural-type-consumer,Assets/Scripts/Services/Run/V20MilestoneWorldSnapshotProjector.cs
 BuildingSO,content-type,,type-reference,services:servicerooms,runtime,structural-type-consumer,Assets/Scripts/Services/ServiceRooms/ServiceRoomAbilities.cs
 BuildingSO,content-type,,type-reference,services:survival,runtime,structural-type-consumer,Assets/Scripts/Services/Survival/SurvivalFacilityUtility.cs
+BuildingSO,content-type,,type-reference,services:survival,runtime,structural-type-consumer,Assets/Scripts/Services/Survival/SurvivalFacilityWorkRules.cs
 BuildingSO,content-type,,type-reference; save-restore-reference,services:survival,runtime,structural-type-consumer,Assets/Scripts/Services/Survival/WorldFilthRuntime.cs
 BuildingSO,content-type,,type-reference,services:synthesis,runtime,structural-type-consumer,Assets/Scripts/Services/Synthesis/FacilitySynthesisRecipeSO.cs
 BuildingSO,content-type,,type-reference; save-restore-reference,services:synthesis,runtime,structural-type-consumer,Assets/Scripts/Services/Synthesis/FacilitySynthesisRuntime.cs

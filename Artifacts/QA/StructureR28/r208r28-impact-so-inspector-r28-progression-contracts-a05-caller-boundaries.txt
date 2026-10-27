@@ -1,0 +1,23 @@
+A05_CHARACTER_SKILL_ACTIVATION=PASS
+utc=2026-10-27T13:39:02.3959600Z
+evidence=ownerCommandEntry=public-command->ManualDungeon;exactRecipients=1;cooldown=committed
+evidence=manualCalculationOnly=public-command;immediateNumericDelta=0;savedBuff=1;activationOutcome=1;publicCooldownRejection=diagnostic-only;rejectedCommandOwnerAndLedgerDelta=0
+evidence=C1-lifecycle: playing=False;didAwake=False
+evidence=C1-disable=explicit-Edit-message;Unity-Play-callback=not-covered
+evidence=C1=PlayerSelected-controller+real-transaction;invalid-target=unchanged+retry;manual/combat=exclusive;cancel=explicit+Escape+selection+disable+source;same-selection=retained;success=one-cooldown+buff+outcome;raycast/liveUI=not-covered
+evidence=expeditionEntry=public-runtime->ManualExpedition;exactRecipients=1;cooldown=committed
+evidence=automaticPassive=production-dispatch+actual-mood-effect;sameEventReplay=deduplicated;saveRoundTrip=pass;tamper=rejected
+evidence=ownerFixedWorldValidation=actor+population+json+fresh-progression-restore;authored-definition-required;forged-mechanics+wrong-definition=rejected;no-mutable-fixed-skill-copy
+evidence=ownerFixedPassive=production-dispatch+actual-mood-effect;sameEventReplay=deduplicated;saveRoundTrip=pass;tamper=rejected
+evidence=battlePassive=actual-OffenseBattleSession-target-delta;sameEventReplay=deduplicated;outcome=1
+evidence=automaticUltimate=OperatingDayStarted-public-observer;limit+effect+outcome=atomic;sameDayReplay=deduplicated
+evidence=defenseUltimate=InvasionSpawned-public-observer+actual-target-damage;limit+effect+outcome=atomic;sameInvasionReplay=deduplicated;exposureObserver=start-idempotent+one-per-actor-event+disposed
+evidence=offenseUltimate=manual-combat-shared-contract;actualBattleDelta+childKey+useLimit=preserved
+evidence=automaticFailure=effect+fact-reservation-rejection rollback;ultimateLimitUnconsumed=true;durableOutcome=0
+evidence=calculationOnlyPassive=standaloneOutcome0;terminalWorkProvenance=skill+module+mechanicsHash
+evidence=automaticOwnerRewind=known-owner-revision-rejected-before-effects;owner+ledger+journal=unchanged;valid-completed-event=replay-without-effects
+evidence=exact=source+2recipients+beforeAfterState+cooldown;saveRoundTrip=pass;tamper=rejected;owner-only-rewind=rejected-before-mutation;owner+recipients+ledger+journal=unchanged
+evidence=uncertainStandalone=retained-success+pending-owner;journal+ownerJsonRestore=real-observer-replay;effect=once;outcome=once;sameEvent=deduplicated
+evidence=middleFailure=recipient1+recipient2+cooldown+owner-rollback;outcomes=0
+evidence=reserveReject=recipient+cooldown+owner-rollback;durableOutcome=0
+evidence=target0=rejected-before-prepare;ownerUnchanged=true

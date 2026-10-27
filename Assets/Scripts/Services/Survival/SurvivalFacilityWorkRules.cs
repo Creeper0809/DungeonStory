@@ -34,11 +34,14 @@ internal static class SurvivalFacilityWorkRules
     public static bool IsEnvironmentalFuelConsumer(BuildableObject building) =>
         building != null
         && !building.isDestroy
-        && building.BuildingData != null
-        && building.BuildingData.GetAbility<BuildingFuelConsumerAbility>() != null
-        && (building.BuildingData.GetAbility<BuildingLightingAbility>() != null
-            || building.BuildingData.GetAbility<BuildingTemperatureAbility>() != null
-            || building.BuildingData.GetAbility<BuildingThermalEmitterAbility>() != null);
+        && IsEnvironmentalFuelConsumerDefinition(building.BuildingData);
+
+    public static bool IsEnvironmentalFuelConsumerDefinition(BuildingSO definition) =>
+        definition != null
+        && definition.GetAbility<BuildingFuelConsumerAbility>() != null
+        && (definition.GetAbility<BuildingLightingAbility>() != null
+            || definition.GetAbility<BuildingTemperatureAbility>() != null
+            || definition.GetAbility<BuildingThermalEmitterAbility>() != null);
 
     public static string FormatWeather(SurvivalWeatherType weather)
     {

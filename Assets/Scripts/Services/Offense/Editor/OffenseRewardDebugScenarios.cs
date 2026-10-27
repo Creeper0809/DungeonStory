@@ -1319,7 +1319,7 @@ public static class OffenseRewardDebugScenarios
                 }
             }
         };
-        actor.Progression.GrowthState.ultimate = ultimate.Clone();
+        CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(actor.Progression).ultimate = ultimate.Clone();
 
         OffenseTargetDefinition target = OffenseEditorTestDependencies
             .CreateCampaignCatalog()

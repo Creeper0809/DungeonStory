@@ -1,0 +1,23 @@
+{
+  "display": ":90",
+  "privateExecutable": "/home/vulpo/codex-unity-validation-20261021/private-gui/usr/bin/Xvfb",
+  "authenticated": true,
+  "tcpDisabled": true,
+  "windowProbe": true,
+  "terminal": true,
+  "mode": "batchmode with graphics",
+  "persistenceRoot": "/home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Artifacts/QA/r208r28-impact-so-inspector-r28-skill-targeting/persistent-data",
+  "pid": 3306581,
+  "arguments": [
+    "/home/vulpo/codex-unity-validation-20261021/private-gui/usr/bin/Xvfb",
+    ":90",
+    "-screen",
+    "0",
+    "1920x1080x24",
+    "-nolisten",
+    "tcp",
+    "-auth",
+    "/home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Artifacts/QA/r208r28-impact-so-inspector-r28-skill-targeting/inspector.xauthority",
+    "-noreset"
+  ]
+}

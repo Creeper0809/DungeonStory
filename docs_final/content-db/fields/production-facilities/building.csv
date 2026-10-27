@@ -22980,6 +22980,7 @@ BuildingSO|building:1805,building:1805,references.RefIds.3.data.settings.supplyC
 BuildingSO|building:1805,building:1805,references.RefIds.3.data.settings.supplyPerActivation,1,,,explicit-serialized
 BuildingSO|building:1805,building:1805,references.RefIds.3.data.settings.initialSupply,1,,,explicit-serialized
 BuildingSO|building:1805,building:1805,references.RefIds.3.data.settings.requiresPower,0,,,explicit-serialized
+BuildingSO|building:1805,building:1805,references.RefIds.3.data.settings.requiresAutomaticControl,1,,,explicit-serialized
 BuildingSO|building:1805,building:1805,references.RefIds.3.data.settings.powerDemand,0,,,explicit-serialized
 BuildingSO|building:1805,building:1805,references.RefIds.3.data.settings.conditionLossPerActivation,0.8,,,explicit-serialized
 BuildingSO|building:1805,building:1805,references.RefIds.3.data.settings.baseJamChance,0.01,,,explicit-serialized

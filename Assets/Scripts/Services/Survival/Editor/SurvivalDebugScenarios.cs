@@ -3668,7 +3668,7 @@ public static class SurvivalDebugScenarios
         try
         {
             actor = CreateWim028Actor(actorObject, actorValue);
-            CharacterGrowthState growth = actor.Progression.GrowthState;
+            CharacterGrowthState growth = CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(actor.Progression);
             growth.initialized = true;
             growth.traitSelectionAuthorityVersion =
                 CharacterGrowthState.CurrentTraitSelectionAuthorityVersion;

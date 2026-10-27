@@ -4,7 +4,6 @@ using UnityEngine;
 public sealed class AIBrainPathSearchSession
 {
     private readonly IGridPathSearchBroker broker;
-    private GridPathSearchResult cache;
     private bool urgentRequested;
 
     public AIBrainPathSearchSession(IGridPathSearchBroker broker)
@@ -25,33 +24,26 @@ public sealed class AIBrainPathSearchSession
             return null;
         }
 
-        if (cache == null
-            || cache.sourceGrid != grid
-            || cache.start != start
-            || cache.traversalVersion != grid.TraversalVersion)
+        GridPathSearchPriority priority = urgentRequested
+            ? GridPathSearchPriority.Urgent
+            : GridPathSearchPriority.Normal;
+        if (!broker.TryGetSearch(
+            grid,
+            start,
+            out GridPathSearchResult result,
+            priority,
+            traversalContext))
         {
-            GridPathSearchPriority priority = urgentRequested
-                ? GridPathSearchPriority.Urgent
-                : GridPathSearchPriority.Normal;
-            if (!broker.TryGetSearch(
-                grid,
-                start,
-                out cache,
-                priority,
-                traversalContext))
-            {
-                IsDeferred = true;
-                return null;
-            }
+            IsDeferred = true;
+            return null;
         }
 
         urgentRequested = false;
-        return cache;
+        return result;
     }
 
     public void Clear()
     {
-        cache = null;
         IsDeferred = false;
     }
 

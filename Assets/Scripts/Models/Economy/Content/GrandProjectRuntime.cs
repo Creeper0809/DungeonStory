@@ -27,7 +27,7 @@ public sealed class GrandProjectRestoreCandidate
     // Cross-assembly restore validators may inspect the detached runtime
     // payload, but the aggregate wrapper and publication authority remain
     // internal to the model assembly.
-    public GrandProjectRuntimeState RuntimeState => State.RuntimeState;
+    public GrandProjectRuntimeState RuntimeState => GrandProjectRuntime.CloneState(State.RuntimeState);
 }
 
 public sealed class GrandProjectOfficeSnapshot
@@ -213,7 +213,7 @@ public sealed class GrandProjectRuntime :
         private set => aggregateState.Version = value;
     }
     public IReadOnlyList<GrandProjectDefinition> Definitions => BuiltInDefinitions;
-    public GrandProjectRuntimeState State => state;
+    public GrandProjectRuntimeState State => CloneState(state);
     public float ContractRewardMultiplier =>
         IsCompleted(RegionalTradePostId) ? 1.25f : 1f;
     public float DefensePreparationMultiplier =>
@@ -530,28 +530,15 @@ public sealed class GrandProjectRuntime :
     public DungeonGrandProjectSaveData Capture()
     {
         ValidateInputOwnerForCapture();
+        GrandProjectRuntimeState snapshot = CloneState(state);
+        snapshot.completedProjectIds = snapshot.completedProjectIds
+            .Where(id => !string.IsNullOrWhiteSpace(id))
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(id => id, StringComparer.Ordinal)
+            .ToList();
         return new DungeonGrandProjectSaveData
         {
-            state = new GrandProjectRuntimeState
-            {
-                activeProjectId = state.activeProjectId,
-                destinationId = state.destinationId,
-                completedWork = state.completedWork,
-                lastStatus = state.lastStatus,
-                inputOwnerFacilityId = state.inputOwnerFacilityId,
-                inputDestinationX = state.inputDestinationX,
-                inputDestinationY = state.inputDestinationY,
-                inputCapacityGrams = state.inputCapacityGrams,
-                inputMassAuthorityRevision = state.inputMassAuthorityRevision,
-                inputCapacityFingerprint = state.inputCapacityFingerprint,
-                completedProjectIds = state.completedProjectIds
-                    .Where(id => !string.IsNullOrWhiteSpace(id))
-                    .Distinct(StringComparer.Ordinal)
-                    .OrderBy(id => id, StringComparer.Ordinal)
-                    .ToList(),
-                pendingPhysicalCommit = state.pendingPhysicalCommit?.Clone()
-                    ?? new GrandProjectPhysicalCommitSaveData()
-            }
+            state = snapshot
         };
     }
 
@@ -563,8 +550,18 @@ public sealed class GrandProjectRuntime :
             throw new InvalidOperationException(
                 "Grand-project restore payload or state is missing.");
         }
-        GrandProjectRuntimeState source = saveData.state;
-        GrandProjectRuntimeState restored = new()
+        return new GrandProjectRestoreCandidate(
+            new GrandProjectAggregateState
+            {
+                RuntimeState = CloneState(saveData.state),
+                Version = aggregateState.Version + 1,
+                NextEvaluationTime = gameClock.Time + EvaluationInterval
+            });
+    }
+
+    internal static GrandProjectRuntimeState CloneState(GrandProjectRuntimeState source)
+    {
+        return new GrandProjectRuntimeState
         {
             activeProjectId = source.activeProjectId,
             destinationId = source.destinationId,
@@ -580,13 +577,6 @@ public sealed class GrandProjectRuntime :
             pendingPhysicalCommit = source.pendingPhysicalCommit?.Clone()
                 ?? new GrandProjectPhysicalCommitSaveData()
         };
-        return new GrandProjectRestoreCandidate(
-            new GrandProjectAggregateState
-            {
-                RuntimeState = restored,
-                Version = aggregateState.Version + 1,
-                NextEvaluationTime = gameClock.Time + EvaluationInterval
-            });
     }
 
     public void PublishRestoreCandidate(

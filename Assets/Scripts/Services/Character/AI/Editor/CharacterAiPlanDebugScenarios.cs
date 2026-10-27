@@ -2155,7 +2155,7 @@ public static class CharacterAiPlanDebugScenarios
                     }
                 }
             };
-            speaker.Progression.GrowthState.passiveSkills.Add(skill);
+            CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(speaker.Progression).passiveSkills.Add(skill);
             string expectedProvenance = CharacterSkillRuntimeEffects
                 .CaptureManagementModifierProvenance(
                     speaker,

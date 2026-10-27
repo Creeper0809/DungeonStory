@@ -967,7 +967,7 @@ public static class EnvironmentFirePhysicalProductionEntryDebugScenarios
                 "Slime");
             Worker = workerObject.GetComponent<CharacterActor>();
             Worker.Initialize(workerData);
-            Worker.Progression.GrowthState.displayName = workerDisplayName;
+            CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(Worker.Progression).displayName = workerDisplayName;
             Require(string.Equals(
                     Worker.Identity.DisplayName,
                     workerDisplayName,

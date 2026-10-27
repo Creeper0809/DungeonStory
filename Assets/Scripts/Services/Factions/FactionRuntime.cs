@@ -191,14 +191,15 @@ public sealed class FactionRuntimeApplicationAdapter :
         definitions;
     public IReadOnlyList<DungeonFactionState> Factions =>
         definitions
-            .Select(definition => ProjectCampaignRelationship(
-                factions.FirstOrDefault(value => string.Equals(
-                    value.factionId,
-                    definition.StableId,
-                    StringComparison.Ordinal))))
+            .Select(definition =>
+            {
+                DungeonFactionState current = factions.FirstOrDefault(value => string.Equals(
+                    value.factionId, definition.StableId, StringComparison.Ordinal));
+                return current == null ? null : ProjectCampaignRelationship(CloneFaction(current));
+            })
             .Where(value => value != null)
             .ToArray();
-    public IReadOnlyList<FactionRouteState> Routes => routes;
+    public IReadOnlyList<FactionRouteState> Routes => routes.Select(CloneRoute).ToArray();
 
     public void Start()
     {
@@ -422,7 +423,15 @@ public sealed class FactionRuntimeApplicationAdapter :
         }
     }
 
-    public bool TryGetFaction(
+    public bool TryGetFaction(string factionId, out DungeonFactionState faction)
+    {
+        bool found = TryFindOwnedFaction(factionId, out DungeonFactionState current);
+        faction = found ? CloneFaction(current) : null;
+        if (faction != null) faction.trust = current.trust;
+        return found;
+    }
+
+    private bool TryFindOwnedFaction(
         string factionId,
         out DungeonFactionState faction)
     {
@@ -437,7 +446,7 @@ public sealed class FactionRuntimeApplicationAdapter :
         string factionId,
         FactionContractKind contract)
     {
-        if (!TryGetFaction(factionId, out DungeonFactionState faction)
+        if (!TryFindOwnedFaction(factionId, out DungeonFactionState faction)
             || faction.NegotiationBlocked(currentDay)
             || !campaignQuery.TryGetFaction(
                 factionId,
@@ -475,7 +484,7 @@ public sealed class FactionRuntimeApplicationAdapter :
             message = "이전 세력 관계 결과 전달을 기다립니다: " + pendingFailure;
             return false;
         }
-        if (!TryGetFaction(factionId, out DungeonFactionState faction))
+        if (!TryFindOwnedFaction(factionId, out DungeonFactionState faction))
         {
             message = "세력을 찾을 수 없습니다.";
             return false;
@@ -550,7 +559,7 @@ public sealed class FactionRuntimeApplicationAdapter :
 
     private bool TryOfferGoodwillCore(string factionId, int physicalValue, out string message)
     {
-        if (!TryGetFaction(factionId, out DungeonFactionState faction))
+        if (!TryFindOwnedFaction(factionId, out DungeonFactionState faction))
         {
             message = "호의를 보낼 세력을 찾을 수 없습니다.";
             return false;
@@ -712,7 +721,7 @@ public sealed class FactionRuntimeApplicationAdapter :
         out string message)
     {
         EnsureObservationIdle();
-        if (!TryGetFaction(factionId, out DungeonFactionState faction)
+        if (!TryFindOwnedFaction(factionId, out DungeonFactionState faction)
             || !campaignQuery.TryGetFaction(
                 factionId,
                 out FactionCampaignStateSaveData relationship)
@@ -813,7 +822,7 @@ public sealed class FactionRuntimeApplicationAdapter :
             return false;
         }
         foreach (DungeonFactionState state in factions) ProjectCampaignRelationship(state);
-        if (!TryGetFaction(factionId, out DungeonFactionState target))
+        if (!TryFindOwnedFaction(factionId, out DungeonFactionState target))
         {
             message = "배신할 세력을 찾을 수 없습니다.";
             return false;
@@ -900,7 +909,7 @@ public sealed class FactionRuntimeApplicationAdapter :
         out string message)
     {
         EnsureObservationIdle();
-        if (!TryGetFaction(factionId, out DungeonFactionState faction))
+        if (!TryFindOwnedFaction(factionId, out DungeonFactionState faction))
         {
             message = "배상할 세력을 찾을 수 없습니다.";
             return false;
@@ -1101,7 +1110,7 @@ public sealed class FactionRuntimeApplicationAdapter :
         string factionId,
         out string message)
     {
-        if (!TryGetFaction(factionId, out DungeonFactionState faction))
+        if (!TryFindOwnedFaction(factionId, out DungeonFactionState faction))
         {
             message = "복구 사건의 세력을 찾을 수 없습니다.";
             return false;
@@ -1119,7 +1128,7 @@ public sealed class FactionRuntimeApplicationAdapter :
         int deaths,
         int equipmentLosses)
     {
-        if (!TryGetFaction(factionId, out DungeonFactionState faction))
+        if (!TryFindOwnedFaction(factionId, out DungeonFactionState faction))
         {
             return;
         }
@@ -1544,7 +1553,7 @@ public sealed class FactionRuntimeApplicationAdapter :
                 + tradeSettlementRecovery.LastFailure;
             return false;
         }
-        if (!TryGetFaction(factionId, out DungeonFactionState faction)
+        if (!TryFindOwnedFaction(factionId, out DungeonFactionState faction)
             || !IsContractUnlocked(factionId, requiredContract))
         {
             message = $"{requiredContract} 계약의 신뢰 또는 동맹 조건이 부족합니다.";

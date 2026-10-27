@@ -33,6 +33,7 @@ public static class GridFoundationDebugScenarios
         RunScenario("weighted path prefers lower travel cost", VerifyWeightedPathPrefersLowerTravelCost, errors);
         RunScenario("terrain changes invalidate navigation only", VerifyTerrainChangesInvalidateNavigationOnly, errors);
         RunScenario("path broker reuses versioned searches", VerifyPathBrokerReusesVersionedSearches, errors);
+        RunScenario("brain session observes current traversal policy", VerifyBrainSessionUsesCurrentPolicy, errors);
         RunScenario("urgent path searches respect hard frame cap", VerifyUrgentPathSearchesRespectHardFrameCap, errors);
         RunScenario("exact path search resumes across dynamic frame slices", VerifyExactPathSearchResumesAcrossFrames, errors);
         RunScenario("active urgent exact continuations remain fair", VerifyActiveUrgentExactContinuationFairness, errors);
@@ -190,6 +191,58 @@ public static class GridFoundationDebugScenarios
                 > DefaultGridTraversalCostPolicy.DryWalkCost;
 
         return first && reused && invalidated;
+    }
+
+    public static bool VerifyBrainSessionUsesCurrentPolicy()
+    {
+        Grid grid = new Grid(3, 1);
+        for (int x = 0; x < grid.width; x++)
+            AddHallway(grid, new Vector2Int(x, 0));
+        TestGameClock clock = new();
+        VersionedTestCostPolicy policy = new();
+        GridPathSearchBroker broker = new(clock, null, null, policy);
+        AIBrainPathSearchSession session = new(broker);
+        Vector2Int target = new(2, 0);
+        int gridVersion = grid.TraversalVersion;
+        broker.BeginFrame(8, true);
+        GridPathSearchResult initial = session.Get(grid, Vector2Int.zero, default);
+        if (initial == null || initial.GetMoveCostTo(target) == int.MaxValue)
+            return false;
+        GridPathSearchResult reused = session.Get(grid, Vector2Int.zero, default);
+        if (!ReferenceEquals(initial, reused) || broker.CacheHitsThisFrame != 1)
+            return false;
+        policy.Blocked = true;
+        policy.Version++;
+        clock.FrameCountValue++;
+        broker.BeginFrame(8, true);
+        GridPathSearchResult blocked = session.Get(grid, Vector2Int.zero, default);
+        if (blocked == null || blocked.GetMoveCostTo(target) != int.MaxValue
+            || ReferenceEquals(initial, blocked) || grid.TraversalVersion != gridVersion)
+            return false;
+        policy.Blocked = false;
+        policy.Version++;
+        clock.FrameCountValue++;
+        broker.BeginFrame(0, true);
+        if (session.Get(grid, Vector2Int.zero, default) != null || !session.IsDeferred)
+            return false;
+        clock.FrameCountValue++;
+        broker.BeginFrame(8, true);
+        GridPathSearchResult retried = session.Get(grid, Vector2Int.zero, default);
+        return retried != null && !session.IsDeferred
+            && retried.GetMoveCostTo(target) != int.MaxValue
+            && !ReferenceEquals(blocked, retried)
+            && grid.TraversalVersion == gridVersion;
+    }
+
+    private sealed class VersionedTestCostPolicy : IGridTraversalCostPolicy
+    {
+        public int Version { get; set; } = 1;
+        public int MinimumHorizontalCost => DefaultGridTraversalCostPolicy.DryWalkCost;
+        public bool Blocked { get; set; }
+        public int GetTraversalCost(Grid grid, in GridTraversalStepData step,
+            GridTraversalContext context) => Blocked && step.To.x == 1
+                ? int.MaxValue
+                : DefaultGridTraversalCostPolicy.Instance.GetTraversalCost(grid, step, context);
     }
 
     private static bool VerifyUrgentPathSearchesRespectHardFrameCap()

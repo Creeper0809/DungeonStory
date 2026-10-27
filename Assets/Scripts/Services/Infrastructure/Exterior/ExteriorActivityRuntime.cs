@@ -240,7 +240,7 @@ public sealed class ExteriorActivityRuntime :
         .Select(CreateIncidentSaveData)
         .ToArray();
     public IReadOnlyList<ExteriorIncidentRuntimeState> IncidentStates =>
-        incidentAggregate.States;
+        incidentAggregate.States.Select(value => value.Clone()).ToArray();
     public string ParticipantId => RestoreParticipantId;
     public float AveragePatrolReadiness => zones
         .Where(zone => zone != null

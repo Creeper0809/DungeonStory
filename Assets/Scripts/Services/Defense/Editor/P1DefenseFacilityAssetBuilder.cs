@@ -541,6 +541,7 @@ public static class P1DefenseFacilityAssetBuilder
                 defense.baseJamChance = 0.025f;
                 return;
             case 1805:
+                defense.requiresAutomaticControl = true;
                 SetSupply(
                     defense,
                     DefenseSupplyKind.Ammunition,

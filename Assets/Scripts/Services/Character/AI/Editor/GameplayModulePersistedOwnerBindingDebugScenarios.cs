@@ -26,8 +26,8 @@ public static partial class GameplayModuleOwnerEligibilityDebugScenarios
         var creator = new CharacterSkillGenerationService(NarrativeRequestContextTestFixture.CreateEmpty(), settings, new DeferredRuntime(), new FixedUiClock());
         draft = creator.CreateDraft(progression, CharacterSkillKind.Active, eligibleLevel,
             progression.GrowthState.skillGenerationRevision);
-        progression.GrowthState.drafts.RemoveAll(value => value.kind == draft.kind && value.unlockLevel == eligibleLevel);
-        progression.GrowthState.drafts.Add(draft);
+        CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(progression).drafts.RemoveAll(value => value.kind == draft.kind && value.unlockLevel == eligibleLevel);
+        CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(progression).drafts.Add(draft);
         owner.QueueSkillRequest(draft);
         string originalBinding = JsonUtility.ToJson(draft.ownerBinding);
         string saved = JsonUtility.ToJson(draft);
@@ -46,8 +46,8 @@ public static partial class GameplayModuleOwnerEligibilityDebugScenarios
         {
             CharacterSkillDraft restored = JsonUtility.FromJson<CharacterSkillDraft>(saved);
             if (missing) restored.ownerBinding = null;
-            progression.GrowthState.drafts.RemoveAll(value => value.requestKey == restored.requestKey);
-            progression.GrowthState.drafts.Add(restored);
+            CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(progression).drafts.RemoveAll(value => value.requestKey == restored.requestKey);
+            CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(progression).drafts.Add(restored);
             var transport = new DeferredRuntime();
             var service = new CharacterSkillGenerationService(NarrativeRequestContextTestFixture.CreateEmpty(), settings, transport, new FixedUiClock());
             JObject before = owner.CaptureOwnerCheckpoint();

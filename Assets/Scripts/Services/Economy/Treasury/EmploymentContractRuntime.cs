@@ -112,11 +112,13 @@ public sealed class EmploymentContractRuntime :
     public IReadOnlyList<EmployeeWageState> WageStates =>
         wageByCharacterId.Values
             .OrderBy(state => state.characterId, StringComparer.Ordinal)
+            .Select(state => state.Clone())
             .ToArray();
 
     public IReadOnlyList<MercenaryContract> MercenaryContracts =>
         mercenaryByCharacterId.Values
             .OrderBy(contract => contract.characterId, StringComparer.Ordinal)
+            .Select(contract => contract.Clone())
             .ToArray();
 
     public int ForecastCost(int days)
