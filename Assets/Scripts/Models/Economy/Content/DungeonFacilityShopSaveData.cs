@@ -13,6 +13,9 @@ public sealed class DungeonFacilityShopSaveData
     // Zero is the valid value for saves written before purchase identities
     // were owned by the facility-shop aggregate.
     public int purchaseSequence;
+    // 0은 일일 구매 내역을 저장하지 않던 기존 V1 형식이다.
+    public int dailyOfferPurchaseStateVersion = 1;
+    public List<string> purchasedDailyOfferKeys = new List<string>();
     public List<int> basicPurchaseBuildingIds = new List<int>();
     public List<int> acquiredBlueprintIds = new List<int>();
 }

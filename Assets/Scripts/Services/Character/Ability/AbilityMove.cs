@@ -9,7 +9,7 @@ public class AbilityMove : CharacterAbility
 {
     private const int DefaultPathSearchDeferralLimit = 64;
     private readonly CharacterMovementOperationRuntime movementOwnership = new();
-    private readonly SocietyResponseMovementProvenanceRuntime movementProvenance = new();
+    internal long MovementCancellationRevision { get; private set; }
     private CharacterDungeonDepartureRuntime dungeonDeparture;
     private CharacterDungeonDepartureRuntime Departure => dungeonDeparture ??= new(movementOwnership);
     private float moveSpeed;
@@ -56,16 +56,6 @@ public class AbilityMove : CharacterAbility
         movementOwnership.Owner;
     public int MovementOperationVersionForDiagnostics =>
         movementOwnership.Version;
-    internal string SocietyResponseMovementOperationId =>
-        movementProvenance.SocietyResponseMovementOperationId;
-    internal string SocietyResponseMovementExternalOperationId =>
-        movementProvenance.SocietyResponseMovementExternalOperationId;
-    internal string SocietyResponseMovementFacilityId =>
-        movementProvenance.SocietyResponseMovementFacilityId;
-    internal Vector2Int? SocietyResponseMovementDestination =>
-        movementProvenance.SocietyResponseMovementDestination;
-    internal string SocietyResponseMovementReceiptId =>
-        movementProvenance.SocietyResponseMovementReceiptId;
     public int PathSearchDeferralLimitForDiagnostics =>
         pathSearchDeferralLimit;
     public float GameClockTimeForDiagnostics => gameClock?.Time ?? -1f;
@@ -988,7 +978,7 @@ public class AbilityMove : CharacterAbility
         }
 
         movementOwnership.ClearSystemDestination();
-        movementProvenance.ClearSocietyResponseMovementProvenance();
+        MovementCancellationRevision = unchecked(MovementCancellationRevision + 1);
     }
 
     public bool TryCancelForImmediateAiReplan(
@@ -1097,56 +1087,6 @@ public class AbilityMove : CharacterAbility
             TrackActionMovement(ExecuteSystemMove(path)));
         message = $"({destination.x}, {destination.y}) 칸으로 이동";
         return true;
-    }
-
-    internal bool TryStartSocietyResponseSystemMove(
-        string responseOperationId,
-        string externalOperationId,
-        BuildingInstanceId facilityId,
-        Vector2Int destination,
-        DoorAccessOverrideKind overrideKind,
-        out string message)
-    {
-        if (!movementProvenance.CanStart(responseOperationId, externalOperationId, facilityId, destination, out message)) return false;
-        if (!TryStartSystemMove(destination, overrideKind, out message)) return false;
-        movementProvenance.RecordStarted(responseOperationId, externalOperationId, facilityId, destination);
-        return true;
-    }
-
-    internal bool TryRecordSocietyResponseMovementReceipt(
-        string responseOperationId,
-        string externalOperationId,
-        string receiptId,
-        out string failure)
-    {
-        failure = string.Empty;
-        if (!movementProvenance.TryGetReceiptDestination(responseOperationId, externalOperationId, receiptId, out Vector2Int destination)
-            || actor == null || actor.GetNowXY() != destination)
-        {
-            failure = "society-response-movement-receipt-conflict";
-            return false;
-        }
-        return movementProvenance.TryRecordSocietyResponseMovementReceipt(responseOperationId, externalOperationId,
-            receiptId, destination, out failure);
-    }
-
-    internal bool TryReleaseSocietyResponseMovementProvenance(
-        string responseOperationId,
-        string externalOperationId)
-    {
-        return movementProvenance.TryReleaseSocietyResponseMovementProvenance(responseOperationId, externalOperationId);
-    }
-
-    internal void RestoreSocietyResponseMovementProvenance(
-        string responseOperationId,
-        string externalOperationId,
-        string facilityId,
-        int destinationX,
-        int destinationY,
-        string receiptId)
-    {
-        movementProvenance.RestoreSocietyResponseMovementProvenance(responseOperationId, externalOperationId,
-            facilityId, destinationX, destinationY, receiptId);
     }
 
     [GameplayInternalOnly(
@@ -1542,7 +1482,7 @@ public class AbilityMove : CharacterAbility
         if (actor?.Brain != null
             && ReferenceEquals(actor.Brain.bestAction, expectedAction))
         {
-            actor.Brain.isBestActionEnd = false;
+            actor.Brain.HoldDecisionForCurrentExecution();
         }
         return true;
     }

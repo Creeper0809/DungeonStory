@@ -57,6 +57,9 @@ public sealed class BuildingAbilityRuntimeCatalog
             if (!factories.TryGetValue(definition.GetType(), out IBuildingAbilityRuntimeFactory factory))
                 throw new InvalidOperationException($"No runtime factory is registered for '{definition.GetType().FullName}'.");
             object runtime = factory.Bind(definition);
+            if ((runtime is IBuildingRuntimeStateAbility)
+                != (definition is IBuildingPersistentAbilityDefinition))
+                throw new InvalidOperationException($"Saved-state capability and published identity declaration differ for '{definition.GetType().FullName}'.");
             if (runtime is not IBuildingRuntimeStateAbility && runtime is not IBuildingVisualRuntimeAbility
                 && runtime is not IBuildingUseCompletedRuntimeAbility && runtime is not IBuildingExteriorWorkRuntimeAbility
                 && runtime is not IBuildingWorkAmountRuntimeAbility && runtime is not IBuildingCrimeRiskModifier)

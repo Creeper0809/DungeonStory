@@ -4,6 +4,7 @@ using System.Linq;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using static BuildingInfoActionViewFactory;
 
 public interface IEquipmentCraftingPanelPresenter
 {
@@ -630,132 +631,8 @@ public sealed class EquipmentCraftingPanelPresenter :
         return row;
     }
 
-    internal static GameObject CreateRow(
-        Transform parent,
-        string name,
-        float height)
-    {
-        GameObject row = new GameObject(
-            name,
-            typeof(RectTransform),
-            typeof(HorizontalLayoutGroup),
-            typeof(LayoutElement));
-        row.transform.SetParent(parent, false);
-        HorizontalLayoutGroup layout = row.GetComponent<HorizontalLayoutGroup>();
-        layout.spacing = 6f;
-        layout.childAlignment = TextAnchor.MiddleLeft;
-        layout.childControlWidth = false;
-        layout.childControlHeight = true;
-        layout.childForceExpandWidth = false;
-        layout.childForceExpandHeight = true;
-        row.GetComponent<LayoutElement>().preferredHeight = height;
-        return row;
-    }
-
-    internal static void AddLabel(
-        Transform parent,
-        string value,
-        TMP_FontAsset font,
-        float width)
-    {
-        GameObject textObject = new GameObject(
-            "Label",
-            typeof(RectTransform),
-            typeof(TextMeshProUGUI),
-            typeof(LayoutElement));
-        textObject.transform.SetParent(parent, false);
-        textObject.GetComponent<LayoutElement>().preferredWidth = width;
-        TMP_Text text = textObject.GetComponent<TMP_Text>();
-        text.text = value;
-        text.font = font;
-        text.fontSize = 14f;
-        text.enableAutoSizing = true;
-        text.fontSizeMin = 10f;
-        text.fontSizeMax = 14f;
-        text.color = DungeonUiTheme.TextPrimary;
-        text.alignment = TextAlignmentOptions.MidlineLeft;
-        text.textWrappingMode = TextWrappingModes.Normal;
-        text.raycastTarget = false;
-    }
-
-    internal static void AddButton(
-        Transform parent,
-        string label,
-        TMP_FontAsset font,
-        bool selected,
-        Action action,
-        float width = 82f,
-        bool interactable = true,
-        string objectName = "Button")
-    {
-        GameObject buttonObject = new GameObject(
-            objectName,
-            typeof(RectTransform),
-            typeof(Image),
-            typeof(Button),
-            typeof(LayoutElement));
-        buttonObject.transform.SetParent(parent, false);
-        buttonObject.GetComponent<LayoutElement>().preferredWidth = width;
-        Button button = buttonObject.GetComponent<Button>();
-        DungeonUiTheme.StyleButton(button, selected);
-        button.interactable = interactable;
-        button.onClick.AddListener(() => action?.Invoke());
-
-        GameObject textObject = new GameObject(
-            "Label",
-            typeof(RectTransform),
-            typeof(TextMeshProUGUI));
-        textObject.transform.SetParent(buttonObject.transform, false);
-        RectTransform rect = textObject.GetComponent<RectTransform>();
-        rect.anchorMin = Vector2.zero;
-        rect.anchorMax = Vector2.one;
-        rect.offsetMin = new Vector2(4f, 2f);
-        rect.offsetMax = new Vector2(-4f, -2f);
-        TMP_Text text = textObject.GetComponent<TMP_Text>();
-        text.text = label;
-        text.font = font;
-        text.fontSize = 14f;
-        text.color = DungeonUiTheme.TextPrimary;
-        text.alignment = TextAlignmentOptions.Center;
-        text.raycastTarget = false;
-    }
-
-    internal static void AddText(
-        Transform parent,
-        string value,
-        TMP_FontAsset font,
-        float fontSize,
-        Color color,
-        float height,
-        ICollection<GameObject> created)
-    {
-        GameObject textObject = new GameObject(
-            "EquipmentCraftingText",
-            typeof(RectTransform),
-            typeof(TextMeshProUGUI),
-            typeof(LayoutElement));
-        textObject.transform.SetParent(parent, false);
-        textObject.GetComponent<LayoutElement>().preferredHeight = height;
-        TMP_Text text = textObject.GetComponent<TMP_Text>();
-        text.text = value;
-        text.font = font;
-        text.fontSize = fontSize;
-        text.color = color;
-        text.alignment = TextAlignmentOptions.MidlineLeft;
-        text.textWrappingMode = TextWrappingModes.Normal;
-        text.raycastTarget = false;
-        created.Add(textObject);
-    }
-
     private static string GetFacilityKey(BuildableObject building)
     {
         return building.RequirePersistentInstanceId().Value;
-    }
-
-    internal static string Sanitize(string value)
-    {
-        return string.IsNullOrWhiteSpace(value)
-            ? "Unknown"
-            : value.Replace(':', '_').Replace('/', '_').Replace(' ', '_');
     }
 }

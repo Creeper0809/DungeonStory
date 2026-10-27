@@ -32,7 +32,7 @@ public static class ContentReferenceIntegrityDebugScenarios
 
         var root = AssetDatabase.LoadAssetAtPath<GameContentCatalogSO>("Assets/Resources/SO/GameContentCatalog.asset");
         var validationTimer = System.Diagnostics.Stopwatch.StartNew();
-        var catalog = ContentReferenceCatalog.FromRoot(root);
+        var catalog = ContentReferenceSelection.CreateCatalog(root);
         RequireClean(catalog.Validate(new ScriptableObject[] { root }), "Registered content relations");
         Debug.Log($"SO_REFERENCE_ROOT_VALIDATION_MS={validationTimer.ElapsedMilliseconds}");
         RequireClean(catalog.Validate(identities.assets.Select(value =>
@@ -169,10 +169,30 @@ public static class ContentReferenceIntegrityDebugScenarios
                 }
                 serialized.Update();
                 list = serialized.FindProperty(spec.Item2);
-                list.GetArrayElementAtIndex(0).FindPropertyRelative(spec.Item3).stringValue += ":changed";
+                SerializedProperty identity = list.GetArrayElementAtIndex(0).FindPropertyRelative(spec.Item3);
+                string originalId = identity.stringValue;
+                identity.stringValue += ":changed";
                 serialized.ApplyModifiedPropertiesWithoutUndo();
-                Require(ContentIdentityProtection.Validate(baseline, new ContentIdentityProtection.Snapshot
-                    { assets = new() { ContentIdentityProtection.CaptureAsset(published.guid, clone) } }).Count > 0,
+                ContentIdentityProtection.Snapshot renamed;
+                if (clone is EquipmentEvolutionFormulaCatalogSO)
+                {
+                    bool rejectedBeforeCapture = false;
+                    try { ContentIdentityProtection.CaptureAsset(published.guid, clone); }
+                    catch (InvalidOperationException error) when (error.Message ==
+                        "Every equipment formula capability must be included in its catalog module authority.")
+                    { rejectedBeforeCapture = true; }
+                    Require(rejectedBeforeCapture, "Unregistered equipment capability reached identity capture.");
+                    // 원본 캡처의 참조 거절과 게시 레코드 자체의 ID 변경 거절을 각각 확인한다.
+                    renamed = JsonUtility.FromJson<ContentIdentityProtection.Snapshot>(
+                        ContentIdentityProtection.ToJson(baseline));
+                    var field = renamed.assets.Single().fields.Single(value =>
+                        value.path.StartsWith("@nested:capabilities[", StringComparison.Ordinal)
+                        && value.path.EndsWith(".capabilityId", StringComparison.Ordinal) && value.value == originalId);
+                    field.value += ":changed";
+                }
+                else renamed = new ContentIdentityProtection.Snapshot
+                    { assets = new() { ContentIdentityProtection.CaptureAsset(published.guid, clone) } };
+                Require(ContentIdentityProtection.Validate(baseline, renamed).Count > 0,
                     "Nested saved identity rename accepted: " + spec.Item1);
                 EditorJsonUtility.FromJsonOverwrite(EditorJsonUtility.ToJson(source), clone);
                 RequireClean(ContentIdentityProtection.Validate(baseline, new ContentIdentityProtection.Snapshot

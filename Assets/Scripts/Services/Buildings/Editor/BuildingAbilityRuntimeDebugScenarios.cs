@@ -12,8 +12,9 @@ public static class BuildingAbilityRuntimeDebugScenarios
     {
         if (!Application.isBatchMode) throw new InvalidOperationException("Building runtime verification requires isolated batch mode.");
         VerifyDefinitionSerializationAndFactories();
+        VerifyPublishedPersistentAbilityIds();
         VerifyCurrentDefinitionBindingAndRejection();
-        Debug.Log("ARCHITECTURE_BUILDING_RUNTIME_BINDINGS=PASS; definitions13; runtime capabilities; JSON identity; duplicate/missing/invalid factories; current collection/revision; readonly config; atomic reject; retry");
+        Debug.Log("ARCHITECTURE_BUILDING_RUNTIME_BINDINGS=PASS; definitions13; runtime capabilities; JSON identity; duplicate/missing/invalid factories; persistent declaration mismatch; published custom/built-in IDs; stateless exclusion; current collection/revision; readonly config; atomic reject; retry");
     }
 
     private static void VerifyDefinitionSerializationAndFactories()
@@ -56,6 +57,8 @@ public static class BuildingAbilityRuntimeDebugScenarios
             "Direct work-amount command lost its configured calculation.");
         ExpectFailure(() => catalog.Bind(new BuildingAbility[] { UnlistedWorkAbility.Create() }));
         var custom = new BuildingAbilityRuntimeFactory<UnlistedWorkAbility, UnlistedWorkAbilityRuntime>(d => new(d));
+        Require((BuildingAbility)UnlistedWorkAbility.Create() is IBuildingPersistentAbilityDefinition,
+            "The custom saved-state fixture lost its persistent identity declaration.");
         Require(BuildingAbilityRuntimeCatalog.CreateBuiltIns(custom).Bind(new BuildingAbility[] { UnlistedWorkAbility.Create() })
             .Single() is IBuildingRuntimeStateAbility, "Explicit custom runtime was not registered.");
         ExpectFailure(() => BuildingAbilityRuntimeCatalog.CreateBuiltIns(custom, custom));
@@ -65,7 +68,101 @@ public static class BuildingAbilityRuntimeDebugScenarios
         ExpectFailure(() => BuildingAbilityRuntimeCatalog.CreateBuiltIns(
             new BuildingAbilityRuntimeFactory<UnlistedWorkAbility, object>(_ => null))
             .Bind(new BuildingAbility[] { UnlistedWorkAbility.Create() }));
+
+        var savedOnStateless = new BuildingAbilityRuntimeCatalog(new IBuildingAbilityRuntimeFactory[]
+        {
+            new BuildingAbilityRuntimeFactory<BuildingLightingAbility, UnlistedWorkAbilityRuntime>(
+                _ => new(UnlistedWorkAbility.Create()))
+        });
+        ExpectFailure(() => savedOnStateless.Bind(new BuildingAbility[] { new BuildingLightingAbility() }),
+            "Saved-state capability and published identity declaration differ");
+        var statelessOnSaved = new BuildingAbilityRuntimeCatalog(new IBuildingAbilityRuntimeFactory[]
+        {
+            new BuildingAbilityRuntimeFactory<UnlistedWorkAbility, object>(_ =>
+                catalog.Bind(new BuildingAbility[] { new BuildingLightingAbility() }).Single())
+        });
+        ExpectFailure(() => statelessOnSaved.Bind(new BuildingAbility[] { UnlistedWorkAbility.Create() }),
+            "Saved-state capability and published identity declaration differ");
     }
+
+    public static void VerifyPublishedPersistentAbilityIds()
+    {
+        BuildingSO fixture = ScriptableObject.CreateInstance<BuildingSO>();
+        fixture.hideFlags = HideFlags.HideAndDontSave;
+        try
+        {
+            var custom = UnlistedWorkAbility.Create();
+            var stateless = new BuildingLightingAbility();
+            var abilities = new BuildingAbilityCollection();
+            abilities.Add(custom);
+            abilities.Add(stateless);
+            fixture.ReplaceAbilities(abilities);
+            const string fixtureGuid = "11111111111111111111111111111111";
+            var original = ContentIdentityProtection.CaptureAsset(fixtureGuid, fixture);
+            string customPath = SavedAbilityPath(custom.AbilityId, nameof(UnlistedWorkAbility));
+            Require(original.fields.Any(field => field.path == customPath && field.value == custom.AbilityId),
+                "The new persistent fixture was omitted from published identity capture.");
+            Require(original.fields.All(field => field.path != SavedAbilityPath(
+                    stateless.AbilityId, nameof(BuildingLightingAbility))),
+                "A stateless runtime ability was unnecessarily included in published identity capture.");
+            var baseline = new ContentIdentityProtection.Snapshot { assets = new() { original } };
+            Require(ContentIdentityProtection.Validate(baseline, baseline).Count == 0,
+                "The persistent fixture baseline is invalid before mutation.");
+            string originalJson = EditorJsonUtility.ToJson(fixture);
+            using (var serialized = new SerializedObject(fixture))
+            {
+                var id = serialized.FindProperty(BuildingSO.AbilityModulesFieldName)
+                    .FindPropertyRelative("items").GetArrayElementAtIndex(0)
+                    .FindPropertyRelative("abilityId");
+                Require(id != null, "The custom persistent ability ID is unavailable.");
+                id.stringValue = custom.AbilityId + "-renamed";
+                Require(serialized.ApplyModifiedPropertiesWithoutUndo(),
+                    "The custom persistent ID mutation was not applied.");
+            }
+            var changed = new ContentIdentityProtection.Snapshot
+            {
+                assets = new() { ContentIdentityProtection.CaptureAsset(fixtureGuid, fixture) }
+            };
+            Require(ContentIdentityProtection.Validate(baseline, changed).Any(error => error.Contains(customPath)),
+                "Renaming a newly declared persistent ability ID was accepted.");
+            EditorJsonUtility.FromJsonOverwrite(originalJson, fixture);
+            var restored = new ContentIdentityProtection.Snapshot
+            {
+                assets = new() { ContentIdentityProtection.CaptureAsset(fixtureGuid, fixture) }
+            };
+            Require(ContentIdentityProtection.Validate(baseline, restored).Count == 0,
+                "Restoring the custom persistent identity did not recover the original contract.");
+        }
+        finally { UnityEngine.Object.DestroyImmediate(fixture); }
+
+        Require(ContentIdentityProtection.TryLoadBaseline(out var published, out string baselineError), baselineError);
+        string[] builtIns = { nameof(BuildingCoverAbility), nameof(BuildingStructuralIntegrityAbility),
+            nameof(BuildingProductionAbility), nameof(BuildingSecurityAbility) };
+        var covered = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var owner in published.assets.Where(asset => asset.typeName == nameof(BuildingSO)))
+        {
+            var expected = owner.fields.Where(field => builtIns.Any(type =>
+                field.path.EndsWith(";type=" + type + "].abilityId", StringComparison.Ordinal))).ToArray();
+            if (expected.Length == 0) continue;
+            BuildingSO source = AssetDatabase.LoadAssetAtPath<BuildingSO>(AssetDatabase.GUIDToAssetPath(owner.guid));
+            Require(source != null, "A published built-in ability owner could not be loaded.");
+            var current = ContentIdentityProtection.CaptureAsset(owner.guid, source);
+            foreach (var field in expected)
+            {
+                string type = builtIns.Single(value => field.path.EndsWith(
+                    ";type=" + value + "].abilityId", StringComparison.Ordinal));
+                Require(field.path == SavedAbilityPath(field.value, type)
+                    && current.fields.Any(actual => actual.path == field.path && actual.value == field.value),
+                    "A built-in published ability path/value changed: " + field.path);
+                covered.Add(type);
+            }
+        }
+        Require(covered.SetEquals(builtIns), "Published path preservation did not cover all four built-in saved abilities.");
+    }
+
+    private static string SavedAbilityPath(string abilityId, string typeName) =>
+        "@nested:abilityModules.items[abilityId=" + Uri.EscapeDataString(abilityId)
+        + ";type=" + typeName + "].abilityId";
 
     private static void VerifyCurrentDefinitionBindingAndRejection()
     {
@@ -145,9 +242,15 @@ public static class BuildingAbilityRuntimeDebugScenarios
     private static string CaptureModules(BuildableObject building) =>
         JsonUtility.ToJson(new ModuleSnapshot { modules = BuildingStateModulePersistence.Capture(building) });
     [Serializable] private sealed class ModuleSnapshot { public List<BuildingStateModuleSaveData> modules; }
-    private static void ExpectFailure(Action action)
+    private static void ExpectFailure(Action action, string expectedMessage = null)
     {
-        try { action(); } catch (InvalidOperationException) { return; }
+        try { action(); }
+        catch (InvalidOperationException exception)
+        {
+            Require(expectedMessage == null || exception.Message.Contains(expectedMessage),
+                "Runtime binding failed for the wrong reason: " + exception.Message);
+            return;
+        }
         throw new InvalidOperationException("Expected explicit building runtime binding rejection.");
     }
     private static void Require(bool condition, string message)

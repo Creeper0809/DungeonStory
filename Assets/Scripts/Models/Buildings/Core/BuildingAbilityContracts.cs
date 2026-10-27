@@ -238,3 +238,8 @@ public abstract class BuildingAbility
         return true;
     }
 }
+
+// 저장 모듈의 주소로 AbilityId를 쓰는 정의. 게시 후 ID 변경을 보호한다.
+public interface IBuildingPersistentAbilityDefinition : IBuildingRuntimeAbilityDefinition
+{
+}

@@ -114,7 +114,8 @@ public sealed class V20CampaignApplicationAdapter :
         ICharacterMedicalCommand medicalCommands,
         ICharacterMedicalQuery medicalQuery,
         ICharacterLifetimeQuery characterLifetime,
-        Func<IExteriorIncidentRuntime> exteriorIncidents)
+        Func<IExteriorIncidentRuntime> exteriorIncidents,
+        SocietyResponseMovementProvenanceRuntime responseMovements)
     {
         this.contentResolution = contentResolution
             ?? throw new ArgumentNullException(nameof(contentResolution));
@@ -166,7 +167,7 @@ public sealed class V20CampaignApplicationAdapter :
             contentResolution, calendar, runSeed, events, milestoneProjector,
             societyEvents, incidentResponses, storyCatalog, facilities, bodyHealth,
             consumables, medicalCommands, medicalQuery, characterLifetime,
-            exteriorIncidents);
+            exteriorIncidents, responseMovements);
     }
 
     public void Start()

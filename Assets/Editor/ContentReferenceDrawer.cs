@@ -150,25 +150,12 @@ public static class ContentReferenceSelection
     public static ContentReferenceKind? ResolveKind(ContentReferenceKind kind, SerializedProperty property)
     {
         if (kind == ContentReferenceKind.WeightedTarget)
-        {
-            if (property.propertyPath.Contains("relatedEventWeights.")) return ContentReferenceKind.LifeEvent;
-            if (property.propertyPath.Contains("otherCultureAttitudes.")) return ContentReferenceKind.Culture;
-            if (property.propertyPath.Contains("factionReactions.")) return ContentReferenceKind.EnemyFaction;
-            return null;
-        }
+            return ContentReferenceCatalog.ResolveWeightedTargetKind(property.propertyPath);
         if (kind != ContentReferenceKind.EffectTarget) return kind;
         int dot = property.propertyPath.LastIndexOf('.');
         var effectKind = property.serializedObject.FindProperty(property.propertyPath.Substring(0, dot + 1) + "kind");
         if (effectKind == null || effectKind.hasMultipleDifferentValues) return null;
-        return (V20ContentEffectKind)effectKind.intValue switch
-        {
-            V20ContentEffectKind.ItemGrant or V20ContentEffectKind.ItemConsume => ContentReferenceKind.Item,
-            V20ContentEffectKind.DiseaseExposure => ContentReferenceKind.Disease,
-            V20ContentEffectKind.ProficiencyExperience => ContentReferenceKind.Proficiency,
-            V20ContentEffectKind.FactionRapport or V20ContentEffectKind.FactionGrievance
-                or V20ContentEffectKind.FactionObligation => ContentReferenceKind.Faction,
-            _ => null
-        };
+        return ContentReferenceCatalog.ResolveEffectTargetKind((V20ContentEffectKind)effectKind.intValue);
     }
 
     public static ContentReferenceAttribute ResolveReference(ContentReferenceAttribute reference, SerializedProperty property)
@@ -420,6 +407,16 @@ public static class ContentReferenceSelection
         ? ContentReferenceCatalog.ResolveType(reference.DefinitionTypeName) : AssetType(reference.Kind);
 
     public static IReadOnlyList<Entry> Entries(ContentReferenceKind kind) => Entries(new ContentReferenceAttribute(kind));
+
+    public static ContentReferenceCatalog CreateCatalog(GameContentCatalogSO root)
+    {
+        if (root == null) throw new ArgumentNullException(nameof(root));
+        return ContentReferenceCatalog.FromCatalogs(
+            root.DomainCatalogs.OfType<GameDomainContentCatalogSO>(),
+            root.GetItemDefinitions<ItemDefinitionCatalogSO>(),
+            root.GetCharacterSkillSettings<CharacterSkillSystemSettingsSO>());
+    }
+
     public static IReadOnlyList<Entry> Entries(ContentReferenceAttribute reference)
     {
         string key = $"{reference.Kind}:{reference.DefinitionTypeName}:{reference.IdMemberName}";
@@ -429,7 +426,7 @@ public static class ContentReferenceSelection
         {
             var root = AssetDatabase.LoadAssetAtPath<GameContentCatalogSO>("Assets/Resources/SO/GameContentCatalog.asset");
             if (root == null) return Array.Empty<Entry>();
-            catalog = ContentReferenceCatalog.FromRoot(root);
+            catalog = CreateCatalog(root);
         }
         return entries[key] = catalog.Entries(reference).Select(value => new Entry(value.Asset, value.Id, value.Label)).ToArray();
     }

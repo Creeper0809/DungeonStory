@@ -10,7 +10,6 @@ Assets/Scripts/Services/Character/Ability/CharacterMovementOperationRuntime.cs,s
 Assets/Scripts/Services/Character/Ability/CharacterVisitPolicy.cs,services:character,Services,Character,runtime,,1,CharacterVisitPolicy,class,runtime-support,,
 Assets/Scripts/Services/Character/Ability/CharacterWorldPositionMovement.cs,services:character,Services,Character,runtime,,1,CharacterWorldPositionMovement,class,runtime-support,,
 Assets/Scripts/Services/Character/Ability/GridMoveBlockedResponder.cs,services:character,Services,Character,runtime,,1,GridMoveBlockedResponder,class,runtime-support,,
-Assets/Scripts/Services/Character/Ability/SocietyResponseMovementProvenanceRuntime.cs,services:character,Services,Character,runtime,,1,SocietyResponseMovementProvenanceRuntime,class,runtime-support,,
 Assets/Scripts/Services/Character/AgeConditionAnatomyProjectionRuntime.cs,services:character,Services,Character,runtime,,2,IAgeConditionAnatomyProjectionCommand; AgeConditionAnatomyProjectionRuntime,class; interface,mutation-boundary-or-orchestration; read-projection,hash-membership; transaction-idempotency,
 Assets/Scripts/Services/Character/AgeTreatmentCommandRuntime.cs,services:character,Services,Character,runtime,,3,AgeTreatmentOrderRequest; IAgeTreatmentCommand; AgeTreatmentCommandRuntime,class; interface; struct,mutation-boundary-or-orchestration,,
 Assets/Scripts/Services/Character/AgeTreatmentKind.cs,services:character,Services,Character,runtime,,1,AgeTreatmentKind,enum,runtime-support,,
@@ -28,7 +27,7 @@ Assets/Scripts/Services/Character/AI/Action/AISubstanceUse.cs,services:character
 Assets/Scripts/Services/Character/AI/Action/AIWork.cs,services:character,Services,Character,runtime,,1,AIWork,class,ai-decision,,
 Assets/Scripts/Services/Character/AI/AIActionFailure.cs,services:character,Services,Character,runtime,,3,AIActionFailure; FacilityAssignmentFailureExtensions; AIActionDebugCandidate,class; struct,ai-decision,,
 Assets/Scripts/Services/Character/AI/AIActionRuntime.cs,services:character,Services,Character,runtime,,3,AIActionPlanKind; AIActionPlan; AIAction,class; enum,ai-decision,dictionary-index,architecture-system:01
-Assets/Scripts/Services/Character/AI/AIBrain.cs,services:character,Services,Character,runtime,,1,AIBrain,class,ai-decision,,architecture-system:01
+Assets/Scripts/Services/Character/AI/AIBrain.cs,services:character,Services,Character,runtime,,2,AIBrain; ProjectionCheckpoint,class,ai-decision; read-projection,,architecture-system:01
 Assets/Scripts/Services/Character/AI/AIBrainActionConfiguration.cs,services:character,Services,Character,runtime,,1,AIBrainActionConfiguration,class,ai-decision,,
 Assets/Scripts/Services/Character/AI/AIBrainActionContinuationPolicy.cs,services:character,Services,Character,runtime,,1,AIBrainActionContinuationPolicy,class,ai-decision,,
 Assets/Scripts/Services/Character/AI/AIBrainActionEvaluator.cs,services:character,Services,Character,runtime,,1,AIBrainActionEvaluator,class,ai-decision,dictionary-index,

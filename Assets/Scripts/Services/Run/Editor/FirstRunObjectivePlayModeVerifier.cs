@@ -411,6 +411,20 @@ public sealed class FirstRunObjectiveVerificationRunner : MonoBehaviour
                 Check(!duplicate.Succeeded && shop.UnlockState.PurchaseSequence == sequence
                         && gameData.holdingMoney.Value == moneyAfter,
                     "DAILY_OFFER_DUPLICATE_REJECTED", duplicate.Message);
+                // 연구 운반 중 날짜가 바뀌기 전에 실제 일일 구매 상태를 저장한다.
+                var saves = scope.Container.Resolve<IDungeonGameSaveService>();
+                string purchaseJson = saves.ToJson(saves.Capture());
+                DungeonGameSaveData purchaseCheckpoint = saves.FromJson(purchaseJson);
+                bool hasPurchase = DungeonSaveSectionPayload.TryRead(purchaseCheckpoint,
+                    FacilityShopSaveSection.Id, out DungeonFacilityShopSaveData savedShop);
+                Check(hasPurchase && savedShop.purchasedDailyOfferKeys.Contains(daily.PurchaseKey)
+                        && savedShop.purchaseSequence == sequence
+                        && savedShop.currentOfferDay == shop.CurrentOfferDay,
+                    "DAILY_PURCHASE_SAVE_JSON", "sealed current-day checkpoint before research advances the clock");
+                string output = Environment.GetEnvironmentVariable("DUNGEONSTORY_AUDIT_REMEDIATION_OUTPUT");
+                using var writer = new StreamWriter(new FileStream(Path.Combine(output,
+                    "first-run-daily-shop-checkpoint.json"), FileMode.CreateNew));
+                writer.Write(purchaseJson);
             }
 
             yield return Click(shopTab, "shop tab close");

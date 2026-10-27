@@ -73,7 +73,7 @@ public static class R20RelationGuardDebugScenarios
             ResourceGameContentCatalog content = new(
                 new UnityGameContentRootLoader());
             ContentReferenceCatalog catalog =
-                ContentReferenceCatalog.FromRoot(content.Root);
+                ContentReferenceSelection.CreateCatalog(content.Root);
 
             RequireRegistered(content, disease);
             RequireRegistered(content, crossDisease);

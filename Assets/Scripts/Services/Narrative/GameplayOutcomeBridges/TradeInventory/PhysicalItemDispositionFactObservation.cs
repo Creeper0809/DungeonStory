@@ -30,7 +30,7 @@ public static class PhysicalItemDispositionFactObservation
         {
             GameplayEntityId operationEntity = new(
                 TradeInventoryOutcomeIds.OperationKind,
-                exactReceipt.OperationId);
+                fact.ObservationOperationId);
             string slug = TradeInventoryOutcomeIds.Slug(
                 TradeInventoryOutcomeKind.PhysicalItemBatchDisposition);
             metrics[metricCount++] = new GameplayOutcomeMetric(
@@ -146,7 +146,7 @@ public static class PhysicalItemDispositionFactObservation
                 slug);
             provenance[2] = new GameplayOutcomeProvenanceReference(
                 "domain-commit",
-                exactReceipt.CommitId);
+                fact.ObservationCommitId);
             facts[0] = new GameplayOutcomeFact(
                 TradeInventoryOutcomeIds.ReasonCodeFact,
                 exactReceipt.ReasonCode);
@@ -173,7 +173,7 @@ public static class PhysicalItemDispositionFactObservation
             GameplayOutcomeFact[] capturedFacts = Snapshot(facts, 2);
             return new TradeInventoryOutcomeReceipt(
                 TradeInventoryOutcomeKind.PhysicalItemBatchDisposition,
-                exactReceipt.OperationId,
+                fact.ObservationOperationId,
                 exactReceipt.OwnerRevision,
                 exactReceipt.OwnerRevision,
                 fact.AbsoluteDay,

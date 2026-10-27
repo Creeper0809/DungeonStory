@@ -1,3 +1,11 @@
+## 전체 코드 구조 감사 2026-10-27
+
+- 기준은 c2ff169b8이다. 런타임2983파일, embedded Editor1034파일, root Editor41파일, Tests18파일을 목록화했다. SDK572 C#은 제외한다. 전체 파일의 정적 수집과 위험 경계의 직접 검토를 구분하며 모든 함수의 의미 검토 완료로 표현하지 않는다.
+- 기존 지식베이스는 fresh였으나 DungeonPersistenceCoordinator 검색0건이었다. 실제 source와 기존 분석기를 사용했다. 파일 그래프2198개에서 순환묶음21개, 최대1000개이며 독립 결함1000개를 뜻하지 않는다. 게임 asmdef45개의 선언 참조에는 순환이 없다.
+- 현재 구조 Verify 실패는 ContentReferenceCatalog.FromRoot의 GameContentCatalogSO 직접 의존 추가로 RootCatalogReference3->4이다. baseline을 바꾸거나 기존 Assets 보고서를 덮지 않았다. GitHub CI 결과로 확대하지 않는다.
+- 상점 구매 journal은 pending 관측과 배송의 재전달 권위이며 UI의 일일 상품 중복 제한과 다르다. 구매 identity는 다음 sequence를 포함하고 완료 pending은 제거된다. 따라서 journal 존재가 purchasedKeys의 저장 복원 불일치를 해결하지 않는다.
+- 과도한 분리보다 쓰기 권위 통합과 실제 중복 정책 제거를 우선한다. 시설 사용 및 사건 처리의 의미별 경계는 후보가 되지만 저장 영수증, 재시도, 원자적 게시 검사를 제거할 근거는 없다.
+
 ## R26 수정 계약 결정
 
 - 남은 복원 검증은 두 경계만 추가한다. 시설은 기존 실패/ACK fixture에서 저장한 pending을 기존 component 폐기 후 새 component에 복원하고, 같은 물리 batch 권위를 유지한 채 retry/추가 차감 없음/중복 교체 없음/ACK 횟수/완료 후 재개 거절을 검사한다. 이는 통제된 상태 component 재생성 검증이다. 실제씬은 종료된 r182 프로세스가 생성한 sealed checkpoint를 바이트 그대로 새 프로세스의 격리 slot에 옮겨 Title LoadGame으로 복원하며, JSON 재봉인이나 상태 주입으로 입력을 바꾸지 않는다.
@@ -5928,3 +5936,19 @@ native-destructive-drain-current-r3은 Title/owner selection까지만 PASS하고
 - 현재 효과 연결의 수치 영향은 SO_REFERENCE_FULL_AUDIT.md에 기록한다. 과거 V27 인증 입력과 baseline은 그대로 보존하며 현재 효과 검증을 과거 전체 밸런스 인증으로 바꾸지 않는다.
 - r129sr의 R18 작성/정책/구형 견적 검사는 통과했지만 Undo 격리 정리 실패와 Addressables source drift1로 전체 실행은 수용하지 않았다. 고정된 Addressables 패키지 ResetHashes는 캐시가 이미 default여도 Undo 때 persisted settings를 dirty로 만든다. 기존 fixture는 hash 값 변화가 없다는 이유로 원래 dirty 상태 복원을 거부했다. 실제 Undo 발생을 관측한 경우에만 전체 JSON/hash 일치 후 원래 dirty로 되돌린다. 미관측 dirty 변화, 비캐시 JSON 변화와 전체 입력 drift는 계속 실패한다. 원래 action 실패와 정리 실패도 함께 보존한다. 서버의 변경된 설정 파일은 현재 승인된 원본 바이트로 복구하며 검사에서 제외하지 않는다.
 - r130sr 작성250초는 전체 PASS다. runtime130초의 통증 비교는 prepared identity가 체력을 초기화해 부상도가 달랐고 같은0.5를 재적용했다. r131sr230초는 그 검사와 과충전 JSON 경계를 지나 마나 Tick 검사에서 실패했다. 실제 health scheduler가 상태를 분할 처리하므로 캐릭터가 방문된 시각을 관측하고 상태 수 이내의 실제 Tick으로 진행한 후1초 회복량을 비교한다. 생산 계산, 회복량 기대값과 timeout은 바꾸지 않는다. r130 이후에는 runtime fixture 한 파일만 변경되므로 작성 증거의 실제 source binding과 전체 manifest 차이를 보존해 재사용한다.
+# R27 구조 보완 결정
+
+- main 대비 R26 GameplayScene 변경은 미등록 TestCharacter의 수동 spawn 후보1개 제거뿐이다. 승인된 c2ff169b8 씬은 SHA a0fc27f149e57bbf6deba481e170c75f707b9c187baf4bf535a11d43df47c73e이며 r197 실제 진행/신구 저장 복원이 이 바이트로 성공했다. V27 current-scene pin만 같은 값으로 갱신하고 정확한 지문 비교와 실행 후 재검사는 유지한다. 과거 전체 밸런스 archive나 baseline은 다시 쓰지 않는다. r198은 이 변경을 합치기 위해 중단한 부분 실행이며 PASS가 아니다.
+
+- r197 효과 CI의 장비 중첩 ID 변조 fixture는 새 module-authority 검사에서 캡처 전에 거절됐다. 런타임 검사를 바꾸지 않고 실제 invalid clone의 정확한 사전 거절, 게시 snapshot의 해당 nested ID 값 변경 거절, 원본 JSON 복원/재시도를 각각 확인하도록 테스트를 보완한다. 예외를 무조건 성공으로 처리하거나 기존 ID 단언을 제거하지 않는다.
+
+- 실제 상점 UI에서 내부 RuntimeArchetypes의 음수 ID 건물이 일일 후보에 섞여 canonical 구매 키 생성이 실패했다. 설치 키트와 해금이 비음수 ID를 요구하므로 추첨 전 제외하고 직접 구매도 결제 전에 거절한다. ID0은 유효한 복도이므로 그대로 허용한다. 실제 내부 에셋과 정상 에셋을 함께 넣어 후보/직접 결제/상태 불변을 검사한다.
+- 검증 프로세스는 SIGTERM 후 exit0을 반환할 수 있다. 외부 직렬 실행기는 종료 코드, 컴파일, 소스 보존뿐 아니라 정확한 완료 표시, 오류 로그와 수동 중단 기록을 함께 검사한다. r194 first-play는 예외3건과 미완료로 FAIL이며 정상 종료 코드로 PASS로 바꾸지 않는다.
+
+- S01: 일일 제한은 FacilityShopUnlockState에 저장하고 모든 구매 명령이 같은 키를 검사한다. 기본 상품 반복 구매는 유지한다. 구형 V1 저장은 기존에 저장하지 않은 일일 이력을 합성하지 않고 빈 이력으로 읽는다. 새 이력 필드는 완전한 쌍과 정규화된 현재 날짜 키만 허용한다.
+- S02/S06: Brain이 행동 종료와 투영 복원을 소유한다. 사건 이동 증빙은 scoped 서비스가 이동 인스턴스별로 소유하고 기존 캐릭터 DTO 필드를 그대로 읽고 쓴다. live와 복원 후보가 같은 인물 ID여도 다른 컴포넌트 키로 분리한다.
+- S07/S08: 시설 방문은 접근/취소/결제/최종 완료를 유지하고 소비 실행만 옮긴다. 소비 코루틴은 매번 현재 상태를 읽어 다른 방문의 상태 교체를 견딘다. 세력 배송의 물리 영수증/보상/ACK는 배송 소유자로, 서비스 조립은 기존 등록 위치로 옮긴다.
+- S03/S04/S05/S09/S10/S11: 기존 순수 규칙과 UI 생성 함수를 공용 위치로 모으고 저장하는 건물 능력이 게시 ID 보호 대상임을 직접 선언한다. 파일 길이 기준 분리, 저장 ID 변경, 구조 baseline 완화는 하지 않는다.
+- 검증: 기존 analyzer Verify PASS(rootCatalogReferences=3), Python CI91개 PASS, DSB001~DSB008 바이너리 재현 PASS. r189 표적4묶음과 r190 실제 이동은 PASS이며 각 소스 label을 보존한다. 최종 현재 입력 CI와 원격 통합은 별도 확인한다.
+- 실제 배송에서 인장 공급 대기까지 전체 효과 롤백을 적용해 새 배송 요청을 지우는 결함을 재현했다. 효과 실행 전에는 캠페인 보상/소비를 시작하지 않았으므로 전체 물품 롤백을 하지 않고 계약 입력 소유자만 보상 정리한다. 효과 실행 후 실패의 기존 롤백/전진 복구는 유지한다. 실제 pending 물품 요청1개 유지, 운반, JSON 복원, 보상 및 ACK 재시도와 기존 효과 실패 검사를 수용 조건으로 삼는다.
+- r193에서 인장 배송23.64게임초와 수락 재시도는 통과했고 숯8개도 실제 목적지에 도착했다. 이후 물리 영수증 관찰자가 URI escape 작업 ID를 일반 stable ID로 취급해 거절했다. 저장 원본 operation/commit ID와 기존 정상 기록 키는 유지하고, 인코딩/긴 합성 ID만 물리 fact 경계에서 SHA256 기반 관찰 키로 변환한다. 전역192자/문자 제한은 유지하며 잘못된 escape, 공백/제어문자, 2048자 초과 입력은 거절한다. 저장 원본/관찰 키 조인과 변조 거절을 별도 표적으로 검증한다.

@@ -87,11 +87,7 @@ internal sealed class CharacterMedicalPatientPhaseSnapshot
         }
 
         HasBrain = true;
-        BestAction = brain.bestAction;
-        IsExecuted = brain.isExecuted;
-        IsBestActionEnd = brain.isBestActionEnd;
-        ActionPhase = brain.CurrentActionPhase;
-        ActionPhaseDetail = brain.CurrentActionPhaseDetail;
+        BrainCheckpoint = brain.CaptureProjectionCheckpoint();
     }
 
     internal CharacterActor Actor { get; }
@@ -99,11 +95,7 @@ internal sealed class CharacterMedicalPatientPhaseSnapshot
     internal bool AiPaused { get; }
     internal CharacterDecisionState DecisionState { get; }
     internal bool HasBrain { get; }
-    internal AIAction BestAction { get; }
-    internal bool IsExecuted { get; }
-    internal bool IsBestActionEnd { get; }
-    internal string ActionPhase { get; }
-    internal string ActionPhaseDetail { get; }
+    private AIBrain.ProjectionCheckpoint BrainCheckpoint { get; }
 
     internal void Restore()
     {
@@ -121,13 +113,7 @@ internal sealed class CharacterMedicalPatientPhaseSnapshot
             return;
         }
 
-        brain.bestAction = BestAction;
-        brain.isExecuted = IsExecuted;
-        brain.isBestActionEnd = IsBestActionEnd;
-        brain.SetActionPhase(
-            ActionPhase,
-            destination: null,
-            detail: ActionPhaseDetail);
+        brain.RestoreProjectionCheckpoint(BrainCheckpoint);
     }
 }
 

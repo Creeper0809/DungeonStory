@@ -1,0 +1,405 @@
+{
+  "scope": "S01-S11 targeted contracts and actual scene execution; not exhaustive gameplay certification",
+  "finalSourceLabel": "r199r27",
+  "sourceInputCount": 21736,
+  "runs": [
+    {
+      "label": "r189r27-impact-so-inspector-r27-focused",
+      "actualSourceLabel": "r189r27",
+      "summary": {
+        "exit_code": 0,
+        "seconds": 450,
+        "stop_reason": null,
+        "source_label": "r189r27",
+        "compiler_error_count": 0,
+        "source_drift": []
+      },
+      "changedInputsSinceRun": [
+        "Assets/Architecture/runtime-architecture-metrics-current.json",
+        "Assets/Editor/ContentReferenceIntegrityDebugScenarios.cs",
+        "Assets/Editor/R26SavedSceneRestoreBatch.cs",
+        "Assets/Editor/R27StructureRemediationBatch.cs",
+        "Assets/Scripts/Services/Economy/Editor/V27CurrentSourceEvidenceDigest.cs",
+        "Assets/Scripts/Services/FacilityShop/FacilityShopSystem.cs",
+        "Assets/Scripts/Services/Items/Editor/PhysicalItemDispositionFactRecoveryDebugScenarios.cs",
+        "Assets/Scripts/Services/Items/PhysicalItemDisposedFact.cs",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/Editor/FacilityShopPurchaseObserverDebugScenarios.cs",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/TradeInventory/PhysicalItemDispositionFactObservation.cs",
+        "Assets/Scripts/Services/Run/Editor/FirstRunObjectivePlayModeVerifier.cs",
+        "Assets/Scripts/Services/Run/Editor/V20CampaignDebugScenarios.cs",
+        "Assets/Scripts/Services/Run/V20ContentResolutionService.cs"
+      ],
+      "evidence": [
+        {
+          "path": "Artifacts/QA/StructureR27/r189r27-impact-so-inspector-r27-focused-run-summary.json",
+          "sha256": "33cc4271fb1bf38b7de308d16de498a0d5552669861526fc16c738f28884c94e"
+        },
+        {
+          "path": "Artifacts/QA/StructureR27/r189r27-impact-so-inspector-r27-focused-owned-process-cleanup.json",
+          "sha256": "c1c61781c64ce14b0e9d510f2ce46690280e84242f4582bebfcbaaa0a57a97cf"
+        },
+        {
+          "path": "Artifacts/QA/StructureR27/r189r27-impact-so-inspector-r27-focused-isolated-display.json",
+          "sha256": "662432ff43ecc938bd9c43099c0c2169ce03eb2224a268ba3c356e76fb523ded"
+        },
+        {
+          "path": "Artifacts/QA/StructureR27/r189r27-impact-so-inspector-r27-focused-unity.redacted.log",
+          "sha256": "f14f723cefec1136619242628371678f9aee2355741697c0c4fe0eb4ef4e7d0d"
+        },
+        {
+          "path": "Artifacts/QA/StructureR27/r189r27-impact-so-inspector-r27-focused-authoring-equipment.txt",
+          "sha256": "83208db8995b1886fb718f8e8aafecc04b54593f114eee25c9e638cfa3becc9e"
+        },
+        {
+          "path": "Artifacts/QA/StructureR27/r189r27-impact-so-inspector-r27-focused-shop-owner.txt",
+          "sha256": "83208db8995b1886fb718f8e8aafecc04b54593f114eee25c9e638cfa3becc9e"
+        },
+        {
+          "path": "Artifacts/QA/StructureR27/r189r27-impact-so-inspector-r27-focused-restore-effects.txt",
+          "sha256": "83208db8995b1886fb718f8e8aafecc04b54593f114eee25c9e638cfa3becc9e"
+        },
+        {
+          "path": "Artifacts/QA/StructureR27/r189r27-impact-so-inspector-r27-focused-facility-consumption.txt",
+          "sha256": "83208db8995b1886fb718f8e8aafecc04b54593f114eee25c9e638cfa3becc9e"
+        }
+      ]
+    },
+    {
+      "label": "r190r27-impact-so-inspector-r27-movement",
+      "actualSourceLabel": "r190r27",
+      "summary": {
+        "exit_code": 0,
+        "seconds": 90,
+        "stop_reason": null,
+        "source_label": "r190r27",
+        "compiler_error_count": 0,
+        "source_drift": []
+      },
+      "changedInputsSinceRun": [
+        "Assets/Architecture/runtime-architecture-metrics-current.json",
+        "Assets/Editor/ContentReferenceIntegrityDebugScenarios.cs",
+        "Assets/Editor/R26SavedSceneRestoreBatch.cs",
+        "Assets/Editor/R27StructureRemediationBatch.cs",
+        "Assets/Scripts/Services/Economy/Editor/V27CurrentSourceEvidenceDigest.cs",
+        "Assets/Scripts/Services/FacilityShop/FacilityShopSystem.cs",
+        "Assets/Scripts/Services/Items/Editor/PhysicalItemDispositionFactRecoveryDebugScenarios.cs",
+        "Assets/Scripts/Services/Items/PhysicalItemDisposedFact.cs",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/Editor/FacilityShopPurchaseObserverDebugScenarios.cs",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/TradeInventory/PhysicalItemDispositionFactObservation.cs",
+        "Assets/Scripts/Services/Run/Editor/FirstRunObjectivePlayModeVerifier.cs",
+        "Assets/Scripts/Services/Run/Editor/V20CampaignDebugScenarios.cs",
+        "Assets/Scripts/Services/Run/V20ContentResolutionService.cs"
+      ],
+      "evidence": [
+        {
+          "path": "Artifacts/QA/StructureR27/r190r27-impact-so-inspector-r27-movement-run-summary.json",
+          "sha256": "cace022a027e7d7ccfe87bf630be427b4b6898d9fe87c0e8d5242ed332879f4a"
+        },
+        {
+          "path": "Artifacts/QA/StructureR27/r190r27-impact-so-inspector-r27-movement-owned-process-cleanup.json",
+          "sha256": "958b2c4ab4c4342028f5f4bfc78e9e6fdb14f1763f1fe3c5651f2ee65ac7a01c"
+        },
+        {
+          "path": "Artifacts/QA/StructureR27/r190r27-impact-so-inspector-r27-movement-isolated-display.json",
+          "sha256": "378b53850c46b90c212847b2cd6475b709f97febf3f417c7b571b787fd0610d7"
+        },
+        {
+          "path": "Artifacts/QA/StructureR27/r190r27-impact-so-inspector-r27-movement-unity.redacted.log",
+          "sha256": "bec7276420a9eda6997559759c317be2420837de71dff77ba0fc754b828b374b"
+        },
+        {
+          "path": "Artifacts/QA/StructureR27/r190r27-impact-so-inspector-r27-movement-movement-preparation.txt",
+          "sha256": "11bffe91c72ec904e8092f92cc8c87562e0e0e05c17c774335877e50ab24b202"
+        }
+      ]
+    },
+    {
+      "label": "r193r27-impact-so-inspector-r27-restore-effects",
+      "actualSourceLabel": "r193r27",
+      "summary": {
+        "exit_code": 0,
+        "seconds": 430,
+        "stop_reason": null,
+        "source_label": "r193r27",
+        "compiler_error_count": 0,
+        "source_drift": []
+      },
+      "changedInputsSinceRun": [
+        "Assets/Architecture/runtime-architecture-metrics-current.json",
+        "Assets/Editor/ContentReferenceIntegrityDebugScenarios.cs",
+        "Assets/Editor/R26SavedSceneRestoreBatch.cs",
+        "Assets/Editor/R27StructureRemediationBatch.cs",
+        "Assets/Scripts/Services/Economy/Editor/V27CurrentSourceEvidenceDigest.cs",
+        "Assets/Scripts/Services/FacilityShop/FacilityShopSystem.cs",
+        "Assets/Scripts/Services/Items/Editor/PhysicalItemDispositionFactRecoveryDebugScenarios.cs",
+        "Assets/Scripts/Services/Items/PhysicalItemDisposedFact.cs",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/Editor/FacilityShopPurchaseObserverDebugScenarios.cs",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/TradeInventory/PhysicalItemDispositionFactObservation.cs",
+        "Assets/Scripts/Services/Run/Editor/FirstRunObjectivePlayModeVerifier.cs"
+      ],
+      "evidence": [
+        {
+          "path": "Artifacts/QA/StructureR27/r193r27-impact-so-inspector-r27-restore-effects-run-summary.json",
+          "sha256": "730500cac66eed1a864492b4b53c71e1a47223d67b3b59eedac8060d89b188f2"
+        },
+        {
+          "path": "Artifacts/QA/StructureR27/r193r27-impact-so-inspector-r27-restore-effects-owned-process-cleanup.json",
+          "sha256": "34eb90122f40ad68dec880e17f6341206e141af5c000ea26bbc47526968ea4dd"
+        },
+        {
+          "path": "Artifacts/QA/StructureR27/r193r27-impact-so-inspector-r27-restore-effects-isolated-display.json",
+          "sha256": "e495c56e113c4cb42cf30278182f809a05216ab39357e07ff6c57ed2e1b4c3d2"
+        },
+        {
+          "path": "Artifacts/QA/StructureR27/r193r27-impact-so-inspector-r27-restore-effects-unity.redacted.log",
+          "sha256": "865df5e82c7c444f4712b4b2e791cc6ef5159a54e5aad2444fe03da6773dcf60"
+        },
+        {
+          "path": "Artifacts/QA/StructureR27/r193r27-impact-so-inspector-r27-restore-effects-restore-effects.txt",
+          "sha256": "56947cf229a857c8c109aa12b16793356eac6bb94138b863b94d4b1ee3d02f1c"
+        }
+      ]
+    },
+    {
+      "label": "r194r27-impact-so-inspector-r27-physical-identity",
+      "actualSourceLabel": "r194r27",
+      "summary": {
+        "exit_code": 0,
+        "seconds": 200,
+        "stop_reason": null,
+        "source_label": "r194r27",
+        "compiler_error_count": 0,
+        "source_drift": []
+      },
+      "changedInputsSinceRun": [
+        "Assets/Architecture/runtime-architecture-metrics-current.json",
+        "Assets/Editor/ContentReferenceIntegrityDebugScenarios.cs",
+        "Assets/Editor/R26SavedSceneRestoreBatch.cs",
+        "Assets/Scripts/Services/Economy/Editor/V27CurrentSourceEvidenceDigest.cs",
+        "Assets/Scripts/Services/FacilityShop/FacilityShopSystem.cs",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/Editor/FacilityShopPurchaseObserverDebugScenarios.cs",
+        "Assets/Scripts/Services/Run/Editor/FirstRunObjectivePlayModeVerifier.cs"
+      ],
+      "evidence": [
+        {
+          "path": "Artifacts/QA/StructureR27/r194r27-impact-so-inspector-r27-physical-identity-run-summary.json",
+          "sha256": "c0958d99e6661473221af811311d32505aaf1f9d9196da4bc9f2292ebaacc37f"
+        },
+        {
+          "path": "Artifacts/QA/StructureR27/r194r27-impact-so-inspector-r27-physical-identity-owned-process-cleanup.json",
+          "sha256": "3656fd7b354a5c3e8fb21d0c613addee67fe14c94f54a2186b5f5d7a4a3ad0c6"
+        },
+        {
+          "path": "Artifacts/QA/StructureR27/r194r27-impact-so-inspector-r27-physical-identity-isolated-display.json",
+          "sha256": "db160256584147a31a6b5768b90f0b08103a5493b1f35d087018f63af89c013f"
+        },
+        {
+          "path": "Artifacts/QA/StructureR27/r194r27-impact-so-inspector-r27-physical-identity-unity.redacted.log",
+          "sha256": "ab62a7f1f9ed69b13a9d14f43f4af3ceb4699daa3e3522df124f35e508482cf0"
+        },
+        {
+          "path": "Artifacts/QA/StructureR27/r194r27-impact-so-inspector-r27-physical-identity-physical-operation-identity.txt",
+          "sha256": "a6d80f3e8096ea77ac27d1a8f9a19e6a68b204250bd37cf9ed1fb35aa5c977ee"
+        }
+      ]
+    },
+    {
+      "label": "r194r27-impact-so-inspector-r27-delivery",
+      "actualSourceLabel": "r194r27",
+      "summary": {
+        "exit_code": 0,
+        "seconds": 130,
+        "stop_reason": null,
+        "source_label": "r194r27",
+        "compiler_error_count": 0,
+        "source_drift": []
+      },
+      "changedInputsSinceRun": [
+        "Assets/Architecture/runtime-architecture-metrics-current.json",
+        "Assets/Editor/ContentReferenceIntegrityDebugScenarios.cs",
+        "Assets/Editor/R26SavedSceneRestoreBatch.cs",
+        "Assets/Scripts/Services/Economy/Editor/V27CurrentSourceEvidenceDigest.cs",
+        "Assets/Scripts/Services/FacilityShop/FacilityShopSystem.cs",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/Editor/FacilityShopPurchaseObserverDebugScenarios.cs",
+        "Assets/Scripts/Services/Run/Editor/FirstRunObjectivePlayModeVerifier.cs"
+      ],
+      "evidence": [
+        {
+          "path": "Artifacts/QA/StructureR27/r194r27-impact-so-inspector-r27-delivery-run-summary.json",
+          "sha256": "d8d5e21833eca9f62aef2d7290db5c47a60239486e1408fe28ed2e9f8180492f"
+        },
+        {
+          "path": "Artifacts/QA/StructureR27/r194r27-impact-so-inspector-r27-delivery-owned-process-cleanup.json",
+          "sha256": "f71704cf89a683e9d19feb99386831ff619bbbbd9f726d8d01aae42d9fadc11f"
+        },
+        {
+          "path": "Artifacts/QA/StructureR27/r194r27-impact-so-inspector-r27-delivery-isolated-display.json",
+          "sha256": "465387de56802f3ea92747e72f24b4866a386cf39b7c237992c9f2a60372cb9c"
+        },
+        {
+          "path": "Artifacts/QA/StructureR27/r194r27-impact-so-inspector-r27-delivery-unity.redacted.log",
+          "sha256": "fb0da0da50772ed2f2f65fbc3e23fb0550909b6236d5badcbefdb3e15374258e"
+        },
+        {
+          "path": "Artifacts/QA/StructureR27/r194r27-impact-so-inspector-r27-delivery-wim-009-winter-contract-live.txt",
+          "sha256": "fe0afec01d81196ef4302edf354785424aa88dc85b197cd0721be847a34efea4"
+        }
+      ]
+    },
+    {
+      "label": "r196r27-impact-so-inspector-r27-shop-owner",
+      "actualSourceLabel": "r196r27",
+      "summary": {
+        "exit_code": 0,
+        "seconds": 130,
+        "stop_reason": null,
+        "source_label": "r196r27",
+        "compiler_error_count": 0,
+        "source_drift": []
+      },
+      "changedInputsSinceRun": [
+        "Assets/Editor/ContentReferenceIntegrityDebugScenarios.cs",
+        "Assets/Editor/R26SavedSceneRestoreBatch.cs",
+        "Assets/Scripts/Services/Economy/Editor/V27CurrentSourceEvidenceDigest.cs",
+        "Assets/Scripts/Services/Run/Editor/FirstRunObjectivePlayModeVerifier.cs"
+      ],
+      "evidence": [
+        {
+          "path": "Artifacts/QA/StructureR27/r196r27-impact-so-inspector-r27-shop-owner-run-summary.json",
+          "sha256": "cb340ac4684d3a060b4906756b29ec6e3ca376bb21f73ef3442ba04d5ee9e122"
+        },
+        {
+          "path": "Artifacts/QA/StructureR27/r196r27-impact-so-inspector-r27-shop-owner-owned-process-cleanup.json",
+          "sha256": "bec551a5a74e8210a102f72b9aa62934ab99661378c07fee9aeb6d096aeedd7f"
+        },
+        {
+          "path": "Artifacts/QA/StructureR27/r196r27-impact-so-inspector-r27-shop-owner-isolated-display.json",
+          "sha256": "6ed528a6696d98f57aa9b8fd53c3dcf3d459cdb92e8b496c16368dbc4bceec27"
+        },
+        {
+          "path": "Artifacts/QA/StructureR27/r196r27-impact-so-inspector-r27-shop-owner-unity.redacted.log",
+          "sha256": "0b64c5c7005ea13b0dcb7748ca5cb322f80f9a7957a00c8f7818a687bd049bd5"
+        },
+        {
+          "path": "Artifacts/QA/StructureR27/r196r27-impact-so-inspector-r27-shop-owner-shop-owner.txt",
+          "sha256": "2a85d1031994aa488a8bd69da4ecfdd0ab7905bab7141848ec82d283dc312a69"
+        }
+      ]
+    },
+    {
+      "label": "r197r27-impact-so-inspector-r27-first-play",
+      "actualSourceLabel": "r197r27",
+      "summary": {
+        "exit_code": 0,
+        "seconds": 240,
+        "stop_reason": null,
+        "source_label": "r197r27",
+        "compiler_error_count": 0,
+        "source_drift": []
+      },
+      "changedInputsSinceRun": [
+        "Assets/Editor/ContentReferenceIntegrityDebugScenarios.cs",
+        "Assets/Scripts/Services/Economy/Editor/V27CurrentSourceEvidenceDigest.cs"
+      ],
+      "evidence": [
+        {
+          "path": "Artifacts/QA/StructureR27/r197r27-impact-so-inspector-r27-first-play-run-summary.json",
+          "sha256": "61f91236cc1624045af1e5280b8005ba5896de01e29a33bdebce70fb00ed7989"
+        },
+        {
+          "path": "Artifacts/QA/StructureR27/r197r27-impact-so-inspector-r27-first-play-owned-process-cleanup.json",
+          "sha256": "335b5130ca607726afeda9c771a82455b2942c218fb3d1d237bb06a6d8ac7640"
+        },
+        {
+          "path": "Artifacts/QA/StructureR27/r197r27-impact-so-inspector-r27-first-play-isolated-display.json",
+          "sha256": "1354e1afed6342bc0137836b4854f96abd755eb42801acb96552571586fc9f0c"
+        },
+        {
+          "path": "Artifacts/QA/StructureR27/r197r27-impact-so-inspector-r27-first-play-unity.redacted.log",
+          "sha256": "d31142b3376c283b402fe22dd99e57884ab6a5d68a357558f271a014c9ba32b5"
+        },
+        {
+          "path": "Artifacts/QA/StructureR27/r197r27-impact-so-inspector-r27-first-play-first-run-progression.txt",
+          "sha256": "33932ecd6f5465593d899419e69f7d16827d20724bdb6e7c924f5a697352be9a"
+        }
+      ]
+    },
+    {
+      "label": "r197r27-impact-so-inspector-r27-cold-shop",
+      "actualSourceLabel": "r197r27",
+      "summary": {
+        "exit_code": 0,
+        "seconds": 100,
+        "stop_reason": null,
+        "source_label": "r197r27",
+        "compiler_error_count": 0,
+        "source_drift": []
+      },
+      "changedInputsSinceRun": [
+        "Assets/Editor/ContentReferenceIntegrityDebugScenarios.cs",
+        "Assets/Scripts/Services/Economy/Editor/V27CurrentSourceEvidenceDigest.cs"
+      ],
+      "evidence": [
+        {
+          "path": "Artifacts/QA/StructureR27/r197r27-impact-so-inspector-r27-cold-shop-run-summary.json",
+          "sha256": "8abfd885440ad70c1ddd22a78fe5d64b00277bd4861d3e47671c36cce8a828b1"
+        },
+        {
+          "path": "Artifacts/QA/StructureR27/r197r27-impact-so-inspector-r27-cold-shop-owned-process-cleanup.json",
+          "sha256": "e22c090c0092af85e3b82061cb90165dcd91fd2973d6de5dba8275f73317c7c7"
+        },
+        {
+          "path": "Artifacts/QA/StructureR27/r197r27-impact-so-inspector-r27-cold-shop-isolated-display.json",
+          "sha256": "77312923a6bfa7c386278e7e76bf7e5a30094074008602b4658612ae6abea612"
+        },
+        {
+          "path": "Artifacts/QA/StructureR27/r197r27-impact-so-inspector-r27-cold-shop-unity.redacted.log",
+          "sha256": "3d1d63051b932351db78fcbadbd297faa5ae6d792db7ca31e4ad46df9f5b10df"
+        },
+        {
+          "path": "Artifacts/QA/StructureR27/r197r27-impact-so-inspector-r27-cold-shop-cold-scene-restore.json",
+          "sha256": "3a7d7c9b315522e23b8f5c95bcf8e6592a8c0c5bcabcb5bc63717b80f08c72be"
+        }
+      ]
+    },
+    {
+      "label": "r197r27-impact-so-inspector-r27-cold-legacy",
+      "actualSourceLabel": "r197r27",
+      "summary": {
+        "exit_code": 0,
+        "seconds": 110,
+        "stop_reason": null,
+        "source_label": "r197r27",
+        "compiler_error_count": 0,
+        "source_drift": []
+      },
+      "changedInputsSinceRun": [
+        "Assets/Editor/ContentReferenceIntegrityDebugScenarios.cs",
+        "Assets/Scripts/Services/Economy/Editor/V27CurrentSourceEvidenceDigest.cs"
+      ],
+      "evidence": [
+        {
+          "path": "Artifacts/QA/StructureR27/r197r27-impact-so-inspector-r27-cold-legacy-run-summary.json",
+          "sha256": "4bd7e88b1e486604e386618d662a95e5f9b0ea2f54e976ee51058a5c23c844b5"
+        },
+        {
+          "path": "Artifacts/QA/StructureR27/r197r27-impact-so-inspector-r27-cold-legacy-owned-process-cleanup.json",
+          "sha256": "7edaf78d947b02182958b48522644188800aa4beb60ca27b6ba9150e53faa595"
+        },
+        {
+          "path": "Artifacts/QA/StructureR27/r197r27-impact-so-inspector-r27-cold-legacy-isolated-display.json",
+          "sha256": "69f949c1c3cb8f5c415e74222a012955e80cd784a62a8406a738f5da9ea32553"
+        },
+        {
+          "path": "Artifacts/QA/StructureR27/r197r27-impact-so-inspector-r27-cold-legacy-unity.redacted.log",
+          "sha256": "733fa050277a5ed61a70a944f98bfb0ade91a6d1e690ffa9ce8da2b5f92983ad"
+        },
+        {
+          "path": "Artifacts/QA/StructureR27/r197r27-impact-so-inspector-r27-cold-legacy-cold-scene-restore.json",
+          "sha256": "e8fa8b92f4d5f64bfef487ea8266e01d393f002aa5ccffa02cde49538bc98d1c"
+        }
+      ]
+    }
+  ],
+  "continuity": "Earlier accepted runs retain their own source labels. Review changedInputsSinceRun; no historic result is relabeled as current-source PASS."
+}

@@ -12,6 +12,35 @@ public interface IEquipmentModuleAppraisalRecovery
     bool TryRecoverPendingAppraisals(out DomainFailure failure);
 }
 
+public static class EquipmentModuleInstallationRules
+{
+    public static bool TryValidateReadiness(
+        EquipmentModuleInstance module,
+        out DomainFailure failure)
+    {
+        if (module == null)
+        {
+            failure = new DomainFailure(FailureCode.EquipmentOrModuleMissing);
+            return false;
+        }
+        if (!module.identified || !(module.condition >= 0.75f)
+            || module.state is not EquipmentModuleProcessState.Restored
+                and not EquipmentModuleProcessState.Tuned)
+        {
+            failure = new DomainFailure(FailureCode.ModuleNeedsRestoration);
+            return false;
+        }
+        if (module.grade == 4 && !module.runeTuned)
+        {
+            failure = new DomainFailure(FailureCode.ModuleNeedsRuneTuning);
+            return false;
+        }
+
+        failure = default;
+        return true;
+    }
+}
+
 public sealed class EquipmentModuleRuntime : IEquipmentModuleAppraisalRecovery
 {
     private const string MaterialTestCouponItemId = "component:material-test-coupon";
@@ -868,16 +897,10 @@ public sealed class EquipmentModuleRuntime : IEquipmentModuleAppraisalRecovery
             failure = new DomainFailure(FailureCode.ModuleLineageMismatch);
             return false;
         }
-        if (!module.identified || module.condition < 0.75f
-            || module.state is not EquipmentModuleProcessState.Restored
-                and not EquipmentModuleProcessState.Tuned)
+        if (!EquipmentModuleInstallationRules.TryValidateReadiness(
+                module,
+                out failure))
         {
-            failure = new DomainFailure(FailureCode.ModuleNeedsRestoration);
-            return false;
-        }
-        if (module.grade == 4 && !module.runeTuned)
-        {
-            failure = new DomainFailure(FailureCode.ModuleNeedsRuneTuning);
             return false;
         }
         if (!EquipmentModuleItemStateCodec.TryValidateAppraisalState(

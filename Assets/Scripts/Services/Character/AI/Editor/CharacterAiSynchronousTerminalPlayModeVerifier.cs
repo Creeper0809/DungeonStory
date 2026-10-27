@@ -126,9 +126,9 @@ public sealed class CharacterAiSynchronousTerminalPlayModeRunner : MonoBehaviour
         {
             AIAction action = new(shoppingActionSet, AIActionPlan.WithoutDestination);
             actor.Brain.availableActions = new AIAction[] { action };
-            actor.Brain.bestAction = action;
-            actor.Brain.isBestActionEnd = false;
-            actor.Brain.isExecuted = false;
+            actor.Brain.SetSelectedActionForDebug(action);
+            actor.Brain.SetDecisionPendingForDebug(false);
+            actor.Brain.SetExecutionFlagForDebug(false);
             CharacterAiDecisionTickResult executed = new CharacterAiDecisionPipeline(
                     NoCharacterDeprivationBoundary.Instance,
                     NoCharacterDeprivationBoundary.Instance)

@@ -135,7 +135,8 @@ public static class CampaignPresentationObserverDebugScenarios
             context.Catalog, context.Life, careers, context.Facilities,
             context.Port<ICharacterBodyHealthQuery>(), context.Port<ICharacterConsumablesApplication>(),
             context.Port<ICharacterMedicalCommand>(), context.Port<ICharacterMedicalQuery>(),
-            context.Port<ICharacterLifetimeQuery>(), () => throw new InvalidOperationException("Unexpected exterior command."));
+            context.Port<ICharacterLifetimeQuery>(), () => throw new InvalidOperationException("Unexpected exterior command."),
+            new SocietyResponseMovementProvenanceRuntime());
         var daily = new List<CampaignDailyEvaluatedFact>();
         var crisis = new List<EndlessCrisisEvaluatedFact>();
         using var dailyCapture = context.Events.Subscribe<CampaignDailyEvaluatedFact>(daily.Add);

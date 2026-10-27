@@ -108,7 +108,7 @@ public static class R19ContentSelectionDebugScenarios
         try
         {
             ContentReferenceCatalog catalog =
-                ContentReferenceCatalog.FromRoot(root);
+                ContentReferenceSelection.CreateCatalog(root);
             VerifyCoreCandidates(catalog);
             VerifyStartingProficiencies(catalog);
             VerifySkillAndFormulaSelections(

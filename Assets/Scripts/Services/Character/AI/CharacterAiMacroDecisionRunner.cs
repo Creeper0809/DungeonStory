@@ -246,7 +246,7 @@ internal sealed class CharacterAiMacroDecisionRunner
             CharacterAiInterruptReason.MacroGoalChanged,
             "ExitDungeon macro.");
         blackboard.ClearMacroGoal("ExitDungeon started.");
-        actor.Brain.isBestActionEnd = false;
+        actor.Brain.HoldDecisionForCurrentExecution();
         move.StartExitDungeon();
         return Result(true, "ExitDungeon", "Exit started.", blackboard);
     }

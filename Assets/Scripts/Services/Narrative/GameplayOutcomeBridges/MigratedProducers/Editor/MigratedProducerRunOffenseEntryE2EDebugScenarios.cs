@@ -3358,7 +3358,7 @@ public static partial class MigratedProducerRunOffenseEntryE2EDebugScenarios
             });
             campaign.PublishSociety(campaign.PrepareSociety(society));
             socialFacts = new SocialRitualFactEditorFixture(Outcomes, Probe);
-            service = new V20ContentResolutionService(
+            service = DungeonCharacterRegistration.CreateContentResolutionForDebug(
                 campaign,
                 catalog,
                 AlwaysSatisfiedContentRequirements.Instance,

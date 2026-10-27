@@ -37,7 +37,8 @@ public sealed class FacilityShopStateSnapshot
         int currentOfferDay,
         IEnumerable<int> basicPurchaseBuildingIds,
         IEnumerable<int> acquiredBlueprintIds,
-        int purchaseSequence = 0)
+        int purchaseSequence = 0,
+        IEnumerable<string> purchasedDailyOfferKeys = null)
     {
         if (purchaseSequence < 0)
             throw new ArgumentOutOfRangeException(nameof(purchaseSequence));
@@ -47,12 +48,18 @@ public sealed class FacilityShopStateSnapshot
         AcquiredBlueprintIds = Array.AsReadOnly(
             CanonicalIds(acquiredBlueprintIds));
         PurchaseSequence = purchaseSequence;
+        string[] keys = (purchasedDailyOfferKeys ?? Array.Empty<string>()).ToArray();
+        if (keys.Any(key => !FacilityShopUnlockState.IsDailyOfferKey(key, CurrentOfferDay))
+            || keys.Distinct(StringComparer.Ordinal).Count() != keys.Length)
+            throw new ArgumentException("Invalid or duplicate daily-offer purchase key.", nameof(purchasedDailyOfferKeys));
+        PurchasedDailyOfferKeys = Array.AsReadOnly(keys.OrderBy(key => key, StringComparer.Ordinal).ToArray());
     }
 
     public int CurrentOfferDay { get; }
     public IReadOnlyList<int> BasicPurchaseBuildingIds { get; }
     public IReadOnlyList<int> AcquiredBlueprintIds { get; }
     public int PurchaseSequence { get; }
+    public IReadOnlyList<string> PurchasedDailyOfferKeys { get; }
 
     private static int[] CanonicalIds(IEnumerable<int> ids) =>
         (ids ?? Array.Empty<int>())
@@ -75,6 +82,7 @@ internal sealed class FacilityShopAggregateState
 {
     internal readonly HashSet<int> BasicPurchaseBuildingIds = new();
     internal readonly HashSet<int> AcquiredBlueprintIds = new();
+    internal readonly HashSet<string> PurchasedDailyOfferKeys = new(StringComparer.Ordinal);
     internal int CurrentOfferDay = 1;
     internal int PurchaseSequence;
 
@@ -87,6 +95,7 @@ internal sealed class FacilityShopAggregateState
         };
         clone.BasicPurchaseBuildingIds.UnionWith(BasicPurchaseBuildingIds);
         clone.AcquiredBlueprintIds.UnionWith(AcquiredBlueprintIds);
+        clone.PurchasedDailyOfferKeys.UnionWith(PurchasedDailyOfferKeys);
         return clone;
     }
 }
@@ -126,6 +135,40 @@ public sealed class FacilityShopUnlockState
     public int CurrentOfferDay => Current.CurrentOfferDay;
     public int PurchaseSequence => Current.PurchaseSequence;
 
+    public static string DailyOfferKey(int day, int index, string offerTypeId, int dataId)
+    {
+        if (day < 1 || index < 0 || dataId < 0 || string.IsNullOrWhiteSpace(offerTypeId)
+            || !string.Equals(offerTypeId, offerTypeId.Trim(), StringComparison.Ordinal))
+            throw new ArgumentException("Daily-offer identity is invalid.");
+        return FormattableString.Invariant($"shop:daily:{day}:{index}:{offerTypeId}:{dataId}");
+    }
+
+    public static bool IsDailyOfferKey(string key, int day)
+    {
+        string prefix = FormattableString.Invariant($"shop:daily:{day}:");
+        if (key == null || !key.StartsWith(prefix, StringComparison.Ordinal)) return false;
+        int indexEnd = key.IndexOf(':', prefix.Length);
+        int dataStart = key.LastIndexOf(':');
+        if (indexEnd <= prefix.Length || dataStart <= indexEnd + 1
+            || !int.TryParse(key.Substring(prefix.Length, indexEnd - prefix.Length), out int index)
+            || !int.TryParse(key.Substring(dataStart + 1), out int dataId)
+            || index < 0 || dataId < 0) return false;
+        string offerType = key.Substring(indexEnd + 1, dataStart - indexEnd - 1);
+        return !string.IsNullOrWhiteSpace(offerType)
+            && string.Equals(offerType, offerType.Trim(), StringComparison.Ordinal)
+            && string.Equals(key, DailyOfferKey(day, index, offerType, dataId), StringComparison.Ordinal);
+    }
+
+    public bool WasDailyOfferPurchased(string key) =>
+        key != null && Current.PurchasedDailyOfferKeys.Contains(key);
+
+    public void RecordDailyOfferPurchase(string key)
+    {
+        if (!IsDailyOfferKey(key, CurrentOfferDay)
+            || !Writable.PurchasedDailyOfferKeys.Add(key))
+            throw new InvalidOperationException("Daily offer is invalid or already purchased.");
+    }
+
     public void CommitPurchaseSequence(int expectedPrevious)
     {
         if (expectedPrevious < 0
@@ -144,15 +187,22 @@ public sealed class FacilityShopUnlockState
         blueprintId >= 0 && Writable.AcquiredBlueprintIds.Add(blueprintId);
     public bool IsBlueprintAcquired(int blueprintId) =>
         blueprintId >= 0 && Current.AcquiredBlueprintIds.Contains(blueprintId);
-    public void SetCurrentOfferDay(int day) =>
-        Writable.CurrentOfferDay = Math.Max(1, day);
+    public void SetCurrentOfferDay(int day)
+    {
+        int nextDay = Math.Max(1, day);
+        if (nextDay == Current.CurrentOfferDay) return;
+        FacilityShopAggregateState state = Writable;
+        state.CurrentOfferDay = nextDay;
+        state.PurchasedDailyOfferKeys.Clear();
+    }
 
     public FacilityShopStateSnapshot Capture() =>
         new(
             Current.CurrentOfferDay,
             Current.BasicPurchaseBuildingIds,
             Current.AcquiredBlueprintIds,
-            Current.PurchaseSequence);
+            Current.PurchaseSequence,
+            Current.PurchasedDailyOfferKeys);
 
     public void Restore(FacilityShopStateSnapshot snapshot)
     {
@@ -174,6 +224,7 @@ public sealed class FacilityShopUnlockState
         restored.BasicPurchaseBuildingIds.UnionWith(
             snapshot.BasicPurchaseBuildingIds);
         restored.AcquiredBlueprintIds.UnionWith(snapshot.AcquiredBlueprintIds);
+        restored.PurchasedDailyOfferKeys.UnionWith(snapshot.PurchasedDailyOfferKeys);
         return new FacilityShopRestoreCandidate(restored);
     }
 

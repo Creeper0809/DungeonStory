@@ -221,7 +221,7 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
         blackboard.ClearCommitment(CharacterAiInterruptReason.Critical, actor.CurrentLifecycleState.ToString());
         if (actor.Brain != null)
         {
-            actor.Brain.isBestActionEnd = false;
+            actor.Brain.HoldDecisionForCurrentExecution();
         }
 
         return CharacterAiDecisionRules.Result(true, CharacterAiBranch.Critical, "HasCriticalState", actor.CurrentLifecycleState.ToString(), blackboard);
@@ -331,7 +331,7 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
         }
 
         AIAction runningAction = actor.Brain.bestAction;
-        actor.Brain.isBestActionEnd = false;
+        actor.Brain.HoldDecisionForCurrentExecution();
         runningAction?.actionset?.RefreshDestinationReservation(actor, runningAction.destination);
         blackboard.RefreshCommitment(runningAction);
         blackboard.SetIntent(
@@ -365,7 +365,7 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
         }
 
         AIAction runningAction = actor.Brain.bestAction;
-        actor.Brain.isBestActionEnd = false;
+        actor.Brain.HoldDecisionForCurrentExecution();
         runningAction?.actionset?.RefreshDestinationReservation(actor, runningAction.destination);
         blackboard.RefreshCommitment(runningAction);
         blackboard.SetIntent(
@@ -612,7 +612,7 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
 
         if (actor.Brain != null)
         {
-            actor.Brain.isBestActionEnd = false;
+            actor.Brain.HoldDecisionForCurrentExecution();
         }
 
         bool survivalNeedDue = CharacterNeedAiThresholds
@@ -661,7 +661,7 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
             failureReason));
         if (actor.Brain != null)
         {
-            actor.Brain.isBestActionEnd = true;
+            actor.Brain.RequestDecisionAfterExecution();
         }
 
         return CharacterAiDecisionRules.Result(false, CharacterAiBranch.Idle, "RunIdleBehavior", failureReason, blackboard);

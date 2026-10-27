@@ -724,9 +724,9 @@ public static class CharacterMedicalRestoreFaultScenarios
             candidatePatient.SetLifecycleState(CharacterLifecycleState.OnExpedition);
             candidatePatient.SetAiPaused(true);
             AIAction previousBestAction = new AIAction();
-            candidatePatient.Brain.bestAction = previousBestAction;
-            candidatePatient.Brain.isExecuted = true;
-            candidatePatient.Brain.isBestActionEnd = false;
+            candidatePatient.Brain.SetSelectedActionForDebug(previousBestAction);
+            candidatePatient.Brain.SetExecutionFlagForDebug(true);
+            candidatePatient.Brain.SetDecisionPendingForDebug(false);
             candidatePatient.Brain.SetActionPhase(
                 "previous-phase",
                 detail: "previous-detail");

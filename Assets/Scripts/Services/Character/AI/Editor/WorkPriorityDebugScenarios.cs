@@ -695,7 +695,7 @@ public static class WorkPriorityDebugScenarios
             }
 
             work.isWorking = true;
-            worker.ai.bestAction = null;
+            worker.ai.SetSelectedActionForDebug(null);
 
             var routine = work.CheckActionWork();
             bool yielded = routine.MoveNext();
@@ -725,10 +725,10 @@ public static class WorkPriorityDebugScenarios
                 BuiltInWorkTypeIds.Operate,
                 world.Grid.SearchPath(worker.GetNowXY()));
             work.isWorking = true;
-            worker.ai.bestAction = new AIAction(
+            worker.ai.SetSelectedActionForDebug(new AIAction(
                 AssetDatabase.LoadAssetAtPath<AIWork>("Assets/Resources/SO/AI/Action/Work.asset"),
-                AIActionPlan.AtDestination(training));
-            worker.ai.isBestActionEnd = false;
+                AIActionPlan.AtDestination(training)));
+            worker.ai.SetDecisionPendingForDebug(false);
 
             work.SetWorkPriority(BuiltInWorkTypeIds.Operate, WorkPriorityLevel.Off);
 
@@ -835,10 +835,10 @@ public static class WorkPriorityDebugScenarios
                 BuiltInWorkTypeIds.Operate,
                 search);
             work.isWorking = true;
-            worker.ai.bestAction = new AIAction(
+            worker.ai.SetSelectedActionForDebug(new AIAction(
                 AssetDatabase.LoadAssetAtPath<AIWork>("Assets/Resources/SO/AI/Action/Work.asset"),
-                AIActionPlan.AtDestination(training));
-            worker.ai.isBestActionEnd = false;
+                AIActionPlan.AtDestination(training)));
+            worker.ai.SetDecisionPendingForDebug(false);
 
             work.SetWorkPriority(
                 BuiltInWorkTypeIds.Repair,

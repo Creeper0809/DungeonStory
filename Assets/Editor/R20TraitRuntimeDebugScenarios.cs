@@ -279,8 +279,8 @@ public static class R20TraitRuntimeDebugScenarios
         AIAction retainedAction = new(
             retainedActionSet,
             AIActionPlan.WithoutDestination);
-        responsive.Actor.Brain.bestAction = retainedAction;
-        responsive.Actor.Brain.isBestActionEnd = false;
+        responsive.Actor.Brain.SetSelectedActionForDebug(retainedAction);
+        responsive.Actor.Brain.SetDecisionPendingForDebug(false);
 
         GameEventBus events = new();
         FixedAlertService alerts = new();
@@ -340,7 +340,7 @@ public static class R20TraitRuntimeDebugScenarios
         }
         finally
         {
-            responsive.Actor.Brain.bestAction = null;
+            responsive.Actor.Brain.SetSelectedActionForDebug(null);
             UnityEngine.Object.DestroyImmediate(retainedActionSet);
         }
     }

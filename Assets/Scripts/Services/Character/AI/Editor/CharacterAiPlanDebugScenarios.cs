@@ -2614,7 +2614,7 @@ public static class CharacterAiPlanDebugScenarios
             brainFixture.ApplyModifiedPropertiesWithoutUndo();
             AIAction runningAction = new AIAction { actionset = workActionSet };
             runningAction.MarkStarted(Mathf.Max(0f, Time.time - 1f));
-            actor.Brain.bestAction = runningAction;
+            actor.Brain.SetSelectedActionForDebug(runningAction);
             actor.Blackboard.SetMoodImpulse(new CharacterMoodImpulse
             {
                 type = CharacterMoodImpulseType.IgnoreDuty,
@@ -3113,7 +3113,7 @@ public static class CharacterAiPlanDebugScenarios
                 && !actor.Blackboard.HasActiveMacroGoal()
                 && actor.Blackboard.SelectedJobGiverUtilitySummary.Contains("GetFoodJobGiver");
 
-            actor.Brain.isBestActionEnd = true;
+            actor.Brain.SetDecisionPendingForDebug(true);
             actor.Brain.ClearPathSearchCache();
             ResetSchedulerPathBudgetForDebug();
             actor.stats[CharacterCondition.HUNGER] = 100f;

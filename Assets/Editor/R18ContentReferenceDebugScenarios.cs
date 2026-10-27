@@ -66,7 +66,7 @@ public static class R18ContentReferenceDebugScenarios
             .Select(SourceSnapshot.Capture).ToArray();
         try
         {
-            ContentReferenceCatalog catalog = ContentReferenceCatalog.FromRoot(root);
+            ContentReferenceCatalog catalog = ContentReferenceSelection.CreateCatalog(root);
             VerifyCandidates(
                 catalog,
                 buildings,
@@ -148,7 +148,7 @@ public static class R18ContentReferenceDebugScenarios
             window.ShowUtility();
 
             ContentReferenceCatalog catalog =
-                ContentReferenceCatalog.FromRoot(root);
+                ContentReferenceSelection.CreateCatalog(root);
             string productionSupport = catalog.Entries(
                     new ContentReferenceAttribute(
                         ContentReferenceKind.ProductionSupport),

@@ -18,7 +18,7 @@ public static class R26ReferenceOwnerGuardDebugScenarios
             .LoadAssetAtPath<GameContentCatalogSO>(RootCatalogPath)
             ?? throw new InvalidOperationException(
                 "Registered root content catalog is missing.");
-        ContentReferenceCatalog catalog = ContentReferenceCatalog.FromRoot(root);
+        ContentReferenceCatalog catalog = ContentReferenceSelection.CreateCatalog(root);
         var owned = new List<Object>();
         try
         {
@@ -27,6 +27,7 @@ public static class R26ReferenceOwnerGuardDebugScenarios
                 "Registered root content relations");
             VerifyEquipmentReverseMapping(catalog, owned);
             VerifyServiceProcessOwnerAndPendingSelection(catalog, owned);
+            VerifyServiceProcessOwnerConsistency(catalog, owned);
             VerifyStockShopOwner(catalog, owned);
             VerifyBuildingConnectionOwner(catalog, owned);
             VerifyEffectiveProductionWorkstation(catalog, owned);
@@ -167,6 +168,51 @@ public static class R26ReferenceOwnerGuardDebugScenarios
             EditorJsonUtility.ToJson(source) == sourceJson
             && EditorUtility.IsDirty(source) == sourceDirty,
             "Pending service selection changed the registered source asset.");
+    }
+
+    private static void VerifyServiceProcessOwnerConsistency(
+        ContentReferenceCatalog catalog,
+        ICollection<Object> owned)
+    {
+        var reference = new ContentReferenceAttribute(nameof(ServiceProcessSO), "ProcessId");
+        ServiceProcessSO process = Assets<ServiceProcessSO>(catalog, reference).First();
+        BuildingSO building = ScriptableObject.CreateInstance<BuildingSO>();
+        owned.Add(building);
+        var hub = new BuildingServiceHubAbility
+        {
+            serviceHubTag = process.OwnerHubTag,
+            serviceCategory = process.ServiceCategory,
+            supportedProcessIds = new[] { process.ProcessId }
+        };
+        var abilities = new BuildingAbilityCollection();
+        abilities.Add(hub);
+        building.ReplaceAbilities(abilities);
+        var scoped = new ContentReferenceCatalog(new ScriptableObject[] { building, process });
+
+        void Check(bool selectable, bool hubError, bool processError)
+        {
+            Require(scoped.Entries(reference, building, hub).Any(entry => entry.Asset == process) == selectable,
+                "Service process picker disagreed with the owner/category contract.");
+            Require(scoped.Validate(new ScriptableObject[] { building }).Any(error =>
+                    error.Contains("belongs to a different hub/category or is missing.")) == hubError,
+                "Hub-to-process validation disagreed with the owner/category contract.");
+            Require(scoped.Validate(new ScriptableObject[] { process }).Any(error =>
+                    error.Contains("service process has no matching registered hub/category producer.")) == processError,
+                "Process-to-hub validation disagreed with the owner/category contract.");
+        }
+
+        Check(true, false, false);
+        hub.serviceHubTag = process.OwnerHubTag + ":different-owner";
+        Check(false, true, true);
+        hub.serviceHubTag = process.OwnerHubTag;
+        hub.serviceCategory = Enum.GetValues(typeof(ServiceCategory)).Cast<ServiceCategory>()
+            .First(value => value != process.ServiceCategory);
+        Check(false, true, true);
+        hub.serviceCategory = process.ServiceCategory;
+        hub.supportedProcessIds = Array.Empty<string>();
+        Check(true, false, true);
+        hub.supportedProcessIds = new[] { process.ProcessId };
+        Check(true, false, false);
     }
 
     private static void VerifyStockShopOwner(

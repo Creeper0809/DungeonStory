@@ -1,5 +1,24 @@
 # DungeonStory Current Task Plan
 
+## 현재 Goal - 구조 감사 S01~S11 수정과 main 통합
+
+Status: in_progress / 사용자 승인. branch codex/fix-structure-r27, 기준 c2ff169b8. origin/main21b381a66 대비 이전 승인 SO 커밋1개를 포함한다. 원본 Documents checkout의 AI 변경과 실행 중 Unity는 별도 작업이며 건드리지 않는다.
+
+1. 완료: S01 상점 일일 제한 저장, S03/S11 UI 공용 규칙과 생성 함수, S04/S09/S10 공용 참조 판정, S05 게시 ID 선언을 반영하고 관련 작성/장착/상점 실행과 복원을 검증했다.
+2. 완료: S02 Brain 종료와 복원 권위, S06 사건 소유 이동 증빙, S07 시설 소비 실행, S08 세력 배송과 조립 책임을 옮기고 실제 이동/소비/배송과 실패/복원/재시도를 검증했다. 기존 저장 표현과 영수증 계약은 유지한다.
+3. 완료: 실제 첫 진행, 구매 당일 저장의 새 프로세스31검사와 구형 저장23검사 PASS. r199 최종 CI5묶음도 exit0/compile0/console0/source drift0으로 모두 PASS했다. 구조 baseline 무변경 Verify PASS, root 참조3이며 인덱스 내용/freshness 실패0이다. 실패와 중단 이력 및 소스 연속성은 보고서와 실행 manifest에 보존했다.
+4. 통합 단계: 이 커밋은 최종 검증을 마친 입력이다. commit/push와 PR 생성/attach 후 GitHub CI, main 병합과 병합 후 CI를 확인한다. GitHub 통합 결과는 해당 PR과 Actions 기록을 따른다.
+
+작업 창: 메인이 담당한 CUHA Unity와 격리 display의 종료를 확인했다. r199 입력21736개 SHA drift0이며 소스 동결을 유지한 채 Git 통합한다. 원본 checkout의 별도 작업과 사용자 앱은 건드리지 않는다.
+
+## 현재 작업 - 전체 코드 구조 감사 2026-10-27
+
+Status: completed / 사용자 요청은 코드 검사다. 기준은 방금 푸시한 c2ff169b8이며 게임 소스의 복잡성, 책임 응집성, 의존 관계를 확인한다. SDK 구현과 원본 checkout의 별도 AI 작업은 제외한다. 코드 수정과 Unity 실행 및 PR/main 변경은 이 조사 범위가 아니다.
+
+1. 완료: 런타임2983파일의 기존 Roslyn 지표와 default assembly2198파일의 의존 그래프를 외부 폴더에 생성했다. 루트 참조3->4로 기존 구조 Verify는 실패했다. Assets 보고서와 baseline은 무변경이다.
+2. 완료: UI, AI, SO authoring 담당자의 근거를 원본에서 재대조했다. 상점의 일일 구매 제한과 pending fact journal의 재전달 방지는 서로 다른 계약임을 확인했다. 저장 조립, 시설 사용, 사건 처리와 상위 복잡도 후보도 확인했다.
+3. 완료: docs/dev/code-structure-review-20261027.md에 개선11개와 비수정/추가 확인 범위를 정리했다. 근거32링크와 원본 입력8547개 무변경을 검증했다. 조사에서 게임 코드와 Unity/PR/main은 변경하지 않았다.
+
 ## 현재 작업 — R26 남은 두 복원 경계 실행
 
 Status: completed / 사용자 승인한 두 복원 경계의 실행과 마감을 완료했다. 시설 material pending 새 component 복원/retry 및 새 Unity 프로세스의 실제 저장 파일 Title LoadGame/동일 slot 재로드 PASS. 전수 검증이나 별도 구조 분리는 추가하지 않았다.

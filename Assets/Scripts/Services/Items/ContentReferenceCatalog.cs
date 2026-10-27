@@ -29,14 +29,16 @@ public sealed class ContentReferenceCatalog
         assets = (definitions ?? throw new ArgumentNullException(nameof(definitions)))
             .Where(value => value != null).Distinct().ToArray();
 
-    public static ContentReferenceCatalog FromRoot(GameContentCatalogSO root)
+    public static ContentReferenceCatalog FromCatalogs(
+        IEnumerable<GameDomainContentCatalogSO> domainCatalogs,
+        ItemDefinitionCatalogSO items,
+        CharacterSkillSystemSettingsSO skillSettings)
     {
-        if (root == null) throw new ArgumentNullException(nameof(root));
-        var items = root.GetItemDefinitions<ItemDefinitionCatalogSO>();
-        return new ContentReferenceCatalog(root.DomainCatalogs.OfType<GameDomainContentCatalogSO>()
+        if (domainCatalogs == null) throw new ArgumentNullException(nameof(domainCatalogs));
+        return new ContentReferenceCatalog(domainCatalogs
             .SelectMany(value => value.Definitions.Concat(new ScriptableObject[] { value })).Concat(items != null
                 ? items.Definitions.Cast<ScriptableObject>() : Array.Empty<ScriptableObject>())
-            .Concat(new ScriptableObject[] { root.GetCharacterSkillSettings<CharacterSkillSystemSettingsSO>() }));
+            .Concat(new ScriptableObject[] { skillSettings }));
     }
 
     public static bool IsKeyReference(ContentReferenceKind kind) => kind is
@@ -154,8 +156,7 @@ public sealed class ContentReferenceCatalog
                 { category: BuildingCategory.Shop }).ToArray();
         if (owner is BuildingServiceHubAbility serviceHub && reference.DefinitionTypeName == nameof(ServiceProcessSO))
             return Entries(reference).Where(entry => entry.Asset is ServiceProcessSO process
-                && process.OwnerHubTag == serviceHub.ServiceHubTag
-                && process.ServiceCategory == serviceHub.serviceCategory).ToArray();
+                && MatchesServiceProcessOwner(serviceHub, process)).ToArray();
         if (reference.Kind is ContentReferenceKind.CampaignRegion or ContentReferenceKind.CampaignFaction)
         {
             if (root is not OffenseCampaignCatalogSO campaign) return Array.Empty<Entry>();
@@ -565,12 +566,19 @@ public sealed class ContentReferenceCatalog
             return owner is OffenseEncounterSO encounter && encounter.objective == OffenseEncounterObjective.CaptureLeader
                 ? ContentReferenceKind.EnemyArchetype : null;
         if (kind == ContentReferenceKind.WeightedTarget)
-            return path.Contains("relatedEventWeights.") ? ContentReferenceKind.LifeEvent
-                : path.Contains("otherCultureAttitudes.") ? ContentReferenceKind.Culture
-                : path.Contains("factionReactions.") ? ContentReferenceKind.EnemyFaction : null;
+            return ResolveWeightedTargetKind(path);
         if (kind != ContentReferenceKind.EffectTarget) return kind;
         if (owner is not V20ContentEffect effect) return null;
-        return effect.kind switch
+        return ResolveEffectTargetKind(effect.kind);
+    }
+
+    public static ContentReferenceKind? ResolveWeightedTargetKind(string path) =>
+        path.Contains("relatedEventWeights.") ? ContentReferenceKind.LifeEvent
+            : path.Contains("otherCultureAttitudes.") ? ContentReferenceKind.Culture
+            : path.Contains("factionReactions.") ? ContentReferenceKind.EnemyFaction : null;
+
+    public static ContentReferenceKind? ResolveEffectTargetKind(V20ContentEffectKind kind) =>
+        kind switch
         {
             V20ContentEffectKind.ItemGrant or V20ContentEffectKind.ItemConsume => ContentReferenceKind.Item,
             V20ContentEffectKind.DiseaseExposure => ContentReferenceKind.Disease,
@@ -579,7 +587,6 @@ public sealed class ContentReferenceCatalog
                 or V20ContentEffectKind.FactionObligation => ContentReferenceKind.Faction,
             _ => null
         };
-    }
 
     public static ContentReferenceAttribute ResolveReference(ContentReferenceAttribute reference, string path, object owner,
         ScriptableObject root = null)
@@ -796,14 +803,14 @@ public sealed class ContentReferenceCatalog
         if (value is BuildingServiceHubAbility hub)
             foreach (string id in hub.supportedProcessIds ?? Array.Empty<string>())
                 if (!assets.OfType<ServiceProcessSO>().Any(process => process.ProcessId == id
-                        && process.OwnerHubTag == hub.ServiceHubTag && process.ServiceCategory == hub.serviceCategory))
+                        && MatchesServiceProcessOwner(hub, process)))
                     errors.Add(path + ": supported process '" + id + "' belongs to a different hub/category or is missing.");
         if (value is ServiceProcessSO processDefinition)
         {
             errors.AddRange(processDefinition.ValidateDefinition().Select(error => path + ": " + error));
             if (!assets.OfType<BuildingSO>().SelectMany(building => building.Abilities)
-                    .OfType<BuildingServiceHubAbility>().Any(hub => hub.ServiceHubTag == processDefinition.OwnerHubTag
-                        && hub.serviceCategory == processDefinition.ServiceCategory && hub.SupportsProcess(processDefinition.ProcessId)))
+                    .OfType<BuildingServiceHubAbility>().Any(hub => MatchesServiceProcessOwner(hub, processDefinition)
+                        && hub.SupportsProcess(processDefinition.ProcessId)))
                 errors.Add(path + ": service process has no matching registered hub/category producer.");
         }
         if (value is ProductionRecipeSO { FlowRole: ProductionFlowRole.Transform } recipe)
@@ -836,6 +843,9 @@ public sealed class ContentReferenceCatalog
             Visit(member, memberPath, member as ScriptableObject ?? root, visited, errors);
         }
     }
+
+    private static bool MatchesServiceProcessOwner(BuildingServiceHubAbility hub, ServiceProcessSO process) =>
+        process.OwnerHubTag == hub.ServiceHubTag && process.ServiceCategory == hub.serviceCategory;
 
     public static bool Matches(ContentReferenceAttribute reference, string left, string right) =>
         string.Equals(left, right, reference.IgnoreCase ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal);

@@ -124,7 +124,7 @@ public sealed class EquipmentProgressionCommandPanel
             return;
         }
 
-        EquipmentCraftingPanelPresenter.AddText(
+        BuildingInfoActionViewFactory.AddText(
             parent,
             "원정 개량 부품",
             font,
@@ -146,7 +146,7 @@ public sealed class EquipmentProgressionCommandPanel
                 created);
             if (workstationTag
                     == EquipmentProgressionWorkstationTags.PrecisionFitting
-                && IsReadyForInstallation(module))
+                && EquipmentModuleInstallationRules.TryValidateReadiness(module, out _))
             {
                 RenderInstallationTargets(
                     parent,
@@ -189,13 +189,13 @@ public sealed class EquipmentProgressionCommandPanel
         equipment.TryGetModuleDefinition(
             module.definitionId,
             out EquipmentModuleDefinitionSO definition);
-        GameObject row = EquipmentCraftingPanelPresenter.CreateRow(
+        GameObject row = BuildingInfoActionViewFactory.CreateRow(
             parent,
             "EquipmentModule_"
-                + EquipmentCraftingPanelPresenter.Sanitize(module.instanceId),
+                + BuildingInfoActionViewFactory.Sanitize(module.instanceId),
             58f);
         created.Add(row);
-        EquipmentCraftingPanelPresenter.AddLabel(
+        BuildingInfoActionViewFactory.AddLabel(
             row.transform,
             $"{definition?.DisplayName ?? module.definitionId} · {module.grade}등급\n"
                 + DescribeModuleState(module),
@@ -292,24 +292,31 @@ public sealed class EquipmentProgressionCommandPanel
                  slotIndex++)
             {
                 int capturedSlot = slotIndex;
-                GameObject row = EquipmentCraftingPanelPresenter.CreateRow(
+                EquipmentModuleSlotState slot = instance.moduleSlots?
+                    .FirstOrDefault(value => value != null
+                        && value.slotIndex == capturedSlot);
+                bool replacesModule = !string.IsNullOrWhiteSpace(slot?.moduleInstanceId);
+                string slotDescription = replacesModule
+                    ? $"슬롯 {capturedSlot + 1} 교체: {InstalledModuleName(slot.moduleInstanceId)}"
+                    : $"빈 슬롯 {capturedSlot + 1}";
+                GameObject row = BuildingInfoActionViewFactory.CreateRow(
                     parent,
                     "EquipmentModuleInstallTarget_"
-                        + EquipmentCraftingPanelPresenter.Sanitize(module.instanceId)
+                        + BuildingInfoActionViewFactory.Sanitize(module.instanceId)
                         + "_"
-                        + EquipmentCraftingPanelPresenter.Sanitize(instance.instanceId)
+                        + BuildingInfoActionViewFactory.Sanitize(instance.instanceId)
                         + "_"
                         + capturedSlot,
                     42f);
                 created.Add(row);
-                EquipmentCraftingPanelPresenter.AddLabel(
+                BuildingInfoActionViewFactory.AddLabel(
                     row.transform,
-                    $"장착 대상: {EquipmentName(instance)} · 빈 슬롯 {capturedSlot + 1}",
+                    $"장착 대상: {EquipmentName(instance)} / {slotDescription}",
                     font,
                     328f);
-                EquipmentCraftingPanelPresenter.AddButton(
+                BuildingInfoActionViewFactory.AddButton(
                     row.transform,
-                    "장착",
+                    replacesModule ? "교체" : "장착",
                     font,
                     false,
                     () =>
@@ -330,9 +337,9 @@ public sealed class EquipmentProgressionCommandPanel
                         refresh?.Invoke();
                     },
                     objectName: "EquipmentModuleInstall_"
-                        + EquipmentCraftingPanelPresenter.Sanitize(module.instanceId)
+                        + BuildingInfoActionViewFactory.Sanitize(module.instanceId)
                         + "_"
-                        + EquipmentCraftingPanelPresenter.Sanitize(instance.instanceId)
+                        + BuildingInfoActionViewFactory.Sanitize(instance.instanceId)
                         + "_"
                         + capturedSlot);
             }
@@ -355,21 +362,21 @@ public sealed class EquipmentProgressionCommandPanel
         foreach (EquipmentModuleSlotState slot in installed)
         {
             int capturedSlot = slot.slotIndex;
-            GameObject row = EquipmentCraftingPanelPresenter.CreateRow(
+            GameObject row = BuildingInfoActionViewFactory.CreateRow(
                 parent,
                 "EquipmentModuleInstalled_"
-                    + EquipmentCraftingPanelPresenter.Sanitize(instance.instanceId)
+                    + BuildingInfoActionViewFactory.Sanitize(instance.instanceId)
                     + "_"
                     + capturedSlot,
                 42f);
             created.Add(row);
-            EquipmentCraftingPanelPresenter.AddLabel(
+            BuildingInfoActionViewFactory.AddLabel(
                 row.transform,
                 $"{EquipmentName(instance)} · 슬롯 {capturedSlot + 1} · "
                     + slot.moduleInstanceId,
                 font,
                 328f);
-            EquipmentCraftingPanelPresenter.AddButton(
+            BuildingInfoActionViewFactory.AddButton(
                 row.transform,
                 "제거",
                 font,
@@ -394,7 +401,7 @@ public sealed class EquipmentProgressionCommandPanel
                     refresh?.Invoke();
                 },
                 objectName: "EquipmentModuleRemove_"
-                    + EquipmentCraftingPanelPresenter.Sanitize(instance.instanceId)
+                    + BuildingInfoActionViewFactory.Sanitize(instance.instanceId)
                     + "_"
                     + capturedSlot);
         }
@@ -451,7 +458,7 @@ public sealed class EquipmentProgressionCommandPanel
             return;
         }
 
-        EquipmentCraftingPanelPresenter.AddText(
+        BuildingInfoActionViewFactory.AddText(
             parent,
             "장비 계보 이전",
             font,
@@ -473,18 +480,18 @@ public sealed class EquipmentProgressionCommandPanel
                 selection.SealStackId,
                 seal.StackId,
                 StringComparison.Ordinal);
-            GameObject row = EquipmentCraftingPanelPresenter.CreateRow(
+            GameObject row = BuildingInfoActionViewFactory.CreateRow(
                 parent,
                 "EquipmentLineageSealRow_"
-                    + EquipmentCraftingPanelPresenter.Sanitize(seal.StackId),
+                    + BuildingInfoActionViewFactory.Sanitize(seal.StackId),
                 42f);
             created.Add(row);
-            EquipmentCraftingPanelPresenter.AddLabel(
+            BuildingInfoActionViewFactory.AddLabel(
                 row.transform,
                 $"계보 인장 · {seal.State} · {seal.StackId}",
                 font,
                 328f);
-            EquipmentCraftingPanelPresenter.AddButton(
+            BuildingInfoActionViewFactory.AddButton(
                 row.transform,
                 selected ? "선택됨" : "인장 선택",
                 font,
@@ -496,11 +503,11 @@ public sealed class EquipmentProgressionCommandPanel
                 },
                 width: 96f,
                 objectName: "EquipmentLineageSeal_"
-                    + EquipmentCraftingPanelPresenter.Sanitize(seal.StackId));
+                    + BuildingInfoActionViewFactory.Sanitize(seal.StackId));
         }
 
         RenderLineageComparison(parent, selection, candidates, font, created);
-        EquipmentCraftingPanelPresenter.AddButton(
+        BuildingInfoActionViewFactory.AddButton(
             parent,
             "계보 이전 주문",
             font,
@@ -539,7 +546,7 @@ public sealed class EquipmentProgressionCommandPanel
             float progress = order.requiredWork > 0f
                 ? Mathf.Clamp01(order.completedWork / order.requiredWork)
                 : 0f;
-            EquipmentCraftingPanelPresenter.AddText(
+            BuildingInfoActionViewFactory.AddText(
                 parent,
                 $"진행 중: {order.sourceEquipmentInstanceId} + 인장 → "
                     + $"{order.targetEquipmentInstanceId} · {progress:P0}",
@@ -568,19 +575,19 @@ public sealed class EquipmentProgressionCommandPanel
             selectedId,
             candidate.instanceId,
             StringComparison.Ordinal);
-        GameObject row = EquipmentCraftingPanelPresenter.CreateRow(
+        GameObject row = BuildingInfoActionViewFactory.CreateRow(
             parent,
             prefix + "Row_"
-                + EquipmentCraftingPanelPresenter.Sanitize(candidate.instanceId),
+                + BuildingInfoActionViewFactory.Sanitize(candidate.instanceId),
             46f);
         created.Add(row);
-        EquipmentCraftingPanelPresenter.AddLabel(
+        BuildingInfoActionViewFactory.AddLabel(
             row.transform,
             $"{(source ? "소비 원본" : "승계 대상")}: "
                 + DescribeEquipment(candidate),
             font,
             328f);
-        EquipmentCraftingPanelPresenter.AddButton(
+        BuildingInfoActionViewFactory.AddButton(
             row.transform,
             selected ? "선택됨" : "선택",
             font,
@@ -598,7 +605,7 @@ public sealed class EquipmentProgressionCommandPanel
                 refresh?.Invoke();
             },
             objectName: prefix
-                + EquipmentCraftingPanelPresenter.Sanitize(candidate.instanceId));
+                + BuildingInfoActionViewFactory.Sanitize(candidate.instanceId));
     }
 
     private void RenderLineageComparison(
@@ -620,7 +627,7 @@ public sealed class EquipmentProgressionCommandPanel
                 StringComparison.Ordinal));
         if (source == null || target == null)
         {
-            EquipmentCraftingPanelPresenter.AddText(
+            BuildingInfoActionViewFactory.AddText(
                 parent,
                 "원본과 대상을 선택하면 소비·이전·유지 항목을 비교할 수 있습니다.",
                 font,
@@ -663,7 +670,7 @@ public sealed class EquipmentProgressionCommandPanel
             + $"검증: 계열 {(sameLineage ? "일치" : "불일치")}, "
             + $"원본 부품 {(sourceHasModules ? "제거 필요" : "없음")}, "
             + $"진행 주문 {(activeOrder ? "충돌" : "없음")}";
-        EquipmentCraftingPanelPresenter.AddText(
+        BuildingInfoActionViewFactory.AddText(
             parent,
             comparison,
             font,
@@ -685,7 +692,7 @@ public sealed class EquipmentProgressionCommandPanel
         Action refresh,
         float width = 82f)
     {
-        EquipmentCraftingPanelPresenter.AddButton(
+        BuildingInfoActionViewFactory.AddButton(
             parent,
             label,
             font,
@@ -697,7 +704,7 @@ public sealed class EquipmentProgressionCommandPanel
             },
             width,
             objectName: prefix
-                + EquipmentCraftingPanelPresenter.Sanitize(instanceId));
+                + BuildingInfoActionViewFactory.Sanitize(instanceId));
     }
 
     private LineageSelection GetSelection(string facilityId)
@@ -777,13 +784,19 @@ public sealed class EquipmentProgressionCommandPanel
         return module.state.ToString();
     }
 
-    private static bool IsReadyForInstallation(EquipmentModuleInstance module)
+    private string InstalledModuleName(string moduleInstanceId)
     {
-        return module.identified
-            && module.condition >= 0.75f
-            && (module.state == EquipmentModuleProcessState.Restored
-                || module.state == EquipmentModuleProcessState.Tuned)
-            && (module.grade != 4 || module.runeTuned);
+        EquipmentModuleInstance module = equipment.ModuleInstances.FirstOrDefault(
+            value => value != null && string.Equals(
+                value.instanceId,
+                moduleInstanceId,
+                StringComparison.Ordinal));
+        return module != null
+            && equipment.TryGetModuleDefinition(
+                module.definitionId,
+                out EquipmentModuleDefinitionSO definition)
+            ? $"{definition.DisplayName} ({moduleInstanceId})"
+            : $"부품 정보 없음 ({moduleInstanceId})";
     }
 
     private static bool IsModuleVisibleAt(
@@ -801,7 +814,7 @@ public sealed class EquipmentProgressionCommandPanel
                 && module.grade == 4
                 && !module.runeTuned,
             EquipmentProgressionWorkstationTags.PrecisionFitting =>
-                IsReadyForInstallation(module)
+                EquipmentModuleInstallationRules.TryValidateReadiness(module, out _)
                 || module.state == EquipmentModuleProcessState.Installed,
             _ => false
         };

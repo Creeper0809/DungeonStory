@@ -201,9 +201,9 @@ public static class GameplayFlowDiagnosticsDebugScenarios
             SetPrivateField(target, "persistentInstanceId", "building:test");
             SetPrivateField(actionSet, "workType", FacilityWorkType.Operate);
             actionSet.actionName = "테스트 운용";
-            brain.bestAction = new AIAction(
+            brain.SetSelectedActionForDebug(new AIAction(
                 actionSet,
-                AIActionPlan.AtDestination(target));
+                AIActionPlan.AtDestination(target)));
             for (int epoch = 1; epoch <= 7; epoch++)
             {
                 brain.NotifyActionStarted();

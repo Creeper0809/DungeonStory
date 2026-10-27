@@ -16,13 +16,44 @@ using VContainer;
 public static class R26SavedSceneRestoreBatch
 {
     private const string ActiveKey = "DungeonStory.R26.ColdSceneRestore";
-    internal const string InputPath = "Artifacts/QA/r26-cold-load-input/checkpoint.json";
-    internal const string InputSha256 = "3ab8bd4f3a4b5486e127dde6b79ac7e213f4fd93cc426279bc3f49902eb4e903";
+    internal static string InputPath => SessionState.GetString(ActiveKey + ".input",
+        "Artifacts/QA/r26-cold-load-input/checkpoint.json");
+    internal static string InputSha256 => SessionState.GetString(ActiveKey + ".sha",
+        "3ab8bd4f3a4b5486e127dde6b79ac7e213f4fd93cc426279bc3f49902eb4e903");
+    internal static string Producer => SessionState.GetString(ActiveKey + ".producer",
+        "r182r26-impact-so-inspector-r26-first-play");
+    internal static bool RequiresDailyHistory => SessionState.GetBool(ActiveKey + ".daily", false);
     internal const string SlotId = "run-r26-cold-load";
 
     static R26SavedSceneRestoreBatch() => EditorApplication.playModeStateChanged += OnPlayState;
 
     public static void RequestForBatch()
+    {
+        SessionState.EraseString(ActiveKey + ".input");
+        SessionState.EraseString(ActiveKey + ".sha");
+        SessionState.EraseString(ActiveKey + ".producer");
+        SessionState.SetBool(ActiveKey + ".daily", false);
+        Request();
+    }
+
+    public static void RequestCurrentShopForBatch()
+    {
+        string path = Environment.GetEnvironmentVariable("DUNGEONSTORY_COLD_CHECKPOINT");
+        string sha = Environment.GetEnvironmentVariable("DUNGEONSTORY_COLD_CHECKPOINT_SHA");
+        string producer = Environment.GetEnvironmentVariable("DUNGEONSTORY_COLD_CHECKPOINT_PRODUCER");
+        Require(!string.IsNullOrWhiteSpace(path) && !string.IsNullOrWhiteSpace(producer)
+            && sha?.Length == 64, "Current checkpoint identity is missing.");
+        string full = Path.GetFullPath(path);
+        Require(full.StartsWith(Path.GetFullPath("Artifacts/QA") + Path.DirectorySeparatorChar,
+            StringComparison.Ordinal), "Current checkpoint must be isolated QA evidence.");
+        SessionState.SetString(ActiveKey + ".input", full);
+        SessionState.SetString(ActiveKey + ".sha", sha);
+        SessionState.SetString(ActiveKey + ".producer", producer);
+        SessionState.SetBool(ActiveKey + ".daily", true);
+        Request();
+    }
+
+    private static void Request()
     {
         Require(Application.isBatchMode && DungeonPersistencePaths.IsIsolatedVerification
             && !EditorApplication.isPlayingOrWillChangePlaymode && !SceneManager.GetActiveScene().isDirty,
@@ -112,7 +143,7 @@ public sealed class R26SavedSceneRestoreRunner : MonoBehaviour
         {
             ["result"] = failures.Count == 0 ? "PASS" : "FAIL",
             ["processId"] = System.Diagnostics.Process.GetCurrentProcess().Id,
-            ["producer"] = "r182r26-impact-so-inspector-r26-first-play",
+            ["producer"] = R26SavedSceneRestoreBatch.Producer,
             ["inputSha256"] = R26SavedSceneRestoreBatch.InputSha256,
             ["sourceBefore"] = sourceBefore, ["sourceAfter"] = sourceAfter,
             ["checks"] = new JArray(checks), ["restoreTrace"] = new JArray(restoreTrace),
@@ -180,6 +211,7 @@ public sealed class R26SavedSceneRestoreRunner : MonoBehaviour
         Check(!scope.Container.Resolve<IDungeonRestoreSafetyQuery>().RequiresRecovery, "RESTORE_SAFETY_CLEAR");
         var saves = scope.Container.Resolve<IDungeonGameSaveService>();
         VerifyCaptured(saves.Capture(), "COLD_LOAD");
+        VerifyDailyPurchase(scope.Container, "COLD_LOAD");
         // A second official load exercises replacement of existing owners rather than adding them.
         bool reloaded = scope.Container.Resolve<IDungeonGameSaveSlotService>()
             .TryLoad(R26SavedSceneRestoreBatch.SlotId, out DungeonGameRestoreReport retry);
@@ -188,6 +220,7 @@ public sealed class R26SavedSceneRestoreRunner : MonoBehaviour
         yield return null;
         yield return null; // Unity's deferred Destroy must finish before checking live duplicates.
         VerifyCaptured(saves.Capture(), "REPEATED_LOAD");
+        VerifyDailyPurchase(scope.Container, "REPEATED_LOAD");
         string[] liveActors = FindObjectsByType<CharacterActor>(FindObjectsInactive.Include, FindObjectsSortMode.None)
             .Where(actor => actor != null && actor.gameObject.scene.IsValid())
             .Select(actor => actor.Identity?.PersistentId).Where(id => !string.IsNullOrEmpty(id)).ToArray();
@@ -211,11 +244,34 @@ public sealed class R26SavedSceneRestoreRunner : MonoBehaviour
         Check(StackKeys(actual).SequenceEqual(StackKeys(expected)), stage + ":PHYSICAL_STACK_IDS_ITEMS_QUANTITIES_EXACT");
         Check(JToken.DeepEquals(Section(actual, "research.blueprints"), Section(expected, "research.blueprints")),
             stage + ":RESEARCH_STATE_EXACT");
+        if (R26SavedSceneRestoreBatch.RequiresDailyHistory)
+            Check(JToken.DeepEquals(Section(actual, FacilityShopSaveSection.Id),
+                Section(expected, FacilityShopSaveSection.Id)), stage + ":SHOP_PURCHASE_STATE_EXACT");
         JObject wanted = Section(expected, DurableFacilityEquipmentPersistenceContract.SectionId);
         JObject captured = Section(actual, DurableFacilityEquipmentPersistenceContract.SectionId);
         Check(JToken.DeepEquals(captured["slots"], wanted["slots"])
             && JToken.DeepEquals(captured["nextAssignmentSequence"], wanted["nextAssignmentSequence"]),
-            stage + ":CLOSED_DRAIN_RECEIPT_EXACT_NO_REDEBIT");
+            stage + (R26SavedSceneRestoreBatch.RequiresDailyHistory
+                ? ":DURABLE_EQUIPMENT_STATE_EXACT_NO_REDEBIT"
+                : ":CLOSED_DRAIN_RECEIPT_EXACT_NO_REDEBIT"));
+    }
+
+    private void VerifyDailyPurchase(IObjectResolver container, string stage)
+    {
+        if (!R26SavedSceneRestoreBatch.RequiresDailyHistory) return;
+        string[] keys = Section(expected, FacilityShopSaveSection.Id)["purchasedDailyOfferKeys"]
+            .Values<string>().ToArray();
+        Check(keys.Length > 0, stage + ":CURRENT_SAVE_HAS_DAILY_PURCHASE_HISTORY");
+        var shop = container.Resolve<ProgressionSceneRuntimeReferences>().FacilityShop;
+        int sequence = shop.UnlockState.PurchaseSequence;
+        int money = container.Resolve<IGameMoneyAccount>().Balance;
+        var row = container.Resolve<IShopFeatureQueryService>().Capture().DailyOffers
+            .First(offer => keys.Contains(offer.PurchaseKey));
+        Check(shop.WasDailyOfferPurchased(row.PurchaseKey), stage + ":DAILY_LIMIT_OWNER_RESTORED");
+        var duplicate = container.Resolve<IShopFeatureCommandService>().PurchaseDaily(row.Index, row.PurchaseKey);
+        Check(!duplicate.Succeeded && shop.UnlockState.PurchaseSequence == sequence
+            && container.Resolve<IGameMoneyAccount>().Balance == money,
+            stage + ":DUPLICATE_PURCHASE_REJECTED_NO_DEBIT");
     }
 
     private static string[] StackKeys(DungeonGameSaveData save) => Section(save, "items.physical")["stacks"]

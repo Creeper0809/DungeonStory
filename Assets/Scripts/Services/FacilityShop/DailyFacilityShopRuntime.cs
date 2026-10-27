@@ -30,8 +30,14 @@ public class DailyFacilityShopRuntime : MonoBehaviour, IFacilityShopPersistence
 
     public event Action<int, IReadOnlyList<FacilityShopOffer>, IReadOnlyList<FacilityShopOffer>> Refreshed;
 
-    public IReadOnlyList<FacilityShopOffer> CurrentDailyOffers =>
-        currentDailyOffersView ??= ReadOnlyView.List(currentDailyOffers);
+    public IReadOnlyList<FacilityShopOffer> CurrentDailyOffers
+    {
+        get
+        {
+            EnsureOfferProjectionCurrent();
+            return currentDailyOffersView ??= ReadOnlyView.List(currentDailyOffers);
+        }
+    }
     public IReadOnlyList<FacilityShopOffer> CurrentBasicPurchaseOffers =>
         FacilityShopService.CreateBasicPurchaseOffers(
             ResolveFacilityShopCatalog(),
@@ -41,6 +47,15 @@ public class DailyFacilityShopRuntime : MonoBehaviour, IFacilityShopPersistence
             buildingCategoryCatalog);
     public FacilityShopUnlockState UnlockState => unlockState;
     public int CurrentOfferDay => StateApplication.CurrentOfferDay;
+    public string GetDailyOfferKey(int index)
+    {
+        EnsureOfferProjectionCurrent();
+        if (index < 0 || index >= currentDailyOffers.Count || currentDailyOffers[index] == null)
+            return string.Empty;
+        FacilityShopOffer offer = currentDailyOffers[index];
+        return FacilityShopUnlockState.DailyOfferKey(CurrentOfferDay, index, offer.OfferTypeId, offer.DataId);
+    }
+    public bool WasDailyOfferPurchased(string key) => unlockState.WasDailyOfferPurchased(key);
     private FacilityShopApplication StateApplication =>
         stateApplication ??= new FacilityShopApplication(unlockState);
 
@@ -210,6 +225,7 @@ public class DailyFacilityShopRuntime : MonoBehaviour, IFacilityShopPersistence
         EconomyTransactionContext transactionContext,
         out FacilityShopPurchaseResult result)
     {
+        EnsureOfferProjectionCurrent();
         if (index < 0 || index >= currentDailyOffers.Count)
         {
             int balance = money?.Balance ?? -1;
@@ -231,7 +247,8 @@ public class DailyFacilityShopRuntime : MonoBehaviour, IFacilityShopPersistence
             gameData,
             currentDailyOffers[index],
             transactionContext,
-            out result);
+            out result,
+            GetDailyOfferKey(index));
     }
 
     public bool TryPurchaseBasicOffer(int index, GameSessionState gameData, out FacilityShopPurchaseResult result)
@@ -283,7 +300,8 @@ public class DailyFacilityShopRuntime : MonoBehaviour, IFacilityShopPersistence
         GameSessionState gameData,
         FacilityShopOffer offer,
         EconomyTransactionContext transactionContext,
-        out FacilityShopPurchaseResult result)
+        out FacilityShopPurchaseResult result,
+        string dailyOfferKey = null)
     {
         int initialBalance = money?.Balance ?? -1;
         if (offer == null || !offer.IsValid)
@@ -298,6 +316,13 @@ public class DailyFacilityShopRuntime : MonoBehaviour, IFacilityShopPersistence
         {
             result = RejectPurchase(offer, initialBalance,
                 FacilityShopPurchaseFailureStage.RuntimeUnavailable, "시설 상점 구매 사실 전달이 준비되지 않았습니다.");
+            PublishPurchase(result);
+            return false;
+        }
+        if (dailyOfferKey != null && unlockState.WasDailyOfferPurchased(dailyOfferKey))
+        {
+            result = RejectPurchase(offer, initialBalance,
+                FacilityShopPurchaseFailureStage.AlreadyPurchased, "이미 구매한 일일 상품입니다.");
             PublishPurchase(result);
             return false;
         }
@@ -342,6 +367,7 @@ public class DailyFacilityShopRuntime : MonoBehaviour, IFacilityShopPersistence
             if (!FacilityShopService.TryPurchaseOffer(money, offer, unlockState, paymentContext, debugRules, out result))
                 return false;
             unlockState.CommitPurchaseSequence(previousSequence);
+            if (dailyOfferKey != null) unlockState.RecordDailyOfferPurchase(dailyOfferKey);
             int balanceAfter = money.Balance;
             int paid = checked(initialBalance - balanceAfter);
             EconomyTransactionRecord payment = FindPurchasePayment(
@@ -487,7 +513,9 @@ public class DailyFacilityShopRuntime : MonoBehaviour, IFacilityShopPersistence
         gameEventBus.Publish(new FacilityShopPurchasedEvent(result));
     }
 
-    private void Update()
+    private void Update() => EnsureOfferProjectionCurrent();
+
+    private void EnsureOfferProjectionCurrent()
     {
         int publishedRevision = aggregateRootStore?.PublishedRestoreRevision ?? 0;
         if (projectedRestoreRevision == publishedRevision)

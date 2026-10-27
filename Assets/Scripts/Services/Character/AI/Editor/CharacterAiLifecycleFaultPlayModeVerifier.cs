@@ -247,9 +247,9 @@ public sealed class CharacterAiLifecycleFaultPlayModeRunner : MonoBehaviour
         temporaryObjects.Add(actionSet);
         AIAction action = new(actionSet, AIActionPlan.WithoutDestination);
         brain.availableActions = new[] { action };
-        brain.bestAction = action;
-        brain.isBestActionEnd = false;
-        brain.isExecuted = false;
+        brain.SetSelectedActionForDebug(action);
+        brain.SetDecisionPendingForDebug(false);
+        brain.SetExecutionFlagForDebug(false);
 
         BuildableObject ownedBuilding = TryAcquireBuildingOwnership(actor, worldRegistry);
         Require(ownedBuilding != null,

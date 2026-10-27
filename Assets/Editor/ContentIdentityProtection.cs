@@ -802,9 +802,10 @@ public static class ContentIdentityProtection
                     value = source.FindProperty("capabilityId").stringValue });
                 List("effects", "bindingId"); List("specialReactions", "reactionId"); break;
             case nameof(BuildingSO):
-                List("abilityModules.items", "abilityId", types: new[]
-                    { "BuildingProductionAbility", "BuildingSecurityAbility",
-                        "BuildingStructuralIntegrityAbility", "BuildingCoverAbility" });
+                List("abilityModules.items", "abilityId", types:
+                    ((BuildingSO)source.targetObject).AbilityModules.Items
+                        .Where(ability => ability is IBuildingPersistentAbilityDefinition)
+                        .Select(ability => ability.GetType().Name).Distinct(StringComparer.Ordinal).ToArray());
                 List("abilityModules.items", "workstationTag", types: new[] { "BuildingProductionWorkstationAbility" });
                 List("abilityModules.items", "serviceHubTag", types: new[] { "BuildingServiceHubAbility" });
                 CaptureProviderArray(source, record, "BuildingSemanticTagsAbility", "tags");

@@ -532,8 +532,8 @@ public static partial class RetailPurchaseRecoveryB0T04DebugScenarios
             AIActionSet set = Resources.Load<AIActionSet>("SO/AI/Action/Shopping")
                 ?? throw new InvalidOperationException("Shopping action missing.");
             action = new AIAction(set, AIActionPlan.AtDestination(Shop));
-            customer.ai.bestAction = action;
-            customer.ai.isBestActionEnd = false;
+            customer.ai.SetSelectedActionForDebug(action);
+            customer.ai.SetDecisionPendingForDebug(false);
         }
 
         internal Shop Shop { get; }

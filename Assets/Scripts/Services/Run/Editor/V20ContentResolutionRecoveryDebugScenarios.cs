@@ -1884,7 +1884,7 @@ public static class V20ContentResolutionRecoveryDebugScenarios
             Calendar = useSessionCalendar
                 ? new GameCalendarRuntime(Session, new GameEventBus(), CharacterAiEditorTestDependencies.GameClock)
                 : CharacterAiEditorTestDependencies.GameCalendar;
-            Service = new V20ContentResolutionService(
+            Service = DungeonCharacterRegistration.CreateContentResolutionForDebug(
                 Campaign,
                 content.StoryCatalog,
                 content.IncludeG04Effects

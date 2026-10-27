@@ -5277,7 +5277,8 @@ public sealed class V20RetirementChoiceScheduleLivePlayModeRunner : MonoBehaviou
             container.Resolve<ICharacterMedicalCommand>(),
             container.Resolve<ICharacterMedicalQuery>(),
             container.Resolve<ICharacterLifetimeQuery>(),
-            () => container.Resolve<IExteriorIncidentRuntime>());
+            () => container.Resolve<IExteriorIncidentRuntime>(),
+            container.Resolve<SocietyResponseMovementProvenanceRuntime>());
         int revisionBefore = rootStore.PublishedRestoreRevision;
         try
         {
@@ -5447,7 +5448,10 @@ public sealed class V20RetirementChoiceScheduleLivePlayModeRunner : MonoBehaviou
 // One seasonal-contract witness. It does not rerun the ordinary WIM032/033 matrix.
 public sealed class WimWinterContractLiveRunner : MonoBehaviour
 {
-    public const string ReportPath = "Artifacts/QA/wim-implementation/wim-009-winter-contract-live.txt";
+    public static string ReportPath => DungeonPersistencePaths.IsIsolatedVerification
+        ? Path.Combine(Environment.GetEnvironmentVariable("DUNGEONSTORY_AUDIT_REMEDIATION_OUTPUT"),
+            "wim-009-winter-contract-live.txt")
+        : "Artifacts/QA/wim-implementation/wim-009-winter-contract-live.txt";
     private readonly List<string> lines = new();
     private DungeonRuntimeLifetimeScope scope;
     private IGameTimeScaleController timeScale;
@@ -5631,12 +5635,35 @@ public sealed class WimWinterContractLiveRunner : MonoBehaviour
         lines.Add("winter=controlled day91/other seasonal eligibility; actual main daily dispatch/notice/button/close; unaccepted debit0");
 
         var slots = scope.Container.Resolve<IDurableFacilityEquipmentSlotQuery>();
+        var pendingSeal = slots.CaptureAll().SingleOrDefault(value =>
+            value.PolicyId == RunAdministrativeSealDurableEquipmentPolicySource.PolicyId);
+        Require(pendingSeal != null && !pendingSeal.SupplyReady
+            && pendingSeal.Requirements.Single().PendingQuantity == 1
+            && items.GetAllStacks().Any(value => value.ItemId == DurableToolItemRules.AdministrativeSeal
+                && value.Quantity == 1 && value.DestinationId == pendingSeal.DestinationId),
+            "Pending acceptance lost the real seal delivery request: " + notices.SelectedRecord?.ChoiceFailureDetail);
+        lines.Add("seal-request=one exact physical request retained after rejected acceptance; no effect or reward committed");
         Resume();
         float wallStart = Time.realtimeSinceStartup, gameStart = clock.Time;
         while (!slots.CaptureAll().Any(value => value.PolicyId == RunAdministrativeSealDurableEquipmentPolicySource.PolicyId
                    && value.SupplyReady) && Time.realtimeSinceStartup - wallStart < 60f && clock.Time - gameStart < 160f)
             yield return null;
         Pause();
+        lines.Add("seal-boundary gameSeconds=" + (clock.Time - gameStart)
+            + "; wallSeconds=" + (Time.realtimeSinceStartup - wallStart)
+            + "; worker=" + worker.transform.position + "; lifecycle=" + worker.CurrentLifecycleState
+            + "; duty=" + worker.GetComponent<AbilityWork>().CurrentDutyState
+            + "; action=" + worker.Brain.CurrentActionDebugLabel
+            + "; phase=" + worker.Brain.CurrentActionPhase + ":" + worker.Brain.CurrentActionPhaseDetail
+            + "; destination=" + worker.Brain.CurrentDestinationDebugLabel
+            + "; failure=" + worker.Brain.LastActionFailure
+            + "; rejection=" + worker.Brain.GetCurrentJobGiverEvaluationRejectionSummary(CharacterAiBranch.DutyWork)
+            + "; scheduler=" + worker.Brain.RuntimeSchedulerProcessCount
+            + "; slots=" + string.Join("|", slots.CaptureAll().Select(value =>
+                value.PolicyId + ":" + value.DropPosition + ":" + value.SupplyReady + ":" + value.DestinationId))
+            + "; seals=" + string.Join("|", items.GetAllStacks()
+                .Where(value => value.ItemId == DurableToolItemRules.AdministrativeSeal)
+                .Select(value => value.StackId + ":" + value.Position + ":" + value.State + ":" + value.DestinationId)));
         Require(slots.CaptureAll().Any(value => value.PolicyId == RunAdministrativeSealDurableEquipmentPolicySource.PolicyId
             && value.SupplyReady), "Actual hauler did not deliver the administrative seal in the bounded window.");
         Require(notices.IsDetailVisible, "Pending seal request lost its retry UI.");

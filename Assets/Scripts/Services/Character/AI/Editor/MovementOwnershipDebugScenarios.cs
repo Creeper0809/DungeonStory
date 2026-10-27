@@ -194,7 +194,7 @@ public static class MovementOwnershipDebugScenarios
             });
             Check(checks, "response-start-identity-and-conflicting-owner", () =>
             {
-                var state = new SocietyResponseMovementProvenanceRuntime();
+                var state = new SocietyResponseMovementProvenanceRuntime.State();
                 Require(!state.CanStart(" bad ", "external", new BuildingInstanceId("building:qa-facility"), Vector2Int.right, out _), "Noncanonical response was admitted.");
                 Require(state.CanStart("response", "external", new BuildingInstanceId("building:qa-facility"), Vector2Int.right, out _), "Valid response was rejected.");
                 state.RecordStarted("response", "external", new BuildingInstanceId("building:qa-facility"), Vector2Int.right);
@@ -334,11 +334,12 @@ public static class MovementOwnershipDebugScenarios
         Facility facility = UnityEngine.Object.FindObjectsByType<Facility>(FindObjectsSortMode.None)
             .FirstOrDefault(value => value.PersistentInstanceId.IsValid);
         Require(facility != null, "Authored facility identity missing.");
-        Require(move.TryStartSocietyResponseSystemMove("qa:response", "qa:external", facility.PersistentInstanceId,
+        var responseMovements = container.Resolve<SocietyResponseMovementProvenanceRuntime>();
+        Require(responseMovements.TryStartSystemMove(move,"qa:response", "qa:external", facility.PersistentInstanceId,
             destination, DoorAccessOverrideKind.None, out string response), response);
-        Require(move.TryRecordSocietyResponseMovementReceipt("qa:response", "qa:external", "qa:receipt", out _)
-            && move.TryRecordSocietyResponseMovementReceipt("qa:response", "qa:external", "qa:receipt", out _)
-            && !move.TryRecordSocietyResponseMovementReceipt("qa:response", "qa:external", "qa:foreign", out _), "Actual movement receipt replay/conflict failed.");
+        Require(responseMovements.TryRecordReceipt(move,"qa:response", "qa:external", "qa:receipt", out _)
+            && responseMovements.TryRecordReceipt(move,"qa:response", "qa:external", "qa:receipt", out _)
+            && !responseMovements.TryRecordReceipt(move,"qa:response", "qa:external", "qa:foreign", out _), "Actual movement receipt replay/conflict failed.");
         DungeonCharacterSaveData captured = container.Resolve<ICharacterWorldSaveService>().Capture(grid).actors
             .Single(actor => actor.persistentId == subject.Identity.PersistentId);
         string actorJson = JsonUtility.ToJson(captured);
@@ -348,14 +349,14 @@ public static class MovementOwnershipDebugScenarios
         Require(fresh.TryRecordSocietyResponseMovementReceipt("qa:response", "qa:external", "qa:receipt", destination, out _), "Actual captured receipt did not restore in a fresh owner.");
         Mark("actual-response-receipt-capture-json-fresh-owner-exact-retry");
         move.CancelActiveMovement("controlled-response-cancel");
-        Require(move.SocietyResponseMovementOperationId == string.Empty && move.SocietyResponseMovementDestination == null, "Cancel retained response provenance.");
-        move.RestoreSocietyResponseMovementProvenance(restored.societyResponseMovementOperationId,
+        Require(responseMovements.GetState(move).SocietyResponseMovementOperationId == string.Empty && responseMovements.GetState(move).SocietyResponseMovementDestination == null, "Cancel retained response provenance.");
+        responseMovements.GetState(move).RestoreSocietyResponseMovementProvenance(restored.societyResponseMovementOperationId,
             restored.societyResponseMovementExternalOperationId, restored.societyResponseMovementFacilityId,
             restored.societyResponseMovementDestinationX, restored.societyResponseMovementDestinationY,
             restored.societyResponseMovementReceiptId);
-        Require(move.TryRecordSocietyResponseMovementReceipt("qa:response", "qa:external", "qa:receipt", out _)
-            && !move.TryReleaseSocietyResponseMovementProvenance("qa:foreign", "qa:external")
-            && move.TryReleaseSocietyResponseMovementProvenance("qa:response", "qa:external"), "Actual restored facade retry/release failed.");
+        Require(responseMovements.TryRecordReceipt(move,"qa:response", "qa:external", "qa:receipt", out _)
+            && !responseMovements.GetState(move).TryReleaseSocietyResponseMovementProvenance("qa:foreign", "qa:external")
+            && responseMovements.GetState(move).TryReleaseSocietyResponseMovementProvenance("qa:response", "qa:external"), "Actual restored facade retry/release failed.");
         Mark("actual-response-cancel-restore-facade-retry-and-release");
         // QA response IDs exercise the movement producer, not a campaign response.
         // Release them before the official whole-world transaction validates cross-domain joins.
@@ -369,7 +370,7 @@ public static class MovementOwnershipDebugScenarios
             && replacement != null && !ReferenceEquals(subject, replacement) && replacement.TryGetAbility(out AbilityMove replacementMove)
             && !replacementMove.HasActiveMovementRoutineForDiagnostics && !replacementMove.HasProtectedSystemMovementOwnership
             && replacementMove.ActiveMovementOperationOwnerForDiagnostics == string.Empty
-            && replacementMove.SocietyResponseMovementOperationId == string.Empty, "Official restore reused transient movement ownership.");
+            && responseMovements.GetState(replacementMove).SocietyResponseMovementOperationId == string.Empty, "Official restore reused transient movement ownership.");
         Require(replacement.TryGetAbility(out AbilityWork restoredWork)
                 && !restoredWork.HasActiveWorkRoutineForDiagnostics,
             "Official restore retained a transient work routine.");
@@ -930,15 +931,15 @@ public static class MovementOwnershipDebugScenarios
             "Actual intent/manual cleanup did not conserve epochs/terminals/rejections.");
     }
 
-    private static SocietyResponseMovementProvenanceRuntime NewProvenance()
+    private static SocietyResponseMovementProvenanceRuntime.State NewProvenance()
     {
-        var state = new SocietyResponseMovementProvenanceRuntime();
+        var state = new SocietyResponseMovementProvenanceRuntime.State();
         state.RecordStarted("response", "external", new BuildingInstanceId("building:qa-facility"), Vector2Int.right);
         return state;
     }
-    private static SocietyResponseMovementProvenanceRuntime RestoreFresh(DungeonCharacterSaveData actor)
+    private static SocietyResponseMovementProvenanceRuntime.State RestoreFresh(DungeonCharacterSaveData actor)
     {
-        var state = new SocietyResponseMovementProvenanceRuntime();
+        var state = new SocietyResponseMovementProvenanceRuntime.State();
         state.RestoreSocietyResponseMovementProvenance(actor.societyResponseMovementOperationId,
             actor.societyResponseMovementExternalOperationId, actor.societyResponseMovementFacilityId,
             actor.societyResponseMovementDestinationX, actor.societyResponseMovementDestinationY, actor.societyResponseMovementReceiptId);

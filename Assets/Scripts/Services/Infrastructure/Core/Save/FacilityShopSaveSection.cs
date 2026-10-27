@@ -35,16 +35,40 @@ public sealed class FacilityShopSaveSection :
         {
             currentOfferDay = source.CurrentOfferDay,
             purchaseSequence = source.PurchaseSequence,
+            dailyOfferPurchaseStateVersion = 1,
+            purchasedDailyOfferKeys = source.PurchasedDailyOfferKeys.ToList(),
             basicPurchaseBuildingIds = source.BasicPurchaseBuildingIds.ToList(),
             acquiredBlueprintIds = source.AcquiredBlueprintIds.ToList()
         };
     }
 
-    protected override void ValidateRawPayload(string payloadJson) =>
+    protected override void ValidateRawPayload(string payloadJson)
+    {
         RequireTopLevelArrayFields(
             payloadJson,
             nameof(DungeonFacilityShopSaveData.basicPurchaseBuildingIds),
             nameof(DungeonFacilityShopSaveData.acquiredBlueprintIds));
+        var json = Newtonsoft.Json.Linq.JObject.Parse(payloadJson,
+            new Newtonsoft.Json.Linq.JsonLoadSettings
+            { DuplicatePropertyNameHandling = Newtonsoft.Json.Linq.DuplicatePropertyNameHandling.Error });
+        var version = json[nameof(DungeonFacilityShopSaveData.dailyOfferPurchaseStateVersion)];
+        var keys = json[nameof(DungeonFacilityShopSaveData.purchasedDailyOfferKeys)];
+        if (version == null && keys == null) return; // 기존 V1은 저장하지 않은 내역을 합성하지 않는다.
+        if (version?.Type != Newtonsoft.Json.Linq.JTokenType.Integer || version.ToObject<int>() != 1)
+            throw new InvalidOperationException("Facility-shop daily purchase state version is invalid.");
+        RequireTopLevelArrayFields(payloadJson, nameof(DungeonFacilityShopSaveData.purchasedDailyOfferKeys));
+        if (keys.Any(key => key.Type != Newtonsoft.Json.Linq.JTokenType.String))
+            throw new InvalidOperationException("Facility-shop daily purchase keys must be strings.");
+    }
+
+    protected override void NormalizeRestorePayload(
+        DungeonFacilityShopSaveData payload, DungeonGameRestoreReport report)
+    {
+        if (payload.dailyOfferPurchaseStateVersion != 0) return;
+        // 과거 UI 캐시는 저장되지 않았다. 기존 저장의 해금/자금/구매 번호는 그대로 보존한다.
+        payload.dailyOfferPurchaseStateVersion = 1;
+        payload.purchasedDailyOfferKeys = new List<string>();
+    }
 
     private void ValidatePayload(
         DungeonFacilityShopSaveData payload,
@@ -57,6 +81,13 @@ public sealed class FacilityShopSaveSection :
             report.AddError("Facility-shop payload or unlock lists are null.");
             return;
         }
+        if (payload.dailyOfferPurchaseStateVersion != 1 || payload.purchasedDailyOfferKeys == null
+            || payload.purchasedDailyOfferKeys.Any(key =>
+                !FacilityShopUnlockState.IsDailyOfferKey(key, payload.currentOfferDay))
+            || !payload.purchasedDailyOfferKeys.SequenceEqual(
+                payload.purchasedDailyOfferKeys.Distinct(StringComparer.Ordinal)
+                    .OrderBy(key => key, StringComparer.Ordinal)))
+            report.AddError("Facility-shop daily purchase keys are invalid, duplicate or unordered.");
         if (payload.version != DungeonFacilityShopSaveData.CurrentVersion)
         {
             report.AddError(
@@ -101,7 +132,8 @@ public sealed class FacilityShopSaveSection :
             source.currentOfferDay,
             source.basicPurchaseBuildingIds,
             source.acquiredBlueprintIds,
-            source.purchaseSequence));
+            source.purchaseSequence,
+            source.purchasedDailyOfferKeys));
     }
 
     protected override void PublishRestoreCandidate(

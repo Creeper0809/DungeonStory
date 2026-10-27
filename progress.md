@@ -1,3 +1,17 @@
+## R27 S01~S11 수정과 최종 검증 2026-10-27
+
+보고서11항목 구현과 필요한 실행/저장/복원/재시도를 완료했다. 기존 이동 DTO와 시설/사건 영수증을 유지하며, 상점 V1의 선택적 일일 구매 이력은 구형 저장을 읽되 없던 이력을 추정하지 않는다. 관련 실제 실행9회는 Artifacts/QA/StructureR27/verification.json에 실제 소스 label과 후속 변경 경계를 기록했다. 구매 당일 저장의 새 프로세스 로드31검사와 구형 저장23검사가 통과했고 저장 입력 SHA를 보존했다.
+
+최종 r199 CI는 effects1260초/core250초/character190초/crop200초/world240초 모두 정상 종료, 컴파일 오류0/콘솔 오류0/전체21736입력 drift0이다. 월드 실제 저장 복원은 건물138/인물3/원정1/침입1과 연구/방어/침입 실패 후 재시도, 경고0을 확인했다. 최종 source=2d0e78ce9d4fb64bcf224f0b34e53b7d3a4e766beb9d5d047c5b21dda57af3fb, configuration=407cba880355a24b755d8b4575b2606cbe9fe381dd1f31f89f2a267acc062fbb. 증거는 Artifacts/QA/ImpactCI/verification.json이다. CUHA 소유 프로세스/격리 display 종료와 operation lock 해제도 확인했다.
+
+기존 구조 baseline은 무변경이며 Verify PASS, root 참조4->3이다. Python 계약91개 및 DSB001~008 analyzer 검증 PASS, 최종 인덱스 재생성과 내용/freshness 실패0, 작성 코드/문서 diff whitespace 오류0을 확인했다. native 로그와 보고서의 출력 끝 공백은 원본 SHA 보존을 위해 그대로 둔다. r197 effects의 구형 fixture 실패와 r198 수동 중단은 전체 PASS로 바꾸지 않았다. 외부 원본 증거: C:/Users/vulpo/Documents/Codex/2026-10-27/structure-remediation-r27. 이 기록은 Git 통합 직전 검증 결과이며 PR/main CI 결과는 GitHub 기록을 따른다.
+
+## 전체 코드 구조 감사 완료 2026-10-27
+
+c2ff169b8 기준 게임 C#4076개 목록과 런타임2983개 구조 지표, 기본 어셈블리2198개 의미 의존 그래프를 수집했다. SDK572개는 제외했다. UI/AI/authoring 독립 원본 검토와 메인의 상태/저장/조립 검토로 개선11묶음 및 비수정/후보 경계를 보고서에 정리했다. 큰 SCC1000개를 결함1000개로 세지 않는다. 기존 ArchitectureMetrics Verify는 RootCatalogReference3->4로 exit1, planner는 exit0이며 baseline과 Assets 보고서는 보존했다. 문서 근거32링크를 확인했다. 최종 입력 보존 결과는 외부 review-verification.json을 따른다. Unity 실행과 게임 수정, commit/push/main은 이번 조사에 포함되지 않는다.
+
+보고서: docs/dev/code-structure-review-20261027.md. 증거: C:/Users/vulpo/Documents/Codex/2026-10-27/code-structure-audit. 조사 도중 넓은 git status와 단일행 JSON 출력은 과다 출력되어 이후 요약으로 제한했다. KB 장시간 조회는 원본 병렬 검토와 완료 handle 확인으로 처리했고 최종 fresh를 확인했다. 존재하지 않는 README/추정 경로와 rg glob 오류는 실제 파일 목록으로 교정했다. 신규 보고서의 자동 조달 링크1개도 실제 Treasury 경로로 교정했다.
+
 ## R26 최종 결과
 
 후속 두 경계 마감: r186 시설150초와 cold load100초 모두 exit0/compile0/console0/input drift0이다. 저장 생성 PID1680145와 다른 PID2724424에서 Title LoadGame으로 원본104-section/2242961byte 저장을 읽고 같은 slot을 재로드했다.23검사로 저장 영역 집합/lineage/돈/물품 ID와 수량/연구/closed receipt 및 인물3개의 ID를 확인했고 입력 SHA3ab8bd4f...는 변하지 않았다. 시설 fixture는 새 component 복원 후 같은 물리 receipt authority에서 단일 차감/교체와 ACK retry/완료 후 중복 resume 거절을 확인했다. pwsh 인덱스 내용/freshness 실패0, 최종 변경/신규63입력 SHA와 원본9파일 보존을 마감했다. 게임 런타임/SO/씬/저장 schema는 후속에서 무변경이다. remaining-restore-completion.json과 갱신한 completion-audit.json에 근거를 연결했다. 아래 실행 중/실패 문구는 당시 이력이며 최종 결과를 대신하지 않는다. commit/push/main 병합은 수행하지 않았다.
