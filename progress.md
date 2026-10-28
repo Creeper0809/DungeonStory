@@ -7117,3 +7117,5 @@ R29 정적 입력 수집 완료: 소스/에셋/도구15820개 SHA 고정, Runtim
 도구 입력 보정: 최초 그래프의 로컬 DLL은 과거 소스여서 최종 근거에서 제외했다. 현재 DLL 치환 준비는 .ref.dll 이름 형식과 실제 참조45개를 확인해 수정했으며 잘못된 중간 rsp/fallback 출력은 사용하지 않는다. 최종 출력은 final- 접두어 파일과 metadata-provenance.json에 구분했다. 존재하지 않는 안내/추정 파일명 조회는 실제 rg 목록과 원본으로 대체했다. 코드나 검사 기준은 변경하지 않았다.
 
 R29 보고 완료: docs/dev/code-structure-review-main-r29-20261028.md에 수정7묶음과 실제 호출/저장/에셋, 비수정 후보와 조사 한계를 기록했다. 외부 audit-verification.json은 입력15820개 SHA 변경/추가/삭제0, Assets/Packages/ProjectSettings/tools/Tools diff0, 원본 링크68개 오류0, 보고서 중간점0, main 원격 SHA 동일을 확인했다. 문서4개만 작성/갱신했고 Unity 컴파일/Play/저장 복원 검증, 소스 변경과 commit/push는 수행하지 않았다. 문서 마감 patch의 잘못된 문맥은 쓰기 전에 거절된 것을 확인하고 현재 정확한 문맥으로 갱신했다.
+
+Git 보완: git add가 기본 무시 규칙의 contracts.log 때문에 exit1을 반환했으나 외부 PowerShell 묶음이 후속 commit까지 실행해 로컬0335431e1에 해당 로그만 누락됐다. 아직 push하지 않았고 원본과 소스는 보존됐다. 누락 파일은 정확한 경로만 강제 포함하고 전체33개 증거 및89개 변경 경로를 다시 검증한다. 공개 로그는 player-connection 네트워크 식별 줄만 가리고 원문 SHA/외부 native 원본을 별도 기록했다. 원문 CRLF 보존 파일의 Git 공백 경고와 테스트 C# EOF 빈 줄1개는 선택형 서식 결과이며 검사/실행 PASS로 바꾸지 않는다. 검증한 C# 바이트는 그대로 유지한다. 이후 단계는 종료 코드를 확인한 뒤 순서대로 실행한다.

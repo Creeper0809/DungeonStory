@@ -170,4 +170,3 @@ R28 이후 실제 사본 반환을 확인한 경계에는 제작/의복 주문, 
 - 최종 그래프: `final-current-main-graph.json`, `final-current-main.rsp`, `final-graph-inputs.json`, `metadata-provenance.json`. 중간 및 fallback 출력은 판정에서 제외.
 - 후보와 원본 대조: `classes.json`, `query-candidates.json`, `additional-simple-return-candidates.json`, `additional-simple-collection-candidates.json`, `ui-inventory.md`, `content-coupling-inventory.md`, `state-query-inventory.md`, `remaining-query-inventory.md`.
 - 최종 입력 불변 및 문서 링크 검사는 별도 `audit-verification.json`에 기록한다.
-

@@ -31,7 +31,7 @@
     "Artifacts/QA/StructureR29/contracts-02-failure.txt": "a615fbcfec2c3e1d1e6f6a318a3f0f81b068fe78c83354274c3e3226c3deec4e",
     "Artifacts/QA/StructureR29/contracts-isolation-probe.txt": "5bbb6cc8097dd830d5ecb93610f4d318ea6dc13d958797575a47170bf80e7b74",
     "Artifacts/QA/StructureR29/contracts-launcher-self-test.txt": "a760c3317709faea731f186e6e2d1168aa5de42f10b85adb0c289e5f2ec8d1da",
-    "Artifacts/QA/StructureR29/contracts.log": "2ec2409f4bb1aafae9967e092ebf8b5be4b6e8b48c872d68cad2260eee1db08e",
+    "Artifacts/QA/StructureR29/contracts.log": "a04e5f48f4ac0aea2b949dcf4eda2a21827c4773fe6bb66442ef1c7e2752978c",
     "Artifacts/QA/StructureR29/contracts.txt": "95d38173f0c26ae117cee2acd130868c56c0e5c851c568d57eb55209564a4793",
     "Artifacts/QA/StructureR29/core-isolation-probe.txt": "378e08fb448035207cd698b8968bec196ce8485ec0aa34224557efc0dce5a478",
     "Artifacts/QA/StructureR29/core-launcher-context.txt": "913fe42481f542093c4705f33f86cad98fa235558f7688e6bf0a17e4ed5f8274",
@@ -55,5 +55,7 @@
     "Artifacts/QA/StructureR29/world-launcher-context.txt": "d0df352539f44f004a55ea46e51683a96ab460812517e834d52f7a7258264212",
     "Artifacts/QA/StructureR29/world-launcher-exit.txt": "bc132b7a12e5a8366cb428aa935168b064e0fc2ef25d489457173e4d4d2edb1d",
     "Artifacts/QA/StructureR29/world-launcher-self-test.txt": "a760c3317709faea731f186e6e2d1168aa5de42f10b85adb0c289e5f2ec8d1da"
-  }
+  },
+  "rawNativeContractsLogSha256": "2ec2409f4bb1aafae9967e092ebf8b5be4b6e8b48c872d68cad2260eee1db08e",
+  "contractsLogRedaction": "Only player-connection network identities redacted and newlines normalized. Original native log retained in r29-local-contracts-03; outcomes and errors retained."
 }
