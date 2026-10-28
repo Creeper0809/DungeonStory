@@ -1,0 +1,7 @@
+result=FAIL
+System.ArgumentException: A valid BuildingInstanceId is required.
+Parameter name: value
+  at BuildableObject.RestorePersistentIdentity (BuildingInstanceId value) [0x00026] in C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Assets\Scripts\Services\Buildings\BuildableObject.cs:178 
+  at R29StructureRemediationBatch.<VerifyAuthoredConditions>g__Building|1_0 (System.String asset, System.String id, R29StructureRemediationBatch+<>c__DisplayClass1_0& ) [0x00079] in C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Assets\Editor\R29StructureRemediationBatch.cs:62 
+  at R29StructureRemediationBatch.VerifyAuthoredConditions () [0x0000c] in C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Assets\Editor\R29StructureRemediationBatch.cs:67 
+  at R29StructureRemediationBatch.RunContracts () [0x0007c] in C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Assets\Editor\R29StructureRemediationBatch.cs:30 

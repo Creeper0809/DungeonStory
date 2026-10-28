@@ -78,8 +78,29 @@ public sealed class CharacterBlackboard : SerializedMonoBehaviour
     public BuildableObject CommittedDestination => committedDestination;
     public float MinCommitUntil => minCommitUntil;
     public CharacterAiIntentState SoftLockIntent => softLockIntent;
-    public CharacterMacroGoal ActiveMacroGoal => activeMacroGoal;
-    public CharacterMoodImpulse ActiveMoodImpulse => activeMoodImpulse;
+    public CharacterMacroGoal ActiveMacroGoal => activeMacroGoal == null
+        ? null
+        : new CharacterMacroGoal
+        {
+            type = activeMacroGoal.type,
+            reason = activeMacroGoal.reason,
+            targetFacilityId = activeMacroGoal.targetFacilityId,
+            targetFacilityTag = activeMacroGoal.targetFacilityTag,
+            validUntil = activeMacroGoal.validUntil,
+            source = activeMacroGoal.source
+        };
+    public CharacterMoodImpulse ActiveMoodImpulse => activeMoodImpulse == null
+        ? null
+        : new CharacterMoodImpulse
+        {
+            type = activeMoodImpulse.type,
+            strength = activeMoodImpulse.strength,
+            targetFacilityId = activeMoodImpulse.targetFacilityId,
+            targetFacilityTag = activeMoodImpulse.targetFacilityTag,
+            reason = activeMoodImpulse.reason,
+            validUntil = activeMoodImpulse.validUntil,
+            source = activeMoodImpulse.source
+        };
     public string LastCommitBreakReason => lastCommitBreakReason;
     public string LastFailureReason => lastFailureReason;
     public IReadOnlyDictionary<string, int> RecentFailureCounts => failureMemory.RecentFailureCounts;

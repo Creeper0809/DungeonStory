@@ -25,7 +25,8 @@ public sealed class ResourceStockPolicyQuery : IResourceStockPolicyQuery
         this.stock = stock ?? throw new ArgumentNullException(nameof(stock));
     }
 
-    public IReadOnlyList<ResourceStockPolicyData> Policies => State.PolicyView;
+    public IReadOnlyList<ResourceStockPolicyData> Policies =>
+        State.PolicyView.Select(policy => policy?.Clone()).ToArray();
 
     public int CountOwned(string itemId)
     {
@@ -50,7 +51,7 @@ public sealed class ResourceStockPolicyQuery : IResourceStockPolicyQuery
 
     public EmergencyStockReadiness GetEmergencyReadiness()
     {
-        ResourceStockPolicyData[] reserves = Policies
+        ResourceStockPolicyData[] reserves = State.PolicyView
             .Where(policy => policy != null
                 && policy.enabled
                 && policy.isEmergencyReserve)

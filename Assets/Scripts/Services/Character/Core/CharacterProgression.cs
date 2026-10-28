@@ -88,7 +88,7 @@ public sealed class CharacterProgression : MonoBehaviour, ICharacterTraitInferen
             return current.initialized ? current.displayName : string.Empty;
         }
     }
-    public CharacterNarrativeLedger NarrativeLedger
+    private CharacterNarrativeLedger OwnedNarrativeLedger
     {
         get
         {
@@ -96,6 +96,8 @@ public sealed class CharacterProgression : MonoBehaviour, ICharacterTraitInferen
             return narrativeLedger ??= new CharacterNarrativeLedger();
         }
     }
+    public CharacterNarrativeLedger NarrativeLedger => OwnedNarrativeLedger.Clone();
+    CharacterNarrativeLedger ICharacterTraitInferenceAuthority.NarrativeLedger => OwnedNarrativeLedger;
     public int AcquiredTraitRevision
     { get { RequireTraitStateAvailable(); return acquiredTraitState?.revision ?? 0; } }
     public CharacterPotentialGrade PotentialGrade => OwnedGrowth.potentialGrade;
@@ -644,7 +646,7 @@ public sealed class CharacterProgression : MonoBehaviour, ICharacterTraitInferen
         {
             issues.AddRange(CharacterAcquiredTraitStateValidator.ValidateWithDefinitions(
                 candidate,
-                NarrativeLedger,
+                OwnedNarrativeLedger,
                 settings,
                 moduleDefinitions));
         }
@@ -679,7 +681,7 @@ public sealed class CharacterProgression : MonoBehaviour, ICharacterTraitInferen
             issues.AddRange(
                 CharacterAcquiredTraitStateValidator.ValidateWithDefinitions(
                     rollbackState,
-                    NarrativeLedger,
+                    OwnedNarrativeLedger,
                     settings,
                     moduleDefinitions));
         }
@@ -750,7 +752,7 @@ public sealed class CharacterProgression : MonoBehaviour, ICharacterTraitInferen
             string actorId = actor != null
                 ? CharacterPersistentIdentity.Require(actor).Value
                 : "character:unbound";
-            long sequence = Math.Max(1L, NarrativeLedger.nextEventSequence);
+            long sequence = Math.Max(1L, OwnedNarrativeLedger.nextEventSequence);
             eventContext = new GameplayNarrativeEventContext
             {
                 eventInstanceId = "narrative:" + actorId + ":" + sequence,
@@ -761,7 +763,7 @@ public sealed class CharacterProgression : MonoBehaviour, ICharacterTraitInferen
                 sequence = sequence
             };
         }
-        NarrativeLedger.Record(domain, factId, subjectId, outcome, value, day, evidenceMetadata, eventContext);
+        OwnedNarrativeLedger.Record(domain, factId, subjectId, outcome, value, day, evidenceMetadata, eventContext);
         EnsureUnlockedDrafts();
         if (triggerPassives)
         {
@@ -985,7 +987,7 @@ public sealed class CharacterProgression : MonoBehaviour, ICharacterTraitInferen
             Level,
             CurrentExperience,
             OwnedGrowth.Clone(),
-            NarrativeLedger.Clone(),
+            OwnedNarrativeLedger.Clone(),
             CaptureAcquiredTraitState());
     }
 
@@ -1145,14 +1147,14 @@ public sealed class CharacterProgression : MonoBehaviour, ICharacterTraitInferen
     {
         if (profile?.prepared != true)
         {
-            NarrativeLedger.facts ??= new List<CharacterNarrativeFact>();
-            NarrativeLedger.facts.RemoveAll(IsPreparedIdentityNarrativeFact);
+            OwnedNarrativeLedger.facts ??= new List<CharacterNarrativeFact>();
+            OwnedNarrativeLedger.facts.RemoveAll(IsPreparedIdentityNarrativeFact);
             return;
         }
 
-        NarrativeLedger.facts ??= new List<CharacterNarrativeFact>();
-        NarrativeLedger.facts.RemoveAll(IsPreparedIdentityNarrativeFact);
-        AppendPreparedIdentityNarrativeEvidence(NarrativeLedger, profile);
+        OwnedNarrativeLedger.facts ??= new List<CharacterNarrativeFact>();
+        OwnedNarrativeLedger.facts.RemoveAll(IsPreparedIdentityNarrativeFact);
+        AppendPreparedIdentityNarrativeEvidence(OwnedNarrativeLedger, profile);
     }
 
     internal static CharacterNarrativeLedger
@@ -1355,8 +1357,8 @@ public sealed class CharacterProgression : MonoBehaviour, ICharacterTraitInferen
 
         if (Level >= settings.secondPassiveMinimumLevel
             && OwnedGrowth.passiveSkills.Count < GetSlotProfile().PassiveSlots
-            && NarrativeLedger.MeaningfulRecordCount >= settings.secondPassiveMinimumRecords
-            && NarrativeLedger.MeaningfulDomainCount >= settings.secondPassiveMinimumDomains)
+            && OwnedNarrativeLedger.MeaningfulRecordCount >= settings.secondPassiveMinimumRecords
+            && OwnedNarrativeLedger.MeaningfulDomainCount >= settings.secondPassiveMinimumDomains)
         {
             EnsureDraft(CharacterSkillKind.Passive, settings.secondPassiveMinimumLevel);
         }
@@ -1591,7 +1593,7 @@ public sealed class CharacterProgression : MonoBehaviour, ICharacterTraitInferen
             error = "Formula skill evidence IDs are blank or duplicated.";
             return false;
         }
-        CharacterNarrativeFact[] factValues = NarrativeLedger.Facts
+        CharacterNarrativeFact[] factValues = OwnedNarrativeLedger.Facts
             .Where(value => value != null).ToArray();
         if (factValues.Select(CharacterSkillFormulaGeneration.BuildEvidenceId)
             .Distinct(StringComparer.Ordinal).Count() != factValues.Length)

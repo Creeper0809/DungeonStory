@@ -7092,3 +7092,28 @@ Git 선별 단계에서 source manifest JSON의 CRLF가 LF로 정규화돼 원�
 소유210파일 commit2a069eb244fca01a9a8a9144f7409331b821bfc7, 실제 committed evidence73개 SHA 일치 및 tracked dirty0을 확인했다. 현재 commit vs c979d18e1에서 게시3544개/필드12501개 호환성 PASS, 변경 범위210개가 요구한 CI5와 과거 V27 바이트/현재 입력 바인딩 PASS. branch push 원격 head 일치 후 PR25 생성/attach, PR CI40541933364 success를 확인했다. 기대 head2a069eb24로 main02bee0cc0cd60faf033d29d9a7d97b3f977f6850 병합, feature와 main tree 동일 및 병합 후 push CI40542843065 success를 확인했다. 원본 Documents/R80 및 무관한 QA는 보존했다.
 
 현재 마감은 보고서/task_plan/progress 문서3개만 갱신한다. 코드 병합의 Assets/Packages/ProjectSettings subtree 및 모든 다른 입력/증거는 그대로 유지하고 문서-only diff/링크로 확인한다. 이 문서 마감을 새로운 Native 실행이나 새로운 code-CI PASS로 표시하지 않는다. 실제 증거/링크는 R28 보고서와 외부 github-code-integration.json에 보존한다.
+
+
+## R29 조사 시작
+
+R29 수정 Goal 생성. 2026-10-28 원격 main fetch 뒤 origin/main...HEAD0/0을 확인하고 codex/fix-structure-r29로 전환했다. 현재 Unity 프로세스0/여유 RAM 약13.6GiB이며 소스 편집 창을 열었다. 기존 감사 문서4개와 무관한 untracked QA는 그대로 보존한다. commit/push/main 통합까지 승인됐고 UI/씬/에셋 변경이 필요하면 적용 전 영향을 알린다.
+
+R29 첫 소스 동결: 수정7묶음과 표적 native batch를 작성했다. 서브 작성자2명 READY/FROZEN 및 메인 diff 검토, 원래 저장 필드/에셋 변경0, diff 공백 검사 통과. 새 batch는 현행 SO 시설/물 조건, 원본/중첩 조회 변조, 명령 반영, 기존 질병 및 백신 outbox와 새 건강 소유자 JSON 복원, 특성 자동 재개와 수술 교체/복구를 구분해 검사한다. 아직 컴파일/실행 PASS는 아니다. Windows 런처에 정확한 R29 edit entry와 잘못된 mode/접두 entry 거부 검사만 추가했고 기존 격리/메모리/시간 기준은 유지한다. 로컬 r29-local-contracts-01에서 순수 검사와 비대화형 probe 후 Unity를 시작한다. 준비 중 존재하지 않는 추정 파일 조회는 실제 rg 위치로 바로잡았고 readonly struct DiseaseDefinition의 null 검사도 실행 전 올바른 정의 유효성 검사로 정정했다.
+
+로컬01: 런처 순수 검사와 실제 비대화형 station/desktop 창 생성/폐기 프로브 PASS, 현재 전체 소스 컴파일 CS error0. 표적 실행은 fixture의 building-instance:r29 ID가 BuildingInstanceId 계약에 맞지 않아 첫 준비 단계에서 FAIL. Unity/런처 종료 및 소유 컴파일 프로세스0을 확인한 뒤 UNITY_VERIFY를 닫고 잠시 SOURCE_EDIT에서 fixture4개의 ID 접두어만 building:으로 정정했다. 게임 ID/실행/검사 기준과 첫 실패 증거는 보존한다. READY/FROZEN으로 다시 SOURCE_EDIT CLOSED, UNITY_VERIFY OPEN.
+
+로컬02: 컴파일과 격리 프로브 통과 후 새 조건/조회/명령 검사, 기존 질병 outbox와 새 건강 소유자 JSON 백신 복원/중복 방지, 특성 재개와 수술 restore fault까지 진행했다. 추가 수술 교체 실행에서 기존 fixture가 캐릭터 identity의 종족/프로필을 준비하지 않아 신체 최대체력 갱신이 빈 종족으로 거절됐다. 전체 PASS로 세지 않는다. 소유 Unity terminal/프로세스0을 확인해 다음 편집 창에서 실제 authored 인간 archetype과 정식 Editor profile factory를 fixture에 설정했다. Runtime 종족/해부 검증은 유지한다. READY/FROZEN으로 동결 후 로컬03을 실행한다.
+
+로컬03: 현재 소스 digest d6f80cb243e90b88ee806a6db6ce7afb6cfdfd742465d1819e03434e1e91d08f의 R29_CONTRACTS PASS, compile error0/console error0/소유 Unity terminal0. 현행 SO의 접종/물 조건, 서사/수술/경제/AI 조회 변조 보호와 기존 명령, 질병 Sink와 백신 새 건강 소유자 JSON/pending/ACK 재시도, 특성 자동 producer 재개, 수술 restore fault와 실제 교체/설치 영수증/조회 불변이 통과했다. 통제 native fixture임을 결과에 명시했다. 다음은 필수 영향 CI5와 실제 GameplayScene 월드 복원이다. 전체 포트폴리오/시드 검증은 추가하지 않는다.
+
+현재 소스 world CI: r29-local-ci-world-01에서 GameplayScene의104섹션 capture/restore/canonical baseline 복구와 owner/trait pending JSON 복원을 PASS했다. marker의 source d6f80c, config18cf44, consoleErrors0 및 launcher exit0을 확인했다. 이어 core 첫 준비는 전역 중복 실행 guard가 실행 중 프로세스를 감지해 Unity 시작 전에 거절됐다. 직후 재조회는 Unity0이며 당시 프로세스의 원인을 단정하지 않는다. game failure나 PASS로 세지 않고 외부 거절 기록을 남겼다. 후속 순차 driver에는 매 실행 전 terminal 대기를 추가하고 새02 label을 사용한다. 사용자 앱 종료나 guard 완화는 없다. 문서 인덱스는 docs_final만 쓰는 기존 재생성 도구를 한 번 실행했다.
+
+R29 검증 완료: core108.1초/character81.0초/effects327.7초/crop92.9초와 world가 모두 exit0/CS0/console0/current source/config drift0으로 통과했다. Python100검사와 pinned analyzer DSB001~008, 원래 구조 baseline Verify PASS(기준 파일 무변경), 인덱스 재생성/검증/freshness 실패0. 현재 CI 영수증5묶음을 Artifacts/QA/ImpactCI에 봉인하고 기존 r218 영수증을 원문 보존했다. Artifacts/QA/StructureR29/verification.json은 증거33개 SHA, 성공한 실행의 실제 source d6f80c/count4799/config18cf44, 통제 fixture와 실제104섹션 월드, 실패2개 및 시작 거절을 구분한다. 원본 Documents에서 별도로 시작된 R80 Unity는 PID/명령줄로 식별했으며 건드리지 않는다. 현재 R29 검증 창을 닫고 소유 Git 통합을 진행한다.
+
+origin/main fetch 및 main...HEAD0/0으로 b75021b88을 확인했다. 격리 worktree의 tracked 변경0에서 codex/audit-structure-r29를 만들었다. 원본 Documents의 다수 미반영 변경과 R80 작업을 보존한다. 조사용 외부 폴더는 C:/Users/vulpo/Documents/Codex/2026-10-28/structure-audit-r29이다. 소스/에셋/Unity/원격 Git 변경은 이번 범위가 아니다.
+
+R29 정적 입력 수집 완료: 소스/에셋/도구15820개 SHA 고정, Runtime2985파일, 현재47개 게임 asmdef 선언의 순환0. Roslyn 기준 무변경 Verify PASS이며 신규 Unity 컴파일이나 실행 증거가 아니다. 최종 final-current-main-graph.json은 current main 소스2200개와 SDK binding528개, metadata427개/누락0이며 순환21묶음/최대1004파일이다. SDK 구현은 수정 후보에서 제외한다. CUHA의 완료 r218 입력21746개 SHA drift0과 프로세스/lock 상태를 읽기 전용 확인한 뒤 게임 DLL47개를 회수하고 이 중 rsp가 참조하는45개를 현재 것으로 대체했다. baseline/Architecture/생성 인덱스 쓰기0.
+
+도구 입력 보정: 최초 그래프의 로컬 DLL은 과거 소스여서 최종 근거에서 제외했다. 현재 DLL 치환 준비는 .ref.dll 이름 형식과 실제 참조45개를 확인해 수정했으며 잘못된 중간 rsp/fallback 출력은 사용하지 않는다. 최종 출력은 final- 접두어 파일과 metadata-provenance.json에 구분했다. 존재하지 않는 안내/추정 파일명 조회는 실제 rg 목록과 원본으로 대체했다. 코드나 검사 기준은 변경하지 않았다.
+
+R29 보고 완료: docs/dev/code-structure-review-main-r29-20261028.md에 수정7묶음과 실제 호출/저장/에셋, 비수정 후보와 조사 한계를 기록했다. 외부 audit-verification.json은 입력15820개 SHA 변경/추가/삭제0, Assets/Packages/ProjectSettings/tools/Tools diff0, 원본 링크68개 오류0, 보고서 중간점0, main 원격 SHA 동일을 확인했다. 문서4개만 작성/갱신했고 Unity 컴파일/Play/저장 복원 검증, 소스 변경과 commit/push는 수행하지 않았다. 문서 마감 patch의 잘못된 문맥은 쓰기 전에 거절된 것을 확인하고 현재 정확한 문맥으로 갱신했다.

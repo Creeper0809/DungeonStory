@@ -106,7 +106,7 @@ public sealed class SurgicalPartRuntime :
             installations, this.physicalMass, this.batchDispositions);
     }
 
-    public IReadOnlyList<SurgicalPartInstance> Parts => parts;
+    public IReadOnlyList<SurgicalPartInstance> Parts => CaptureParts();
 
     public void Tick()
     {
@@ -118,8 +118,12 @@ public sealed class SurgicalPartRuntime :
         }
     }
 
-    public bool TryGet(string partInstanceId, out SurgicalPartInstance part) =>
-        installations.TryGet(partInstanceId, out part);
+    public bool TryGet(string partInstanceId, out SurgicalPartInstance part)
+    {
+        bool found = installations.TryGet(partInstanceId, out SurgicalPartInstance owned);
+        part = owned == null ? null : SurgeryStateCloner.ClonePart(owned);
+        return found;
+    }
 
     public bool TryCreateExtractedPart(
         SurgicalSubjectRef donor,
@@ -207,6 +211,7 @@ public sealed class SurgicalPartRuntime :
         sequence = nextPartSequence;
         parts.Add(part);
         RequestOrganStorage(part, position);
+        part = SurgeryStateCloner.ClonePart(part);
         return true;
     }
 
@@ -677,8 +682,13 @@ public sealed class SurgicalPartRuntime :
         installations.TryValidateReservationForOrder(partInstanceId, orderId, out failure);
 
     public bool TryConsumeForInstallation(string partInstanceId, string orderId, string subjectId,
-        out SurgicalPartInstance part, out DomainFailure failure) =>
-        installations.TryConsumeForInstallation(partInstanceId, orderId, subjectId, out part, out failure);
+        out SurgicalPartInstance part, out DomainFailure failure)
+    {
+        bool consumed = installations.TryConsumeForInstallation(partInstanceId, orderId, subjectId,
+            out SurgicalPartInstance owned, out failure);
+        part = owned == null ? null : SurgeryStateCloner.ClonePart(owned);
+        return consumed;
+    }
 
     bool ISurgicalPartReplacementRuntime.TryReserveReplacementOutput(
         SurgeryOrder order, AnatomyNodeHealthState currentNode, Vector2Int outputPosition,

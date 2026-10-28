@@ -184,7 +184,8 @@ public sealed class EconomyTransactionLedgerRuntime :
             ?? throw new ArgumentNullException(nameof(stateStore));
     }
 
-    public IReadOnlyList<EconomyTransactionRecord> Records => records;
+    public IReadOnlyList<EconomyTransactionRecord> Records =>
+        records.Select(record => record?.Clone()).ToArray();
 
     public Action CaptureRollback()
     {

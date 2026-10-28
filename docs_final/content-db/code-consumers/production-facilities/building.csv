@@ -131,12 +131,7 @@ BuildingSO,stable-id,building:8869,stable-id-literal,services:narrative,runtime,
 BuildingSO,stable-id,building:8870,stable-id-literal,services:narrative,runtime,exact-literal-consumer,Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/SocialLife/CampaignPresentationObserver.cs
 BuildingSO,stable-id,building:8871,stable-id-literal,services:narrative,runtime,exact-literal-consumer,Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/SocialLife/CampaignPresentationObserver.cs
 BuildingSO,stable-id,building:8872,stable-id-literal,services:narrative,runtime,exact-literal-consumer,Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/SocialLife/CampaignPresentationObserver.cs
-BuildingSO,stable-id,building:8873,stable-id-literal,services:character,runtime,exact-literal-consumer,Assets/Scripts/Services/Character/DiseaseFieldResponseRuntime.cs
-BuildingSO,stable-id,building:8873,stable-id-literal,services:narrative,runtime,exact-literal-consumer,Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/SocialLife/CampaignPresentationObserver.cs
 BuildingSO,stable-id,building:8874,stable-id-literal,services:character,runtime,exact-literal-consumer,Assets/Scripts/Services/Character/DiseaseFieldResponseRuntime.cs
-BuildingSO,stable-id,building:8874,stable-id-literal,services:narrative,runtime,exact-literal-consumer,Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/SocialLife/CampaignPresentationObserver.cs
-BuildingSO,stable-id,building:8876,stable-id-literal,services:character,runtime,exact-literal-consumer,Assets/Scripts/Services/Character/DiseaseFieldResponseRuntime.cs
-BuildingSO,stable-id,building:8876,stable-id-literal,services:narrative,runtime,exact-literal-consumer,Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/SocialLife/CampaignPresentationObserver.cs
 BuildingSO,stable-id,building:8879,stable-id-literal,services:character,runtime,exact-literal-consumer,Assets/Scripts/Services/Character/CharacterNarrativeRuntime.cs
 BuildingSO,stable-id,building:8879,stable-id-literal,services:narrative,runtime,exact-literal-consumer,Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/SocialLife/CampaignPresentationObserver.cs
 BuildingSO,stable-id,building:8881,stable-id-literal,services:character,runtime,exact-literal-consumer,Assets/Scripts/Services/Character/ReproductionCommandRuntime.cs

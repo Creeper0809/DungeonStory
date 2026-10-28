@@ -1,0 +1,1 @@
+PASS pure quoting/layout, owned PlayMode entry allowlist, full capture report binding, startup resource profile and memory-headroom policy checks; no desktop or process created.

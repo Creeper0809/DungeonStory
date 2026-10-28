@@ -5,12 +5,26 @@ using UnityEngine;
 
 public sealed class ProductionSupportLinkSnapshot
 {
-    public BuildableObject Workstation { get; set; }
-    public BuildableObject Support { get; set; }
-    public string WorkstationTag { get; set; } = string.Empty;
-    public string SupportId { get; set; } = string.Empty;
-    public IReadOnlyList<string> FeatureTags { get; set; } =
-        Array.Empty<string>();
+    public ProductionSupportLinkSnapshot(
+        BuildableObject workstation,
+        BuildableObject support,
+        string workstationTag,
+        string supportId,
+        IEnumerable<string> featureTags)
+    {
+        Workstation = workstation;
+        Support = support;
+        WorkstationTag = workstationTag;
+        SupportId = supportId;
+        FeatureTags = Array.AsReadOnly(
+            (featureTags ?? Enumerable.Empty<string>()).ToArray());
+    }
+
+    public BuildableObject Workstation { get; }
+    public BuildableObject Support { get; }
+    public string WorkstationTag { get; }
+    public string SupportId { get; }
+    public IReadOnlyList<string> FeatureTags { get; }
 }
 
 public interface IProductionWorkshopRuntime
@@ -66,7 +80,7 @@ public sealed class ProductionWorkshopRuntime : IProductionWorkshopRuntime
             && linksByWorkstation.TryGetValue(
                 workstation,
                 out List<ProductionSupportLinkSnapshot> links)
-                    ? links
+                    ? links.AsReadOnly()
                     : Array.Empty<ProductionSupportLinkSnapshot>();
     }
 
@@ -238,20 +252,17 @@ public sealed class ProductionWorkshopRuntime : IProductionWorkshopRuntime
             }
 
             ProductionSupportLinkSnapshot link =
-                new ProductionSupportLinkSnapshot
-            {
-                Workstation = target,
-                Support = support,
-                WorkstationTag = target.GetProductionWorkstationTag(),
-                SupportId = supportAbility.SupportId,
-                FeatureTags = (supportAbility.featureTags
+                new ProductionSupportLinkSnapshot(
+                    target,
+                    support,
+                    target.GetProductionWorkstationTag(),
+                    supportAbility.SupportId,
+                    (supportAbility.featureTags
                         ?? Array.Empty<string>())
-                    .Where(tag => !string.IsNullOrWhiteSpace(tag))
-                    .Select(tag => tag.Trim())
-                    .Distinct(StringComparer.Ordinal)
-                    .OrderBy(tag => tag, StringComparer.Ordinal)
-                    .ToArray()
-            };
+                        .Where(tag => !string.IsNullOrWhiteSpace(tag))
+                        .Select(tag => tag.Trim())
+                        .Distinct(StringComparer.Ordinal)
+                        .OrderBy(tag => tag, StringComparer.Ordinal));
             linksByWorkstation[target].Add(link);
             linksBySupport[support] = link;
         }

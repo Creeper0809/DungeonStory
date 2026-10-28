@@ -114,7 +114,8 @@ public static class CharacterProgressionDebugScenarios
         using ActorFixture fixture = new(913900, "Roma", "slime",
             persistentId: historical.ownerBinding.persistentId);
         CharacterProgression progression = fixture.Actor.Progression;
-        JsonUtility.FromJsonOverwrite(owner["narrative"].ToString(), progression.NarrativeLedger);
+        JsonUtility.FromJsonOverwrite(owner["narrative"].ToString(),
+            CharacterAiEditorTestDependencies.GetOwnedNarrativeForFixture(progression));
         CharacterSkillDraft draft = historical.Clone();
         draft.requestContext = null;
         draft.requestContextHash = string.Empty;
@@ -148,14 +149,14 @@ public static class CharacterProgressionDebugScenarios
             progression.SkillSettings, draft.RestoreRequestPublicContext(), batchModuleSelection: true).Prompt;
         var restored = JsonUtility.FromJson<CharacterSkillDraft>(JsonUtility.ToJson(draft));
         // Fresh snapshot projection, independent of mutable live narrative text.
-        progression.NarrativeLedger.facts.Clear();
+        CharacterAiEditorTestDependencies.GetOwnedNarrativeForFixture(progression).facts.Clear();
         string roundTrip = CharacterSkillPromptBuilder.BuildEnvelope(progression, restored,
             progression.SkillSettings, restored.RestoreRequestPublicContext(), batchModuleSelection: true).Prompt;
         Require(prompt == roundTrip && JsonUtility.ToJson(historical) == JsonUtility.ToJson(
                 JsonUtility.FromJson<CharacterSkillDraft>(pendingJson)),
             "Frozen narrative evidence changed after JSON restoration or mutated historical input.");
         foreach (int index in Enumerable.Range(0, 25))
-            progression.NarrativeLedger.facts.Add(new CharacterNarrativeFact
+            CharacterAiEditorTestDependencies.GetOwnedNarrativeForFixture(progression).facts.Add(new CharacterNarrativeFact
             {
                 domain = CharacterNarrativeDomain.Work, factId = "work:cap-test",
                 subjectId = "facility:cap-" + index, outcome = "completed", count = 1, milestoneCount = 1
@@ -8144,7 +8145,7 @@ public static class CharacterProgressionDebugScenarios
             CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(progression).passiveSkills.Clear();
             CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(progression).pendingRequestKeys.Clear();
             CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(progression).ultimate = null;
-            progression.NarrativeLedger.facts.Clear();
+            CharacterAiEditorTestDependencies.GetOwnedNarrativeForFixture(progression).facts.Clear();
             TestSettingsProvider provider = new TestSettingsProvider(settings);
             service = new CharacterSkillGenerationService(
                 NarrativeRequestContextTestFixture.CreateEmpty(), provider, new MissingLlmRuntimeProvider(),
@@ -8229,7 +8230,7 @@ public static class CharacterProgressionDebugScenarios
             CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(progression).drafts.Clear();
             CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(progression).activeSkills.Clear();
             CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(progression).passiveSkills.Clear();
-            progression.NarrativeLedger.facts.Clear();
+            CharacterAiEditorTestDependencies.GetOwnedNarrativeForFixture(progression).facts.Clear();
             TestSettingsProvider settingsProvider = new TestSettingsProvider(settings);
             CharacterSkillGenerationService service = new CharacterSkillGenerationService(
                 NarrativeRequestContextTestFixture.CreateEmpty(), settingsProvider,

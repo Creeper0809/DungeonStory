@@ -542,7 +542,7 @@ public sealed class PhysicalItemPilePlayModeVerificationRunner : MonoBehaviour
         CharacterNarrativeDomain domain = module.DomainAffinities[0];
         foreach (string factId in evidence)
         {
-            actor.Progression.NarrativeLedger.Record(
+            CharacterAiEditorTestDependencies.GetOwnedNarrativeForFixture(actor.Progression).Record(
                 domain,
                 factId,
                 "target:qa:stored-use",

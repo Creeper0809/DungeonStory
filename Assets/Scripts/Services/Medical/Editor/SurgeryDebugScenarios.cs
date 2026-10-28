@@ -2990,6 +2990,10 @@ public static class SurgeryDebugScenarios
             Require(
                 Actor != null && Actor.Identity != null,
                 "replacement fixture could not construct a character actor identity");
+            CharacterSO archetype = new ResourceGameContentCatalog(new UnityGameContentRootLoader())
+                .GetAll<CharacterSO>().First(value => !value.IsOwnerCandidate
+                    && string.Equals(value.SpeciesTag, "human", StringComparison.OrdinalIgnoreCase));
+            Actor.Identity.SetData(archetype, CharacterRuntimeProfileFactory.CreateEditorSnapshot(archetype));
             Actor.Identity.SetPersistentId(SubjectId);
             Anatomy = new ReplacementAnatomyRuntime(
                 NodeId,
@@ -3073,6 +3077,12 @@ public static class SurgeryDebugScenarios
                 && Repository.GetEditorTestQuantity(previousStackId) == 0,
                 "replacement fixture could not create its historical installation receipt: "
                 + previousInstallationFailure);
+            float ownedQuality = PreviousPart.quality;
+            Require(!ReferenceEquals(installedPrevious, PreviousPart),
+                "Installation command returned its owned part row.");
+            installedPrevious.quality = -1f;
+            Require(PreviousPart.quality == ownedQuality,
+                "Installation result mutation changed the stored physical part.");
             ConfigureAcceptedPhysicalFixtureObservation(
                 historicalInstallation,
                 CreatePhysicalFixtureAnatomy(

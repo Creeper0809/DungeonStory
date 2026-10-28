@@ -314,7 +314,8 @@ internal static class IsolatedUnityLauncher
     }
     private static bool IsFocusedRegressionEditEntry(string method)
     {
-        return method == "V20ContentResolutionRecoveryDebugScenarios.RunPrioritizedEffectBoundaries"
+        return method == "R29StructureRemediationBatch.RunContracts"
+            || method == "V20ContentResolutionRecoveryDebugScenarios.RunPrioritizedEffectBoundaries"
             || method == "R26SoRemediationBatch.CapturePublicationCandidate"
             || method == "R26SoRemediationBatch.RunAll"
             || method == "V27CiEvidenceBatch.RunImpactEffectContracts"
@@ -552,7 +553,8 @@ internal static class IsolatedUnityLauncher
             "V20ContentResolutionRecoveryDebugScenarios.RunPrioritizedEffectBoundaries",
             "V27CiEvidenceBatch.RunImpactEffectContracts",
             "V27CiEvidenceBatch.RunImpactCoreContracts",
-            "V27CiEvidenceBatch.RunImpactCharacterContracts" })
+            "V27CiEvidenceBatch.RunImpactCharacterContracts",
+            "R29StructureRemediationBatch.RunContracts" })
             Require(BuildUnityArguments(captureRoot, entry, captureRoot, "edit", "serial-import-job1")
                 .Skip(9).SequenceEqual(new[] { "-refreshImportMode", "InProcess", "-job-worker-count", "1", "-desiredWorkerCount", "1", "-standbyWorkerCount", "0" }),
                 "Serialized startup arguments differ.");
@@ -665,6 +667,8 @@ internal static class IsolatedUnityLauncher
             new[] { "V27CiEvidenceBatch.RunImpactEffectContractsUnexpected", "edit", "serial-import-job1" },
             new[] { "V27CiEvidenceBatch.RunImpactCoreContracts", "play", "serial-import-job1" },
             new[] { "V27CiEvidenceBatch.RunImpactCoreContractsUnexpected", "edit", "serial-import-job1" },
+            new[] { "R29StructureRemediationBatch.RunContracts", "play", "serial-import-job1" },
+            new[] { "R29StructureRemediationBatch.RunContractsUnexpected", "edit", "serial-import-job1" },
             new[] { "V27CiEvidenceBatch.RunImpactCharacterContracts", "play", "serial-import-job1" },
             new[] { "V27CiEvidenceBatch.RunImpactCharacterContractsUnexpected", "edit", "serial-import-job1" },
             new[] { "V27CiEvidenceBatch.RunImpactWorldRestore", "edit", "serial-import-job1" },
