@@ -2,7 +2,7 @@
 
 ## 구현 상태
 
-R29-01~07의 수정을 완료했고 현재 소스의 표적 Unity 검사와 필요한 저장/복원/재시도 검증을 통과했다. GitHub main 통합은 진행 중이다. 실행의 실제 범위와 실패 이력은 [progress.md](../../progress.md), 기계 검증 증거는 [R29 manifest](../../Artifacts/QA/StructureR29/verification.json)를 따른다.
+R29-01~07의 수정을 완료했고 현재 소스의 표적 Unity 검사와 필요한 저장/복원/재시도 검증을 통과했다. [PR26](https://github.com/Creeper0809/DungeonStory/pull/26)으로 main a36a611f1에 병합했고 PR 및 병합 후 CI가 성공했다. 실행의 실제 범위와 실패 이력은 [progress.md](../../progress.md), 기계 검증 증거는 [R29 manifest](../../Artifacts/QA/StructureR29/verification.json)를 따른다.
 
 | 항목 | 반영한 최소 수정 |
 |---|---|

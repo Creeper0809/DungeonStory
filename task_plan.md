@@ -2,12 +2,12 @@
 
 ## 현재 Goal - R29 수정과 실행 검증 및 main 통합
 
-Status: in_progress / 기준 main b75021b88737b99aab0c0437d1255afd0e25c3f8, branch codex/fix-structure-r29. 사용자 승인 범위는 보고서 R29-01~07 수정, 필요한 실제 실행/저장/복원/재시도, commit/push/PR/CI/main 통합까지다.
+Status: completed / R29-01~07 수정과 필요한 실제 실행/저장/복원/재시도를 완료했다. 소유89파일을 commit/push하고 PR26으로 main a36a611f1에 병합했다. PR CI40666471317 및 main push CI40667128217이 모두 success다. 기존 저장 형식과 검사 기준을 유지했다.
 
 1. 소스 완료 / 실행 대기: 질병 대응의 기존 의료 버퍼 계약에 맞춰 알림/명령 시설 선택을 공유한다. 생산의 시설/recipe 물 합산과 지원 조건은 기존 실행 함수를 UI도 사용한다. 에셋과 Inspector 수동 작업은 없다.
 2. 소스 완료 / 실행 대기: 서사/수술/경제의 일반 반환을 사본으로 제한하고 내부 원본 명령과 롤백을 유지했다. 두 링크는 불변 값과 보호 목록, AI 목표/충동은 사본이다. DTO/버전/identity는 유지하며 Editor 준비 쓰기는 전용 fixture helper로 전환했다.
 3. 완료: R29 표적 native, 실제 GameplayScene104섹션 복원, 현행 source-bound 영향 CI5가 모두 통과했다. Python100개, 분석기 DSB001~008, 기존 baseline 무변경 Verify와 인덱스 재생성/freshness도 PASS다. 런처 순수 검사와 비대화형 창 프로브를 매 실행 통과했으며 실패 이력과 실제 범위를 보존했다.
-4. 진행 중: 인덱스를 한 번 갱신하고 현재 source d6f80c/config18cf44의 CI 영수증 및 R29 증거를 봉인했다. 소유 변경만 commit/push하고 PR 생성/attach, GitHub CI 성공, main 병합 및 병합 후 CI까지 확인한다.
+4. 완료: 인덱스 배치 갱신, 현재 source/config 영수증 및 증거33개 SHA 봉인, 소유89파일 게시, PR26 생성/attach, PR CI와 병합 후 main CI 성공까지 확인했다. 현재 마감은 문서3개뿐이며 검증한 Unity 입력은 유지한다.
 
 작업 창: 모든 작성자 READY/FROZEN. SOURCE_EDIT CLOSED, UNITY_VERIFY CLOSED. R29 소유 Unity/런처는 terminal이며 원본 Documents의 별도 R80 실행은 보존한다. 현재 source/config를 유지한 채 Git 통합한다.
 
