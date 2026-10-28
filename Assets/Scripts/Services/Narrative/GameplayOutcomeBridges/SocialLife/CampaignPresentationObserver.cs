@@ -694,18 +694,8 @@ public sealed class CampaignPresentationObserver : IInitializable, IDisposable
                 List<EventAlertChoice> choices = new();
                 foreach (string responseId in disease.FieldResponseIds)
                 {
-                    string definitionId = responseId.StartsWith(
-                            "response:vaccine:",
-                            StringComparison.Ordinal)
-                        ? "building:8876"
-                        : responseId.StartsWith(
-                            "response:isolate:",
-                            StringComparison.Ordinal)
-                            ? "building:8874"
-                            : "building:8873";
-                    BuildableObject facility = facilities.FindOperational(
-                            FacilityCapabilityKind.Medical,
-                            definitionId)
+                    BuildableObject facility = DiseaseFieldResponseRuntime
+                        .FindOperationalFacilities(disease, responseId, facilities)
                         .FirstOrDefault();
                     if (facility == null) continue;
                     choices.Add(new EventAlertChoice(

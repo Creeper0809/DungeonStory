@@ -7,7 +7,7 @@
   "field_csv_count": 75,
   "incoming_csv_count": 75,
   "code_consumer_csv_count": 75,
-  "code_consumer_row_count": 1494,
+  "code_consumer_row_count": 1489,
   "parse_error_count": 0,
   "excluded_asset_type_count": 67,
   "duplicate_typed_id_groups": 10,

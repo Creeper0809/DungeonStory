@@ -182,17 +182,10 @@ public sealed class DiseaseFieldResponseRuntime :
             return false;
         }
 
-        string preferredFacility = isVaccineResponse
-            ? "building:8876"
-            : string.Equals(
-                response,
-                "response:isolate:" + disease.Id,
-                StringComparison.Ordinal)
-                ? "building:8874"
-                : "building:8873";
-        BuildableObject facility = ResolveFacility(
-            facilityInstanceId,
-            preferredFacility);
+        BuildableObject facility = FindOperationalFacilities(disease, response, facilities)
+            .FirstOrDefault(value => string.IsNullOrWhiteSpace(facilityInstanceId)
+                || string.Equals(value.PersistentInstanceId.Value,
+                    facilityInstanceId.Trim(), StringComparison.Ordinal));
         string destination = facility?.PersistentInstanceId.Value
             ?? string.Empty;
         if (facility == null || destination.Length == 0)
@@ -470,35 +463,26 @@ public sealed class DiseaseFieldResponseRuntime :
         data.pendingFieldResponse = new DiseaseFieldResponseCommitSaveData();
     }
 
-    private BuildableObject ResolveFacility(
-        string requestedId,
-        string preferredDefinitionId)
+    // 알림과 실행이 같은 시설 조건을 사용하며 실제 물자는 선택한 의료 버퍼에서 소비한다.
+    public static IReadOnlyList<BuildableObject> FindOperationalFacilities(
+        DiseaseDefinition disease, string responseId, IFacilityCapabilityQuery facilities)
     {
-        string requested = requestedId?.Trim() ?? string.Empty;
-        IReadOnlyList<BuildableObject> exact =
-            preferredDefinitionId == "building:8873"
-                ? facilities.FindOperational(
-                    ResearchFacilityCommandKind.PathogenDiagnosis)
-                : facilities.FindOperational(
-                    FacilityCapabilityKind.Medical,
-                    preferredDefinitionId);
-        BuildableObject selected = requested.Length == 0
-            ? exact.FirstOrDefault()
-            : exact.FirstOrDefault(value => string.Equals(
-                value.PersistentInstanceId.Value,
-                requested,
-                StringComparison.Ordinal));
-        if (selected == null && preferredDefinitionId == "building:8873")
-        {
-            selected = facilities.FindOperational(
-                    FacilityCapabilityKind.Medical,
-                    "building:8874")
-                .FirstOrDefault(value => requested.Length == 0 || string.Equals(
-                    value.PersistentInstanceId.Value,
-                    requested,
-                    StringComparison.Ordinal));
-        }
-        return selected;
+        if (!disease.IsValid) throw new ArgumentException("A valid disease definition is required.", nameof(disease));
+        if (facilities == null) throw new ArgumentNullException(nameof(facilities));
+        string response = responseId?.Trim() ?? string.Empty;
+        if (!disease.FieldResponseIds.Contains(response, StringComparer.Ordinal))
+            return Array.Empty<BuildableObject>();
+        if (string.Equals(response, "response:vaccine:" + disease.Id, StringComparison.Ordinal))
+            return disease.VaccineAllowed
+                ? facilities.FindOperational(FacilityCapabilityKind.Medical)
+                : Array.Empty<BuildableObject>();
+        if (string.Equals(response, "response:isolate:" + disease.Id, StringComparison.Ordinal))
+            return facilities.FindOperational(FacilityCapabilityKind.Medical, "building:8874");
+        if (!TryResolveRule(disease, response, out _))
+            return Array.Empty<BuildableObject>();
+        return facilities.FindOperational(ResearchFacilityCommandKind.PathogenDiagnosis)
+            .Concat(facilities.FindOperational(FacilityCapabilityKind.Medical, "building:8874"))
+            .Distinct().ToArray();
     }
 
     private bool TryResolveVaccineItem(

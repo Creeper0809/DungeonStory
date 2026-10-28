@@ -1454,7 +1454,7 @@ public static class V27CharacterPerformanceDebugScenarios
                     experience = 100,
                     learningMultiplier = 1f
                 }).ToArray());
-        actor.Progression.NarrativeLedger.Record(
+        CharacterAiEditorTestDependencies.GetOwnedNarrativeForFixture(actor.Progression).Record(
             CharacterNarrativeDomain.Work,
             "qa:species-audit-fixture",
             speciesTag,

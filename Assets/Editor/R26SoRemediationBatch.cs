@@ -161,7 +161,7 @@ public static class R26SoRemediationBatch
                          new[] { "support:r26-a", "support:r26-b" } })
             {
                 var hub = new ServiceHubSnapshot { HubId = "hub:r26", Mode = ServiceOperationMode.Managed,
-                    Capacity = 2, Supports = ids.Select(id => new ServiceSupportLinkSnapshot { SupportId = id }).ToArray() };
+                    Capacity = 2, Supports = ids.Select(id => new ServiceSupportLinkSnapshot(null, null, string.Empty, id, null)).ToArray() };
                 var contract = (ServiceSessionContractSnapshot)builder.Invoke(runtime, new object[]
                 { hub, new BuildingServiceHubAbility { serviceCategory = ServiceCategory.Dining }, process,
                     new ServiceModeProcessContract { activeStages = ServiceProcessStageMask.Service, serviceSeconds = 5 }, false });

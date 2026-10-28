@@ -1,0 +1,4 @@
+result=PASS
+source=d6f80cb243e90b88ee806a6db6ce7afb6cfdfd742465d1819e03434e1e91d08f
+consoleErrors=0
+boundary=controlled native fixtures; actual world is verified separately

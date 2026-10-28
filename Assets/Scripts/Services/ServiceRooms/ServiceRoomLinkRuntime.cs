@@ -5,12 +5,26 @@ using UnityEngine;
 
 public sealed class ServiceSupportLinkSnapshot
 {
-    public BuildableObject Hub { get; set; }
-    public BuildableObject Support { get; set; }
-    public string HubTag { get; set; } = string.Empty;
-    public string SupportId { get; set; } = string.Empty;
-    public IReadOnlyList<string> FeatureTags { get; set; } =
-        Array.Empty<string>();
+    public ServiceSupportLinkSnapshot(
+        BuildableObject hub,
+        BuildableObject support,
+        string hubTag,
+        string supportId,
+        IEnumerable<string> featureTags)
+    {
+        Hub = hub;
+        Support = support;
+        HubTag = hubTag;
+        SupportId = supportId;
+        FeatureTags = Array.AsReadOnly(
+            (featureTags ?? Enumerable.Empty<string>()).ToArray());
+    }
+
+    public BuildableObject Hub { get; }
+    public BuildableObject Support { get; }
+    public string HubTag { get; }
+    public string SupportId { get; }
+    public IReadOnlyList<string> FeatureTags { get; }
 }
 
 public interface IServiceRoomLinkRuntime
@@ -64,7 +78,7 @@ public sealed class ServiceRoomLinkRuntime : IServiceRoomLinkRuntime
             && linksByHub.TryGetValue(
                 hub,
                 out List<ServiceSupportLinkSnapshot> links)
-                    ? links
+                    ? links.AsReadOnly()
                     : Array.Empty<ServiceSupportLinkSnapshot>();
     }
 
@@ -224,20 +238,17 @@ public sealed class ServiceRoomLinkRuntime : IServiceRoomLinkRuntime
             }
 
             ServiceSupportLinkSnapshot link =
-                new ServiceSupportLinkSnapshot
-                {
-                    Hub = target,
-                    Support = support,
-                    HubTag = target.GetServiceHubAbility().ServiceHubTag,
-                    SupportId = supportAbility.SupportId,
-                    FeatureTags = (supportAbility.featureTags
+                new ServiceSupportLinkSnapshot(
+                    target,
+                    support,
+                    target.GetServiceHubAbility().ServiceHubTag,
+                    supportAbility.SupportId,
+                    (supportAbility.featureTags
                             ?? Array.Empty<string>())
                         .Where(tag => !string.IsNullOrWhiteSpace(tag))
                         .Select(tag => tag.Trim())
                         .Distinct(StringComparer.Ordinal)
-                        .OrderBy(tag => tag, StringComparer.Ordinal)
-                        .ToArray()
-                };
+                        .OrderBy(tag => tag, StringComparer.Ordinal));
             linksByHub[target].Add(link);
             linksBySupport[support] = link;
         }

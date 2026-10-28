@@ -833,6 +833,16 @@ internal static class CharacterAiEditorTestDependencies
         }
     }
 
+    public static CharacterNarrativeLedger GetOwnedNarrativeForFixture(CharacterProgression progression)
+    {
+        if (progression == null) throw new ArgumentNullException(nameof(progression));
+        var field = typeof(CharacterProgression).GetField("narrativeLedger",
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
+            ?? throw new MissingFieldException("CharacterProgression.narrativeLedger");
+        return field.GetValue(progression) as CharacterNarrativeLedger
+            ?? throw new InvalidOperationException("Character progression fixture has no owned narrative ledger.");
+    }
+
     public static CharacterGrowthState GetOwnedGrowthForFixture(CharacterProgression progression)
     {
         if (progression == null)

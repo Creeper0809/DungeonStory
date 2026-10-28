@@ -1,0 +1,5 @@
+Exception: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Tools\QA\run_isolated_unity_batch.ps1:1444
+Line |
+1444 |  ¡¦ Continue) { throw 'An Editor is already running; do not overlap verif ¡¦
+     |                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+     | An Editor is already running; do not overlap verification.

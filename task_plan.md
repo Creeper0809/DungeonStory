@@ -1,5 +1,24 @@
 # DungeonStory Current Task Plan
 
+## 현재 Goal - R29 수정과 실행 검증 및 main 통합
+
+Status: in_progress / 기준 main b75021b88737b99aab0c0437d1255afd0e25c3f8, branch codex/fix-structure-r29. 사용자 승인 범위는 보고서 R29-01~07 수정, 필요한 실제 실행/저장/복원/재시도, commit/push/PR/CI/main 통합까지다.
+
+1. 소스 완료 / 실행 대기: 질병 대응의 기존 의료 버퍼 계약에 맞춰 알림/명령 시설 선택을 공유한다. 생산의 시설/recipe 물 합산과 지원 조건은 기존 실행 함수를 UI도 사용한다. 에셋과 Inspector 수동 작업은 없다.
+2. 소스 완료 / 실행 대기: 서사/수술/경제의 일반 반환을 사본으로 제한하고 내부 원본 명령과 롤백을 유지했다. 두 링크는 불변 값과 보호 목록, AI 목표/충동은 사본이다. DTO/버전/identity는 유지하며 Editor 준비 쓰기는 전용 fixture helper로 전환했다.
+3. 완료: R29 표적 native, 실제 GameplayScene104섹션 복원, 현행 source-bound 영향 CI5가 모두 통과했다. Python100개, 분석기 DSB001~008, 기존 baseline 무변경 Verify와 인덱스 재생성/freshness도 PASS다. 런처 순수 검사와 비대화형 창 프로브를 매 실행 통과했으며 실패 이력과 실제 범위를 보존했다.
+4. 진행 중: 인덱스를 한 번 갱신하고 현재 source d6f80c/config18cf44의 CI 영수증 및 R29 증거를 봉인했다. 소유 변경만 commit/push하고 PR 생성/attach, GitHub CI 성공, main 병합 및 병합 후 CI까지 확인한다.
+
+작업 창: 모든 작성자 READY/FROZEN. SOURCE_EDIT CLOSED, UNITY_VERIFY CLOSED. R29 소유 Unity/런처는 terminal이며 원본 Documents의 별도 R80 실행은 보존한다. 현재 source/config를 유지한 채 Git 통합한다.
+
+## 현재 작업 - main 구조 재감사 R29
+
+Status: completed / 최신 main b75021b88737b99aab0c0437d1255afd0e25c3f8, branch codex/audit-structure-r29. 실제 코드/의존/에셋에서 조건 불일치2개와 원본 노출5묶음을 확인해 R29 보고서에 기록했다. SDK 구현, 원본 Documents의 미반영 작업은 제외했다. 이번 범위는 조사/보고서이며 게임 수정, Unity 실행, commit/push/main 변경은 하지 않았다.
+
+1. 완료: 입력15820개를 고정하고 기존 Roslyn 지표와 현재 bee-rsp 의존 그래프를 외부 폴더에 수집했다. 최신 게임 metadata45개, 참조427개/누락0, default2200파일/순환21묶음이다. baseline과 생성 인덱스는 변경하지 않았다.
+2. 완료: R28 실제 반환과 고위험 상태/실행/캐시/호출 경계를 확인했다. 질병 시설 선택과 생산 물 조건의 현행 반례, 서사/수술/경제 원본과 AI/지원 캐시 노출을 구별했다. 길이와 SCC/참조 수만으로 결함이나 분리 요구를 만들지 않았다.
+3. 완료: code-structure-review-main-r29-20261028.md에 수정7묶음, 소유자/생산자/소비자/저장 연결, 최소 변경과 표적 검증, 제외/미확인 범위를 기록했다. 링크68개 오류0, 입력15820개 변경/추가/삭제0, 게임 소스/에셋 diff0과 원격 main 동일을 확인했다. 새 실행 PASS나 완전무결 판정은 하지 않는다.
+
 ## 현재 Goal - R28 수정과 실행 검증 및 main 통합
 
 Status: completed / R28 원인7개와 원본 노출21경계 수정, 필요한 실제 실행/저장/복원/재시도와 게시 검증을 완료했다. source2a069eb24를 PR25로 main02bee0cc0에 병합했고 PR CI와 병합 후 CI가 모두 성공했다. 저장 DTO/필드/영수증 형식과 핵심 판정은 유지했으며 의료 관측 상한120초의 실측 근거는 findings/report에 명시했다.

@@ -1,0 +1,56 @@
+{
+  "schema": "impact-ci-v1",
+  "scope": "targeted-contracts-not-full-balance-certification",
+  "source": {
+    "digest": "8c4bfa289549fb0d96792195436dbb6a348a2951b22318b34007988ba73b8d89",
+    "count": 4798,
+    "pathsDigest": "78708613985b1ae9ad656f2d1780bf03dfce18defda5269d7736bb364119b86f"
+  },
+  "configurationDigest": "ef88068560f78103e54f07311493fe05cb6a4889ec9586c88af0362591990ebb",
+  "unity": "6000.3.8f1",
+  "platform": "cuha Linux; isolated authenticated Xvfb; user display untouched",
+  "sourceManifest": "r218r28; 21746 inputs; complete pre/post SHA verification",
+  "redaction": "Native outcome/error lines retained; network identifiers redacted; originals in external native evidence.",
+  "checks": [
+    {
+      "group": "core",
+      "method": "V27CiEvidenceBatch.RunImpactCoreContracts",
+      "log": "Artifacts/QA/ImpactCI/r218r28-core.log",
+      "logSha256": "08a8ac3110e7ca0fca35d268081937d9ac5940fbfad44a8ad500de62e5b8fc8e",
+      "summary": "Artifacts/QA/ImpactCI/r218r28-core-summary.json",
+      "summarySha256": "d669432896286ff3d66366d8a94c1e35567fafc37f814c4e7ede7375391b9980"
+    },
+    {
+      "group": "character",
+      "method": "V27CiEvidenceBatch.RunImpactCharacterContracts",
+      "log": "Artifacts/QA/ImpactCI/r218r28-character.log",
+      "logSha256": "52741f47b01294c94b0f5b147b563e679acaf12c75ee065f8c1a9bfe769ea8ed",
+      "summary": "Artifacts/QA/ImpactCI/r218r28-character-summary.json",
+      "summarySha256": "be49f1a188a356048bc5d0d7eded1ecb09885a857a8f90082bf3e0d7dac47b4c"
+    },
+    {
+      "group": "effects",
+      "method": "V27CiEvidenceBatch.RunImpactEffectContracts",
+      "log": "Artifacts/QA/ImpactCI/r218r28-effects.log",
+      "logSha256": "3c7dba3a27a64845c37b899d43c2e9b50e31ff7c11d04ce1bc3d9e759f968014",
+      "summary": "Artifacts/QA/ImpactCI/r218r28-effects-summary.json",
+      "summarySha256": "4af7396054730d070dfaed13bb13ff26071dcd2c2377edf77ff77f551464b025"
+    },
+    {
+      "group": "crop",
+      "method": "V27CiEvidenceBatch.RunImpactCrops",
+      "log": "Artifacts/QA/ImpactCI/r218r28-crop.log",
+      "logSha256": "8656be6b0f64e76918e8cc353e909c3592d67248eb4e3326f6c4ca1b1f895547",
+      "summary": "Artifacts/QA/ImpactCI/r218r28-crop-summary.json",
+      "summarySha256": "dddacbe9f223955cce0e9a56fe9d354361d75246ccef4170276d98876da885a7"
+    },
+    {
+      "group": "world",
+      "method": "V27CiEvidenceBatch.RunImpactWorldRestore",
+      "log": "Artifacts/QA/ImpactCI/r218r28-world.log",
+      "logSha256": "1f2589e2b07b366a0e0c3145aef930099ad7e7d66faf637a76879cd8184d3e38",
+      "summary": "Artifacts/QA/ImpactCI/r218r28-world-summary.json",
+      "summarySha256": "d669432896286ff3d66366d8a94c1e35567fafc37f814c4e7ede7375391b9980"
+    }
+  ]
+}

@@ -409,8 +409,12 @@ public sealed class ProductionCycleUtilityService :
     }
 
     private bool ValidateFacilityUtilities(
-        ProductionRecipeSO recipe,
-        BuildableObject facility,
+        ProductionRecipeSO recipe, BuildableObject facility, out string failureReason) =>
+        ValidateFacilityUtilities(recipe, facility, water, wastewater, out failureReason);
+
+    public static bool ValidateFacilityUtilities(
+        ProductionRecipeSO recipe, BuildableObject facility,
+        IFluidInfrastructureTransaction water, IFluidWastewaterTransaction wastewater,
         out string failureReason)
     {
         failureReason = string.Empty;
@@ -500,9 +504,13 @@ public sealed class ProductionCycleUtilityService :
     }
 
     private bool ValidateSupportUtilities(
-        BuildableObject support,
-        BuildingProductionSupportAbility ability,
-        out string failureReason)
+        BuildableObject support, BuildingProductionSupportAbility ability, out string failureReason) =>
+        ValidateSupportUtilities(support, ability, power, water, wastewater, out failureReason);
+
+    public static bool ValidateSupportUtilities(
+        BuildableObject support, BuildingProductionSupportAbility ability,
+        IPowerInfrastructureQuery power, IFluidInfrastructureTransaction water,
+        IFluidWastewaterTransaction wastewater, out string failureReason)
     {
         failureReason = string.Empty;
         if (support == null || ability == null || support.IsGridDestroyed)

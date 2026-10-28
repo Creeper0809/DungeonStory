@@ -1,0 +1,11 @@
+{
+  "exit_code": 0,
+  "stop_reason": null,
+  "compiler_error_count": 0,
+  "source_drift": [],
+  "seconds": 80.96714210003847,
+  "source_digest": "d6f80cb243e90b88ee806a6db6ce7afb6cfdfd742465d1819e03434e1e91d08f",
+  "configuration_digest": "18cf44dae8ccc79936f40c74d9941fc7a081b6a42c5de01f9598b5a8f4cc8d6a",
+  "platform": "Windows isolated noninteractive station/desktop",
+  "label": "r29-local-ci-character-02"
+}

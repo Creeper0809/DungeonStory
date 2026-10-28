@@ -868,64 +868,20 @@ public sealed class ProductionBuildingPanelPresenter :
         return "\n제작 가능 · 연결 시설 준비됨";
     }
 
-    private string FormatRecipeUtilityState(
-        BuildableObject building,
-        ProductionRecipeSO recipe)
-    {
-        if (recipe.WastewaterPerCycle > 0f
-            && (wastewater == null
-                || !wastewater.CanAcceptWastewater(
-                    building,
-                    recipe.WastewaterPerCycle,
-                    out _)))
-        {
-            return "\n배수 불가";
-        }
-        if (recipe.CleanWaterPerCycle > 0f
-            && (water == null
-                || !water.CanConsume(
-                    building,
-                    WorldWaterQuality.Clean,
-                    recipe.CleanWaterPerCycle,
-                    out _))
-            && !recipe.AllowsManualWaterFallback)
-        {
-            return "\n상수 부족";
-        }
-        return string.Empty;
-    }
+    private string FormatRecipeUtilityState(BuildableObject building, ProductionRecipeSO recipe) =>
+        ProductionCycleUtilityService.ValidateFacilityUtilities(
+            recipe, building, water, wastewater, out string reason)
+            ? string.Empty
+            : "\n" + failureLocalizer.Localize(
+                new DomainFailure(FailureCode.ProductionUtilitiesUnavailable, reason));
 
     private string FormatSupportUtilityBlock(
-        BuildableObject support,
-        BuildingProductionSupportAbility ability)
-    {
-        if (ability.requiresPower
-            && (power == null || !power.IsPowered(support)))
-        {
-            return "전력 부족";
-        }
-        if (ability.wastewaterPerCycle > 0f
-            && (wastewater == null
-                || !wastewater.CanAcceptWastewater(
-                    support,
-                    ability.wastewaterPerCycle,
-                    out _)))
-        {
-            return "배수 불가";
-        }
-        if (ability.cleanWaterPerCycle > 0f
-            && (water == null
-                || !water.CanConsume(
-                    support,
-                    WorldWaterQuality.Clean,
-                    ability.cleanWaterPerCycle,
-                    out _))
-            && !ability.allowsManualWaterFallback)
-        {
-            return "상수 부족";
-        }
-        return string.Empty;
-    }
+        BuildableObject support, BuildingProductionSupportAbility ability) =>
+        ProductionCycleUtilityService.ValidateSupportUtilities(
+            support, ability, power, water, wastewater, out string reason)
+            ? string.Empty
+            : failureLocalizer.Localize(
+                new DomainFailure(FailureCode.ProductionUtilitiesUnavailable, reason));
 
     private string FormatAmounts<T>(
         IReadOnlyList<T> values,

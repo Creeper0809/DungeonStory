@@ -7203,15 +7203,8 @@ public static partial class ProductionEconomyDebugScenarios
             return candidate == workstation
                 ? new[]
                 {
-                    new ProductionSupportLinkSnapshot
-                    {
-                        Workstation = workstation,
-                        Support = support,
-                        WorkstationTag =
-                            workstation.GetProductionWorkstationTag(),
-                        SupportId = ability.SupportId,
-                        FeatureTags = ability.featureTags
-                    }
+                    new ProductionSupportLinkSnapshot(workstation, support,
+                        workstation.GetProductionWorkstationTag(), ability.SupportId, ability.featureTags)
                 }
                 : Array.Empty<ProductionSupportLinkSnapshot>();
         }

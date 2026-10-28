@@ -92,6 +92,9 @@ public static class PhysicalVaccinationOutboxDebugScenarios
                 && tare.LastOutputPosition == new Vector2Int(8, 9),
                 "Vaccination outcome was not durable before acknowledgement.");
 
+            // 새 건강 소유자가 저장된 pending을 받아 동일 영수증을 한 번만 종결한다.
+            persistence = new TestPopulationHealthPersistence(
+                JsonUtility.FromJson<PopulationHealthWorldSaveData>(JsonUtility.ToJson(published)), diseases);
             PhysicalVaccinationRuntime recoveredRuntime = CreateRuntime(
                 vaccine,
                 diseases,

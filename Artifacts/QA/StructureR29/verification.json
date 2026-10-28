@@ -1,0 +1,61 @@
+{
+  "schema": "r29-remediation-evidence-v1",
+  "source": {
+    "digest": "d6f80cb243e90b88ee806a6db6ce7afb6cfdfd742465d1819e03434e1e91d08f",
+    "count": 4799,
+    "pathsDigest": "09c5fa857d429a4645f613c5c725d92373fafa81adb2b10d33b529a84089fc6f"
+  },
+  "configurationDigest": "18cf44dae8ccc79936f40c74d9941fc7a081b6a42c5de01f9598b5a8f4cc8d6a",
+  "successfulRunsAtSameScriptDigest": true,
+  "ciGroups": [
+    "character",
+    "core",
+    "crop",
+    "effects",
+    "world"
+  ],
+  "controlledContracts": "R29 native fixtures including authored assets, nested ownership, physical Sink, fresh health-owner JSON and retry; no actual UI-click claim",
+  "actualWorld": "GameplayScene 104 sections; exact capture/restore/canonical baseline; owner/trait pending JSON",
+  "failedRunsPreserved": [
+    "contracts-01: invalid fixture building ID",
+    "contracts-02: missing fixture species/profile",
+    "core-start-refusal: concurrent-process guard; no Unity started"
+  ],
+  "files": {
+    "Artifacts/QA/StructureR29/analyzer.txt": "8320663fe3620a7651c4aa4fcbe9a415f68e90f2f78675c141e8bfe42f85f433",
+    "Artifacts/QA/StructureR29/character-isolation-probe.txt": "88ad23f655eb4e3f89ac3ca5a531d5d2a81890f7d5a790c64861caefff97dbfc",
+    "Artifacts/QA/StructureR29/character-launcher-context.txt": "9b5306ef808044bdbd1fa638fde52c8617a406ca08bb36dc74ba63e2f45c7a6c",
+    "Artifacts/QA/StructureR29/character-launcher-exit.txt": "bc132b7a12e5a8366cb428aa935168b064e0fc2ef25d489457173e4d4d2edb1d",
+    "Artifacts/QA/StructureR29/character-launcher-self-test.txt": "a760c3317709faea731f186e6e2d1168aa5de42f10b85adb0c289e5f2ec8d1da",
+    "Artifacts/QA/StructureR29/contracts-01-failure.txt": "03647f7a9f65c711297c0efc8c62efe67de81d44d057701318a64630d480142b",
+    "Artifacts/QA/StructureR29/contracts-02-failure.txt": "a615fbcfec2c3e1d1e6f6a318a3f0f81b068fe78c83354274c3e3226c3deec4e",
+    "Artifacts/QA/StructureR29/contracts-isolation-probe.txt": "5bbb6cc8097dd830d5ecb93610f4d318ea6dc13d958797575a47170bf80e7b74",
+    "Artifacts/QA/StructureR29/contracts-launcher-self-test.txt": "a760c3317709faea731f186e6e2d1168aa5de42f10b85adb0c289e5f2ec8d1da",
+    "Artifacts/QA/StructureR29/contracts.log": "a04e5f48f4ac0aea2b949dcf4eda2a21827c4773fe6bb66442ef1c7e2752978c",
+    "Artifacts/QA/StructureR29/contracts.txt": "95d38173f0c26ae117cee2acd130868c56c0e5c851c568d57eb55209564a4793",
+    "Artifacts/QA/StructureR29/core-isolation-probe.txt": "378e08fb448035207cd698b8968bec196ce8485ec0aa34224557efc0dce5a478",
+    "Artifacts/QA/StructureR29/core-launcher-context.txt": "913fe42481f542093c4705f33f86cad98fa235558f7688e6bf0a17e4ed5f8274",
+    "Artifacts/QA/StructureR29/core-launcher-exit.txt": "bc132b7a12e5a8366cb428aa935168b064e0fc2ef25d489457173e4d4d2edb1d",
+    "Artifacts/QA/StructureR29/core-launcher-self-test.txt": "a760c3317709faea731f186e6e2d1168aa5de42f10b85adb0c289e5f2ec8d1da",
+    "Artifacts/QA/StructureR29/core-start-refusal.txt": "c0b56569f0ebb1ce8d8073b5ac92e33b9b5cd5a33fa2ebb23e7c0fea7649945d",
+    "Artifacts/QA/StructureR29/crop-isolation-probe.txt": "462ffa1563d502b133a053de77b05d80f5de93d137924c1b93bf3b1fb859707c",
+    "Artifacts/QA/StructureR29/crop-launcher-context.txt": "6f9c291bdefd498c6545cb3e2fc3873428f41b5cbdf48e46a0ed331689d0bd09",
+    "Artifacts/QA/StructureR29/crop-launcher-exit.txt": "bc132b7a12e5a8366cb428aa935168b064e0fc2ef25d489457173e4d4d2edb1d",
+    "Artifacts/QA/StructureR29/crop-launcher-self-test.txt": "a760c3317709faea731f186e6e2d1168aa5de42f10b85adb0c289e5f2ec8d1da",
+    "Artifacts/QA/StructureR29/effects-isolation-probe.txt": "0fb3b6c2303e5f289710ddc8923949837c90cbc2b0306674c01c213c123c899c",
+    "Artifacts/QA/StructureR29/effects-launcher-context.txt": "2b58d17291361a448844ea95084604c684b555be07b552afd7f06abc6c8214c3",
+    "Artifacts/QA/StructureR29/effects-launcher-exit.txt": "bc132b7a12e5a8366cb428aa935168b064e0fc2ef25d489457173e4d4d2edb1d",
+    "Artifacts/QA/StructureR29/effects-launcher-self-test.txt": "a760c3317709faea731f186e6e2d1168aa5de42f10b85adb0c289e5f2ec8d1da",
+    "Artifacts/QA/StructureR29/full-world-report.txt": "38bf555afe1a48ffc4afe48d3da19e24d45a2ba7840aeac1287d4019f4ebbea8",
+    "Artifacts/QA/StructureR29/knowledge-rebuild.txt": "1e44eafc60700988ac75e3395c25a69a855f04c66261f5e45468777108757b36",
+    "Artifacts/QA/StructureR29/metrics.txt": "914429dd35fdf9103652fe8445036a0d7b82cd88bc2dd8a5dcd2e3e911df20fb",
+    "Artifacts/QA/StructureR29/python-ci.txt": "f1e4efe3e4e62c6475742cc2d20e6659d177c32aa74457de1fb330b34cd906a4",
+    "Artifacts/QA/StructureR29/source-binding.json": "8040b6b08dce721d36a3a71bff6f7a33433cc30560bf1319430d4c0a2e4008cf",
+    "Artifacts/QA/StructureR29/world-isolation-probe.txt": "cf32f6ebc71f302e87cb854257428ea2ae63323053890b5ed7f5fd0b24ad05a6",
+    "Artifacts/QA/StructureR29/world-launcher-context.txt": "d0df352539f44f004a55ea46e51683a96ab460812517e834d52f7a7258264212",
+    "Artifacts/QA/StructureR29/world-launcher-exit.txt": "bc132b7a12e5a8366cb428aa935168b064e0fc2ef25d489457173e4d4d2edb1d",
+    "Artifacts/QA/StructureR29/world-launcher-self-test.txt": "a760c3317709faea731f186e6e2d1168aa5de42f10b85adb0c289e5f2ec8d1da"
+  },
+  "rawNativeContractsLogSha256": "2ec2409f4bb1aafae9967e092ebf8b5be4b6e8b48c872d68cad2260eee1db08e",
+  "contractsLogRedaction": "Only player-connection network identities redacted and newlines normalized. Original native log retained in r29-local-contracts-03; outcomes and errors retained."
+}

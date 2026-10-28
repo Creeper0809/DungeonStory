@@ -732,9 +732,12 @@ public sealed class AutoProcurementRuntime : IAutoProcurementRuntime
         minimumReserve,
         finance.Employment.ForecastCost(3)
             + finance.PaidContracts.ForecastCost(3));
-    public IReadOnlyList<AutoProcurementRule> StockRules => stockRules;
-    public IReadOnlyList<ProcurementWishlistRule> WishlistRules => wishlistRules;
-    public IReadOnlyList<AutoProcurementResult> LastResults => lastResults;
+    public IReadOnlyList<AutoProcurementRule> StockRules =>
+        stockRules.Select(rule => rule?.Clone()).ToArray();
+    public IReadOnlyList<ProcurementWishlistRule> WishlistRules =>
+        wishlistRules.Select(rule => rule?.Clone()).ToArray();
+    public IReadOnlyList<AutoProcurementResult> LastResults =>
+        lastResults.Select(result => result == null ? null : CloneResult(result)).ToArray();
 
     [Inject]
     public void ConstructFulfillmentQuery(

@@ -125,7 +125,8 @@ public sealed class ResourceStockPolicyRuntime :
     }
 
     public int Version => state.Version;
-    public IReadOnlyList<ResourceStockPolicyData> Policies => policyView;
+    public IReadOnlyList<ResourceStockPolicyData> Policies =>
+        policyView.Select(policy => policy?.Clone()).ToArray();
 
     public void Initialize()
     {
