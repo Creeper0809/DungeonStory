@@ -828,7 +828,8 @@ public static class OrganPreservationRestoreJoinFixture
                 claims,
                 admission,
                 lifecycle,
-                NoopRelease.Instance);
+                NoopRelease.Instance,
+                new SurgicalGraftEffectCatalog(new ResourceGameContentCatalog(new UnityGameContentRootLoader())));
         }
 
         internal WorldItemRepository Repository { get; }

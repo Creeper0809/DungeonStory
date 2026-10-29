@@ -78,6 +78,9 @@ public static class ResearchTreePlayModeVerifier
 
 public sealed class ResearchTreeVerificationRunner : MonoBehaviour
 {
+    public bool PauseBoundaryOnly;
+    public string ReportPathOverride;
+    public string ProgressPathOverride;
     private const string DetailContractProjectId =
         "research:equipment:powered-armor";
     private const float EffectiveWorkPerGameDay = 180f * 0.55f;
@@ -110,7 +113,7 @@ public sealed class ResearchTreeVerificationRunner : MonoBehaviour
         yield return StartPartyPlayModeTestDriver.CompleteIfVisible(45f);
         yield return ClearBlockingRunOverlays();
 
-        yield return SelectResolution(1600, 900);
+        if (!PauseBoundaryOnly) yield return SelectResolution(1600, 900);
         DungeonRuntimeLifetimeScope scope = null;
         float deadline = Time.realtimeSinceStartup + 15f;
         while ((scope == null || scope.Container == null) && Time.realtimeSinceStartup < deadline)
@@ -152,6 +155,13 @@ public sealed class ResearchTreeVerificationRunner : MonoBehaviour
             "research runtime resolved");
         if (runtime == null)
         {
+            Finish();
+            yield break;
+        }
+
+        if (PauseBoundaryOnly)
+        {
+            yield return VerifyPauseBoundaries(container);
             Finish();
             yield break;
         }
@@ -572,6 +582,223 @@ public sealed class ResearchTreeVerificationRunner : MonoBehaviour
                 : "owner selection overlays cleared");
     }
 
+    private IEnumerator VerifyPauseBoundaries(IObjectResolver container)
+    {
+        IDungeonSettingsUi options = container.Resolve<IDungeonSettingsUi>();
+        IPlayerInputReader playerInput = container.Resolve<IPlayerInputReader>();
+        UIManager manager = FindFirstObjectByType<UIManager>();
+        Check(manager != null, "R30_UI_MANAGER", "actual popup input consumer");
+        if (manager == null) yield break;
+        bool oldPausePreference = settings.Current.pauseOnResearchTree;
+        bool oldReducedMotion = settings.Current.reducedMotion;
+        var probeHost = new GameObject("R30 lower popup probe");
+        var popup = probeHost.AddComponent<R30DismissProbePopup>();
+        try
+        {
+            settings.Update(data => { data.pauseOnResearchTree = true; data.reducedMotion = true; });
+            SetRunningState(3f);
+            yield return Click(FindButton("TopTabButton_Research_연구"));
+            yield return WaitForWindow();
+            ResearchTreeWindow research = FindWindow();
+            Check(research != null && gameSpeedController.IsPaused, "R30_RESEARCH_PAUSE", "research owns pause");
+            if (research == null) yield break;
+            manager.OpenPopup(popup);
+            options.Show();
+            yield return EscapeFrame(
+                manager,
+                options,
+                popup,
+                research,
+                playerInput,
+                exerciseLateConsumer: true);
+            Check(!options.IsVisible && popup.Closed == 0 && research.gameObject.activeInHierarchy
+                && gameSpeedController.IsPaused, "R30_ESCAPE_SINGLE_DISMISS",
+                "real keyboard event closes reduced-motion options only; underlying popup and research retained");
+            yield return EscapeFrame(
+                manager,
+                options,
+                popup,
+                research,
+                playerInput,
+                exerciseLateConsumer: false);
+            Check(popup.Closed == 1 && gameSpeedController.IsPaused,
+                "R30_ESCAPE_NEXT_FRAME", "a fresh Escape closes the lower popup while research retains pause");
+
+            options.Show();
+            Button researchClose = research.GetComponentsInChildren<Button>(true).First(button => button.name == "Close");
+            researchClose.onClick.Invoke();
+            yield return null;
+            Check(options.IsVisible && gameSpeedController.IsPaused, "R30_REVERSE_CLOSE",
+                "research close callback releases only its own pause while options remains open");
+            options.Close();
+            yield return null;
+            Check(!gameSpeedController.IsPaused && Mathf.Approximately(Time.timeScale, 3f),
+                "R30_LAST_CLOSE_RESUME", "last UI request restores the selected speed");
+
+            gameSpeedController.SetPaused(true);
+            yield return Click(FindButton("TopTabButton_Research_연구"));
+            yield return WaitForWindow();
+            options.Show();
+            options.Close();
+            research = FindWindow();
+            Check(research != null, "R30_MANUAL_PAUSE_WINDOW", "research reopened while manually paused");
+            if (research != null)
+                research.GetComponentsInChildren<Button>(true).First(button => button.name == "Close").onClick.Invoke();
+            yield return null;
+            Check(gameSpeedController.IsPaused && Mathf.Approximately(Time.timeScale, 0f),
+                "R30_MANUAL_PAUSE_PRESERVED", "closing both windows retains player pause");
+
+            SetRunningState(3f);
+            settings.Update(data => data.reducedMotion = false);
+            yield return Click(FindButton("TopTabButton_Research_연구"));
+            yield return WaitForWindow();
+            research = FindWindow();
+            manager.OpenPopup(popup);
+            options.Show();
+            yield return EscapeFrame(
+                manager,
+                options,
+                popup,
+                research,
+                playerInput,
+                exerciseLateConsumer: true);
+            yield return new WaitForSecondsRealtime(.2f);
+            Check(!options.IsVisible && popup.Closed == 1 && research != null
+                && gameSpeedController.IsPaused, "R30_ANIMATED_ESCAPE",
+                "animated close also retains underlying popup and research pause");
+            manager.ClosePopupPeek(popup);
+            if (research != null)
+                research.GetComponentsInChildren<Button>(true).First(button => button.name == "Close").onClick.Invoke();
+            yield return null;
+            Check(!gameSpeedController.IsPaused && Mathf.Approximately(Time.timeScale, 3f),
+                "R30_ANIMATED_LAST_CLOSE", "animated path releases the final UI request");
+        }
+        finally
+        {
+            settings.Update(data => data.reducedMotion = true);
+            options.Close();
+            ResearchTreeWindow research = FindWindow();
+            if (research != null) research.gameObject.SetActive(false);
+            manager.ClosePopupPeek(popup);
+            UnityEngine.Object.Destroy(probeHost);
+            settings.Update(data =>
+            {
+                data.pauseOnResearchTree = oldPausePreference;
+                data.reducedMotion = oldReducedMotion;
+            });
+        }
+    }
+
+    private IEnumerator EscapeFrame(
+        UIManager manager,
+        IDungeonSettingsUi options,
+        R30DismissProbePopup popup,
+        ResearchTreeWindow research,
+        IPlayerInputReader playerInput,
+        bool exerciseLateConsumer)
+    {
+        bool managerWasEnabled = manager.enabled;
+        bool inputReleased = false;
+        try
+        {
+            if (exerciseLateConsumer)
+            {
+                // Keep the options hotkey real while making the UIManager
+                // late-consumer path execute exactly once below.
+                manager.enabled = false;
+            }
+
+            int queuedAtFrame = Time.frameCount;
+            bool automationScheduled = automationInput != null
+                && automationInput.HoldKey(KeyCode.Escape, .05f);
+            verificationKeyboard.MakeCurrent();
+            InputSystem.QueueStateEvent(verificationKeyboard, new KeyboardState(Key.Escape));
+            yield return null;
+            RecordEscapeFrame(
+                "before-manager",
+                queuedAtFrame,
+                automationScheduled,
+                exerciseLateConsumer,
+                manager.enabled,
+                verificationKeyboard != null
+                    && verificationKeyboard.escapeKey.wasPressedThisFrame,
+                playerInput?.GetKeyDown(KeyCode.Escape) == true,
+                options,
+                popup,
+                research);
+            if (exerciseLateConsumer)
+            {
+                manager.Update();
+            }
+            RecordEscapeFrame(
+                "after-manager",
+                queuedAtFrame,
+                automationScheduled,
+                exerciseLateConsumer,
+                manager.enabled,
+                verificationKeyboard != null
+                    && verificationKeyboard.escapeKey.wasPressedThisFrame,
+                playerInput?.GetKeyDown(KeyCode.Escape) == true,
+                options,
+                popup,
+                research);
+            automationInput?.ReleaseKey(KeyCode.Escape);
+            InputSystem.QueueStateEvent(verificationKeyboard, new KeyboardState());
+            inputReleased = true;
+            yield return null;
+            RecordEscapeFrame(
+                "after-release",
+                queuedAtFrame,
+                automationScheduled,
+                exerciseLateConsumer,
+                manager.enabled,
+                verificationKeyboard != null
+                    && verificationKeyboard.escapeKey.wasPressedThisFrame,
+                playerInput?.GetKeyDown(KeyCode.Escape) == true,
+                options,
+                popup,
+                research);
+        }
+        finally
+        {
+            if (!inputReleased)
+            {
+                automationInput?.ReleaseKey(KeyCode.Escape);
+                InputSystem.QueueStateEvent(verificationKeyboard, new KeyboardState());
+            }
+
+            if (exerciseLateConsumer && manager != null)
+            {
+                manager.enabled = managerWasEnabled;
+            }
+        }
+    }
+
+    private void RecordEscapeFrame(
+        string phase,
+        int queuedAtFrame,
+        bool automationScheduled,
+        bool exerciseLateConsumer,
+        bool managerEnabled,
+        bool rawEscapePressed,
+        bool readerEscapeDown,
+        IDungeonSettingsUi options,
+        R30DismissProbePopup popup,
+        ResearchTreeWindow research)
+    {
+        report.Add(
+            $"R30_ESCAPE_FRAME phase={phase}; queued={queuedAtFrame}; "
+            + $"frame={Time.frameCount}; automation={automationScheduled}; "
+            + $"lateConsumer={exerciseLateConsumer}; managerEnabled={managerEnabled}; "
+            + $"rawEscape={rawEscapePressed}; readerEscape={readerEscapeDown}; "
+            + $"optionsVisible={options?.IsVisible == true}; "
+            + $"blocksDismiss={options?.BlocksDismissInput == true}; "
+            + $"popupClosed={popup?.Closed ?? -1}; "
+            + $"researchActive={research != null && research.gameObject.activeInHierarchy}; "
+            + $"isPaused={gameSpeedController?.IsPaused == true}; "
+            + $"timeScale={Time.timeScale:0.###}");
+    }
+
     private void SetRunningState(float scale)
     {
         int speed = Mathf.Clamp(Mathf.RoundToInt(scale), 1, 5);
@@ -869,7 +1096,7 @@ public sealed class ResearchTreeVerificationRunner : MonoBehaviour
 
     private void Finish()
     {
-        settings?.Update(data => data.pauseOnResearchTree = false);
+        if (!PauseBoundaryOnly) settings?.Update(data => data.pauseOnResearchTree = false);
         SetRunningState(1f);
         if (originalGameViewSizeIndex >= 0)
         {
@@ -888,7 +1115,13 @@ public sealed class ResearchTreeVerificationRunner : MonoBehaviour
         {
             report.Add("FAILURE=" + failure);
         }
-        File.WriteAllLines(ResearchTreePlayModeVerifier.ReportPath, report);
+        if (string.IsNullOrWhiteSpace(ReportPathOverride))
+            File.WriteAllLines(ResearchTreePlayModeVerifier.ReportPath, report);
+        else
+        {
+            using var writer = new StreamWriter(new FileStream(ReportPathOverride, FileMode.CreateNew));
+            foreach (string line in report) writer.WriteLine(line);
+        }
         if (failures.Count > 0)
         {
             Debug.LogError("Research Tree PlayMode verification failed: "
@@ -906,7 +1139,8 @@ public sealed class ResearchTreeVerificationRunner : MonoBehaviour
         string line = $"{key}={(passed ? "PASS" : "FAIL")}; {detail}";
         report.Add(line);
         File.WriteAllText(
-            ResearchTreePlayModeVerifier.ProgressPath,
+            string.IsNullOrWhiteSpace(ProgressPathOverride)
+                ? ResearchTreePlayModeVerifier.ProgressPath : ProgressPathOverride,
             $"steps={report.Count}\nlast={line}\n");
         if (!passed)
         {
@@ -1036,5 +1270,11 @@ public sealed class ResearchTreeVerificationRunner : MonoBehaviour
         Vector2 max = RectTransformUtility.WorldToScreenPoint(null, corners[2]);
         return $"{rect.name}:{min}->{max}";
     }
+}
+
+public sealed class R30DismissProbePopup : UIPopUp
+{
+    public int Closed { get; private set; }
+    public override void OnClose() => Closed++;
 }
 #endif

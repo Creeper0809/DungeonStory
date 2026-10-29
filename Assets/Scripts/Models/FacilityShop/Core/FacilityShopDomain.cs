@@ -121,6 +121,15 @@ public sealed class FacilityShopUnlockState
         localState = new FacilityShopAggregateState();
     }
 
+    public FacilityShopUnlockState CreateSnapshot()
+    {
+        FacilityShopAggregateState snapshot = aggregateRootStore == null
+            ? Current.DeepClone()
+            : aggregateRootStore.CreatePublishedSnapshot(
+                () => new FacilityShopAggregateState(), value => value.DeepClone());
+        return new FacilityShopUnlockState { localState = snapshot };
+    }
+
     public FacilityShopUnlockState(
         DungeonRuntimeAggregateRootStore aggregateRootStore)
     {

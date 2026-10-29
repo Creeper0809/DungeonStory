@@ -143,7 +143,7 @@ public sealed class WorldItemQueryService : IWorldItemQueryService
         int version = repository.ItemStackVersion;
         if (allStacksCacheVersion == version)
         {
-            return allStacksCache;
+            return CloneStacks(allStacksCache);
         }
 
         List<WorldItemStackRecord> records = repository.Records;
@@ -162,7 +162,25 @@ public sealed class WorldItemQueryService : IWorldItemQueryService
             ? snapshots.ToArray()
             : Array.Empty<WorldItemStackSnapshot>();
         allStacksCacheVersion = version;
-        return allStacksCache;
+        return CloneStacks(allStacksCache);
+    }
+
+    private static IReadOnlyList<WorldItemStackSnapshot> CloneStacks(
+        IReadOnlyList<WorldItemStackSnapshot> source)
+    {
+        if (source == null || source.Count == 0)
+        {
+            return Array.Empty<WorldItemStackSnapshot>();
+        }
+
+        WorldItemStackSnapshot[] result =
+            new WorldItemStackSnapshot[source.Count];
+        for (int index = 0; index < source.Count; index++)
+        {
+            result[index] = source[index]?.Clone();
+        }
+
+        return result;
     }
 
     public bool TryFindNearestAvailableStock(

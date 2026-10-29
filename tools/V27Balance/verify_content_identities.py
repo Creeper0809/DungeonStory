@@ -1601,12 +1601,34 @@ def verify_formula_execution(snapshot: GitSnapshot, published_count: int) -> Non
     except SystemExit as error:
         raise VerificationError(f"Formula native evidence failed: {error}") from error
     effects = [check for check in receipt["checks"] if check["group"] == "effects"]
-    for path in (gate.EVIDENCE, effects[0]["log"], effects[0]["summary"]):
+    if len(effects) != 1:
+        raise VerificationError("Formula native evidence must contain exactly one effects check")
+    effect = effects[0]
+    if "parts" in effect:
+        parts = effect["parts"]
+        if not isinstance(parts, list) or len(parts) != 3:
+            raise VerificationError("Formula native evidence must contain exactly three effects parts")
+        evidence_records = parts
+    else:
+        evidence_records = [effect]
+
+    evidence_paths = [gate.EVIDENCE]
+    logs: list[str] = []
+    for record in evidence_records:
+        if not isinstance(record, dict):
+            raise VerificationError("Formula native effects evidence record is malformed")
+        log_path = record.get("log")
+        summary_path = record.get("summary")
+        if not isinstance(log_path, str) or not isinstance(summary_path, str):
+            raise VerificationError("Formula native effects evidence paths are malformed")
+        evidence_paths.extend((log_path, summary_path))
+    for path in evidence_paths:
         _run_git(snapshot.root, ["git", "cat-file", "-e", f"{snapshot.commit}:{path}"])
-    log = (snapshot.root / effects[0]["log"]).read_text(encoding="utf-8")
+    for record in evidence_records:
+        logs.append((snapshot.root / record["log"]).read_text(encoding="utf-8"))
     marker = (rf"^CONTENT_REFERENCE_INTEGRITY=PASS; runtimeSoTypes=[1-9][0-9]*; "
               rf"publishedAssets={published_count}; .+$")
-    if len(re.findall(marker, log, re.M)) != 1:
+    if sum(len(re.findall(marker, log, re.M)) for log in logs) != 1:
         raise VerificationError("Formula native evidence lacks the complete published identity validation")
 
 

@@ -131,6 +131,7 @@ public interface IGameSpeedController
     void SetSpeed(int speed);
     void TogglePause();
     void SetPaused(bool paused);
+    System.IDisposable AcquirePause();
 }
 
 public enum ExperienceEventConcept

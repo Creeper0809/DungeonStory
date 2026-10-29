@@ -91,7 +91,7 @@ public sealed class V20MilestoneWorldSnapshotProjector :
                 && value.Identity != null)
             .OrderBy(value => value.Identity.PersistentId, StringComparer.Ordinal)
             .ToArray();
-        livingCharacters = living;
+        livingCharacters = Array.AsReadOnly(living);
         snapshot.EligibleCharacterCount = living.Length;
         snapshot.WorldMetrics[V20WorldMetricKind.Population] = living.Length;
         snapshot.WorldMetrics[V20WorldMetricKind.Money] = money.Balance;

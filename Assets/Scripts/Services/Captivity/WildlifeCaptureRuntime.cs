@@ -329,7 +329,6 @@ public sealed partial class WildlifeCaptureRuntime :
         out string failureReason)
     {
         failureReason = string.Empty;
-        BuildingBeastPenAbility penAbility = pen?.BuildingData.GetBeastPenAbility();
         if (wildlife == null || !wildlife.IsAlive)
         {
             failureReason = "살아 있는 야생동물이 아닙니다.";
@@ -342,6 +341,13 @@ public sealed partial class WildlifeCaptureRuntime :
             return false;
         }
 
+        if (stateSession.TryGet(wildlife.WildlifeId, out CapturedWildlifeState existing)
+            && !existing.escaped)
+        {
+            failureReason = "이미 생포 절차가 진행 중인 야생동물입니다.";
+            return false;
+        }
+
         if (carrier == null
             || carrier.IsDead
             || carrier.characterType != CharacterType.NPC
@@ -351,55 +357,16 @@ public sealed partial class WildlifeCaptureRuntime :
             return false;
         }
 
-        if (pen == null || penAbility == null || !penAbility.IsValid)
+        if (carrier.GetComponent<AbilityCaptiveEscort>()?.IsEscorting == true
+            || carrier.GetComponent<AbilityWildlifeCaptureTransport>()?.IsTransporting == true)
         {
-            failureReason = "유효한 야수 우리가 아닙니다.";
+            failureReason = "운반자가 이미 다른 포획 대상을 운반 중입니다.";
             return false;
         }
 
+        if (!TryGetCaptureDestination(pen, out Vector2Int destination, out failureReason))
+            return false;
         string penId = GetPenId(pen);
-        int occupied = stateSession.Values.Count(item =>
-            !item.escaped
-            && string.Equals(item.penId, penId, StringComparison.Ordinal));
-        if (occupied >= penAbility.capacity)
-        {
-            failureReason = "야수 우리의 수용량이 가득 찼습니다.";
-            return false;
-        }
-
-        if (!rooms.TryGetRoom(pen, out RoomInstance room) || !room.IsUsable)
-        {
-            failureReason = "야수 우리는 닫힌 정식 방 안에 있어야 합니다.";
-            return false;
-        }
-
-        if (room.Doors.OfType<Door>().Any(CaptiveWildlifeCanUse))
-        {
-            failureReason = "포획 동물이 사용할 수 있는 문이 있어 안전한 우리가 아닙니다.";
-            return false;
-        }
-
-        if (!gridProvider.TryGetGrid(out Grid grid))
-        {
-            failureReason = "그리드를 찾을 수 없습니다.";
-            return false;
-        }
-
-        HashSet<Vector2Int> penFootprint = new HashSet<Vector2Int>(
-            pen.buildPoses ?? Array.Empty<Vector2Int>());
-        List<Vector2Int> destinations = room.Cells
-            .Where(cell => grid.IsWalkable(cell)
-                && !penFootprint.Contains(cell)
-                && IsUnoccupiedDeliveryStand(grid.GetGridCell(cell)))
-            .OrderBy(cell => Manhattan(cell, pen.centerPos))
-            .ToList();
-        if (destinations.Count == 0)
-        {
-            failureReason = "우리 안에 동물을 놓을 수 있는 칸이 없습니다.";
-            return false;
-        }
-
-        Vector2Int destination = destinations[0];
         CapturedWildlifeState state = new CapturedWildlifeState
         {
             wildlifeId = wildlife.WildlifeId,
@@ -444,7 +411,15 @@ public sealed partial class WildlifeCaptureRuntime :
         {
             stateSession.Set(state);
             doorSubjects.SetCapturedWildlife(state.wildlifeId, true);
-            transport.StartTransport(state.wildlifeId);
+            if (!transport.TryStartTransport(
+                    state.wildlifeId,
+                    out failureReason))
+            {
+                stateSession.Remove(state.wildlifeId);
+                doorSubjects.SetCapturedWildlife(state.wildlifeId, false);
+                gameplayOutcomes.Cancel(reserved);
+                return false;
+            }
         }
         catch (Exception exception)
         {
@@ -460,6 +435,56 @@ public sealed partial class WildlifeCaptureRuntime :
         outcome.flagAfter = true;
         CommitCaptureOutcome(outcome, reserved);
         return true;
+    }
+
+    public bool CanAcceptCapture(BuildableObject pen, out string failureReason) =>
+        TryGetCaptureDestination(pen, out _, out failureReason);
+
+    private bool TryGetCaptureDestination(
+        BuildableObject pen,
+        out Vector2Int destination,
+        out string failureReason)
+    {
+        destination = default;
+        failureReason = string.Empty;
+        BuildingBeastPenAbility ability = pen?.BuildingData?.GetBeastPenAbility();
+        if (pen == null || pen.isDestroy || ability == null || !ability.IsValid)
+        {
+            failureReason = "유효한 야수 우리가 아닙니다.";
+            return false;
+        }
+        string penId = GetPenId(pen);
+        if (stateSession.Values.Count(item => !item.escaped
+                && string.Equals(item.penId, penId, StringComparison.Ordinal)) >= ability.capacity)
+        {
+            failureReason = "야수 우리의 수용량이 가득 찼습니다.";
+            return false;
+        }
+        if (!rooms.TryGetRoom(pen, out RoomInstance room) || !room.IsUsable)
+        {
+            failureReason = "야수 우리는 닫힌 정식 방 안에 있어야 합니다.";
+            return false;
+        }
+        if (room.Doors.OfType<Door>().Any(CaptiveWildlifeCanUse))
+        {
+            failureReason = "포획 동물이 사용할 수 있는 문이 있어 안전한 우리가 아닙니다.";
+            return false;
+        }
+        if (!gridProvider.TryGetGrid(out Grid grid))
+        {
+            failureReason = "그리드를 찾을 수 없습니다.";
+            return false;
+        }
+        var footprint = new HashSet<Vector2Int>(pen.buildPoses ?? Array.Empty<Vector2Int>());
+        foreach (Vector2Int cell in room.Cells.OrderBy(value => Manhattan(value, pen.centerPos)))
+        {
+            if (!grid.IsWalkable(cell) || footprint.Contains(cell)
+                || !IsUnoccupiedDeliveryStand(grid.GetGridCell(cell))) continue;
+            destination = cell;
+            return true;
+        }
+        failureReason = "우리 안에 동물을 놓을 수 있는 칸이 없습니다.";
+        return false;
     }
 
     public bool TryGetCaptured(

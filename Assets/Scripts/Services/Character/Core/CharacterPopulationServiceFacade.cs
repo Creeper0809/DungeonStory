@@ -139,6 +139,7 @@ public interface ICharacterPopulationService
     void CompleteSettlementStandingTransition(
         CharacterSettlementStandingTransaction transaction);
     bool TryGetProfile(CharacterActor actor, out WorldCharacterProfile profile);
+    bool TryRebindRestoredProfile(CharacterActor actor);
     List<WorldCharacterProfile> CaptureProfiles();
     CharacterPopulationRestoreCandidate BuildRestoreCandidate(
         IEnumerable<WorldCharacterProfile> profiles);
@@ -151,6 +152,7 @@ public interface ICharacterPopulationService
 
 public sealed class CharacterPopulationService :
     ICharacterPopulationService,
+    ICharacterVisitorExitProfileAuthority,
     ICharacterSettlementStandingQuery,
     IDisposable
 {
@@ -163,6 +165,10 @@ public sealed class CharacterPopulationService :
     }
 
     public IReadOnlyList<WorldCharacterProfile> Profiles => adapter.Profiles;
+    bool ICharacterVisitorExitProfileAuthority.TryGetProfileForExit(CharacterActor actor, out WorldCharacterProfile profile) =>
+        adapter.TryGetOwnedProfile(actor, out profile);
+    public bool TryRebindRestoredProfile(CharacterActor actor) =>
+        adapter.TryGetOwnedProfile(actor, out _);
 
     public WorldCharacterProfile AcquireVisitor(
         CharacterSO characterData,

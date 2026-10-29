@@ -682,6 +682,7 @@ public sealed class CharacterEnvironmentUnityAdapter :
             float visualRate = precisionContext
                 && !lightAdaptation.Enabled
                 ? CalculateVisualStrainRate(environment.LightLevel)
+                    * actor.Stats.ProjectDetailedStat(GameplayEffectTargetIds.LowLightPenalty, 1f).Value
                 : 0f;
             DungeonStory.Environment.CharacterExposureStepResult step =
                 DungeonStory.Environment.CharacterEnvironmentRules.StepExposure(

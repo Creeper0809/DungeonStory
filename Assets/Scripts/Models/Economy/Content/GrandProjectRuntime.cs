@@ -99,7 +99,8 @@ public sealed class GrandProjectRuntime :
     public const string PhysicalReasonCode =
         "grand-project.infrastructure-embedded";
 
-    private static readonly GrandProjectDefinition[] BuiltInDefinitions =
+    private static readonly IReadOnlyList<GrandProjectDefinition>
+        BuiltInDefinitions = Array.AsReadOnly(new[]
     {
         Project(
             DeepMiningNetworkId,
@@ -107,15 +108,21 @@ public sealed class GrandProjectRuntime :
             "지하 채맥과 운반 갱도를 연결해 채석 산출을 늘립니다.",
             "research:mining:deep",
             520f,
+            new GrandProjectBenefitMetadata(
+                new[] { "quarry" },
+                productionOutputMultiplier: 1.25f),
             Cost("material:stone-block", 260),
             Cost("material:steel-ingot", 100),
             Cost("material:lumber", 140)),
         Project(
             DefenseDistrictId,
             "방어 구역 확장",
-            "병참로와 방어 거점을 확장해 침공 준비 효율을 높입니다.",
+            "방어 시설의 재정비 속도가 20% 증가해 재사용 대기를 줄입니다.",
             "research:defense:tactical-command",
             760f,
+            new GrandProjectBenefitMetadata(
+                Array.Empty<string>(),
+                defensePreparationMultiplier: 1.2f),
             Cost("material:stone-block", 420),
             Cost("material:steel-ingot", 180),
             Cost("material:treated-lumber", 140)),
@@ -125,6 +132,9 @@ public sealed class GrandProjectRuntime :
             "관개와 영양 공급망을 묶어 실내 수확량을 높입니다.",
             "research:agriculture:subterranean",
             680f,
+            new GrandProjectBenefitMetadata(
+                new[] { "crop-indoor" },
+                productionOutputMultiplier: 1.2f),
             Cost("material:treated-lumber", 220),
             Cost("material:iron-ingot", 120),
             Cost("material:compost", 300),
@@ -135,6 +145,9 @@ public sealed class GrandProjectRuntime :
             "연금 시설의 용매와 마나 공급을 연결해 산출량을 높입니다.",
             "research:arcane:advanced",
             820f,
+            new GrandProjectBenefitMetadata(
+                new[] { "alchemy", "apothecary", "distillery" },
+                productionOutputMultiplier: 1.15f),
             Cost("material:iron-ingot", 160),
             Cost("material:blacksteel-ingot", 60),
             Cost("resource:mana-crystal", 180),
@@ -145,6 +158,9 @@ public sealed class GrandProjectRuntime :
             "장기 공급 계약을 처리할 교역소와 검수 창고를 세웁니다.",
             "research:commerce:integration",
             900f,
+            new GrandProjectBenefitMetadata(
+                Array.Empty<string>(),
+                contractRewardMultiplier: 1.25f),
             Cost("material:lumber", 320),
             Cost("material:stone-block", 320),
             Cost("material:cloth", 180),
@@ -155,12 +171,15 @@ public sealed class GrandProjectRuntime :
             "대규모 원정의 식량, 약품, 탄약을 준비할 보급 기지를 세웁니다.",
             "research:authority:office",
             1100f,
+            new GrandProjectBenefitMetadata(
+                Array.Empty<string>(),
+                expeditionSupplyCapacityBonus: 12),
             Cost("material:steel-ingot", 260),
             Cost("food:preserved-ration", 240),
             Cost("medicine:standard", 120),
             Cost("ammo:arrow-steel", 320),
             Cost("ammo:bolt-steel", 320))
-    };
+    });
 
     private readonly IGrandProjectWorldPort world;
     private readonly IGrandProjectOperationsPort operations;
@@ -215,11 +234,11 @@ public sealed class GrandProjectRuntime :
     public IReadOnlyList<GrandProjectDefinition> Definitions => BuiltInDefinitions;
     public GrandProjectRuntimeState State => CloneState(state);
     public float ContractRewardMultiplier =>
-        IsCompleted(RegionalTradePostId) ? 1.25f : 1f;
+        ResolveCompletedMultiplier(benefits => benefits.ContractRewardMultiplier);
     public float DefensePreparationMultiplier =>
-        IsCompleted(DefenseDistrictId) ? 1.2f : 1f;
+        ResolveCompletedMultiplier(benefits => benefits.DefensePreparationMultiplier);
     public int ExpeditionSupplyCapacityBonus =>
-        IsCompleted(ExpeditionSupplyBaseId) ? 12 : 0;
+        ResolveCompletedSupplyCapacityBonus();
 
     public void Initialize()
     {
@@ -506,22 +525,14 @@ public sealed class GrandProjectRuntime :
     {
         string tag = facilityTag?.Trim() ?? string.Empty;
         float multiplier = 1f;
-        if (IsCompleted(DeepMiningNetworkId)
-            && string.Equals(tag, "quarry", StringComparison.Ordinal))
+        foreach (GrandProjectDefinition definition in CompletedDefinitions())
         {
-            multiplier *= 1.25f;
-        }
-
-        if (IsCompleted(IndoorFarmNetworkId)
-            && string.Equals(tag, "crop-indoor", StringComparison.Ordinal))
-        {
-            multiplier *= 1.2f;
-        }
-
-        if (IsCompleted(AlchemyPipelineId)
-            && tag is "alchemy" or "apothecary" or "distillery")
-        {
-            multiplier *= 1.15f;
+            GrandProjectBenefitMetadata benefits = definition.Benefits;
+            if (benefits.ProductionFacilityTags.Any(candidate =>
+                    string.Equals(candidate, tag, StringComparison.Ordinal)))
+            {
+                multiplier *= benefits.ProductionOutputMultiplier;
+            }
         }
 
         return multiplier;
@@ -697,6 +708,36 @@ public sealed class GrandProjectRuntime :
                 StringComparison.Ordinal));
     }
 
+    private IEnumerable<GrandProjectDefinition> CompletedDefinitions()
+    {
+        return BuiltInDefinitions.Where(definition =>
+            IsCompleted(definition.ProjectId));
+    }
+
+    private float ResolveCompletedMultiplier(
+        Func<GrandProjectBenefitMetadata, float> selector)
+    {
+        float multiplier = 1f;
+        foreach (GrandProjectDefinition definition in CompletedDefinitions())
+        {
+            multiplier *= selector(definition.Benefits);
+        }
+
+        return multiplier;
+    }
+
+    private int ResolveCompletedSupplyCapacityBonus()
+    {
+        int bonus = 0;
+        foreach (GrandProjectDefinition definition in CompletedDefinitions())
+        {
+            bonus = checked(bonus
+                + definition.Benefits.ExpeditionSupplyCapacityBonus);
+        }
+
+        return bonus;
+    }
+
     private void SetStatus(string status)
     {
         string normalized = status ?? string.Empty;
@@ -721,6 +762,7 @@ public sealed class GrandProjectRuntime :
         string description,
         string research,
         float work,
+        GrandProjectBenefitMetadata benefits,
         params ItemAmountDefinition[] requirements)
     {
         return new GrandProjectDefinition(
@@ -729,6 +771,7 @@ public sealed class GrandProjectRuntime :
             description,
             research,
             work,
+            benefits,
             requirements);
     }
 

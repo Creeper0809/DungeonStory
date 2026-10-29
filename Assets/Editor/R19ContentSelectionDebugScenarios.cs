@@ -450,13 +450,13 @@ public static class R19ContentSelectionDebugScenarios
                     unresolved,
                     "fixture.requiredRoomScores.[0].key",
                     new FacilityEvolutionMetricRequirement(),
-                    facility).Kind == ContentReferenceKind.RoomScore,
+                    facility, ContentReferenceKind.RoomScore).Kind == ContentReferenceKind.RoomScore,
             "Room score context did not resolve to the score provider.");
         Require(ContentReferenceCatalog.ResolveReference(
                     unresolved,
                     "fixture.requiredRoomMetrics.[0].key",
                     new FacilityEvolutionMetricRequirement(),
-                    facility).Kind == ContentReferenceKind.RoomMetric,
+                    facility, ContentReferenceKind.RoomMetric).Kind == ContentReferenceKind.RoomMetric,
             "Room metric context did not resolve to the metric provider.");
 
         string baseline = EditorJsonUtility.ToJson(facility);

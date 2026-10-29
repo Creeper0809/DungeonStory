@@ -41,6 +41,15 @@ public static class CharacterSkillActivationOutcomeDebugScenarios
     public static void VerifyAppliedUltimateFocused() =>
         VerifyManualCombatUltimateSharedContract(new List<string>());
 
+    public static void RunR30ManualLocationFocused()
+    {
+        var evidence = new List<string>();
+        VerifyOwnerCommandProductionEntry(evidence);
+        VerifyExpeditionProductionEntry(evidence);
+        VerifyExactMultiTargetSaveAndOwnerRewindRejection(evidence);
+        Debug.Log("R30_MANUAL_LOCATION=PASS; active/away source/away recipient/noncombat expedition/combat rejection/cooldown JSON retry");
+    }
+
     public static void VerifyStandaloneObserverFocused()
     {
         var evidence = new List<string>();
@@ -1264,15 +1273,20 @@ public static class CharacterSkillActivationOutcomeDebugScenarios
         using var recipient = new ActorFixture(
             "owner-entry-recipient",
             "character:a05-owner-entry-recipient");
+        using var outside = new ActorFixture(
+            "owner-entry-away", "character:a05-owner-entry-away");
         using var outcomes = new CharacterSkillActivationEditorFixture(
             "run:a05-owner-command-entry",
             calendar: EditorFixedGameCalendar.Instance);
         CharacterSkillInstance skill = CreateSkill(
             "skill:a05:owner-command-entry");
         CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(source.Actor.Progression).activeSkills.Add(skill.Clone());
+        CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(outside.Actor.Progression).activeSkills.Add(skill.Clone());
         var world = new TestWorldRegistry();
         world.RegisterCharacter(source.Actor);
         world.RegisterCharacter(recipient.Actor);
+        world.RegisterCharacter(outside.Actor);
+        outside.Actor.BeginExpedition();
         GameObject root = new("A05 Owner Command Production Entry");
         try
         {
@@ -1292,6 +1306,19 @@ public static class CharacterSkillActivationOutcomeDebugScenarios
                 EditorFixedGameCalendar.Instance,
                 new RoomLayoutCache(),
                 outcomes.Transaction);
+
+            string outsideBefore = ActorFingerprint(outside.Actor);
+            string sourceBefore = ActorFingerprint(source.Actor);
+            string recipientBefore = ActorFingerprint(recipient.Actor);
+            string ledgerBefore = JsonUtility.ToJson(outcomes.Ledger.CaptureGameplayOutcomes());
+            Require(outside.Actor.CurrentLifecycleState == CharacterLifecycleState.OnExpedition
+                && !controller.TryIssueManualSkillCommand(outside.Actor, skill.id, out string awayMessage)
+                && awayMessage.Contains("던전에서 활동 중", StringComparison.Ordinal)
+                && outsideBefore == ActorFingerprint(outside.Actor)
+                && sourceBefore == ActorFingerprint(source.Actor)
+                && recipientBefore == ActorFingerprint(recipient.Actor)
+                && ledgerBefore == JsonUtility.ToJson(outcomes.Ledger.CaptureGameplayOutcomes()),
+                "Away source bypassed the ordinary manual ability boundary or changed state on rejection.");
 
             var statsBefore = recipient.Actor.Stats.StatSnapshot
                 .OrderBy(value => (int)value.Key).ToArray();
@@ -1322,6 +1349,7 @@ public static class CharacterSkillActivationOutcomeDebugScenarios
                     && publication.publicationKey
                         == Limits(source.Actor).lastSkillActivation.resultKey
                     && Limits(recipient.Actor).manualSkillBuffs.Count == 1
+                    && Limits(outside.Actor).manualSkillBuffs.Count == 0
                     && Limits(source.Actor).manualSkillCooldowns.Single()
                         .useCount == 1,
                 "Owner-command entry bypassed the shared dungeon transaction.");
@@ -1381,6 +1409,8 @@ public static class CharacterSkillActivationOutcomeDebugScenarios
         CharacterSkillInstance skill = CreateSkill(
             "skill:a05:expedition-entry");
         CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(source.Actor.Progression).activeSkills.Add(skill.Clone());
+        source.Actor.BeginExpedition();
+        recipient.Actor.BeginExpedition();
         GameObject root = new("A05 Expedition Production Entry");
         try
         {
@@ -1430,6 +1460,18 @@ public static class CharacterSkillActivationOutcomeDebugScenarios
             evidence.Add(
                 "expeditionEntry=public-runtime->ManualExpedition;"
                 + "exactRecipients=1;cooldown=committed");
+            expedition.BeginWorldTravel("site:r30:manual-boundary");
+            Require(expedition.BeginWorldBattle(), "Manual boundary fixture did not enter an actual battle phase.");
+            string sourceBeforeCombat = ActorFingerprint(source.Actor);
+            string recipientBeforeCombat = ActorFingerprint(recipient.Actor);
+            string ledgerBeforeCombat = JsonUtility.ToJson(outcomes.Ledger.CaptureGameplayOutcomes());
+            Require(!runtime.TryActivateManualSkill(expedition.ExpeditionId, 0, skill.id, -1,
+                    out string combatMessage)
+                && combatMessage.Contains("교전 중", StringComparison.Ordinal)
+                && sourceBeforeCombat == ActorFingerprint(source.Actor)
+                && recipientBeforeCombat == ActorFingerprint(recipient.Actor)
+                && ledgerBeforeCombat == JsonUtility.ToJson(outcomes.Ledger.CaptureGameplayOutcomes()),
+                "Combat expedition bypassed its manual-ability gate or changed state on rejection.");
         }
         finally
         {
@@ -1795,7 +1837,8 @@ public static class CharacterSkillActivationOutcomeDebugScenarios
             environmentalField: NoEnvironmentalFieldQuery.Instance,
             characters: null,
             environmentExposure:
-                NoOpCharacterEnvironmentExposureCommand.Instance);
+                NoOpCharacterEnvironmentExposureCommand.Instance,
+            itemCatalog: EditorItemCatalogFactory.CreateDefinitions());
         return new OffenseBattleSession(
             battleId,
             "expedition:g13",

@@ -190,7 +190,7 @@ public partial class OffenseWorldMapPanel
                     {
                         strategicBattleDirector.TryReplaceEnemyIntents(
                             OffenseStrategicBattleSetupFactory.CreateEnemyIntents(
-                                strategicBattleRuntime.Session,
+                                strategicBattleRuntime,
                                 state.turn + 1),
                             out _);
                         strategicBattleDirector.TryDrawTurn(out _);

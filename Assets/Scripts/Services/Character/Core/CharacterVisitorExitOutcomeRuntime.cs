@@ -13,9 +13,16 @@ public interface ICharacterVisitorExitOutcomeRuntime
     bool TryCompleteDeparture(CharacterActor actor, string handoffKind, out string failureReason);
 }
 
+// The exit transaction retains profile write authority; ordinary queries return copies.
+public interface ICharacterVisitorExitProfileAuthority
+{
+    bool TryGetProfileForExit(CharacterActor actor, out WorldCharacterProfile profile);
+}
+
 public sealed class CharacterVisitorExitOutcomeRuntime : ICharacterVisitorExitOutcomeRuntime
 {
     private readonly ICharacterPopulationService population;
+    private readonly ICharacterVisitorExitProfileAuthority profiles;
     private readonly ICombatEquipmentRuntime equipment;
     private readonly WorldItemTheftService theft;
     private readonly VisitorExitPublicationRuntime publications;
@@ -23,10 +30,12 @@ public sealed class CharacterVisitorExitOutcomeRuntime : ICharacterVisitorExitOu
     private readonly IGameEventBus events;
 
     public CharacterVisitorExitOutcomeRuntime(ICharacterPopulationService population,
+        ICharacterVisitorExitProfileAuthority profiles,
         ICombatEquipmentRuntime equipment, WorldItemTheftService theft,
         VisitorExitPublicationRuntime publications, IGameCalendar calendar, IGameEventBus events)
     {
         this.population = population ?? throw new ArgumentNullException(nameof(population));
+        this.profiles = profiles ?? throw new ArgumentNullException(nameof(profiles));
         this.equipment = equipment ?? throw new ArgumentNullException(nameof(equipment));
         this.theft = theft ?? throw new ArgumentNullException(nameof(theft));
         this.publications = publications ?? throw new ArgumentNullException(nameof(publications));
@@ -188,13 +197,8 @@ public sealed class CharacterVisitorExitOutcomeRuntime : ICharacterVisitorExitOu
         equipment.PublishRestoreCandidate(
             equipment.BuildRestoreCandidate(equipmentBefore));
         population.RestoreProfiles(populationBefore);
-        WorldCharacterProfile restored = population.Profiles.FirstOrDefault(
-            value => value != null
-                && string.Equals(
-                    value.persistentId,
-                    characterId,
-                    StringComparison.Ordinal));
-        if (restored == null)
+        if (!profiles.TryGetProfileForExit(actor, out WorldCharacterProfile restored)
+            || restored == null || restored.persistentId != characterId)
             throw new InvalidOperationException("visitor-exit-profile-rollback-missing");
         population.BindActor(restored, actor);
         actor.SetLifecycleState(lifecycleBefore);
@@ -238,7 +242,7 @@ public sealed class CharacterVisitorExitOutcomeRuntime : ICharacterVisitorExitOu
             failureReason = "visitor-exit-actor-missing";
             return false;
         }
-        if (!population.TryGetProfile(actor, out profile) || profile == null)
+        if (!profiles.TryGetProfileForExit(actor, out profile) || profile == null)
         {
             failureReason = "visitor-exit-profile-missing";
             return false;

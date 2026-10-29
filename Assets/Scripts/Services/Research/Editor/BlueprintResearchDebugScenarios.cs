@@ -493,7 +493,7 @@ public static class BlueprintResearchDebugScenarios
         foreach (ResearchProjectSO prerequisite in project.Prerequisites)
         {
             CompletePrerequisitesForTest(runtime, prerequisite);
-            runtime.State.Projects.RestoreCompleted(prerequisite.ProjectId);
+            runtime.StateForDebug.Projects.RestoreCompleted(prerequisite.ProjectId);
         }
     }
 
@@ -632,7 +632,7 @@ public static class BlueprintResearchDebugScenarios
             DungeonStory.Foundation.IGameEventBus gameEvents =
                 new DungeonStory.Foundation.GameEventBus();
             runtime.Construct(
-                new FixedFacilityShopUnlockStateService(shopRuntime.UnlockState),
+                new FixedFacilityShopUnlockStateService(shopRuntime.UnlockStateForDebug),
                 new EditorFacilityShopCatalog(),
                 new FacilityCandidateCacheStore(CharacterAiEditorTestDependencies.WorldRegistry, frameWorkBudget: null),
                 new DungeonWorkforceReplanService(
@@ -774,7 +774,8 @@ public static class BlueprintResearchDebugScenarios
         }
     }
 
-    private sealed class FixedFacilityShopUnlockStateService : IFacilityShopUnlockStateService
+    private sealed class FixedFacilityShopUnlockStateService : IFacilityShopUnlockStateService,
+        IFacilityShopUnlockStateAuthority
     {
         private readonly FacilityShopUnlockState state;
 
@@ -785,8 +786,11 @@ public static class BlueprintResearchDebugScenarios
 
         public FacilityShopUnlockState GetUnlockState()
         {
-            return state;
+            return state.CreateSnapshot();
         }
+
+        public FacilityShopUnlockState GetOwnedUnlockState() => state;
+        public FacilityShopUnlockState GetUnlockStateForDebug() => state;
     }
 
     private sealed class AlwaysArchivedBlueprintQuery : IResearchBlueprintArchiveQuery

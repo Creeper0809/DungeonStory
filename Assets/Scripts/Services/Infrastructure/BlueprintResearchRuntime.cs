@@ -11,7 +11,7 @@ public class BlueprintResearchRuntime : MonoBehaviour, IFacilityShopFulfillmentQ
     [SerializeField] private bool raiseAlertOnResearchComplete = true;
 
     private BlueprintResearchState state = new BlueprintResearchState();
-    private IFacilityShopUnlockStateService shopUnlockStateService;
+    private IFacilityShopUnlockStateAuthority shopUnlockStateService;
     private IFacilityShopCatalog facilityShopCatalog;
     private IFacilityCandidateCache facilityCandidateCache;
     private IWorkforceReplanService workforceReplanService;
@@ -40,7 +40,11 @@ public class BlueprintResearchRuntime : MonoBehaviour, IFacilityShopFulfillmentQ
         gameplayOutcomes = outcomes ?? throw new ArgumentNullException(nameof(outcomes));
     }
 
-    public BlueprintResearchState State => state;
+    public BlueprintResearchState State => state.CreateSnapshot();
+    internal BlueprintResearchState OwnedState => state;
+#if UNITY_EDITOR
+    public BlueprintResearchState StateForDebug => state;
+#endif
     public bool HasActiveResearch =>
         TryResolveActiveProject(out _, out _)
         || state.HasActiveTask;
@@ -53,11 +57,13 @@ public class BlueprintResearchRuntime : MonoBehaviour, IFacilityShopFulfillmentQ
         projectCoordinator.BlueprintArchiveQuery;
     private IResearchFacilityCapacityQuery researchFacilityCapacity =>
         projectCoordinator.ResearchFacilityCapacity;
-    public FacilityShopUnlockState ShopUnlockState => ResolveShopUnlockStateService().GetUnlockState();
+    public FacilityShopUnlockState ShopUnlockState => OwnedShopUnlockState.CreateSnapshot();
+    internal FacilityShopUnlockState OwnedShopUnlockState =>
+        ResolveShopUnlockStateService().GetOwnedUnlockState();
 
     [Inject]
     public void ConstructRuntime(
-        IFacilityShopUnlockStateService shopUnlockStateService,
+        IFacilityShopUnlockStateAuthority shopUnlockStateService,
         IFacilityShopCatalog facilityShopCatalog,
         IFacilityCandidateCache facilityCandidateCache,
         IWorkforceReplanService workforceReplanService,
@@ -237,7 +243,7 @@ public class BlueprintResearchRuntime : MonoBehaviour, IFacilityShopFulfillmentQ
             researcherId = id.Value;
         }
         if (!gameplayOutcomes.TryApply(
-                state, ShopUnlockState, ResolveFacilityShopCatalog(), project, blueprint,
+                state, OwnedShopUnlockState, ResolveFacilityShopCatalog(), project, blueprint,
                 work, CurrentAbsoluteDay, researcherId, researcher?.Identity.DisplayName,
                 facility.RequirePersistentInstanceId().Value,
                 FacilityShopService.GetBuildingName(facility.BuildingData),
@@ -302,7 +308,7 @@ public class BlueprintResearchRuntime : MonoBehaviour, IFacilityShopFulfillmentQ
         if (gameplayOutcomes == null)
             throw new InvalidOperationException("Research outcome transaction is not configured.");
         if (!gameplayOutcomes.TryApplyForbiddenLeap(
-                state, ShopUnlockState, ResolveFacilityShopCatalog(), project,
+                state, OwnedShopUnlockState, ResolveFacilityShopCatalog(), project,
                 extremeTraits, researcher, unchecked((ulong)(uint)runSeedProvider.RunSeed),
                 gameClock.Time, CurrentAbsoluteDay, out resolution,
                 out BlueprintResearchWorkResult result, out BlueprintResearchUnlockResult unlocks))
@@ -914,7 +920,7 @@ public class BlueprintResearchRuntime : MonoBehaviour, IFacilityShopFulfillmentQ
         if (gameplayOutcomes == null)
             throw new InvalidOperationException("Research outcome transaction is not configured.");
         bool success = gameplayOutcomes.TryCompleteImmediately(
-            state, ShopUnlockState, ResolveFacilityShopCatalog(), project, blueprint,
+            state, OwnedShopUnlockState, ResolveFacilityShopCatalog(), project, blueprint,
             CurrentAbsoluteDay, out BlueprintResearchWorkResult result, out BlueprintResearchUnlockResult unlocks);
         failureReason = success ? string.Empty : result.Message;
         if (success && !result.PublicationPending) NotifyResearchCompletion(project, blueprint, unlocks,
@@ -1035,10 +1041,26 @@ public class BlueprintResearchRuntime : MonoBehaviour, IFacilityShopFulfillmentQ
         workforceReplanService?.RequestIdleWorkersToReplan();
     }
 
-    private IFacilityShopUnlockStateService ResolveShopUnlockStateService()
+    private IFacilityShopUnlockStateAuthority ResolveShopUnlockStateService()
     {
         return shopUnlockStateService
-            ?? throw new InvalidOperationException($"{nameof(BlueprintResearchRuntime)} requires VContainer injection of {nameof(IFacilityShopUnlockStateService)}.");
+            ?? throw new InvalidOperationException($"{nameof(BlueprintResearchRuntime)} requires VContainer injection of {nameof(IFacilityShopUnlockStateAuthority)}.");
+    }
+
+    internal void UnlockAllForDebug()
+    {
+        FacilityShopUnlockState shopState = OwnedShopUnlockState;
+        IFacilityShopCatalog catalog = ResolveFacilityShopCatalog();
+        foreach (BuildingSO building in catalog.Buildings.Where(value => value != null))
+        {
+            state.UnlockBuilding(building.id);
+            shopState.UnlockBasicPurchaseById(building.id);
+        }
+        foreach (FacilityBlueprintSO blueprint in catalog.Blueprints.Where(value => value != null))
+        {
+            state.MarkCompleted(blueprint);
+            shopState.MarkBlueprintAcquired(blueprint);
+        }
     }
 
     private IFacilityShopCatalog ResolveFacilityShopCatalog()

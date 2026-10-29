@@ -46,6 +46,14 @@ internal sealed class FluidNetworkProjectionAdapter
         return snapshots;
     }
 
+    public IReadOnlyList<FluidNetworkSnapshot> CreateSnapshotView(int stateVersion)
+    {
+        FluidNetworkSnapshot[] view = GetSnapshots(stateVersion)
+            .Select(snapshot => snapshot.Clone())
+            .ToArray();
+        return ReadOnlyView.List(view);
+    }
+
     public IReadOnlyList<IndustrialNodeDescriptor> GetNetworkNodes(
         UtilityChannel channel,
         string networkId)

@@ -6,6 +6,8 @@ using UnityEngine;
 
 public static class DefenseEngagementDebugScenarios
 {
+    public static bool RunPolicyRoundTripFocused() => VerifyPolicyRoundTrip();
+
     [MenuItem("DungeonStory/Debug/Invasion/Run Defense Engagement Scenarios")]
     public static void RunFromMenu()
     {
@@ -196,29 +198,148 @@ public static class DefenseEngagementDebugScenarios
             return false;
         }
 
+        standard.autoRespond = false;
+        standard.minimumDispatchHealthRatio = 1f;
+        standard.id = "policy:external-standard";
+        standard.kind = DefenseResponsePolicyKind.Custom;
+        DefenseResponsePolicyData currentStandard = source.Policies.FirstOrDefault(
+            policy => policy.id == DefenseResponsePolicyRuntime.StandardPolicyId);
+        if (currentStandard == null
+            || !currentStandard.autoRespond
+            || !Mathf.Approximately(
+                currentStandard.minimumDispatchHealthRatio,
+                0.4f))
+        {
+            return false;
+        }
+
+        DefenseResponsePolicyData defaultPolicy = source.GetPolicy(null);
+        if (defaultPolicy == null)
+        {
+            return false;
+        }
+
+        defaultPolicy.holdWithoutReplacement = false;
+        if (!source.GetPolicy(null).holdWithoutReplacement)
+        {
+            return false;
+        }
+
         if (!source.TryCreatePolicy("야간 경계", out DefenseResponsePolicyData custom))
         {
             return false;
         }
 
+        string customId = custom.id;
+        custom.displayName = "외부 생성 변경";
+        custom.autoRespond = false;
+        custom.minimumDispatchHealthRatio = 1f;
+        custom.id = "policy:external-created";
+        DefenseResponsePolicyData storedCreated = source.Policies.FirstOrDefault(
+            policy => policy.id == customId);
+        if (storedCreated == null
+            || storedCreated.displayName != "야간 경계"
+            || !storedCreated.autoRespond
+            || !Mathf.Approximately(
+                storedCreated.minimumDispatchHealthRatio,
+                0.4f))
+        {
+            return false;
+        }
+
+        custom.displayName = " 야간 경계 ";
+        custom.id = customId;
+        custom.kind = DefenseResponsePolicyKind.Standard;
         custom.minimumDispatchHealthRatio = 0.5f;
         custom.retreatHealthRatio = 0.3f;
         custom.rejoinHealthRatio = 0.75f;
-        source.TryUpdatePolicy(custom);
+        if (!source.TryUpdatePolicy(custom))
+        {
+            return false;
+        }
+
+        DefenseResponsePolicyData updated = source.Policies.FirstOrDefault(
+            policy => policy.id == customId);
+        if (updated == null
+            || updated.kind != DefenseResponsePolicyKind.Custom
+            || updated.displayName != "야간 경계"
+            || !Mathf.Approximately(updated.minimumDispatchHealthRatio, 0.5f)
+            || !Mathf.Approximately(updated.retreatHealthRatio, 0.3f)
+            || !Mathf.Approximately(updated.rejoinHealthRatio, 0.75f))
+        {
+            return false;
+        }
+
+        PolicyFixtureSubject guard = new PolicyFixtureSubject("character:policy-fixture");
+        if (!source.AssignPolicy(guard, customId)
+            || source.GetAssignedPolicyId(guard) != customId)
+        {
+            return false;
+        }
+
+        DefenseResponsePolicyData assigned = source.GetPolicy(guard);
+        assigned.autoRespond = true;
+        if (source.GetPolicy(guard).autoRespond)
+        {
+            return false;
+        }
+
+        if (!source.TryDuplicatePolicy(
+                customId,
+                "야간 경계 복제",
+                out DefenseResponsePolicyData duplicate))
+        {
+            return false;
+        }
+
+        string duplicateId = duplicate.id;
+        duplicate.displayName = "외부 복제 변경";
+        duplicate.holdWithoutReplacement = false;
+        duplicate.id = "policy:external-duplicate";
+        duplicate.kind = DefenseResponsePolicyKind.Standard;
+        DefenseResponsePolicyData storedDuplicate = source.Policies.FirstOrDefault(
+            policy => policy.id == duplicateId);
+        if (storedDuplicate == null
+            || storedDuplicate.displayName != "야간 경계 복제"
+            || !storedDuplicate.holdWithoutReplacement
+            || !Mathf.Approximately(
+                storedDuplicate.minimumDispatchHealthRatio,
+                0.5f))
+        {
+            return false;
+        }
+
         DefenseResponsePolicySaveSnapshot snapshot = source.Capture();
         DefenseResponsePolicyRuntime restored = new DefenseResponsePolicyRuntime(
             new InvasionAggregateStateStore(
                 new DungeonRuntimeAggregateRootStore()));
         restored.ReplaceFromValidatedSnapshot(snapshot);
         DefenseResponsePolicyData restoredCustom = restored.Policies.FirstOrDefault(
-            policy => policy.id == custom.id);
+            policy => policy.id == customId);
         return restoredCustom != null
             && restoredCustom.displayName == "야간 경계"
             && Mathf.Approximately(restoredCustom.minimumDispatchHealthRatio, 0.5f)
             && Mathf.Approximately(restoredCustom.retreatHealthRatio, 0.3f)
             && Mathf.Approximately(restoredCustom.rejoinHealthRatio, 0.75f)
+            && restored.GetAssignedPolicyId(guard) == customId
             && restored.TryCreatePolicy("새 정책", out DefenseResponsePolicyData next)
-            && next.id != restoredCustom.id;
+            && next.id != restoredCustom.id
+            && next.id != duplicateId;
+    }
+
+    private sealed class PolicyFixtureSubject : IInvasionThreatSubject
+    {
+        private readonly CharacterId characterId;
+
+        public PolicyFixtureSubject(string characterId)
+        {
+            this.characterId = new CharacterId(characterId);
+        }
+
+        public InvasionThreatSubjectSnapshot CaptureInvasionThreatSubject()
+        {
+            return new InvasionThreatSubjectSnapshot(characterId, "정책 fixture");
+        }
     }
 
     private static bool VerifyIntruderSettingsPersistence()

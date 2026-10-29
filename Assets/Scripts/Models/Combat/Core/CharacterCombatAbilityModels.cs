@@ -144,7 +144,10 @@ public sealed class CharacterCombatAbilityDefinition
             ? OffenseFormationMask.Any
             : targetPositions;
     public CombatAbilityTargeting Targeting => targeting;
-    public IReadOnlyList<OffenseCombatEffectModule> Effects => effects;
+    public IReadOnlyList<OffenseCombatEffectModule> Effects => effects.AsReadOnly();
+    public CharacterCombatAbilityDefinition CreateSnapshot() => new(
+        Id, DisplayName, Description, CooldownTurns, TargetRule, UsableFrom, TargetPositions,
+        effects.ToArray()) { targeting = targeting };
     public bool IsValid => !string.IsNullOrWhiteSpace(id)
         && !string.IsNullOrWhiteSpace(displayName)
         && effects != null

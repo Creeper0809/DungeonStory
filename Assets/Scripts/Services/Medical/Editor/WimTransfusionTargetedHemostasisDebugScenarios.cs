@@ -258,7 +258,7 @@ public sealed class WimTransfusionTargetedHemostasisRunner : MonoBehaviour
         patientId = patient.Identity?.PersistentId ?? string.Empty;
         doctorId = doctor.Identity?.PersistentId ?? string.Empty;
         baseline = gameSave.Capture();
-        research.GetState().Projects.RestoreCompleted(
+        research.GetStateForDebug().Projects.RestoreCompleted(
             new ResearchProjectId(MedicalResearchId));
         proficiencies.AddDirectExperience(
             CharacterPersistentIdentity.Require(doctor),

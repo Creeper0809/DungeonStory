@@ -101,7 +101,8 @@ public static partial class MigratedProducerCombatDefenseEntryE2EDebugScenarios
         journal.Restore(saved);
         var restored = new DefenseFacilityRuntime(UnavailableEquipmentPhysicalItemGateway.Instance, new NoopDefensePhysicalGateway(),
             new AlwaysReadyDefenseInputOwner(), new UnityGameClock(), new GameEventBus(), new AlwaysPoweredQuery(),
-            new NoopDefenseFacilityNetwork(), new EmptyFacilityCapabilities(), new DungeonRuntimeAggregateRootStore());
+            new NoopDefenseFacilityNetwork(), new EmptyFacilityCapabilities(), new DungeonRuntimeAggregateRootStore(),
+            new R30DefensePreparationBenefits(1f));
         restored.PublishRestoreState(restored.PrepareRestoreState(owner));
         float appliedHealth = scenario.TargetHealth;
         Require(journal.RecoverPending(out string failure) && journal.RecoverPending(out failure),

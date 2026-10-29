@@ -39,7 +39,7 @@ public class RegularCustomerRuntime : MonoBehaviour
     public event Action<RegularCustomerSnapshot> CandidateDiscovered;
     public event Action<RegularCustomerRecruitEventSnapshot> Recruited;
 
-    public RegularCustomerState State => state;
+    public RegularCustomerState State => state?.CreateSnapshot();
     public RegularCustomerRules Rules => rules;
     public SettlementImmigrationPolicy ImmigrationPolicy => immigrationPolicy;
 

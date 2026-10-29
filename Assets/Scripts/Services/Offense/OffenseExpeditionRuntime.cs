@@ -42,7 +42,7 @@ public class OffenseExpeditionRuntime :
     private OffenseWorldMapRuntime worldMap;
     private IOffenseExpeditionResultFinalizer resultFinalizer;
     private IOffensePanelService panelService;
-    private IOffenseBattleRuntime battleRuntime;
+    private IOffenseBattleCompletionAuthority battleRuntime;
     private IGameCalendar calendar;
     private IOffensePreparationService preparationService;
     private ICombatEquipmentRuntime equipmentRuntime;
@@ -126,7 +126,7 @@ public class OffenseExpeditionRuntime :
         OffenseSceneRuntimeReferences offenseRuntimes,
         IOffensePanelService panelService,
         IGameEventBus gameEventBus,
-        IOffenseBattleRuntime battleRuntime,
+        IOffenseBattleCompletionAuthority battleRuntime,
         IOffenseExpeditionResultFinalizer resultFinalizer,
         IOffenseExpeditionReturnCoordinator returnCoordinator)
     {
@@ -153,7 +153,7 @@ public class OffenseExpeditionRuntime :
         IOffenseExpeditionMemberQuery memberQuery,
         OffenseSceneRuntimeReferences offenseRuntimes,
         IOffensePanelService panelService,
-        IOffenseBattleRuntime battleRuntime,
+        IOffenseBattleCompletionAuthority battleRuntime,
         IOffenseExpeditionResultFinalizer resultFinalizer,
         IOffenseExpeditionReturnCoordinator returnCoordinator,
         IOffensePreparationService preparationService,

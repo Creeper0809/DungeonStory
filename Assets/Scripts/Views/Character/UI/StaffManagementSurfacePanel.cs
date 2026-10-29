@@ -100,7 +100,11 @@ internal sealed class StaffManagementSurfacePanel
     private readonly Func<CharacterActor> getSelectedCharacter;
     private readonly Action<CharacterActor> setSelectedCharacter;
     private readonly List<GameObject> spawnedObjects = new List<GameObject>();
-    private StaffPanelMode panelMode;
+    private StaffPanelMode panelMode
+    {
+        get => viewQuery.IsManagementMode ? StaffPanelMode.Management : StaffPanelMode.Priorities;
+        set => viewCommands.SetManagementMode(value == StaffPanelMode.Management);
+    }
     private readonly Dictionary<StaffPanelMode, Button> modeButtons =
         new Dictionary<StaffPanelMode, Button>();
 
@@ -472,7 +476,16 @@ internal sealed class StaffManagementSurfacePanel
                 "우선 지정",
                 () =>
                 {
-                    controller.TrySelectActor(worker.Character, out _);
+                    if (!controller.TrySelectActor(
+                            worker.Character,
+                            out string selectionMessage))
+                    {
+                        gameEventBus.ShowNotice(
+                            selectionMessage,
+                            NoticeFeedEvent.Grade.WARNING);
+                        return;
+                    }
+
                     bool success = controller.TryIssuePriorityWorkCommand(facility, out string message);
                     gameEventBus.ShowNotice(message, success ? NoticeFeedEvent.Grade.NONE : NoticeFeedEvent.Grade.WARNING);
                     Refresh();
@@ -492,7 +505,16 @@ internal sealed class StaffManagementSurfacePanel
             "제압 지정",
             () =>
             {
-                controller.TrySelectActor(worker.Character, out _);
+                if (!controller.TrySelectActor(
+                        worker.Character,
+                        out string selectionMessage))
+                {
+                    gameEventBus.ShowNotice(
+                        selectionMessage,
+                        NoticeFeedEvent.Grade.WARNING);
+                    return;
+                }
+
                 bool success = controller.TryIssueSuppressCommand(rebel, out string message);
                 gameEventBus.ShowNotice(message, success ? NoticeFeedEvent.Grade.NONE : NoticeFeedEvent.Grade.WARNING);
                 Refresh();

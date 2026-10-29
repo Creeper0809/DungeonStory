@@ -2799,7 +2799,7 @@ public static partial class MigratedProducerEconomyServiceEntryE2EDebugScenarios
                 catalog,
                 new DungeonRuntimeAggregateRootStore());
             runtime.ConstructDomainFacts(domainFacts);
-            runtime.State.AddCurrency(100);
+            runtime.AddCurrencyForDebug(100);
         }
 
         internal MigratedProducerOutcomeEditorFixture Outcomes { get; }

@@ -2484,7 +2484,7 @@ public static partial class MigratedProducerEconomyEntryExtendedE2EDebugScenario
             {
                 Require(
                     FacilityShopService.CanEnterBasicPurchase(building)
-                    && runtime.UnlockState.UnlockBasicPurchaseById(building.id),
+                    && runtime.UnlockStateForDebug.UnlockBasicPurchaseById(building.id),
                     "The authored facility-shop fixture cannot enter basic purchase.");
             }
             runtime.Refresh(5, FacilityShopRefreshCause.Initialization);

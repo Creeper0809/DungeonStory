@@ -23,10 +23,11 @@ public sealed class ResearchCraftingSummaryService : IResearchCraftingSummarySer
 
     public ResearchCraftingSummary Capture()
     {
+        BlueprintResearchState state = research?.State;
         ResearchProjectSO activeProject = null;
         if (research != null)
         {
-            ResearchProjectId activeProjectId = research.State.Projects.ActiveProjectId;
+            ResearchProjectId activeProjectId = state.Projects.ActiveProjectId;
             if (activeProjectId.IsValid)
             {
                 research.ProjectCatalog.TryGet(activeProjectId, out activeProject);
@@ -34,12 +35,12 @@ public sealed class ResearchCraftingSummaryService : IResearchCraftingSummarySer
         }
 
         return new ResearchCraftingSummary(
-            research != null ? research.State.Projects.Queue.Count : 0,
-            research != null ? research.State.Projects.CompletedProjectIds.Count : 0,
+            state != null ? state.Projects.Queue.Count : 0,
+            state != null ? state.Projects.CompletedProjectIds.Count : 0,
             activeProject != null,
             activeProject != null ? activeProject.DisplayName : string.Empty,
             activeProject != null
-                ? research.State.Projects.GetProgress(activeProject.ProjectId).GetRatio(activeProject)
+                ? state.Projects.GetProgressSnapshot(activeProject.ProjectId).GetRatio(activeProject)
                 : 0f,
             synthesis != null ? synthesis.SelectedMaterials.Count : 0,
             synthesis != null ? synthesis.VisibleRecipes.Count : 0);

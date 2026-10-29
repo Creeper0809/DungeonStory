@@ -422,8 +422,11 @@ public static class DungeonSavePayloadIntegrityDebugScenarios
     private sealed class FixturePauseAuthority : IGameSessionPauseAuthority
     {
         public bool Paused { get; private set; }
+        public bool IsPaused => Paused;
 
         public void SetPaused(bool value) => Paused = value;
+        public IDisposable AcquirePause() =>
+            throw new InvalidOperationException("This save-integrity fixture does not open UI pause scopes.");
     }
 
     private sealed class FixtureTimeScale : IGameTimeScaleController

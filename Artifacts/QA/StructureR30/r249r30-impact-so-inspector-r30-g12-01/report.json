@@ -1,0 +1,20 @@
+{
+    "scope": "U0 G12 Golem recharge, work wear, discharge, and surgical maintenance",
+    "passed": true,
+    "golemEpisodeCount": 4,
+    "wearEpisodeCount": 2,
+    "rechargeEpisodeCount": 1,
+    "dischargeEpisodeCount": 1,
+    "alternateChargeEpisodeCount": 3,
+    "allEpisodesHaveExactChildren": true,
+    "surgeryParentHasMaterialLaborBody": true,
+    "surgeryParentHasGolemBeforeAfter": true,
+    "oldSaveMigrationAdded": false,
+    "humanApprovalClaimed": false,
+    "trainingEligible": false,
+    "warningCount": 0,
+    "errorCount": 0,
+    "warnings": [],
+    "errors": [],
+    "failure": ""
+}

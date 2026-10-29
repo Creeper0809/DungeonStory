@@ -1,0 +1,2 @@
+steps=30
+last=R30_ANIMATED_LAST_CLOSE=PASS; animated path releases the final UI request

@@ -88,7 +88,8 @@ internal static class CharacterSpeciesStateCodec
     internal static CharacterSpeciesRestoreCandidate BuildRestore(
         CharacterSpeciesRuntimeSaveData data,
         float nextTickAt,
-        Func<CharacterSpeciesId, string> getIncidentId)
+        Func<CharacterSpeciesId, string> getIncidentId,
+        Func<CharacterSpeciesId, bool> usesChargeInsteadOfFood)
     {
         if (data == null
             || data.version != CharacterSpeciesRuntimeSaveData.CurrentVersion
@@ -100,6 +101,10 @@ internal static class CharacterSpeciesStateCodec
         if (getIncidentId == null)
         {
             throw new ArgumentNullException(nameof(getIncidentId));
+        }
+        if (usesChargeInsteadOfFood == null)
+        {
+            throw new ArgumentNullException(nameof(usesChargeInsteadOfFood));
         }
         CharacterSpeciesAggregateState restored = new()
         {
@@ -145,7 +150,10 @@ internal static class CharacterSpeciesStateCodec
                 || source.golemEpisodeRevision < 0L
                 || !IsFiniteRange(source.rechargeChargeBefore, 0f, 100f)
                 || !IsFiniteRange(source.rechargeRequestedCharge, 0f, 100f)
-                || !IsValidRechargeOrder(source, characterId, speciesId)
+                || !IsValidRechargeOrder(
+                    source,
+                    characterId,
+                    usesChargeInsteadOfFood(speciesId))
                 || !IsValidWorkContributions(source.appliedWorkContributions)
                 || !IsFiniteRange(source.nextIncidentAt, 0f, float.MaxValue)
                 || source.incidentCount < 0
@@ -236,7 +244,7 @@ internal static class CharacterSpeciesStateCodec
     private static bool IsValidRechargeOrder(
         CharacterSpeciesRuntimeRecordSaveData source,
         CharacterId characterId,
-        CharacterSpeciesId speciesId)
+        bool usesChargeInsteadOfFood)
     {
         bool hasAny = source.rechargeProgressWork > 0f
             || source.rechargeWorkerId.Length > 0
@@ -252,7 +260,7 @@ internal static class CharacterSpeciesStateCodec
             || source.rechargeRequestedCharge > 0f;
         if (!hasAny)
             return true;
-        return speciesId.Equals(new CharacterSpeciesId("Golem"))
+        return usesChargeInsteadOfFood
             && source.rechargeProgressWork > 0f
             && source.rechargeProgressWork <= 100f
             && string.Equals(
@@ -507,7 +515,10 @@ public sealed class CharacterSpeciesRuntime :
                 characterId.Value);
             return false;
         }
-        if (!state.SpeciesId.Equals(new CharacterSpeciesId("Golem")))
+        if (!speciesCatalog.TryGet(
+                state.SpeciesId,
+                out CharacterSpeciesSO species)
+            || species.needs?.UsesChargeInsteadOfFood != true)
         {
             failure = new DomainFailure(
                 FailureCode.CharacterSpeciesRechargeUnsupported,
@@ -867,7 +878,7 @@ public sealed class CharacterSpeciesRuntime :
                 actor.SpeciesTag);
             return false;
         }
-        if (!string.Equals(species.speciesTag, "Golem", StringComparison.Ordinal))
+        if (species.needs?.UsesChargeInsteadOfFood != true)
             return true;
 
         CharacterSpeciesRuntimeState state = GetOrCreate(actor, species);
@@ -1054,7 +1065,7 @@ public sealed class CharacterSpeciesRuntime :
             || !speciesCatalog.TryGet(
                 new CharacterSpeciesId(actor.SpeciesTag),
                 out CharacterSpeciesSO species)
-            || !string.Equals(species.speciesTag, "Golem", StringComparison.Ordinal))
+            || species.needs?.UsesChargeInsteadOfFood != true)
         {
             reason = "golem-recharge-subject-or-facility-invalid";
             return false;
@@ -1349,7 +1360,11 @@ public sealed class CharacterSpeciesRuntime :
                 speciesId,
                 out CharacterSpeciesSO species)
                     ? species.IncidentId
-                    : null);
+                    : null,
+            speciesId => speciesCatalog.TryGet(
+                    speciesId,
+                    out CharacterSpeciesSO species)
+                && species.needs?.UsesChargeInsteadOfFood == true);
     }
 
     public void Restore(CharacterSpeciesRestoreCandidate candidate)

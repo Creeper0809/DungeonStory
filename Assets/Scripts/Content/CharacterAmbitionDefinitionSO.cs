@@ -13,6 +13,7 @@ public sealed class CharacterAmbitionDefinitionSO : V20AuthoredContentSO
     public V20ContentRequirementSet activationRequirements = new();
     public V20ContentRequirementSet failureConditions = new();
     public List<V20ContentEffect> completionRewards = new();
+    [ContentReferenceContext(ContentReferenceKind.LifeEvent)]
     public List<V20WeightedId> relatedEventWeights = new();
     [ContentReference(ContentReferenceKind.Ambition)] public List<string> cooperationAmbitionIds = new();
     [ContentReference(ContentReferenceKind.Ambition)] public List<string> conflictAmbitionIds = new();

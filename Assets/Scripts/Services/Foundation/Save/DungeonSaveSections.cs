@@ -368,6 +368,12 @@ public sealed class DungeonRuntimeAggregateRootStore
         return Active.GetOrCreate(factory);
     }
 
+    // 공개 조회 사본은 게시 전 복원 후보를 노출하지 않는다.
+    public T CreatePublishedSnapshot<T>(Func<T> factory, Func<T, T> snapshot)
+        where T : class =>
+        (snapshot ?? throw new ArgumentNullException(nameof(snapshot)))(live.GetOrCreate(factory))
+            ?? throw new InvalidOperationException($"Published snapshot returned null for {typeof(T).Name}.");
+
     public void Replace<T>(T state)
         where T : class
     {

@@ -230,7 +230,25 @@ public static class RegionalSupplyContractTransferOutboxDebugScenarios
     {
         using (RegionalStatusScenario scenario = new("regional-status-main"))
         {
-            string contractId = scenario.FirstOffered.contractId;
+            RegionalSupplyContractState exposed = scenario.FirstOffered;
+            string contractId = exposed.contractId;
+            string originalTitle = exposed.title;
+            int originalAmount = exposed.requirements[0].amount;
+            string authoritativeBefore = JsonUtility.ToJson(
+                scenario.Runtime.Capture());
+            exposed.title = "caller-mutated-title";
+            exposed.requirements[0].amount = originalAmount + 777;
+            exposed.deliverySourceStackIds.Add("stack:caller-mutated");
+            RegionalSupplyContractState unchanged = scenario.Find(contractId);
+            Require(!ReferenceEquals(exposed, unchanged)
+                    && unchanged.title == originalTitle
+                    && unchanged.requirements[0].amount == originalAmount
+                    && !unchanged.deliverySourceStackIds.Contains(
+                        "stack:caller-mutated")
+                    && JsonUtility.ToJson(scenario.Runtime.Capture())
+                        == authoritativeBefore,
+                "Caller mutation leaked into the same-version regional contract view.");
+
             scenario.Probe.FaultMode =
                 MigratedProducerOutcomeFaultMode.RejectReservation;
             Require(!scenario.Runtime.Accept(contractId, out _)

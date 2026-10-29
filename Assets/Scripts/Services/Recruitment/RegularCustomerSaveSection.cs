@@ -30,11 +30,12 @@ public sealed class RegularCustomerPersistenceAdapter :
     public DungeonRegularCustomerSaveData CaptureState()
     {
         runtime.AssertIdle();
+        RegularCustomerState snapshot = runtime.State;
         return new DungeonRegularCustomerSaveData
         {
         immigrationPolicy = runtime.ImmigrationPolicy,
-        pendingFacts = runtime.State.PendingFacts.Select(row => row.Clone()).ToList(),
-        records = runtime.State.Records
+        pendingFacts = snapshot.PendingFacts.Select(row => row.Clone()).ToList(),
+        records = snapshot.Records
             .OrderBy(record => record.CustomerId, StringComparer.Ordinal)
             .Select(record => new DungeonRegularCustomerRecordSaveData
             {

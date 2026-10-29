@@ -1,0 +1,3660 @@
+[
+  {
+    "observedUTC": "2026-10-29T08:41:09.494949+00:00",
+    "busy": true,
+    "status": {
+      "phase": "running",
+      "pid": 1995415,
+      "seconds": 10,
+      "available_memory": 9865007104,
+      "log_bytes": 32106,
+      "cpu": {
+        "total_seconds": 4.9,
+        "main_seconds": 3.79,
+        "main_state": "R",
+        "nice": 0,
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "main_wait": "0"
+      },
+      "updated_at_utc": "2026-10-29T08:41:09.694395+00:00"
+    },
+    "diagnostics": [
+      "- Loaded All Assemblies, in  0.780 seconds"
+    ],
+    "available": [
+      "MemAvailable:    9629640 kB"
+    ],
+    "logBytes": 32704
+  },
+  {
+    "observedUTC": "2026-10-29T08:41:30.174579+00:00",
+    "busy": true,
+    "status": {
+      "phase": "running",
+      "pid": 1995415,
+      "seconds": 30,
+      "available_memory": 7981891584,
+      "log_bytes": 43904,
+      "cpu": {
+        "total_seconds": 29.7,
+        "main_seconds": 19.06,
+        "main_state": "R",
+        "nice": 0,
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "main_wait": "0"
+      },
+      "updated_at_utc": "2026-10-29T08:41:29.697058+00:00"
+    },
+    "diagnostics": [
+      "- Loaded All Assemblies, in  0.780 seconds",
+      "AssetDatabase: script compilation time: 2.131724s",
+      "- Loaded All Assemblies, in  3.245 seconds"
+    ],
+    "available": [
+      "MemAvailable:    7649120 kB"
+    ],
+    "logBytes": 44235
+  },
+  {
+    "observedUTC": "2026-10-29T08:41:50.749123+00:00",
+    "busy": true,
+    "status": {
+      "phase": "running",
+      "pid": 1995415,
+      "seconds": 50,
+      "available_memory": 6751137792,
+      "log_bytes": 45526,
+      "cpu": {
+        "total_seconds": 58.5,
+        "main_seconds": 36.56,
+        "main_state": "R",
+        "nice": 0,
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "main_wait": "0"
+      },
+      "updated_at_utc": "2026-10-29T08:41:49.700286+00:00"
+    },
+    "diagnostics": [
+      "- Loaded All Assemblies, in  0.780 seconds",
+      "AssetDatabase: script compilation time: 2.131724s",
+      "- Loaded All Assemblies, in  3.245 seconds"
+    ],
+    "available": [
+      "MemAvailable:    6587484 kB"
+    ],
+    "logBytes": 45526
+  },
+  {
+    "observedUTC": "2026-10-29T08:42:11.417106+00:00",
+    "busy": true,
+    "status": {
+      "phase": "running",
+      "pid": 1995415,
+      "seconds": 70,
+      "available_memory": 6762770432,
+      "log_bytes": 45526,
+      "cpu": {
+        "total_seconds": 78.72,
+        "main_seconds": 56.46,
+        "main_state": "R",
+        "nice": 0,
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "main_wait": "0"
+      },
+      "updated_at_utc": "2026-10-29T08:42:09.702691+00:00"
+    },
+    "diagnostics": [
+      "- Loaded All Assemblies, in  0.780 seconds",
+      "AssetDatabase: script compilation time: 2.131724s",
+      "- Loaded All Assemblies, in  3.245 seconds"
+    ],
+    "available": [
+      "MemAvailable:    6576416 kB"
+    ],
+    "logBytes": 45526
+  },
+  {
+    "observedUTC": "2026-10-29T08:42:31.931135+00:00",
+    "busy": true,
+    "status": {
+      "phase": "running",
+      "pid": 1995415,
+      "seconds": 90,
+      "available_memory": 6513364992,
+      "log_bytes": 46313,
+      "cpu": {
+        "total_seconds": 98.95,
+        "main_seconds": 76.3,
+        "main_state": "R",
+        "nice": 0,
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "main_wait": "0"
+      },
+      "updated_at_utc": "2026-10-29T08:42:29.705333+00:00"
+    },
+    "diagnostics": [
+      "- Loaded All Assemblies, in  0.780 seconds",
+      "AssetDatabase: script compilation time: 2.131724s",
+      "- Loaded All Assemblies, in  3.245 seconds"
+    ],
+    "available": [
+      "MemAvailable:    6277120 kB"
+    ],
+    "logBytes": 46313
+  },
+  {
+    "observedUTC": "2026-10-29T08:42:52.614009+00:00",
+    "busy": true,
+    "status": {
+      "phase": "running",
+      "pid": 1995415,
+      "seconds": 110,
+      "available_memory": 6671667200,
+      "log_bytes": 46313,
+      "cpu": {
+        "total_seconds": 119.51,
+        "main_seconds": 96.15,
+        "main_state": "R",
+        "nice": 0,
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "main_wait": "0"
+      },
+      "updated_at_utc": "2026-10-29T08:42:49.708164+00:00"
+    },
+    "diagnostics": [
+      "- Loaded All Assemblies, in  0.780 seconds",
+      "AssetDatabase: script compilation time: 2.131724s",
+      "- Loaded All Assemblies, in  3.245 seconds"
+    ],
+    "available": [
+      "MemAvailable:    6559476 kB"
+    ],
+    "logBytes": 47378
+  },
+  {
+    "observedUTC": "2026-10-29T08:43:13.222532+00:00",
+    "busy": true,
+    "status": {
+      "phase": "running",
+      "pid": 1995415,
+      "seconds": 130,
+      "available_memory": 6873083904,
+      "log_bytes": 48561,
+      "cpu": {
+        "total_seconds": 139.69,
+        "main_seconds": 115.97,
+        "main_state": "R",
+        "nice": 0,
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "main_wait": "0"
+      },
+      "updated_at_utc": "2026-10-29T08:43:09.710321+00:00"
+    },
+    "diagnostics": [
+      "- Loaded All Assemblies, in  0.780 seconds",
+      "AssetDatabase: script compilation time: 2.131724s",
+      "- Loaded All Assemblies, in  3.245 seconds",
+      "CONTENT_REFERENCE_INTEGRITY=PASS; runtimeSoTypes=144; publishedAssets=3550; invalid-target-before-play; JSON-restore; retry; immutable-ID/delete rejection"
+    ],
+    "available": [
+      "MemAvailable:    6703376 kB"
+    ],
+    "logBytes": 48561
+  },
+  {
+    "observedUTC": "2026-10-29T08:43:34.161381+00:00",
+    "busy": true,
+    "status": {
+      "phase": "running",
+      "pid": 1995415,
+      "seconds": 150,
+      "available_memory": 6665314304,
+      "log_bytes": 48561,
+      "cpu": {
+        "total_seconds": 159.94,
+        "main_seconds": 135.85,
+        "main_state": "R",
+        "nice": 0,
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "main_wait": "0"
+      },
+      "updated_at_utc": "2026-10-29T08:43:29.713934+00:00"
+    },
+    "diagnostics": [
+      "- Loaded All Assemblies, in  0.780 seconds",
+      "AssetDatabase: script compilation time: 2.131724s",
+      "- Loaded All Assemblies, in  3.245 seconds",
+      "CONTENT_REFERENCE_INTEGRITY=PASS; runtimeSoTypes=144; publishedAssets=3550; invalid-target-before-play; JSON-restore; retry; immutable-ID/delete rejection"
+    ],
+    "available": [
+      "MemAvailable:    6504248 kB"
+    ],
+    "logBytes": 48561
+  },
+  {
+    "observedUTC": "2026-10-29T08:43:54.843734+00:00",
+    "busy": true,
+    "status": {
+      "phase": "running",
+      "pid": 1995415,
+      "seconds": 170,
+      "available_memory": 6671196160,
+      "log_bytes": 48561,
+      "cpu": {
+        "total_seconds": 180.2,
+        "main_seconds": 155.78,
+        "main_state": "R",
+        "nice": 0,
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "main_wait": "0"
+      },
+      "updated_at_utc": "2026-10-29T08:43:49.716090+00:00"
+    },
+    "diagnostics": [
+      "- Loaded All Assemblies, in  0.780 seconds",
+      "AssetDatabase: script compilation time: 2.131724s",
+      "- Loaded All Assemblies, in  3.245 seconds",
+      "CONTENT_REFERENCE_INTEGRITY=PASS; runtimeSoTypes=144; publishedAssets=3550; invalid-target-before-play; JSON-restore; retry; immutable-ID/delete rejection"
+    ],
+    "available": [
+      "MemAvailable:    6671556 kB"
+    ],
+    "logBytes": 48561
+  },
+  {
+    "observedUTC": "2026-10-29T08:44:15.652504+00:00",
+    "busy": true,
+    "status": {
+      "phase": "running",
+      "pid": 1995415,
+      "seconds": 190,
+      "available_memory": 6804656128,
+      "log_bytes": 55250,
+      "cpu": {
+        "total_seconds": 200.37,
+        "main_seconds": 175.58,
+        "main_state": "R",
+        "nice": 0,
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "main_wait": "0"
+      },
+      "updated_at_utc": "2026-10-29T08:44:09.718528+00:00"
+    },
+    "diagnostics": [
+      "- Loaded All Assemblies, in  0.780 seconds",
+      "AssetDatabase: script compilation time: 2.131724s",
+      "- Loaded All Assemblies, in  3.245 seconds",
+      "CONTENT_REFERENCE_INTEGRITY=PASS; runtimeSoTypes=144; publishedAssets=3550; invalid-target-before-play; JSON-restore; retry; immutable-ID/delete rejection",
+      "SO_DEFINITION_EXTENSIONS=PASS; enemy=enemy:crown-chaplain-qa-so-extension; deterministic=true; jsonRestore=true; enemyDefinitions=37; abilityDefinitions=19; modifierDefinitions=13; encounterDefinitions=37; backgroundDefinitions=13; ambitionDefinitions=19; heritableDefinitions=25; proficiencyDefinitions=10; lifeEventDefinitions=33; encounterRestored=true",
+      "SO_INCIDENT_VARIANTS=PASS; same-kind composition; real rejection/retry; JSON/fresh owner; exact replay",
+      "SO_ADDITIVE_CATALOGS=PASS; registered variants; subtype queries; real enemy/incident consumers; duplicate/broken reference reject",
+      "SO_CATALOG=PASS; typed snapshots; SetDefinitions/OnValidate invalidation; read-only; extensions",
+      "CONTENT_REFERENCE_AUTHORING=PASS"
+    ],
+    "available": [
+      "MemAvailable:    6662104 kB"
+    ],
+    "logBytes": 55250
+  },
+  {
+    "observedUTC": "2026-10-29T08:44:36.224172+00:00",
+    "busy": true,
+    "status": {
+      "phase": "running",
+      "pid": 1995415,
+      "seconds": 210,
+      "available_memory": 6759718912,
+      "log_bytes": 55250,
+      "cpu": {
+        "total_seconds": 220.58,
+        "main_seconds": 195.43,
+        "main_state": "R",
+        "nice": 0,
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "main_wait": "0"
+      },
+      "updated_at_utc": "2026-10-29T08:44:29.722206+00:00"
+    },
+    "diagnostics": [
+      "- Loaded All Assemblies, in  0.780 seconds",
+      "AssetDatabase: script compilation time: 2.131724s",
+      "- Loaded All Assemblies, in  3.245 seconds",
+      "CONTENT_REFERENCE_INTEGRITY=PASS; runtimeSoTypes=144; publishedAssets=3550; invalid-target-before-play; JSON-restore; retry; immutable-ID/delete rejection",
+      "SO_DEFINITION_EXTENSIONS=PASS; enemy=enemy:crown-chaplain-qa-so-extension; deterministic=true; jsonRestore=true; enemyDefinitions=37; abilityDefinitions=19; modifierDefinitions=13; encounterDefinitions=37; backgroundDefinitions=13; ambitionDefinitions=19; heritableDefinitions=25; proficiencyDefinitions=10; lifeEventDefinitions=33; encounterRestored=true",
+      "SO_INCIDENT_VARIANTS=PASS; same-kind composition; real rejection/retry; JSON/fresh owner; exact replay",
+      "SO_ADDITIVE_CATALOGS=PASS; registered variants; subtype queries; real enemy/incident consumers; duplicate/broken reference reject",
+      "SO_CATALOG=PASS; typed snapshots; SetDefinitions/OnValidate invalidation; read-only; extensions",
+      "CONTENT_REFERENCE_AUTHORING=PASS"
+    ],
+    "available": [
+      "MemAvailable:    6588732 kB"
+    ],
+    "logBytes": 55250
+  },
+  {
+    "observedUTC": "2026-10-29T08:44:57.220438+00:00",
+    "busy": true,
+    "status": {
+      "phase": "running",
+      "pid": 1995415,
+      "seconds": 230,
+      "available_memory": 6600839168,
+      "log_bytes": 55250,
+      "cpu": {
+        "total_seconds": 240.82,
+        "main_seconds": 215.33,
+        "main_state": "R",
+        "nice": 0,
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "main_wait": "0"
+      },
+      "updated_at_utc": "2026-10-29T08:44:49.724999+00:00"
+    },
+    "diagnostics": [
+      "- Loaded All Assemblies, in  0.780 seconds",
+      "AssetDatabase: script compilation time: 2.131724s",
+      "- Loaded All Assemblies, in  3.245 seconds",
+      "CONTENT_REFERENCE_INTEGRITY=PASS; runtimeSoTypes=144; publishedAssets=3550; invalid-target-before-play; JSON-restore; retry; immutable-ID/delete rejection",
+      "SO_DEFINITION_EXTENSIONS=PASS; enemy=enemy:crown-chaplain-qa-so-extension; deterministic=true; jsonRestore=true; enemyDefinitions=37; abilityDefinitions=19; modifierDefinitions=13; encounterDefinitions=37; backgroundDefinitions=13; ambitionDefinitions=19; heritableDefinitions=25; proficiencyDefinitions=10; lifeEventDefinitions=33; encounterRestored=true",
+      "SO_INCIDENT_VARIANTS=PASS; same-kind composition; real rejection/retry; JSON/fresh owner; exact replay",
+      "SO_ADDITIVE_CATALOGS=PASS; registered variants; subtype queries; real enemy/incident consumers; duplicate/broken reference reject",
+      "SO_CATALOG=PASS; typed snapshots; SetDefinitions/OnValidate invalidation; read-only; extensions",
+      "CONTENT_REFERENCE_AUTHORING=PASS"
+    ],
+    "available": [
+      "MemAvailable:    6394528 kB"
+    ],
+    "logBytes": 55250
+  },
+  {
+    "observedUTC": "2026-10-29T08:45:17.890805+00:00",
+    "busy": true,
+    "status": {
+      "phase": "running",
+      "pid": 1995415,
+      "seconds": 250,
+      "available_memory": 6596296704,
+      "log_bytes": 55250,
+      "cpu": {
+        "total_seconds": 261.0,
+        "main_seconds": 235.12,
+        "main_state": "R",
+        "nice": 0,
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "main_wait": "0"
+      },
+      "updated_at_utc": "2026-10-29T08:45:09.729535+00:00"
+    },
+    "diagnostics": [
+      "- Loaded All Assemblies, in  0.780 seconds",
+      "AssetDatabase: script compilation time: 2.131724s",
+      "- Loaded All Assemblies, in  3.245 seconds",
+      "CONTENT_REFERENCE_INTEGRITY=PASS; runtimeSoTypes=144; publishedAssets=3550; invalid-target-before-play; JSON-restore; retry; immutable-ID/delete rejection",
+      "SO_DEFINITION_EXTENSIONS=PASS; enemy=enemy:crown-chaplain-qa-so-extension; deterministic=true; jsonRestore=true; enemyDefinitions=37; abilityDefinitions=19; modifierDefinitions=13; encounterDefinitions=37; backgroundDefinitions=13; ambitionDefinitions=19; heritableDefinitions=25; proficiencyDefinitions=10; lifeEventDefinitions=33; encounterRestored=true",
+      "SO_INCIDENT_VARIANTS=PASS; same-kind composition; real rejection/retry; JSON/fresh owner; exact replay",
+      "SO_ADDITIVE_CATALOGS=PASS; registered variants; subtype queries; real enemy/incident consumers; duplicate/broken reference reject",
+      "SO_CATALOG=PASS; typed snapshots; SetDefinitions/OnValidate invalidation; read-only; extensions",
+      "CONTENT_REFERENCE_AUTHORING=PASS"
+    ],
+    "available": [
+      "MemAvailable:    6400140 kB"
+    ],
+    "logBytes": 55250
+  },
+  {
+    "observedUTC": "2026-10-29T08:45:38.521796+00:00",
+    "busy": true,
+    "status": {
+      "phase": "running",
+      "pid": 1995415,
+      "seconds": 270,
+      "available_memory": 6597476352,
+      "log_bytes": 55250,
+      "cpu": {
+        "total_seconds": 281.24,
+        "main_seconds": 255.01,
+        "main_state": "R",
+        "nice": 0,
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "main_wait": "0"
+      },
+      "updated_at_utc": "2026-10-29T08:45:29.733168+00:00"
+    },
+    "diagnostics": [
+      "- Loaded All Assemblies, in  0.780 seconds",
+      "AssetDatabase: script compilation time: 2.131724s",
+      "- Loaded All Assemblies, in  3.245 seconds",
+      "CONTENT_REFERENCE_INTEGRITY=PASS; runtimeSoTypes=144; publishedAssets=3550; invalid-target-before-play; JSON-restore; retry; immutable-ID/delete rejection",
+      "SO_DEFINITION_EXTENSIONS=PASS; enemy=enemy:crown-chaplain-qa-so-extension; deterministic=true; jsonRestore=true; enemyDefinitions=37; abilityDefinitions=19; modifierDefinitions=13; encounterDefinitions=37; backgroundDefinitions=13; ambitionDefinitions=19; heritableDefinitions=25; proficiencyDefinitions=10; lifeEventDefinitions=33; encounterRestored=true",
+      "SO_INCIDENT_VARIANTS=PASS; same-kind composition; real rejection/retry; JSON/fresh owner; exact replay",
+      "SO_ADDITIVE_CATALOGS=PASS; registered variants; subtype queries; real enemy/incident consumers; duplicate/broken reference reject",
+      "SO_CATALOG=PASS; typed snapshots; SetDefinitions/OnValidate invalidation; read-only; extensions",
+      "CONTENT_REFERENCE_AUTHORING=PASS"
+    ],
+    "available": [
+      "MemAvailable:    6290048 kB"
+    ],
+    "logBytes": 55250
+  },
+  {
+    "observedUTC": "2026-10-29T08:45:59.507309+00:00",
+    "busy": true,
+    "status": {
+      "phase": "running",
+      "pid": 1995415,
+      "seconds": 300,
+      "available_memory": 6420488192,
+      "log_bytes": 55250,
+      "cpu": {
+        "total_seconds": 311.58,
+        "main_seconds": 284.81,
+        "main_state": "R",
+        "nice": 0,
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "main_wait": "0"
+      },
+      "updated_at_utc": "2026-10-29T08:45:59.738311+00:00"
+    },
+    "diagnostics": [
+      "- Loaded All Assemblies, in  0.780 seconds",
+      "AssetDatabase: script compilation time: 2.131724s",
+      "- Loaded All Assemblies, in  3.245 seconds",
+      "CONTENT_REFERENCE_INTEGRITY=PASS; runtimeSoTypes=144; publishedAssets=3550; invalid-target-before-play; JSON-restore; retry; immutable-ID/delete rejection",
+      "SO_DEFINITION_EXTENSIONS=PASS; enemy=enemy:crown-chaplain-qa-so-extension; deterministic=true; jsonRestore=true; enemyDefinitions=37; abilityDefinitions=19; modifierDefinitions=13; encounterDefinitions=37; backgroundDefinitions=13; ambitionDefinitions=19; heritableDefinitions=25; proficiencyDefinitions=10; lifeEventDefinitions=33; encounterRestored=true",
+      "SO_INCIDENT_VARIANTS=PASS; same-kind composition; real rejection/retry; JSON/fresh owner; exact replay",
+      "SO_ADDITIVE_CATALOGS=PASS; registered variants; subtype queries; real enemy/incident consumers; duplicate/broken reference reject",
+      "SO_CATALOG=PASS; typed snapshots; SetDefinitions/OnValidate invalidation; read-only; extensions",
+      "CONTENT_REFERENCE_AUTHORING=PASS"
+    ],
+    "available": [
+      "MemAvailable:    6275516 kB"
+    ],
+    "logBytes": 55250
+  },
+  {
+    "observedUTC": "2026-10-29T08:46:20.423656+00:00",
+    "busy": true,
+    "status": {
+      "phase": "running",
+      "pid": 1995415,
+      "seconds": 320,
+      "available_memory": 6201147392,
+      "log_bytes": 55250,
+      "cpu": {
+        "total_seconds": 331.8,
+        "main_seconds": 304.67,
+        "main_state": "R",
+        "nice": 0,
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "main_wait": "0"
+      },
+      "updated_at_utc": "2026-10-29T08:46:19.741280+00:00"
+    },
+    "diagnostics": [
+      "- Loaded All Assemblies, in  0.780 seconds",
+      "AssetDatabase: script compilation time: 2.131724s",
+      "- Loaded All Assemblies, in  3.245 seconds",
+      "CONTENT_REFERENCE_INTEGRITY=PASS; runtimeSoTypes=144; publishedAssets=3550; invalid-target-before-play; JSON-restore; retry; immutable-ID/delete rejection",
+      "SO_DEFINITION_EXTENSIONS=PASS; enemy=enemy:crown-chaplain-qa-so-extension; deterministic=true; jsonRestore=true; enemyDefinitions=37; abilityDefinitions=19; modifierDefinitions=13; encounterDefinitions=37; backgroundDefinitions=13; ambitionDefinitions=19; heritableDefinitions=25; proficiencyDefinitions=10; lifeEventDefinitions=33; encounterRestored=true",
+      "SO_INCIDENT_VARIANTS=PASS; same-kind composition; real rejection/retry; JSON/fresh owner; exact replay",
+      "SO_ADDITIVE_CATALOGS=PASS; registered variants; subtype queries; real enemy/incident consumers; duplicate/broken reference reject",
+      "SO_CATALOG=PASS; typed snapshots; SetDefinitions/OnValidate invalidation; read-only; extensions",
+      "CONTENT_REFERENCE_AUTHORING=PASS"
+    ],
+    "available": [
+      "MemAvailable:    6064292 kB"
+    ],
+    "logBytes": 55250
+  },
+  {
+    "observedUTC": "2026-10-29T08:46:41.432459+00:00",
+    "busy": true,
+    "status": {
+      "phase": "running",
+      "pid": 1995415,
+      "seconds": 340,
+      "available_memory": 6376890368,
+      "log_bytes": 55250,
+      "cpu": {
+        "total_seconds": 352.01,
+        "main_seconds": 324.51,
+        "main_state": "R",
+        "nice": 0,
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "main_wait": "0"
+      },
+      "updated_at_utc": "2026-10-29T08:46:39.743277+00:00"
+    },
+    "diagnostics": [
+      "- Loaded All Assemblies, in  0.780 seconds",
+      "AssetDatabase: script compilation time: 2.131724s",
+      "- Loaded All Assemblies, in  3.245 seconds",
+      "CONTENT_REFERENCE_INTEGRITY=PASS; runtimeSoTypes=144; publishedAssets=3550; invalid-target-before-play; JSON-restore; retry; immutable-ID/delete rejection",
+      "SO_DEFINITION_EXTENSIONS=PASS; enemy=enemy:crown-chaplain-qa-so-extension; deterministic=true; jsonRestore=true; enemyDefinitions=37; abilityDefinitions=19; modifierDefinitions=13; encounterDefinitions=37; backgroundDefinitions=13; ambitionDefinitions=19; heritableDefinitions=25; proficiencyDefinitions=10; lifeEventDefinitions=33; encounterRestored=true",
+      "SO_INCIDENT_VARIANTS=PASS; same-kind composition; real rejection/retry; JSON/fresh owner; exact replay",
+      "SO_ADDITIVE_CATALOGS=PASS; registered variants; subtype queries; real enemy/incident consumers; duplicate/broken reference reject",
+      "SO_CATALOG=PASS; typed snapshots; SetDefinitions/OnValidate invalidation; read-only; extensions",
+      "CONTENT_REFERENCE_AUTHORING=PASS"
+    ],
+    "available": [
+      "MemAvailable:    6188272 kB"
+    ],
+    "logBytes": 55250
+  },
+  {
+    "observedUTC": "2026-10-29T08:47:02.500808+00:00",
+    "busy": true,
+    "status": {
+      "phase": "running",
+      "pid": 1995415,
+      "seconds": 360,
+      "available_memory": 6197657600,
+      "log_bytes": 55250,
+      "cpu": {
+        "total_seconds": 372.2,
+        "main_seconds": 344.34,
+        "main_state": "R",
+        "nice": 0,
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "main_wait": "0"
+      },
+      "updated_at_utc": "2026-10-29T08:46:59.745359+00:00"
+    },
+    "diagnostics": [
+      "- Loaded All Assemblies, in  0.780 seconds",
+      "AssetDatabase: script compilation time: 2.131724s",
+      "- Loaded All Assemblies, in  3.245 seconds",
+      "CONTENT_REFERENCE_INTEGRITY=PASS; runtimeSoTypes=144; publishedAssets=3550; invalid-target-before-play; JSON-restore; retry; immutable-ID/delete rejection",
+      "SO_DEFINITION_EXTENSIONS=PASS; enemy=enemy:crown-chaplain-qa-so-extension; deterministic=true; jsonRestore=true; enemyDefinitions=37; abilityDefinitions=19; modifierDefinitions=13; encounterDefinitions=37; backgroundDefinitions=13; ambitionDefinitions=19; heritableDefinitions=25; proficiencyDefinitions=10; lifeEventDefinitions=33; encounterRestored=true",
+      "SO_INCIDENT_VARIANTS=PASS; same-kind composition; real rejection/retry; JSON/fresh owner; exact replay",
+      "SO_ADDITIVE_CATALOGS=PASS; registered variants; subtype queries; real enemy/incident consumers; duplicate/broken reference reject",
+      "SO_CATALOG=PASS; typed snapshots; SetDefinitions/OnValidate invalidation; read-only; extensions",
+      "CONTENT_REFERENCE_AUTHORING=PASS"
+    ],
+    "available": [
+      "MemAvailable:    6057908 kB"
+    ],
+    "logBytes": 55250
+  },
+  {
+    "observedUTC": "2026-10-29T08:47:23.614502+00:00",
+    "busy": true,
+    "status": {
+      "phase": "running",
+      "pid": 1995415,
+      "seconds": 380,
+      "available_memory": 6079651840,
+      "log_bytes": 55250,
+      "cpu": {
+        "total_seconds": 392.41,
+        "main_seconds": 364.2,
+        "main_state": "R",
+        "nice": 0,
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "main_wait": "0"
+      },
+      "updated_at_utc": "2026-10-29T08:47:19.748091+00:00"
+    },
+    "diagnostics": [
+      "- Loaded All Assemblies, in  0.780 seconds",
+      "AssetDatabase: script compilation time: 2.131724s",
+      "- Loaded All Assemblies, in  3.245 seconds",
+      "CONTENT_REFERENCE_INTEGRITY=PASS; runtimeSoTypes=144; publishedAssets=3550; invalid-target-before-play; JSON-restore; retry; immutable-ID/delete rejection",
+      "SO_DEFINITION_EXTENSIONS=PASS; enemy=enemy:crown-chaplain-qa-so-extension; deterministic=true; jsonRestore=true; enemyDefinitions=37; abilityDefinitions=19; modifierDefinitions=13; encounterDefinitions=37; backgroundDefinitions=13; ambitionDefinitions=19; heritableDefinitions=25; proficiencyDefinitions=10; lifeEventDefinitions=33; encounterRestored=true",
+      "SO_INCIDENT_VARIANTS=PASS; same-kind composition; real rejection/retry; JSON/fresh owner; exact replay",
+      "SO_ADDITIVE_CATALOGS=PASS; registered variants; subtype queries; real enemy/incident consumers; duplicate/broken reference reject",
+      "SO_CATALOG=PASS; typed snapshots; SetDefinitions/OnValidate invalidation; read-only; extensions",
+      "CONTENT_REFERENCE_AUTHORING=PASS"
+    ],
+    "available": [
+      "MemAvailable:    5879436 kB"
+    ],
+    "logBytes": 55250
+  },
+  {
+    "observedUTC": "2026-10-29T08:47:44.528502+00:00",
+    "busy": true,
+    "status": {
+      "phase": "running",
+      "pid": 1995415,
+      "seconds": 400,
+      "available_memory": 5963415552,
+      "log_bytes": 55250,
+      "cpu": {
+        "total_seconds": 412.62,
+        "main_seconds": 383.6,
+        "main_state": "R",
+        "nice": 0,
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "main_wait": "0"
+      },
+      "updated_at_utc": "2026-10-29T08:47:39.751255+00:00"
+    },
+    "diagnostics": [
+      "- Loaded All Assemblies, in  0.780 seconds",
+      "AssetDatabase: script compilation time: 2.131724s",
+      "- Loaded All Assemblies, in  3.245 seconds",
+      "CONTENT_REFERENCE_INTEGRITY=PASS; runtimeSoTypes=144; publishedAssets=3550; invalid-target-before-play; JSON-restore; retry; immutable-ID/delete rejection",
+      "SO_DEFINITION_EXTENSIONS=PASS; enemy=enemy:crown-chaplain-qa-so-extension; deterministic=true; jsonRestore=true; enemyDefinitions=37; abilityDefinitions=19; modifierDefinitions=13; encounterDefinitions=37; backgroundDefinitions=13; ambitionDefinitions=19; heritableDefinitions=25; proficiencyDefinitions=10; lifeEventDefinitions=33; encounterRestored=true",
+      "SO_INCIDENT_VARIANTS=PASS; same-kind composition; real rejection/retry; JSON/fresh owner; exact replay",
+      "SO_ADDITIVE_CATALOGS=PASS; registered variants; subtype queries; real enemy/incident consumers; duplicate/broken reference reject",
+      "SO_CATALOG=PASS; typed snapshots; SetDefinitions/OnValidate invalidation; read-only; extensions",
+      "CONTENT_REFERENCE_AUTHORING=PASS"
+    ],
+    "available": [
+      "MemAvailable:    5819220 kB"
+    ],
+    "logBytes": 55250
+  },
+  {
+    "observedUTC": "2026-10-29T08:48:05.745602+00:00",
+    "busy": true,
+    "status": {
+      "phase": "running",
+      "pid": 1995415,
+      "seconds": 420,
+      "available_memory": 5946159104,
+      "log_bytes": 55250,
+      "cpu": {
+        "total_seconds": 432.82,
+        "main_seconds": 403.44,
+        "main_state": "R",
+        "nice": 0,
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "main_wait": "0"
+      },
+      "updated_at_utc": "2026-10-29T08:47:59.753937+00:00"
+    },
+    "diagnostics": [
+      "- Loaded All Assemblies, in  0.780 seconds",
+      "AssetDatabase: script compilation time: 2.131724s",
+      "- Loaded All Assemblies, in  3.245 seconds",
+      "CONTENT_REFERENCE_INTEGRITY=PASS; runtimeSoTypes=144; publishedAssets=3550; invalid-target-before-play; JSON-restore; retry; immutable-ID/delete rejection",
+      "SO_DEFINITION_EXTENSIONS=PASS; enemy=enemy:crown-chaplain-qa-so-extension; deterministic=true; jsonRestore=true; enemyDefinitions=37; abilityDefinitions=19; modifierDefinitions=13; encounterDefinitions=37; backgroundDefinitions=13; ambitionDefinitions=19; heritableDefinitions=25; proficiencyDefinitions=10; lifeEventDefinitions=33; encounterRestored=true",
+      "SO_INCIDENT_VARIANTS=PASS; same-kind composition; real rejection/retry; JSON/fresh owner; exact replay",
+      "SO_ADDITIVE_CATALOGS=PASS; registered variants; subtype queries; real enemy/incident consumers; duplicate/broken reference reject",
+      "SO_CATALOG=PASS; typed snapshots; SetDefinitions/OnValidate invalidation; read-only; extensions",
+      "CONTENT_REFERENCE_AUTHORING=PASS"
+    ],
+    "available": [
+      "MemAvailable:    5776828 kB"
+    ],
+    "logBytes": 55250
+  },
+  {
+    "observedUTC": "2026-10-29T08:48:26.724101+00:00",
+    "busy": true,
+    "status": {
+      "phase": "running",
+      "pid": 1995415,
+      "seconds": 440,
+      "available_memory": 6329872384,
+      "log_bytes": 55250,
+      "cpu": {
+        "total_seconds": 453.03,
+        "main_seconds": 423.29,
+        "main_state": "R",
+        "nice": 0,
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "main_wait": "0"
+      },
+      "updated_at_utc": "2026-10-29T08:48:19.756219+00:00"
+    },
+    "diagnostics": [
+      "- Loaded All Assemblies, in  0.780 seconds",
+      "AssetDatabase: script compilation time: 2.131724s",
+      "- Loaded All Assemblies, in  3.245 seconds",
+      "CONTENT_REFERENCE_INTEGRITY=PASS; runtimeSoTypes=144; publishedAssets=3550; invalid-target-before-play; JSON-restore; retry; immutable-ID/delete rejection",
+      "SO_DEFINITION_EXTENSIONS=PASS; enemy=enemy:crown-chaplain-qa-so-extension; deterministic=true; jsonRestore=true; enemyDefinitions=37; abilityDefinitions=19; modifierDefinitions=13; encounterDefinitions=37; backgroundDefinitions=13; ambitionDefinitions=19; heritableDefinitions=25; proficiencyDefinitions=10; lifeEventDefinitions=33; encounterRestored=true",
+      "SO_INCIDENT_VARIANTS=PASS; same-kind composition; real rejection/retry; JSON/fresh owner; exact replay",
+      "SO_ADDITIVE_CATALOGS=PASS; registered variants; subtype queries; real enemy/incident consumers; duplicate/broken reference reject",
+      "SO_CATALOG=PASS; typed snapshots; SetDefinitions/OnValidate invalidation; read-only; extensions",
+      "CONTENT_REFERENCE_AUTHORING=PASS"
+    ],
+    "available": [
+      "MemAvailable:    6159992 kB"
+    ],
+    "logBytes": 55250
+  },
+  {
+    "observedUTC": "2026-10-29T08:48:48.222769+00:00",
+    "busy": true,
+    "status": {
+      "phase": "running",
+      "pid": 1995415,
+      "seconds": 460,
+      "available_memory": 6183743488,
+      "log_bytes": 55250,
+      "cpu": {
+        "total_seconds": 473.25,
+        "main_seconds": 443.16,
+        "main_state": "R",
+        "nice": 0,
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "main_wait": "0"
+      },
+      "updated_at_utc": "2026-10-29T08:48:39.758581+00:00"
+    },
+    "diagnostics": [
+      "- Loaded All Assemblies, in  0.780 seconds",
+      "AssetDatabase: script compilation time: 2.131724s",
+      "- Loaded All Assemblies, in  3.245 seconds",
+      "CONTENT_REFERENCE_INTEGRITY=PASS; runtimeSoTypes=144; publishedAssets=3550; invalid-target-before-play; JSON-restore; retry; immutable-ID/delete rejection",
+      "SO_DEFINITION_EXTENSIONS=PASS; enemy=enemy:crown-chaplain-qa-so-extension; deterministic=true; jsonRestore=true; enemyDefinitions=37; abilityDefinitions=19; modifierDefinitions=13; encounterDefinitions=37; backgroundDefinitions=13; ambitionDefinitions=19; heritableDefinitions=25; proficiencyDefinitions=10; lifeEventDefinitions=33; encounterRestored=true",
+      "SO_INCIDENT_VARIANTS=PASS; same-kind composition; real rejection/retry; JSON/fresh owner; exact replay",
+      "SO_ADDITIVE_CATALOGS=PASS; registered variants; subtype queries; real enemy/incident consumers; duplicate/broken reference reject",
+      "SO_CATALOG=PASS; typed snapshots; SetDefinitions/OnValidate invalidation; read-only; extensions",
+      "CONTENT_REFERENCE_AUTHORING=PASS"
+    ],
+    "available": [
+      "MemAvailable:    5952260 kB"
+    ],
+    "logBytes": 55250
+  },
+  {
+    "observedUTC": "2026-10-29T08:49:09.030621+00:00",
+    "busy": true,
+    "status": {
+      "phase": "running",
+      "pid": 1995415,
+      "seconds": 490,
+      "available_memory": 5949329408,
+      "log_bytes": 55250,
+      "cpu": {
+        "total_seconds": 503.45,
+        "main_seconds": 472.83,
+        "main_state": "R",
+        "nice": 0,
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "main_wait": "0"
+      },
+      "updated_at_utc": "2026-10-29T08:49:09.763276+00:00"
+    },
+    "diagnostics": [
+      "- Loaded All Assemblies, in  0.780 seconds",
+      "AssetDatabase: script compilation time: 2.131724s",
+      "- Loaded All Assemblies, in  3.245 seconds",
+      "CONTENT_REFERENCE_INTEGRITY=PASS; runtimeSoTypes=144; publishedAssets=3550; invalid-target-before-play; JSON-restore; retry; immutable-ID/delete rejection",
+      "SO_DEFINITION_EXTENSIONS=PASS; enemy=enemy:crown-chaplain-qa-so-extension; deterministic=true; jsonRestore=true; enemyDefinitions=37; abilityDefinitions=19; modifierDefinitions=13; encounterDefinitions=37; backgroundDefinitions=13; ambitionDefinitions=19; heritableDefinitions=25; proficiencyDefinitions=10; lifeEventDefinitions=33; encounterRestored=true",
+      "SO_INCIDENT_VARIANTS=PASS; same-kind composition; real rejection/retry; JSON/fresh owner; exact replay",
+      "SO_ADDITIVE_CATALOGS=PASS; registered variants; subtype queries; real enemy/incident consumers; duplicate/broken reference reject",
+      "SO_CATALOG=PASS; typed snapshots; SetDefinitions/OnValidate invalidation; read-only; extensions",
+      "CONTENT_REFERENCE_AUTHORING=PASS"
+    ],
+    "available": [
+      "MemAvailable:    5805100 kB"
+    ],
+    "logBytes": 55250
+  },
+  {
+    "observedUTC": "2026-10-29T08:49:29.965729+00:00",
+    "busy": true,
+    "status": {
+      "phase": "running",
+      "pid": 1995415,
+      "seconds": 510,
+      "available_memory": 5697859584,
+      "log_bytes": 55250,
+      "cpu": {
+        "total_seconds": 523.71,
+        "main_seconds": 492.73,
+        "main_state": "R",
+        "nice": 0,
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "main_wait": "0"
+      },
+      "updated_at_utc": "2026-10-29T08:49:29.765336+00:00"
+    },
+    "diagnostics": [
+      "- Loaded All Assemblies, in  0.780 seconds",
+      "AssetDatabase: script compilation time: 2.131724s",
+      "- Loaded All Assemblies, in  3.245 seconds",
+      "CONTENT_REFERENCE_INTEGRITY=PASS; runtimeSoTypes=144; publishedAssets=3550; invalid-target-before-play; JSON-restore; retry; immutable-ID/delete rejection",
+      "SO_DEFINITION_EXTENSIONS=PASS; enemy=enemy:crown-chaplain-qa-so-extension; deterministic=true; jsonRestore=true; enemyDefinitions=37; abilityDefinitions=19; modifierDefinitions=13; encounterDefinitions=37; backgroundDefinitions=13; ambitionDefinitions=19; heritableDefinitions=25; proficiencyDefinitions=10; lifeEventDefinitions=33; encounterRestored=true",
+      "SO_INCIDENT_VARIANTS=PASS; same-kind composition; real rejection/retry; JSON/fresh owner; exact replay",
+      "SO_ADDITIVE_CATALOGS=PASS; registered variants; subtype queries; real enemy/incident consumers; duplicate/broken reference reject",
+      "SO_CATALOG=PASS; typed snapshots; SetDefinitions/OnValidate invalidation; read-only; extensions",
+      "CONTENT_REFERENCE_AUTHORING=PASS"
+    ],
+    "available": [
+      "MemAvailable:    5614856 kB"
+    ],
+    "logBytes": 55250
+  },
+  {
+    "observedUTC": "2026-10-29T08:49:51.616567+00:00",
+    "busy": true,
+    "status": {
+      "phase": "running",
+      "pid": 1995415,
+      "seconds": 530,
+      "available_memory": 5714685952,
+      "log_bytes": 55250,
+      "cpu": {
+        "total_seconds": 543.94,
+        "main_seconds": 512.61,
+        "main_state": "R",
+        "nice": 0,
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "main_wait": "0"
+      },
+      "updated_at_utc": "2026-10-29T08:49:49.767640+00:00"
+    },
+    "diagnostics": [
+      "- Loaded All Assemblies, in  0.780 seconds",
+      "AssetDatabase: script compilation time: 2.131724s",
+      "- Loaded All Assemblies, in  3.245 seconds",
+      "CONTENT_REFERENCE_INTEGRITY=PASS; runtimeSoTypes=144; publishedAssets=3550; invalid-target-before-play; JSON-restore; retry; immutable-ID/delete rejection",
+      "SO_DEFINITION_EXTENSIONS=PASS; enemy=enemy:crown-chaplain-qa-so-extension; deterministic=true; jsonRestore=true; enemyDefinitions=37; abilityDefinitions=19; modifierDefinitions=13; encounterDefinitions=37; backgroundDefinitions=13; ambitionDefinitions=19; heritableDefinitions=25; proficiencyDefinitions=10; lifeEventDefinitions=33; encounterRestored=true",
+      "SO_INCIDENT_VARIANTS=PASS; same-kind composition; real rejection/retry; JSON/fresh owner; exact replay",
+      "SO_ADDITIVE_CATALOGS=PASS; registered variants; subtype queries; real enemy/incident consumers; duplicate/broken reference reject",
+      "SO_CATALOG=PASS; typed snapshots; SetDefinitions/OnValidate invalidation; read-only; extensions",
+      "CONTENT_REFERENCE_AUTHORING=PASS"
+    ],
+    "available": [
+      "MemAvailable:    5596176 kB"
+    ],
+    "logBytes": 55250
+  },
+  {
+    "observedUTC": "2026-10-29T08:50:12.403210+00:00",
+    "busy": true,
+    "status": {
+      "phase": "running",
+      "pid": 1995415,
+      "seconds": 550,
+      "available_memory": 5973200896,
+      "log_bytes": 55250,
+      "cpu": {
+        "total_seconds": 564.09,
+        "main_seconds": 532.39,
+        "main_state": "R",
+        "nice": 0,
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "main_wait": "0"
+      },
+      "updated_at_utc": "2026-10-29T08:50:09.769879+00:00"
+    },
+    "diagnostics": [
+      "- Loaded All Assemblies, in  0.780 seconds",
+      "AssetDatabase: script compilation time: 2.131724s",
+      "- Loaded All Assemblies, in  3.245 seconds",
+      "CONTENT_REFERENCE_INTEGRITY=PASS; runtimeSoTypes=144; publishedAssets=3550; invalid-target-before-play; JSON-restore; retry; immutable-ID/delete rejection",
+      "SO_DEFINITION_EXTENSIONS=PASS; enemy=enemy:crown-chaplain-qa-so-extension; deterministic=true; jsonRestore=true; enemyDefinitions=37; abilityDefinitions=19; modifierDefinitions=13; encounterDefinitions=37; backgroundDefinitions=13; ambitionDefinitions=19; heritableDefinitions=25; proficiencyDefinitions=10; lifeEventDefinitions=33; encounterRestored=true",
+      "SO_INCIDENT_VARIANTS=PASS; same-kind composition; real rejection/retry; JSON/fresh owner; exact replay",
+      "SO_ADDITIVE_CATALOGS=PASS; registered variants; subtype queries; real enemy/incident consumers; duplicate/broken reference reject",
+      "SO_CATALOG=PASS; typed snapshots; SetDefinitions/OnValidate invalidation; read-only; extensions",
+      "CONTENT_REFERENCE_AUTHORING=PASS"
+    ],
+    "available": [
+      "MemAvailable:    5835348 kB"
+    ],
+    "logBytes": 55250
+  },
+  {
+    "observedUTC": "2026-10-29T08:50:33.292206+00:00",
+    "busy": true,
+    "status": {
+      "phase": "running",
+      "pid": 1995415,
+      "seconds": 570,
+      "available_memory": 5805367296,
+      "log_bytes": 55250,
+      "cpu": {
+        "total_seconds": 584.35,
+        "main_seconds": 552.29,
+        "main_state": "R",
+        "nice": 0,
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "main_wait": "0"
+      },
+      "updated_at_utc": "2026-10-29T08:50:29.772590+00:00"
+    },
+    "diagnostics": [
+      "- Loaded All Assemblies, in  0.780 seconds",
+      "AssetDatabase: script compilation time: 2.131724s",
+      "- Loaded All Assemblies, in  3.245 seconds",
+      "CONTENT_REFERENCE_INTEGRITY=PASS; runtimeSoTypes=144; publishedAssets=3550; invalid-target-before-play; JSON-restore; retry; immutable-ID/delete rejection",
+      "SO_DEFINITION_EXTENSIONS=PASS; enemy=enemy:crown-chaplain-qa-so-extension; deterministic=true; jsonRestore=true; enemyDefinitions=37; abilityDefinitions=19; modifierDefinitions=13; encounterDefinitions=37; backgroundDefinitions=13; ambitionDefinitions=19; heritableDefinitions=25; proficiencyDefinitions=10; lifeEventDefinitions=33; encounterRestored=true",
+      "SO_INCIDENT_VARIANTS=PASS; same-kind composition; real rejection/retry; JSON/fresh owner; exact replay",
+      "SO_ADDITIVE_CATALOGS=PASS; registered variants; subtype queries; real enemy/incident consumers; duplicate/broken reference reject",
+      "SO_CATALOG=PASS; typed snapshots; SetDefinitions/OnValidate invalidation; read-only; extensions",
+      "CONTENT_REFERENCE_AUTHORING=PASS"
+    ],
+    "available": [
+      "MemAvailable:    5666680 kB"
+    ],
+    "logBytes": 55250
+  },
+  {
+    "observedUTC": "2026-10-29T08:50:54.315425+00:00",
+    "busy": true,
+    "status": {
+      "phase": "running",
+      "pid": 1995415,
+      "seconds": 590,
+      "available_memory": 5631627264,
+      "log_bytes": 55250,
+      "cpu": {
+        "total_seconds": 604.58,
+        "main_seconds": 572.17,
+        "main_state": "R",
+        "nice": 0,
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "main_wait": "0"
+      },
+      "updated_at_utc": "2026-10-29T08:50:49.777757+00:00"
+    },
+    "diagnostics": [
+      "- Loaded All Assemblies, in  0.780 seconds",
+      "AssetDatabase: script compilation time: 2.131724s",
+      "- Loaded All Assemblies, in  3.245 seconds",
+      "CONTENT_REFERENCE_INTEGRITY=PASS; runtimeSoTypes=144; publishedAssets=3550; invalid-target-before-play; JSON-restore; retry; immutable-ID/delete rejection",
+      "SO_DEFINITION_EXTENSIONS=PASS; enemy=enemy:crown-chaplain-qa-so-extension; deterministic=true; jsonRestore=true; enemyDefinitions=37; abilityDefinitions=19; modifierDefinitions=13; encounterDefinitions=37; backgroundDefinitions=13; ambitionDefinitions=19; heritableDefinitions=25; proficiencyDefinitions=10; lifeEventDefinitions=33; encounterRestored=true",
+      "SO_INCIDENT_VARIANTS=PASS; same-kind composition; real rejection/retry; JSON/fresh owner; exact replay",
+      "SO_ADDITIVE_CATALOGS=PASS; registered variants; subtype queries; real enemy/incident consumers; duplicate/broken reference reject",
+      "SO_CATALOG=PASS; typed snapshots; SetDefinitions/OnValidate invalidation; read-only; extensions",
+      "CONTENT_REFERENCE_AUTHORING=PASS"
+    ],
+    "available": [
+      "MemAvailable:    5468676 kB"
+    ],
+    "logBytes": 55250
+  },
+  {
+    "observedUTC": "2026-10-29T08:51:15.770312+00:00",
+    "busy": true,
+    "status": {
+      "phase": "running",
+      "pid": 1995415,
+      "seconds": 610,
+      "available_memory": 5598195712,
+      "log_bytes": 55250,
+      "cpu": {
+        "total_seconds": 624.76,
+        "main_seconds": 591.99,
+        "main_state": "R",
+        "nice": 0,
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "main_wait": "0"
+      },
+      "updated_at_utc": "2026-10-29T08:51:09.780363+00:00"
+    },
+    "diagnostics": [
+      "- Loaded All Assemblies, in  0.780 seconds",
+      "AssetDatabase: script compilation time: 2.131724s",
+      "- Loaded All Assemblies, in  3.245 seconds",
+      "CONTENT_REFERENCE_INTEGRITY=PASS; runtimeSoTypes=144; publishedAssets=3550; invalid-target-before-play; JSON-restore; retry; immutable-ID/delete rejection",
+      "SO_DEFINITION_EXTENSIONS=PASS; enemy=enemy:crown-chaplain-qa-so-extension; deterministic=true; jsonRestore=true; enemyDefinitions=37; abilityDefinitions=19; modifierDefinitions=13; encounterDefinitions=37; backgroundDefinitions=13; ambitionDefinitions=19; heritableDefinitions=25; proficiencyDefinitions=10; lifeEventDefinitions=33; encounterRestored=true",
+      "SO_INCIDENT_VARIANTS=PASS; same-kind composition; real rejection/retry; JSON/fresh owner; exact replay",
+      "SO_ADDITIVE_CATALOGS=PASS; registered variants; subtype queries; real enemy/incident consumers; duplicate/broken reference reject",
+      "SO_CATALOG=PASS; typed snapshots; SetDefinitions/OnValidate invalidation; read-only; extensions",
+      "CONTENT_REFERENCE_AUTHORING=PASS"
+    ],
+    "available": [
+      "MemAvailable:    5231360 kB"
+    ],
+    "logBytes": 55250
+  },
+  {
+    "observedUTC": "2026-10-29T08:51:36.412763+00:00",
+    "busy": true,
+    "status": {
+      "phase": "running",
+      "pid": 1995415,
+      "seconds": 630,
+      "available_memory": 5381984256,
+      "log_bytes": 55250,
+      "cpu": {
+        "total_seconds": 644.98,
+        "main_seconds": 611.85,
+        "main_state": "R",
+        "nice": 0,
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "main_wait": "0"
+      },
+      "updated_at_utc": "2026-10-29T08:51:29.782809+00:00"
+    },
+    "diagnostics": [
+      "- Loaded All Assemblies, in  0.780 seconds",
+      "AssetDatabase: script compilation time: 2.131724s",
+      "- Loaded All Assemblies, in  3.245 seconds",
+      "CONTENT_REFERENCE_INTEGRITY=PASS; runtimeSoTypes=144; publishedAssets=3550; invalid-target-before-play; JSON-restore; retry; immutable-ID/delete rejection",
+      "SO_DEFINITION_EXTENSIONS=PASS; enemy=enemy:crown-chaplain-qa-so-extension; deterministic=true; jsonRestore=true; enemyDefinitions=37; abilityDefinitions=19; modifierDefinitions=13; encounterDefinitions=37; backgroundDefinitions=13; ambitionDefinitions=19; heritableDefinitions=25; proficiencyDefinitions=10; lifeEventDefinitions=33; encounterRestored=true",
+      "SO_INCIDENT_VARIANTS=PASS; same-kind composition; real rejection/retry; JSON/fresh owner; exact replay",
+      "SO_ADDITIVE_CATALOGS=PASS; registered variants; subtype queries; real enemy/incident consumers; duplicate/broken reference reject",
+      "SO_CATALOG=PASS; typed snapshots; SetDefinitions/OnValidate invalidation; read-only; extensions",
+      "CONTENT_REFERENCE_AUTHORING=PASS"
+    ],
+    "available": [
+      "MemAvailable:    5257700 kB"
+    ],
+    "logBytes": 55250
+  },
+  {
+    "observedUTC": "2026-10-29T08:51:57.345003+00:00",
+    "busy": true,
+    "status": {
+      "phase": "running",
+      "pid": 1995415,
+      "seconds": 650,
+      "available_memory": 5390422016,
+      "log_bytes": 55250,
+      "cpu": {
+        "total_seconds": 665.17,
+        "main_seconds": 631.65,
+        "main_state": "R",
+        "nice": 0,
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "main_wait": "0"
+      },
+      "updated_at_utc": "2026-10-29T08:51:49.784931+00:00"
+    },
+    "diagnostics": [
+      "- Loaded All Assemblies, in  0.780 seconds",
+      "AssetDatabase: script compilation time: 2.131724s",
+      "- Loaded All Assemblies, in  3.245 seconds",
+      "CONTENT_REFERENCE_INTEGRITY=PASS; runtimeSoTypes=144; publishedAssets=3550; invalid-target-before-play; JSON-restore; retry; immutable-ID/delete rejection",
+      "SO_DEFINITION_EXTENSIONS=PASS; enemy=enemy:crown-chaplain-qa-so-extension; deterministic=true; jsonRestore=true; enemyDefinitions=37; abilityDefinitions=19; modifierDefinitions=13; encounterDefinitions=37; backgroundDefinitions=13; ambitionDefinitions=19; heritableDefinitions=25; proficiencyDefinitions=10; lifeEventDefinitions=33; encounterRestored=true",
+      "SO_INCIDENT_VARIANTS=PASS; same-kind composition; real rejection/retry; JSON/fresh owner; exact replay",
+      "SO_ADDITIVE_CATALOGS=PASS; registered variants; subtype queries; real enemy/incident consumers; duplicate/broken reference reject",
+      "SO_CATALOG=PASS; typed snapshots; SetDefinitions/OnValidate invalidation; read-only; extensions",
+      "CONTENT_REFERENCE_AUTHORING=PASS"
+    ],
+    "available": [
+      "MemAvailable:    5547076 kB"
+    ],
+    "logBytes": 55250
+  },
+  {
+    "observedUTC": "2026-10-29T08:52:18.161860+00:00",
+    "busy": true,
+    "status": {
+      "phase": "running",
+      "pid": 1995415,
+      "seconds": 670,
+      "available_memory": 5690781696,
+      "log_bytes": 55250,
+      "cpu": {
+        "total_seconds": 685.37,
+        "main_seconds": 651.52,
+        "main_state": "R",
+        "nice": 0,
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "main_wait": "0"
+      },
+      "updated_at_utc": "2026-10-29T08:52:09.788791+00:00"
+    },
+    "diagnostics": [
+      "- Loaded All Assemblies, in  0.780 seconds",
+      "AssetDatabase: script compilation time: 2.131724s",
+      "- Loaded All Assemblies, in  3.245 seconds",
+      "CONTENT_REFERENCE_INTEGRITY=PASS; runtimeSoTypes=144; publishedAssets=3550; invalid-target-before-play; JSON-restore; retry; immutable-ID/delete rejection",
+      "SO_DEFINITION_EXTENSIONS=PASS; enemy=enemy:crown-chaplain-qa-so-extension; deterministic=true; jsonRestore=true; enemyDefinitions=37; abilityDefinitions=19; modifierDefinitions=13; encounterDefinitions=37; backgroundDefinitions=13; ambitionDefinitions=19; heritableDefinitions=25; proficiencyDefinitions=10; lifeEventDefinitions=33; encounterRestored=true",
+      "SO_INCIDENT_VARIANTS=PASS; same-kind composition; real rejection/retry; JSON/fresh owner; exact replay",
+      "SO_ADDITIVE_CATALOGS=PASS; registered variants; subtype queries; real enemy/incident consumers; duplicate/broken reference reject",
+      "SO_CATALOG=PASS; typed snapshots; SetDefinitions/OnValidate invalidation; read-only; extensions",
+      "CONTENT_REFERENCE_AUTHORING=PASS"
+    ],
+    "available": [
+      "MemAvailable:    5542412 kB"
+    ],
+    "logBytes": 55250
+  },
+  {
+    "observedUTC": "2026-10-29T08:52:39.154082+00:00",
+    "busy": true,
+    "status": {
+      "phase": "running",
+      "pid": 1995415,
+      "seconds": 700,
+      "available_memory": 5473693696,
+      "log_bytes": 55250,
+      "cpu": {
+        "total_seconds": 715.77,
+        "main_seconds": 681.37,
+        "main_state": "R",
+        "nice": 0,
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "main_wait": "0"
+      },
+      "updated_at_utc": "2026-10-29T08:52:39.792897+00:00"
+    },
+    "diagnostics": [
+      "- Loaded All Assemblies, in  0.780 seconds",
+      "AssetDatabase: script compilation time: 2.131724s",
+      "- Loaded All Assemblies, in  3.245 seconds",
+      "CONTENT_REFERENCE_INTEGRITY=PASS; runtimeSoTypes=144; publishedAssets=3550; invalid-target-before-play; JSON-restore; retry; immutable-ID/delete rejection",
+      "SO_DEFINITION_EXTENSIONS=PASS; enemy=enemy:crown-chaplain-qa-so-extension; deterministic=true; jsonRestore=true; enemyDefinitions=37; abilityDefinitions=19; modifierDefinitions=13; encounterDefinitions=37; backgroundDefinitions=13; ambitionDefinitions=19; heritableDefinitions=25; proficiencyDefinitions=10; lifeEventDefinitions=33; encounterRestored=true",
+      "SO_INCIDENT_VARIANTS=PASS; same-kind composition; real rejection/retry; JSON/fresh owner; exact replay",
+      "SO_ADDITIVE_CATALOGS=PASS; registered variants; subtype queries; real enemy/incident consumers; duplicate/broken reference reject",
+      "SO_CATALOG=PASS; typed snapshots; SetDefinitions/OnValidate invalidation; read-only; extensions",
+      "CONTENT_REFERENCE_AUTHORING=PASS"
+    ],
+    "available": [
+      "MemAvailable:    5337408 kB"
+    ],
+    "logBytes": 55250
+  },
+  {
+    "observedUTC": "2026-10-29T08:53:00.369391+00:00",
+    "busy": true,
+    "status": {
+      "phase": "running",
+      "pid": 1995415,
+      "seconds": 720,
+      "available_memory": 5311721472,
+      "log_bytes": 55250,
+      "cpu": {
+        "total_seconds": 735.97,
+        "main_seconds": 701.22,
+        "main_state": "R",
+        "nice": 0,
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "main_wait": "0"
+      },
+      "updated_at_utc": "2026-10-29T08:52:59.794995+00:00"
+    },
+    "diagnostics": [
+      "- Loaded All Assemblies, in  0.780 seconds",
+      "AssetDatabase: script compilation time: 2.131724s",
+      "- Loaded All Assemblies, in  3.245 seconds",
+      "CONTENT_REFERENCE_INTEGRITY=PASS; runtimeSoTypes=144; publishedAssets=3550; invalid-target-before-play; JSON-restore; retry; immutable-ID/delete rejection",
+      "SO_DEFINITION_EXTENSIONS=PASS; enemy=enemy:crown-chaplain-qa-so-extension; deterministic=true; jsonRestore=true; enemyDefinitions=37; abilityDefinitions=19; modifierDefinitions=13; encounterDefinitions=37; backgroundDefinitions=13; ambitionDefinitions=19; heritableDefinitions=25; proficiencyDefinitions=10; lifeEventDefinitions=33; encounterRestored=true",
+      "SO_INCIDENT_VARIANTS=PASS; same-kind composition; real rejection/retry; JSON/fresh owner; exact replay",
+      "SO_ADDITIVE_CATALOGS=PASS; registered variants; subtype queries; real enemy/incident consumers; duplicate/broken reference reject",
+      "SO_CATALOG=PASS; typed snapshots; SetDefinitions/OnValidate invalidation; read-only; extensions",
+      "CONTENT_REFERENCE_AUTHORING=PASS"
+    ],
+    "available": [
+      "MemAvailable:    5167596 kB"
+    ],
+    "logBytes": 55250
+  },
+  {
+    "observedUTC": "2026-10-29T08:53:21.272143+00:00",
+    "busy": true,
+    "status": {
+      "phase": "running",
+      "pid": 1995415,
+      "seconds": 740,
+      "available_memory": 5079629824,
+      "log_bytes": 55250,
+      "cpu": {
+        "total_seconds": 756.22,
+        "main_seconds": 721.1,
+        "main_state": "R",
+        "nice": 0,
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "main_wait": "0"
+      },
+      "updated_at_utc": "2026-10-29T08:53:19.798287+00:00"
+    },
+    "diagnostics": [
+      "- Loaded All Assemblies, in  0.780 seconds",
+      "AssetDatabase: script compilation time: 2.131724s",
+      "- Loaded All Assemblies, in  3.245 seconds",
+      "CONTENT_REFERENCE_INTEGRITY=PASS; runtimeSoTypes=144; publishedAssets=3550; invalid-target-before-play; JSON-restore; retry; immutable-ID/delete rejection",
+      "SO_DEFINITION_EXTENSIONS=PASS; enemy=enemy:crown-chaplain-qa-so-extension; deterministic=true; jsonRestore=true; enemyDefinitions=37; abilityDefinitions=19; modifierDefinitions=13; encounterDefinitions=37; backgroundDefinitions=13; ambitionDefinitions=19; heritableDefinitions=25; proficiencyDefinitions=10; lifeEventDefinitions=33; encounterRestored=true",
+      "SO_INCIDENT_VARIANTS=PASS; same-kind composition; real rejection/retry; JSON/fresh owner; exact replay",
+      "SO_ADDITIVE_CATALOGS=PASS; registered variants; subtype queries; real enemy/incident consumers; duplicate/broken reference reject",
+      "SO_CATALOG=PASS; typed snapshots; SetDefinitions/OnValidate invalidation; read-only; extensions",
+      "CONTENT_REFERENCE_AUTHORING=PASS"
+    ],
+    "available": [
+      "MemAvailable:    5016716 kB"
+    ],
+    "logBytes": 55250
+  },
+  {
+    "observedUTC": "2026-10-29T08:53:42.192991+00:00",
+    "busy": true,
+    "status": {
+      "phase": "running",
+      "pid": 1995415,
+      "seconds": 760,
+      "available_memory": 5089648640,
+      "log_bytes": 55250,
+      "cpu": {
+        "total_seconds": 776.4,
+        "main_seconds": 740.93,
+        "main_state": "R",
+        "nice": 0,
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "main_wait": "0"
+      },
+      "updated_at_utc": "2026-10-29T08:53:39.800317+00:00"
+    },
+    "diagnostics": [
+      "- Loaded All Assemblies, in  0.780 seconds",
+      "AssetDatabase: script compilation time: 2.131724s",
+      "- Loaded All Assemblies, in  3.245 seconds",
+      "CONTENT_REFERENCE_INTEGRITY=PASS; runtimeSoTypes=144; publishedAssets=3550; invalid-target-before-play; JSON-restore; retry; immutable-ID/delete rejection",
+      "SO_DEFINITION_EXTENSIONS=PASS; enemy=enemy:crown-chaplain-qa-so-extension; deterministic=true; jsonRestore=true; enemyDefinitions=37; abilityDefinitions=19; modifierDefinitions=13; encounterDefinitions=37; backgroundDefinitions=13; ambitionDefinitions=19; heritableDefinitions=25; proficiencyDefinitions=10; lifeEventDefinitions=33; encounterRestored=true",
+      "SO_INCIDENT_VARIANTS=PASS; same-kind composition; real rejection/retry; JSON/fresh owner; exact replay",
+      "SO_ADDITIVE_CATALOGS=PASS; registered variants; subtype queries; real enemy/incident consumers; duplicate/broken reference reject",
+      "SO_CATALOG=PASS; typed snapshots; SetDefinitions/OnValidate invalidation; read-only; extensions",
+      "CONTENT_REFERENCE_AUTHORING=PASS"
+    ],
+    "available": [
+      "MemAvailable:    5014124 kB"
+    ],
+    "logBytes": 55250
+  },
+  {
+    "observedUTC": "2026-10-29T08:54:02.893901+00:00",
+    "busy": true,
+    "status": {
+      "phase": "running",
+      "pid": 1995415,
+      "seconds": 780,
+      "available_memory": 5887836160,
+      "log_bytes": 55250,
+      "cpu": {
+        "total_seconds": 796.6,
+        "main_seconds": 760.77,
+        "main_state": "R",
+        "nice": 0,
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "main_wait": "0"
+      },
+      "updated_at_utc": "2026-10-29T08:53:59.804272+00:00"
+    },
+    "diagnostics": [
+      "- Loaded All Assemblies, in  0.780 seconds",
+      "AssetDatabase: script compilation time: 2.131724s",
+      "- Loaded All Assemblies, in  3.245 seconds",
+      "CONTENT_REFERENCE_INTEGRITY=PASS; runtimeSoTypes=144; publishedAssets=3550; invalid-target-before-play; JSON-restore; retry; immutable-ID/delete rejection",
+      "SO_DEFINITION_EXTENSIONS=PASS; enemy=enemy:crown-chaplain-qa-so-extension; deterministic=true; jsonRestore=true; enemyDefinitions=37; abilityDefinitions=19; modifierDefinitions=13; encounterDefinitions=37; backgroundDefinitions=13; ambitionDefinitions=19; heritableDefinitions=25; proficiencyDefinitions=10; lifeEventDefinitions=33; encounterRestored=true",
+      "SO_INCIDENT_VARIANTS=PASS; same-kind composition; real rejection/retry; JSON/fresh owner; exact replay",
+      "SO_ADDITIVE_CATALOGS=PASS; registered variants; subtype queries; real enemy/incident consumers; duplicate/broken reference reject",
+      "SO_CATALOG=PASS; typed snapshots; SetDefinitions/OnValidate invalidation; read-only; extensions",
+      "CONTENT_REFERENCE_AUTHORING=PASS"
+    ],
+    "available": [
+      "MemAvailable:    5681332 kB"
+    ],
+    "logBytes": 55250
+  },
+  {
+    "observedUTC": "2026-10-29T08:54:23.722710+00:00",
+    "busy": true,
+    "status": {
+      "phase": "running",
+      "pid": 1995415,
+      "seconds": 800,
+      "available_memory": 5776502784,
+      "log_bytes": 55250,
+      "cpu": {
+        "total_seconds": 816.82,
+        "main_seconds": 780.63,
+        "main_state": "R",
+        "nice": 0,
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "main_wait": "0"
+      },
+      "updated_at_utc": "2026-10-29T08:54:19.807065+00:00"
+    },
+    "diagnostics": [
+      "- Loaded All Assemblies, in  0.780 seconds",
+      "AssetDatabase: script compilation time: 2.131724s",
+      "- Loaded All Assemblies, in  3.245 seconds",
+      "CONTENT_REFERENCE_INTEGRITY=PASS; runtimeSoTypes=144; publishedAssets=3550; invalid-target-before-play; JSON-restore; retry; immutable-ID/delete rejection",
+      "SO_DEFINITION_EXTENSIONS=PASS; enemy=enemy:crown-chaplain-qa-so-extension; deterministic=true; jsonRestore=true; enemyDefinitions=37; abilityDefinitions=19; modifierDefinitions=13; encounterDefinitions=37; backgroundDefinitions=13; ambitionDefinitions=19; heritableDefinitions=25; proficiencyDefinitions=10; lifeEventDefinitions=33; encounterRestored=true",
+      "SO_INCIDENT_VARIANTS=PASS; same-kind composition; real rejection/retry; JSON/fresh owner; exact replay",
+      "SO_ADDITIVE_CATALOGS=PASS; registered variants; subtype queries; real enemy/incident consumers; duplicate/broken reference reject",
+      "SO_CATALOG=PASS; typed snapshots; SetDefinitions/OnValidate invalidation; read-only; extensions",
+      "CONTENT_REFERENCE_AUTHORING=PASS"
+    ],
+    "available": [
+      "MemAvailable:    5521708 kB"
+    ],
+    "logBytes": 55250
+  },
+  {
+    "observedUTC": "2026-10-29T08:54:44.697939+00:00",
+    "busy": true,
+    "status": {
+      "phase": "running",
+      "pid": 1995415,
+      "seconds": 820,
+      "available_memory": 5629415424,
+      "log_bytes": 55250,
+      "cpu": {
+        "total_seconds": 837.06,
+        "main_seconds": 800.51,
+        "main_state": "R",
+        "nice": 0,
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "main_wait": "0"
+      },
+      "updated_at_utc": "2026-10-29T08:54:39.809531+00:00"
+    },
+    "diagnostics": [
+      "- Loaded All Assemblies, in  0.780 seconds",
+      "AssetDatabase: script compilation time: 2.131724s",
+      "- Loaded All Assemblies, in  3.245 seconds",
+      "CONTENT_REFERENCE_INTEGRITY=PASS; runtimeSoTypes=144; publishedAssets=3550; invalid-target-before-play; JSON-restore; retry; immutable-ID/delete rejection",
+      "SO_DEFINITION_EXTENSIONS=PASS; enemy=enemy:crown-chaplain-qa-so-extension; deterministic=true; jsonRestore=true; enemyDefinitions=37; abilityDefinitions=19; modifierDefinitions=13; encounterDefinitions=37; backgroundDefinitions=13; ambitionDefinitions=19; heritableDefinitions=25; proficiencyDefinitions=10; lifeEventDefinitions=33; encounterRestored=true",
+      "SO_INCIDENT_VARIANTS=PASS; same-kind composition; real rejection/retry; JSON/fresh owner; exact replay",
+      "SO_ADDITIVE_CATALOGS=PASS; registered variants; subtype queries; real enemy/incident consumers; duplicate/broken reference reject",
+      "SO_CATALOG=PASS; typed snapshots; SetDefinitions/OnValidate invalidation; read-only; extensions",
+      "CONTENT_REFERENCE_AUTHORING=PASS"
+    ],
+    "available": [
+      "MemAvailable:    5474648 kB"
+    ],
+    "logBytes": 55250
+  },
+  {
+    "observedUTC": "2026-10-29T08:55:05.243471+00:00",
+    "busy": true,
+    "status": {
+      "phase": "running",
+      "pid": 1995415,
+      "seconds": 840,
+      "available_memory": 5460492288,
+      "log_bytes": 55250,
+      "cpu": {
+        "total_seconds": 857.31,
+        "main_seconds": 820.41,
+        "main_state": "R",
+        "nice": 0,
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "main_wait": "0"
+      },
+      "updated_at_utc": "2026-10-29T08:54:59.812100+00:00"
+    },
+    "diagnostics": [
+      "- Loaded All Assemblies, in  0.780 seconds",
+      "AssetDatabase: script compilation time: 2.131724s",
+      "- Loaded All Assemblies, in  3.245 seconds",
+      "CONTENT_REFERENCE_INTEGRITY=PASS; runtimeSoTypes=144; publishedAssets=3550; invalid-target-before-play; JSON-restore; retry; immutable-ID/delete rejection",
+      "SO_DEFINITION_EXTENSIONS=PASS; enemy=enemy:crown-chaplain-qa-so-extension; deterministic=true; jsonRestore=true; enemyDefinitions=37; abilityDefinitions=19; modifierDefinitions=13; encounterDefinitions=37; backgroundDefinitions=13; ambitionDefinitions=19; heritableDefinitions=25; proficiencyDefinitions=10; lifeEventDefinitions=33; encounterRestored=true",
+      "SO_INCIDENT_VARIANTS=PASS; same-kind composition; real rejection/retry; JSON/fresh owner; exact replay",
+      "SO_ADDITIVE_CATALOGS=PASS; registered variants; subtype queries; real enemy/incident consumers; duplicate/broken reference reject",
+      "SO_CATALOG=PASS; typed snapshots; SetDefinitions/OnValidate invalidation; read-only; extensions",
+      "CONTENT_REFERENCE_AUTHORING=PASS"
+    ],
+    "available": [
+      "MemAvailable:    5335900 kB"
+    ],
+    "logBytes": 55250
+  },
+  {
+    "observedUTC": "2026-10-29T08:55:25.890818+00:00",
+    "busy": true,
+    "status": {
+      "phase": "running",
+      "pid": 1995415,
+      "seconds": 860,
+      "available_memory": 5440262144,
+      "log_bytes": 55250,
+      "cpu": {
+        "total_seconds": 877.59,
+        "main_seconds": 840.34,
+        "main_state": "R",
+        "nice": 0,
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "main_wait": "0"
+      },
+      "updated_at_utc": "2026-10-29T08:55:19.814494+00:00"
+    },
+    "diagnostics": [
+      "- Loaded All Assemblies, in  0.780 seconds",
+      "AssetDatabase: script compilation time: 2.131724s",
+      "- Loaded All Assemblies, in  3.245 seconds",
+      "CONTENT_REFERENCE_INTEGRITY=PASS; runtimeSoTypes=144; publishedAssets=3550; invalid-target-before-play; JSON-restore; retry; immutable-ID/delete rejection",
+      "SO_DEFINITION_EXTENSIONS=PASS; enemy=enemy:crown-chaplain-qa-so-extension; deterministic=true; jsonRestore=true; enemyDefinitions=37; abilityDefinitions=19; modifierDefinitions=13; encounterDefinitions=37; backgroundDefinitions=13; ambitionDefinitions=19; heritableDefinitions=25; proficiencyDefinitions=10; lifeEventDefinitions=33; encounterRestored=true",
+      "SO_INCIDENT_VARIANTS=PASS; same-kind composition; real rejection/retry; JSON/fresh owner; exact replay",
+      "SO_ADDITIVE_CATALOGS=PASS; registered variants; subtype queries; real enemy/incident consumers; duplicate/broken reference reject",
+      "SO_CATALOG=PASS; typed snapshots; SetDefinitions/OnValidate invalidation; read-only; extensions",
+      "CONTENT_REFERENCE_AUTHORING=PASS"
+    ],
+    "available": [
+      "MemAvailable:    5075968 kB"
+    ],
+    "logBytes": 55250
+  },
+  {
+    "observedUTC": "2026-10-29T08:55:46.490710+00:00",
+    "busy": true,
+    "status": {
+      "phase": "running",
+      "pid": 1995415,
+      "seconds": 880,
+      "available_memory": 5233938432,
+      "log_bytes": 55250,
+      "cpu": {
+        "total_seconds": 897.75,
+        "main_seconds": 860.14,
+        "main_state": "R",
+        "nice": 0,
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "main_wait": "0"
+      },
+      "updated_at_utc": "2026-10-29T08:55:39.816984+00:00"
+    },
+    "diagnostics": [
+      "- Loaded All Assemblies, in  0.780 seconds",
+      "AssetDatabase: script compilation time: 2.131724s",
+      "- Loaded All Assemblies, in  3.245 seconds",
+      "CONTENT_REFERENCE_INTEGRITY=PASS; runtimeSoTypes=144; publishedAssets=3550; invalid-target-before-play; JSON-restore; retry; immutable-ID/delete rejection",
+      "SO_DEFINITION_EXTENSIONS=PASS; enemy=enemy:crown-chaplain-qa-so-extension; deterministic=true; jsonRestore=true; enemyDefinitions=37; abilityDefinitions=19; modifierDefinitions=13; encounterDefinitions=37; backgroundDefinitions=13; ambitionDefinitions=19; heritableDefinitions=25; proficiencyDefinitions=10; lifeEventDefinitions=33; encounterRestored=true",
+      "SO_INCIDENT_VARIANTS=PASS; same-kind composition; real rejection/retry; JSON/fresh owner; exact replay",
+      "SO_ADDITIVE_CATALOGS=PASS; registered variants; subtype queries; real enemy/incident consumers; duplicate/broken reference reject",
+      "SO_CATALOG=PASS; typed snapshots; SetDefinitions/OnValidate invalidation; read-only; extensions",
+      "CONTENT_REFERENCE_AUTHORING=PASS"
+    ],
+    "available": [
+      "MemAvailable:    5098404 kB"
+    ],
+    "logBytes": 55250
+  },
+  {
+    "observedUTC": "2026-10-29T08:56:07.536147+00:00",
+    "busy": true,
+    "status": {
+      "phase": "running",
+      "pid": 1995415,
+      "seconds": 900,
+      "available_memory": 5187108864,
+      "log_bytes": 55250,
+      "cpu": {
+        "total_seconds": 917.97,
+        "main_seconds": 880.0,
+        "main_state": "R",
+        "nice": 0,
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "main_wait": "0"
+      },
+      "updated_at_utc": "2026-10-29T08:55:59.819286+00:00"
+    },
+    "diagnostics": [
+      "- Loaded All Assemblies, in  0.780 seconds",
+      "AssetDatabase: script compilation time: 2.131724s",
+      "- Loaded All Assemblies, in  3.245 seconds",
+      "CONTENT_REFERENCE_INTEGRITY=PASS; runtimeSoTypes=144; publishedAssets=3550; invalid-target-before-play; JSON-restore; retry; immutable-ID/delete rejection",
+      "SO_DEFINITION_EXTENSIONS=PASS; enemy=enemy:crown-chaplain-qa-so-extension; deterministic=true; jsonRestore=true; enemyDefinitions=37; abilityDefinitions=19; modifierDefinitions=13; encounterDefinitions=37; backgroundDefinitions=13; ambitionDefinitions=19; heritableDefinitions=25; proficiencyDefinitions=10; lifeEventDefinitions=33; encounterRestored=true",
+      "SO_INCIDENT_VARIANTS=PASS; same-kind composition; real rejection/retry; JSON/fresh owner; exact replay",
+      "SO_ADDITIVE_CATALOGS=PASS; registered variants; subtype queries; real enemy/incident consumers; duplicate/broken reference reject",
+      "SO_CATALOG=PASS; typed snapshots; SetDefinitions/OnValidate invalidation; read-only; extensions",
+      "CONTENT_REFERENCE_AUTHORING=PASS"
+    ],
+    "available": [
+      "MemAvailable:    5798236 kB"
+    ],
+    "logBytes": 55250
+  },
+  {
+    "observedUTC": "2026-10-29T08:56:28.206353+00:00",
+    "busy": true,
+    "status": {
+      "phase": "running",
+      "pid": 1995415,
+      "seconds": 920,
+      "available_memory": 5838348288,
+      "log_bytes": 55250,
+      "cpu": {
+        "total_seconds": 938.08,
+        "main_seconds": 899.75,
+        "main_state": "R",
+        "nice": 0,
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "main_wait": "0"
+      },
+      "updated_at_utc": "2026-10-29T08:56:19.821643+00:00"
+    },
+    "diagnostics": [
+      "- Loaded All Assemblies, in  0.780 seconds",
+      "AssetDatabase: script compilation time: 2.131724s",
+      "- Loaded All Assemblies, in  3.245 seconds",
+      "CONTENT_REFERENCE_INTEGRITY=PASS; runtimeSoTypes=144; publishedAssets=3550; invalid-target-before-play; JSON-restore; retry; immutable-ID/delete rejection",
+      "SO_DEFINITION_EXTENSIONS=PASS; enemy=enemy:crown-chaplain-qa-so-extension; deterministic=true; jsonRestore=true; enemyDefinitions=37; abilityDefinitions=19; modifierDefinitions=13; encounterDefinitions=37; backgroundDefinitions=13; ambitionDefinitions=19; heritableDefinitions=25; proficiencyDefinitions=10; lifeEventDefinitions=33; encounterRestored=true",
+      "SO_INCIDENT_VARIANTS=PASS; same-kind composition; real rejection/retry; JSON/fresh owner; exact replay",
+      "SO_ADDITIVE_CATALOGS=PASS; registered variants; subtype queries; real enemy/incident consumers; duplicate/broken reference reject",
+      "SO_CATALOG=PASS; typed snapshots; SetDefinitions/OnValidate invalidation; read-only; extensions",
+      "CONTENT_REFERENCE_AUTHORING=PASS"
+    ],
+    "available": [
+      "MemAvailable:    5651672 kB"
+    ],
+    "logBytes": 55250
+  },
+  {
+    "observedUTC": "2026-10-29T08:56:48.914105+00:00",
+    "busy": true,
+    "status": {
+      "phase": "running",
+      "pid": 1995415,
+      "seconds": 950,
+      "available_memory": 5579993088,
+      "log_bytes": 55250,
+      "cpu": {
+        "total_seconds": 968.36,
+        "main_seconds": 929.5,
+        "main_state": "R",
+        "nice": 0,
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "main_wait": "0"
+      },
+      "updated_at_utc": "2026-10-29T08:56:49.826716+00:00"
+    },
+    "diagnostics": [
+      "- Loaded All Assemblies, in  0.780 seconds",
+      "AssetDatabase: script compilation time: 2.131724s",
+      "- Loaded All Assemblies, in  3.245 seconds",
+      "CONTENT_REFERENCE_INTEGRITY=PASS; runtimeSoTypes=144; publishedAssets=3550; invalid-target-before-play; JSON-restore; retry; immutable-ID/delete rejection",
+      "SO_DEFINITION_EXTENSIONS=PASS; enemy=enemy:crown-chaplain-qa-so-extension; deterministic=true; jsonRestore=true; enemyDefinitions=37; abilityDefinitions=19; modifierDefinitions=13; encounterDefinitions=37; backgroundDefinitions=13; ambitionDefinitions=19; heritableDefinitions=25; proficiencyDefinitions=10; lifeEventDefinitions=33; encounterRestored=true",
+      "SO_INCIDENT_VARIANTS=PASS; same-kind composition; real rejection/retry; JSON/fresh owner; exact replay",
+      "SO_ADDITIVE_CATALOGS=PASS; registered variants; subtype queries; real enemy/incident consumers; duplicate/broken reference reject",
+      "SO_CATALOG=PASS; typed snapshots; SetDefinitions/OnValidate invalidation; read-only; extensions",
+      "CONTENT_REFERENCE_AUTHORING=PASS"
+    ],
+    "available": [
+      "MemAvailable:    5446948 kB"
+    ],
+    "logBytes": 55250
+  },
+  {
+    "observedUTC": "2026-10-29T08:57:10.414248+00:00",
+    "busy": true,
+    "status": {
+      "phase": "running",
+      "pid": 1995415,
+      "seconds": 970,
+      "available_memory": 5462282240,
+      "log_bytes": 56483,
+      "cpu": {
+        "total_seconds": 988.52,
+        "main_seconds": 949.31,
+        "main_state": "R",
+        "nice": 0,
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "main_wait": "0"
+      },
+      "updated_at_utc": "2026-10-29T08:57:09.829511+00:00"
+    },
+    "diagnostics": [
+      "- Loaded All Assemblies, in  0.780 seconds",
+      "AssetDatabase: script compilation time: 2.131724s",
+      "- Loaded All Assemblies, in  3.245 seconds",
+      "CONTENT_REFERENCE_INTEGRITY=PASS; runtimeSoTypes=144; publishedAssets=3550; invalid-target-before-play; JSON-restore; retry; immutable-ID/delete rejection",
+      "SO_DEFINITION_EXTENSIONS=PASS; enemy=enemy:crown-chaplain-qa-so-extension; deterministic=true; jsonRestore=true; enemyDefinitions=37; abilityDefinitions=19; modifierDefinitions=13; encounterDefinitions=37; backgroundDefinitions=13; ambitionDefinitions=19; heritableDefinitions=25; proficiencyDefinitions=10; lifeEventDefinitions=33; encounterRestored=true",
+      "SO_INCIDENT_VARIANTS=PASS; same-kind composition; real rejection/retry; JSON/fresh owner; exact replay",
+      "SO_ADDITIVE_CATALOGS=PASS; registered variants; subtype queries; real enemy/incident consumers; duplicate/broken reference reject",
+      "SO_CATALOG=PASS; typed snapshots; SetDefinitions/OnValidate invalidation; read-only; extensions",
+      "CONTENT_REFERENCE_AUTHORING=PASS",
+      "CONTENT_REFERENCE_RUNTIME=PASS; authored ambition3/practice7; legacy string/int IDs; fresh JSON owners; exact duplicate retry"
+    ],
+    "available": [
+      "MemAvailable:    5341132 kB"
+    ],
+    "logBytes": 56483
+  },
+  {
+    "observedUTC": "2026-10-29T08:57:31.016416+00:00",
+    "busy": true,
+    "status": {
+      "phase": "running",
+      "pid": 1995415,
+      "seconds": 990,
+      "available_memory": 5339066368,
+      "log_bytes": 56483,
+      "cpu": {
+        "total_seconds": 1008.67,
+        "main_seconds": 969.09,
+        "main_state": "R",
+        "nice": 0,
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "main_wait": "0"
+      },
+      "updated_at_utc": "2026-10-29T08:57:29.834844+00:00"
+    },
+    "diagnostics": [
+      "- Loaded All Assemblies, in  0.780 seconds",
+      "AssetDatabase: script compilation time: 2.131724s",
+      "- Loaded All Assemblies, in  3.245 seconds",
+      "CONTENT_REFERENCE_INTEGRITY=PASS; runtimeSoTypes=144; publishedAssets=3550; invalid-target-before-play; JSON-restore; retry; immutable-ID/delete rejection",
+      "SO_DEFINITION_EXTENSIONS=PASS; enemy=enemy:crown-chaplain-qa-so-extension; deterministic=true; jsonRestore=true; enemyDefinitions=37; abilityDefinitions=19; modifierDefinitions=13; encounterDefinitions=37; backgroundDefinitions=13; ambitionDefinitions=19; heritableDefinitions=25; proficiencyDefinitions=10; lifeEventDefinitions=33; encounterRestored=true",
+      "SO_INCIDENT_VARIANTS=PASS; same-kind composition; real rejection/retry; JSON/fresh owner; exact replay",
+      "SO_ADDITIVE_CATALOGS=PASS; registered variants; subtype queries; real enemy/incident consumers; duplicate/broken reference reject",
+      "SO_CATALOG=PASS; typed snapshots; SetDefinitions/OnValidate invalidation; read-only; extensions",
+      "CONTENT_REFERENCE_AUTHORING=PASS",
+      "CONTENT_REFERENCE_RUNTIME=PASS; authored ambition3/practice7; legacy string/int IDs; fresh JSON owners; exact duplicate retry"
+    ],
+    "available": [
+      "MemAvailable:    5271992 kB"
+    ],
+    "logBytes": 56483
+  },
+  {
+    "observedUTC": "2026-10-29T08:57:51.764971+00:00",
+    "busy": true,
+    "status": {
+      "phase": "running",
+      "pid": 1995415,
+      "seconds": 1010,
+      "available_memory": 5394358272,
+      "log_bytes": 56483,
+      "cpu": {
+        "total_seconds": 1028.91,
+        "main_seconds": 988.96,
+        "main_state": "R",
+        "nice": 0,
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "main_wait": "0"
+      },
+      "updated_at_utc": "2026-10-29T08:57:49.837161+00:00"
+    },
+    "diagnostics": [
+      "- Loaded All Assemblies, in  0.780 seconds",
+      "AssetDatabase: script compilation time: 2.131724s",
+      "- Loaded All Assemblies, in  3.245 seconds",
+      "CONTENT_REFERENCE_INTEGRITY=PASS; runtimeSoTypes=144; publishedAssets=3550; invalid-target-before-play; JSON-restore; retry; immutable-ID/delete rejection",
+      "SO_DEFINITION_EXTENSIONS=PASS; enemy=enemy:crown-chaplain-qa-so-extension; deterministic=true; jsonRestore=true; enemyDefinitions=37; abilityDefinitions=19; modifierDefinitions=13; encounterDefinitions=37; backgroundDefinitions=13; ambitionDefinitions=19; heritableDefinitions=25; proficiencyDefinitions=10; lifeEventDefinitions=33; encounterRestored=true",
+      "SO_INCIDENT_VARIANTS=PASS; same-kind composition; real rejection/retry; JSON/fresh owner; exact replay",
+      "SO_ADDITIVE_CATALOGS=PASS; registered variants; subtype queries; real enemy/incident consumers; duplicate/broken reference reject",
+      "SO_CATALOG=PASS; typed snapshots; SetDefinitions/OnValidate invalidation; read-only; extensions",
+      "CONTENT_REFERENCE_AUTHORING=PASS",
+      "CONTENT_REFERENCE_RUNTIME=PASS; authored ambition3/practice7; legacy string/int IDs; fresh JSON owners; exact duplicate retry"
+    ],
+    "available": [
+      "MemAvailable:    5219372 kB"
+    ],
+    "logBytes": 56483
+  },
+  {
+    "observedUTC": "2026-10-29T08:58:12.392589+00:00",
+    "busy": true,
+    "status": {
+      "phase": "running",
+      "pid": 1995415,
+      "seconds": 1030,
+      "available_memory": 6537138176,
+      "log_bytes": 56483,
+      "cpu": {
+        "total_seconds": 1049.04,
+        "main_seconds": 1008.73,
+        "main_state": "R",
+        "nice": 0,
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "main_wait": "0"
+      },
+      "updated_at_utc": "2026-10-29T08:58:09.839396+00:00"
+    },
+    "diagnostics": [
+      "- Loaded All Assemblies, in  0.780 seconds",
+      "AssetDatabase: script compilation time: 2.131724s",
+      "- Loaded All Assemblies, in  3.245 seconds",
+      "CONTENT_REFERENCE_INTEGRITY=PASS; runtimeSoTypes=144; publishedAssets=3550; invalid-target-before-play; JSON-restore; retry; immutable-ID/delete rejection",
+      "SO_DEFINITION_EXTENSIONS=PASS; enemy=enemy:crown-chaplain-qa-so-extension; deterministic=true; jsonRestore=true; enemyDefinitions=37; abilityDefinitions=19; modifierDefinitions=13; encounterDefinitions=37; backgroundDefinitions=13; ambitionDefinitions=19; heritableDefinitions=25; proficiencyDefinitions=10; lifeEventDefinitions=33; encounterRestored=true",
+      "SO_INCIDENT_VARIANTS=PASS; same-kind composition; real rejection/retry; JSON/fresh owner; exact replay",
+      "SO_ADDITIVE_CATALOGS=PASS; registered variants; subtype queries; real enemy/incident consumers; duplicate/broken reference reject",
+      "SO_CATALOG=PASS; typed snapshots; SetDefinitions/OnValidate invalidation; read-only; extensions",
+      "CONTENT_REFERENCE_AUTHORING=PASS",
+      "CONTENT_REFERENCE_RUNTIME=PASS; authored ambition3/practice7; legacy string/int IDs; fresh JSON owners; exact duplicate retry"
+    ],
+    "available": [
+      "MemAvailable:    6415092 kB"
+    ],
+    "logBytes": 56483
+  },
+  {
+    "observedUTC": "2026-10-29T08:58:34.894183+00:00",
+    "busy": true,
+    "status": {
+      "phase": "running",
+      "pid": 1995415,
+      "seconds": 1050,
+      "available_memory": 6437892096,
+      "log_bytes": 56483,
+      "cpu": {
+        "total_seconds": 1069.3,
+        "main_seconds": 1028.64,
+        "main_state": "R",
+        "nice": 0,
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "main_wait": "0"
+      },
+      "updated_at_utc": "2026-10-29T08:58:29.841543+00:00"
+    },
+    "diagnostics": [
+      "- Loaded All Assemblies, in  0.780 seconds",
+      "AssetDatabase: script compilation time: 2.131724s",
+      "- Loaded All Assemblies, in  3.245 seconds",
+      "CONTENT_REFERENCE_INTEGRITY=PASS; runtimeSoTypes=144; publishedAssets=3550; invalid-target-before-play; JSON-restore; retry; immutable-ID/delete rejection",
+      "SO_DEFINITION_EXTENSIONS=PASS; enemy=enemy:crown-chaplain-qa-so-extension; deterministic=true; jsonRestore=true; enemyDefinitions=37; abilityDefinitions=19; modifierDefinitions=13; encounterDefinitions=37; backgroundDefinitions=13; ambitionDefinitions=19; heritableDefinitions=25; proficiencyDefinitions=10; lifeEventDefinitions=33; encounterRestored=true",
+      "SO_INCIDENT_VARIANTS=PASS; same-kind composition; real rejection/retry; JSON/fresh owner; exact replay",
+      "SO_ADDITIVE_CATALOGS=PASS; registered variants; subtype queries; real enemy/incident consumers; duplicate/broken reference reject",
+      "SO_CATALOG=PASS; typed snapshots; SetDefinitions/OnValidate invalidation; read-only; extensions",
+      "CONTENT_REFERENCE_AUTHORING=PASS",
+      "CONTENT_REFERENCE_RUNTIME=PASS; authored ambition3/practice7; legacy string/int IDs; fresh JSON owners; exact duplicate retry"
+    ],
+    "available": [
+      "MemAvailable:    6227200 kB"
+    ],
+    "logBytes": 56483
+  },
+  {
+    "observedUTC": "2026-10-29T08:58:56.010243+00:00",
+    "busy": true,
+    "status": {
+      "phase": "running",
+      "pid": 1995415,
+      "seconds": 1070,
+      "available_memory": 6260822016,
+      "log_bytes": 56483,
+      "cpu": {
+        "total_seconds": 1089.48,
+        "main_seconds": 1048.47,
+        "main_state": "R",
+        "nice": 0,
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "main_wait": "0"
+      },
+      "updated_at_utc": "2026-10-29T08:58:49.843749+00:00"
+    },
+    "diagnostics": [
+      "- Loaded All Assemblies, in  0.780 seconds",
+      "AssetDatabase: script compilation time: 2.131724s",
+      "- Loaded All Assemblies, in  3.245 seconds",
+      "CONTENT_REFERENCE_INTEGRITY=PASS; runtimeSoTypes=144; publishedAssets=3550; invalid-target-before-play; JSON-restore; retry; immutable-ID/delete rejection",
+      "SO_DEFINITION_EXTENSIONS=PASS; enemy=enemy:crown-chaplain-qa-so-extension; deterministic=true; jsonRestore=true; enemyDefinitions=37; abilityDefinitions=19; modifierDefinitions=13; encounterDefinitions=37; backgroundDefinitions=13; ambitionDefinitions=19; heritableDefinitions=25; proficiencyDefinitions=10; lifeEventDefinitions=33; encounterRestored=true",
+      "SO_INCIDENT_VARIANTS=PASS; same-kind composition; real rejection/retry; JSON/fresh owner; exact replay",
+      "SO_ADDITIVE_CATALOGS=PASS; registered variants; subtype queries; real enemy/incident consumers; duplicate/broken reference reject",
+      "SO_CATALOG=PASS; typed snapshots; SetDefinitions/OnValidate invalidation; read-only; extensions",
+      "CONTENT_REFERENCE_AUTHORING=PASS",
+      "CONTENT_REFERENCE_RUNTIME=PASS; authored ambition3/practice7; legacy string/int IDs; fresh JSON owners; exact duplicate retry"
+    ],
+    "available": [
+      "MemAvailable:    6039048 kB"
+    ],
+    "logBytes": 56483
+  },
+  {
+    "observedUTC": "2026-10-29T08:59:17.717235+00:00",
+    "busy": true,
+    "status": {
+      "phase": "running",
+      "pid": 1995415,
+      "seconds": 1090,
+      "available_memory": 6184075264,
+      "log_bytes": 56483,
+      "cpu": {
+        "total_seconds": 1109.65,
+        "main_seconds": 1068.25,
+        "main_state": "R",
+        "nice": 0,
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "main_wait": "0"
+      },
+      "updated_at_utc": "2026-10-29T08:59:09.848305+00:00"
+    },
+    "diagnostics": [
+      "- Loaded All Assemblies, in  0.780 seconds",
+      "AssetDatabase: script compilation time: 2.131724s",
+      "- Loaded All Assemblies, in  3.245 seconds",
+      "CONTENT_REFERENCE_INTEGRITY=PASS; runtimeSoTypes=144; publishedAssets=3550; invalid-target-before-play; JSON-restore; retry; immutable-ID/delete rejection",
+      "SO_DEFINITION_EXTENSIONS=PASS; enemy=enemy:crown-chaplain-qa-so-extension; deterministic=true; jsonRestore=true; enemyDefinitions=37; abilityDefinitions=19; modifierDefinitions=13; encounterDefinitions=37; backgroundDefinitions=13; ambitionDefinitions=19; heritableDefinitions=25; proficiencyDefinitions=10; lifeEventDefinitions=33; encounterRestored=true",
+      "SO_INCIDENT_VARIANTS=PASS; same-kind composition; real rejection/retry; JSON/fresh owner; exact replay",
+      "SO_ADDITIVE_CATALOGS=PASS; registered variants; subtype queries; real enemy/incident consumers; duplicate/broken reference reject",
+      "SO_CATALOG=PASS; typed snapshots; SetDefinitions/OnValidate invalidation; read-only; extensions",
+      "CONTENT_REFERENCE_AUTHORING=PASS",
+      "CONTENT_REFERENCE_RUNTIME=PASS; authored ambition3/practice7; legacy string/int IDs; fresh JSON owners; exact duplicate retry"
+    ],
+    "available": [
+      "MemAvailable:    6048248 kB"
+    ],
+    "logBytes": 56483
+  },
+  {
+    "observedUTC": "2026-10-29T08:59:39.760906+00:00",
+    "busy": true,
+    "status": {
+      "phase": "running",
+      "pid": 1995415,
+      "seconds": 1120,
+      "available_memory": 6469660672,
+      "log_bytes": 57837,
+      "cpu": {
+        "total_seconds": 1140.01,
+        "main_seconds": 1098.08,
+        "main_state": "R",
+        "nice": 0,
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "main_wait": "0"
+      },
+      "updated_at_utc": "2026-10-29T08:59:39.851911+00:00"
+    },
+    "diagnostics": [
+      "- Loaded All Assemblies, in  0.780 seconds",
+      "AssetDatabase: script compilation time: 2.131724s",
+      "- Loaded All Assemblies, in  3.245 seconds",
+      "CONTENT_REFERENCE_INTEGRITY=PASS; runtimeSoTypes=144; publishedAssets=3550; invalid-target-before-play; JSON-restore; retry; immutable-ID/delete rejection",
+      "SO_DEFINITION_EXTENSIONS=PASS; enemy=enemy:crown-chaplain-qa-so-extension; deterministic=true; jsonRestore=true; enemyDefinitions=37; abilityDefinitions=19; modifierDefinitions=13; encounterDefinitions=37; backgroundDefinitions=13; ambitionDefinitions=19; heritableDefinitions=25; proficiencyDefinitions=10; lifeEventDefinitions=33; encounterRestored=true",
+      "SO_INCIDENT_VARIANTS=PASS; same-kind composition; real rejection/retry; JSON/fresh owner; exact replay",
+      "SO_ADDITIVE_CATALOGS=PASS; registered variants; subtype queries; real enemy/incident consumers; duplicate/broken reference reject",
+      "SO_CATALOG=PASS; typed snapshots; SetDefinitions/OnValidate invalidation; read-only; extensions",
+      "CONTENT_REFERENCE_AUTHORING=PASS",
+      "CONTENT_REFERENCE_RUNTIME=PASS; authored ambition3/practice7; legacy string/int IDs; fresh JSON owners; exact duplicate retry",
+      "DURABLE_PHYSICAL_RECOVERY=PASS; actual-consume/grant; consumed-output replay; rejected-candidates=7"
+    ],
+    "available": [
+      "MemAvailable:    6294940 kB"
+    ],
+    "logBytes": 57837
+  },
+  {
+    "observedUTC": "2026-10-29T09:00:01.619436+00:00",
+    "busy": true,
+    "status": {
+      "phase": "running",
+      "pid": 1995415,
+      "seconds": 1140,
+      "available_memory": 6413733888,
+      "log_bytes": 57837,
+      "cpu": {
+        "total_seconds": 1160.23,
+        "main_seconds": 1117.93,
+        "main_state": "R",
+        "nice": 0,
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "main_wait": "0"
+      },
+      "updated_at_utc": "2026-10-29T08:59:59.854065+00:00"
+    },
+    "diagnostics": [
+      "- Loaded All Assemblies, in  0.780 seconds",
+      "AssetDatabase: script compilation time: 2.131724s",
+      "- Loaded All Assemblies, in  3.245 seconds",
+      "CONTENT_REFERENCE_INTEGRITY=PASS; runtimeSoTypes=144; publishedAssets=3550; invalid-target-before-play; JSON-restore; retry; immutable-ID/delete rejection",
+      "SO_DEFINITION_EXTENSIONS=PASS; enemy=enemy:crown-chaplain-qa-so-extension; deterministic=true; jsonRestore=true; enemyDefinitions=37; abilityDefinitions=19; modifierDefinitions=13; encounterDefinitions=37; backgroundDefinitions=13; ambitionDefinitions=19; heritableDefinitions=25; proficiencyDefinitions=10; lifeEventDefinitions=33; encounterRestored=true",
+      "SO_INCIDENT_VARIANTS=PASS; same-kind composition; real rejection/retry; JSON/fresh owner; exact replay",
+      "SO_ADDITIVE_CATALOGS=PASS; registered variants; subtype queries; real enemy/incident consumers; duplicate/broken reference reject",
+      "SO_CATALOG=PASS; typed snapshots; SetDefinitions/OnValidate invalidation; read-only; extensions",
+      "CONTENT_REFERENCE_AUTHORING=PASS",
+      "CONTENT_REFERENCE_RUNTIME=PASS; authored ambition3/practice7; legacy string/int IDs; fresh JSON owners; exact duplicate retry",
+      "DURABLE_PHYSICAL_RECOVERY=PASS; actual-consume/grant; consumed-output replay; rejected-candidates=7"
+    ],
+    "available": [
+      "MemAvailable:    6169396 kB"
+    ],
+    "logBytes": 57837
+  },
+  {
+    "observedUTC": "2026-10-29T09:00:22.606667+00:00",
+    "busy": true,
+    "status": {
+      "phase": "running",
+      "pid": 1995415,
+      "seconds": 1160,
+      "available_memory": 6224334848,
+      "log_bytes": 57837,
+      "cpu": {
+        "total_seconds": 1180.45,
+        "main_seconds": 1137.8,
+        "main_state": "R",
+        "nice": 0,
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "main_wait": "0"
+      },
+      "updated_at_utc": "2026-10-29T09:00:19.856996+00:00"
+    },
+    "diagnostics": [
+      "- Loaded All Assemblies, in  0.780 seconds",
+      "AssetDatabase: script compilation time: 2.131724s",
+      "- Loaded All Assemblies, in  3.245 seconds",
+      "CONTENT_REFERENCE_INTEGRITY=PASS; runtimeSoTypes=144; publishedAssets=3550; invalid-target-before-play; JSON-restore; retry; immutable-ID/delete rejection",
+      "SO_DEFINITION_EXTENSIONS=PASS; enemy=enemy:crown-chaplain-qa-so-extension; deterministic=true; jsonRestore=true; enemyDefinitions=37; abilityDefinitions=19; modifierDefinitions=13; encounterDefinitions=37; backgroundDefinitions=13; ambitionDefinitions=19; heritableDefinitions=25; proficiencyDefinitions=10; lifeEventDefinitions=33; encounterRestored=true",
+      "SO_INCIDENT_VARIANTS=PASS; same-kind composition; real rejection/retry; JSON/fresh owner; exact replay",
+      "SO_ADDITIVE_CATALOGS=PASS; registered variants; subtype queries; real enemy/incident consumers; duplicate/broken reference reject",
+      "SO_CATALOG=PASS; typed snapshots; SetDefinitions/OnValidate invalidation; read-only; extensions",
+      "CONTENT_REFERENCE_AUTHORING=PASS",
+      "CONTENT_REFERENCE_RUNTIME=PASS; authored ambition3/practice7; legacy string/int IDs; fresh JSON owners; exact duplicate retry",
+      "DURABLE_PHYSICAL_RECOVERY=PASS; actual-consume/grant; consumed-output replay; rejected-candidates=7",
+      "DURABLE_PHYSICAL_PARTIAL_REPLAY=PASS; exact-plan resume; conflicts rejected; partial stock preserved"
+    ],
+    "available": [
+      "MemAvailable:    6013796 kB"
+    ],
+    "logBytes": 59187
+  },
+  {
+    "observedUTC": "2026-10-29T09:00:43.305134+00:00",
+    "busy": true,
+    "status": {
+      "phase": "running",
+      "pid": 1995415,
+      "seconds": 1180,
+      "available_memory": 6210273280,
+      "log_bytes": 59187,
+      "cpu": {
+        "total_seconds": 1200.71,
+        "main_seconds": 1157.68,
+        "main_state": "R",
+        "nice": 0,
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "main_wait": "0"
+      },
+      "updated_at_utc": "2026-10-29T09:00:39.859111+00:00"
+    },
+    "diagnostics": [
+      "- Loaded All Assemblies, in  0.780 seconds",
+      "AssetDatabase: script compilation time: 2.131724s",
+      "- Loaded All Assemblies, in  3.245 seconds",
+      "CONTENT_REFERENCE_INTEGRITY=PASS; runtimeSoTypes=144; publishedAssets=3550; invalid-target-before-play; JSON-restore; retry; immutable-ID/delete rejection",
+      "SO_DEFINITION_EXTENSIONS=PASS; enemy=enemy:crown-chaplain-qa-so-extension; deterministic=true; jsonRestore=true; enemyDefinitions=37; abilityDefinitions=19; modifierDefinitions=13; encounterDefinitions=37; backgroundDefinitions=13; ambitionDefinitions=19; heritableDefinitions=25; proficiencyDefinitions=10; lifeEventDefinitions=33; encounterRestored=true",
+      "SO_INCIDENT_VARIANTS=PASS; same-kind composition; real rejection/retry; JSON/fresh owner; exact replay",
+      "SO_ADDITIVE_CATALOGS=PASS; registered variants; subtype queries; real enemy/incident consumers; duplicate/broken reference reject",
+      "SO_CATALOG=PASS; typed snapshots; SetDefinitions/OnValidate invalidation; read-only; extensions",
+      "CONTENT_REFERENCE_AUTHORING=PASS",
+      "CONTENT_REFERENCE_RUNTIME=PASS; authored ambition3/practice7; legacy string/int IDs; fresh JSON owners; exact duplicate retry",
+      "DURABLE_PHYSICAL_RECOVERY=PASS; actual-consume/grant; consumed-output replay; rejected-candidates=7",
+      "DURABLE_PHYSICAL_PARTIAL_REPLAY=PASS; exact-plan resume; conflicts rejected; partial stock preserved"
+    ],
+    "available": [
+      "MemAvailable:    6077504 kB"
+    ],
+    "logBytes": 59187
+  },
+  {
+    "observedUTC": "2026-10-29T09:01:05.107798+00:00",
+    "busy": true,
+    "status": {
+      "phase": "running",
+      "pid": 1995415,
+      "seconds": 1200,
+      "available_memory": 6259245056,
+      "log_bytes": 61662,
+      "cpu": {
+        "total_seconds": 1220.93,
+        "main_seconds": 1177.55,
+        "main_state": "R",
+        "nice": 0,
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "main_wait": "0"
+      },
+      "updated_at_utc": "2026-10-29T09:00:59.862108+00:00"
+    },
+    "diagnostics": [
+      "- Loaded All Assemblies, in  0.780 seconds",
+      "AssetDatabase: script compilation time: 2.131724s",
+      "- Loaded All Assemblies, in  3.245 seconds",
+      "CONTENT_REFERENCE_INTEGRITY=PASS; runtimeSoTypes=144; publishedAssets=3550; invalid-target-before-play; JSON-restore; retry; immutable-ID/delete rejection",
+      "SO_DEFINITION_EXTENSIONS=PASS; enemy=enemy:crown-chaplain-qa-so-extension; deterministic=true; jsonRestore=true; enemyDefinitions=37; abilityDefinitions=19; modifierDefinitions=13; encounterDefinitions=37; backgroundDefinitions=13; ambitionDefinitions=19; heritableDefinitions=25; proficiencyDefinitions=10; lifeEventDefinitions=33; encounterRestored=true",
+      "SO_INCIDENT_VARIANTS=PASS; same-kind composition; real rejection/retry; JSON/fresh owner; exact replay",
+      "SO_ADDITIVE_CATALOGS=PASS; registered variants; subtype queries; real enemy/incident consumers; duplicate/broken reference reject",
+      "SO_CATALOG=PASS; typed snapshots; SetDefinitions/OnValidate invalidation; read-only; extensions",
+      "CONTENT_REFERENCE_AUTHORING=PASS",
+      "CONTENT_REFERENCE_RUNTIME=PASS; authored ambition3/practice7; legacy string/int IDs; fresh JSON owners; exact duplicate retry",
+      "DURABLE_PHYSICAL_RECOVERY=PASS; actual-consume/grant; consumed-output replay; rejected-candidates=7",
+      "DURABLE_PHYSICAL_PARTIAL_REPLAY=PASS; exact-plan resume; conflicts rejected; partial stock preserved",
+      "DURABLE_PHYSICAL_CAPACITY=PASS; preflight-no-mutation; joint-ack-reclaims-capacity; retry-completes",
+      "B112_CONTENT_CHILD_RECOVERY=PASS"
+    ],
+    "available": [
+      "MemAvailable:    6055272 kB"
+    ],
+    "logBytes": 61662
+  },
+  {
+    "observedUTC": "2026-10-29T09:01:26.083292+00:00",
+    "busy": true,
+    "status": {
+      "phase": "running",
+      "pid": 1995415,
+      "seconds": 1220,
+      "available_memory": 6201749504,
+      "log_bytes": 61662,
+      "cpu": {
+        "total_seconds": 1241.11,
+        "main_seconds": 1197.38,
+        "main_state": "R",
+        "nice": 0,
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "main_wait": "0"
+      },
+      "updated_at_utc": "2026-10-29T09:01:19.867124+00:00"
+    },
+    "diagnostics": [
+      "- Loaded All Assemblies, in  0.780 seconds",
+      "AssetDatabase: script compilation time: 2.131724s",
+      "- Loaded All Assemblies, in  3.245 seconds",
+      "CONTENT_REFERENCE_INTEGRITY=PASS; runtimeSoTypes=144; publishedAssets=3550; invalid-target-before-play; JSON-restore; retry; immutable-ID/delete rejection",
+      "SO_DEFINITION_EXTENSIONS=PASS; enemy=enemy:crown-chaplain-qa-so-extension; deterministic=true; jsonRestore=true; enemyDefinitions=37; abilityDefinitions=19; modifierDefinitions=13; encounterDefinitions=37; backgroundDefinitions=13; ambitionDefinitions=19; heritableDefinitions=25; proficiencyDefinitions=10; lifeEventDefinitions=33; encounterRestored=true",
+      "SO_INCIDENT_VARIANTS=PASS; same-kind composition; real rejection/retry; JSON/fresh owner; exact replay",
+      "SO_ADDITIVE_CATALOGS=PASS; registered variants; subtype queries; real enemy/incident consumers; duplicate/broken reference reject",
+      "SO_CATALOG=PASS; typed snapshots; SetDefinitions/OnValidate invalidation; read-only; extensions",
+      "CONTENT_REFERENCE_AUTHORING=PASS",
+      "CONTENT_REFERENCE_RUNTIME=PASS; authored ambition3/practice7; legacy string/int IDs; fresh JSON owners; exact duplicate retry",
+      "DURABLE_PHYSICAL_RECOVERY=PASS; actual-consume/grant; consumed-output replay; rejected-candidates=7",
+      "DURABLE_PHYSICAL_PARTIAL_REPLAY=PASS; exact-plan resume; conflicts rejected; partial stock preserved",
+      "DURABLE_PHYSICAL_CAPACITY=PASS; preflight-no-mutation; joint-ack-reclaims-capacity; retry-completes",
+      "B112_CONTENT_CHILD_RECOVERY=PASS"
+    ],
+    "available": [
+      "MemAvailable:    6048144 kB"
+    ],
+    "logBytes": 61662
+  },
+  {
+    "observedUTC": "2026-10-29T09:01:46.722211+00:00",
+    "busy": true,
+    "status": {
+      "phase": "running",
+      "pid": 1995415,
+      "seconds": 1240,
+      "available_memory": 5951606784,
+      "log_bytes": 61662,
+      "cpu": {
+        "total_seconds": 1261.36,
+        "main_seconds": 1217.26,
+        "main_state": "R",
+        "nice": 0,
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "main_wait": "0"
+      },
+      "updated_at_utc": "2026-10-29T09:01:39.869303+00:00"
+    },
+    "diagnostics": [
+      "- Loaded All Assemblies, in  0.780 seconds",
+      "AssetDatabase: script compilation time: 2.131724s",
+      "- Loaded All Assemblies, in  3.245 seconds",
+      "CONTENT_REFERENCE_INTEGRITY=PASS; runtimeSoTypes=144; publishedAssets=3550; invalid-target-before-play; JSON-restore; retry; immutable-ID/delete rejection",
+      "SO_DEFINITION_EXTENSIONS=PASS; enemy=enemy:crown-chaplain-qa-so-extension; deterministic=true; jsonRestore=true; enemyDefinitions=37; abilityDefinitions=19; modifierDefinitions=13; encounterDefinitions=37; backgroundDefinitions=13; ambitionDefinitions=19; heritableDefinitions=25; proficiencyDefinitions=10; lifeEventDefinitions=33; encounterRestored=true",
+      "SO_INCIDENT_VARIANTS=PASS; same-kind composition; real rejection/retry; JSON/fresh owner; exact replay",
+      "SO_ADDITIVE_CATALOGS=PASS; registered variants; subtype queries; real enemy/incident consumers; duplicate/broken reference reject",
+      "SO_CATALOG=PASS; typed snapshots; SetDefinitions/OnValidate invalidation; read-only; extensions",
+      "CONTENT_REFERENCE_AUTHORING=PASS",
+      "CONTENT_REFERENCE_RUNTIME=PASS; authored ambition3/practice7; legacy string/int IDs; fresh JSON owners; exact duplicate retry",
+      "DURABLE_PHYSICAL_RECOVERY=PASS; actual-consume/grant; consumed-output replay; rejected-candidates=7",
+      "DURABLE_PHYSICAL_PARTIAL_REPLAY=PASS; exact-plan resume; conflicts rejected; partial stock preserved",
+      "DURABLE_PHYSICAL_CAPACITY=PASS; preflight-no-mutation; joint-ack-reclaims-capacity; retry-completes",
+      "B112_CONTENT_CHILD_RECOVERY=PASS"
+    ],
+    "available": [
+      "MemAvailable:    5857828 kB"
+    ],
+    "logBytes": 61662
+  },
+  {
+    "observedUTC": "2026-10-29T09:02:07.704555+00:00",
+    "busy": true,
+    "status": {
+      "phase": "running",
+      "pid": 1995415,
+      "seconds": 1260,
+      "available_memory": 5930815488,
+      "log_bytes": 62944,
+      "cpu": {
+        "total_seconds": 1281.58,
+        "main_seconds": 1237.13,
+        "main_state": "R",
+        "nice": 0,
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "main_wait": "0"
+      },
+      "updated_at_utc": "2026-10-29T09:01:59.872145+00:00"
+    },
+    "diagnostics": [
+      "- Loaded All Assemblies, in  0.780 seconds",
+      "AssetDatabase: script compilation time: 2.131724s",
+      "- Loaded All Assemblies, in  3.245 seconds",
+      "CONTENT_REFERENCE_INTEGRITY=PASS; runtimeSoTypes=144; publishedAssets=3550; invalid-target-before-play; JSON-restore; retry; immutable-ID/delete rejection",
+      "SO_DEFINITION_EXTENSIONS=PASS; enemy=enemy:crown-chaplain-qa-so-extension; deterministic=true; jsonRestore=true; enemyDefinitions=37; abilityDefinitions=19; modifierDefinitions=13; encounterDefinitions=37; backgroundDefinitions=13; ambitionDefinitions=19; heritableDefinitions=25; proficiencyDefinitions=10; lifeEventDefinitions=33; encounterRestored=true",
+      "SO_INCIDENT_VARIANTS=PASS; same-kind composition; real rejection/retry; JSON/fresh owner; exact replay",
+      "SO_ADDITIVE_CATALOGS=PASS; registered variants; subtype queries; real enemy/incident consumers; duplicate/broken reference reject",
+      "SO_CATALOG=PASS; typed snapshots; SetDefinitions/OnValidate invalidation; read-only; extensions",
+      "CONTENT_REFERENCE_AUTHORING=PASS",
+      "CONTENT_REFERENCE_RUNTIME=PASS; authored ambition3/practice7; legacy string/int IDs; fresh JSON owners; exact duplicate retry",
+      "DURABLE_PHYSICAL_RECOVERY=PASS; actual-consume/grant; consumed-output replay; rejected-candidates=7",
+      "DURABLE_PHYSICAL_PARTIAL_REPLAY=PASS; exact-plan resume; conflicts rejected; partial stock preserved",
+      "DURABLE_PHYSICAL_CAPACITY=PASS; preflight-no-mutation; joint-ack-reclaims-capacity; retry-completes",
+      "B112_CONTENT_CHILD_RECOVERY=PASS",
+      "B112_CONTENT_ACK_BEFORE=PASS"
+    ],
+    "available": [
+      "MemAvailable:    6376880 kB"
+    ],
+    "logBytes": 62944
+  },
+  {
+    "observedUTC": "2026-10-29T09:02:28.494600+00:00",
+    "busy": true,
+    "status": {
+      "phase": "running",
+      "pid": 1995415,
+      "seconds": 1280,
+      "available_memory": 6512259072,
+      "log_bytes": 62944,
+      "cpu": {
+        "total_seconds": 1301.79,
+        "main_seconds": 1256.97,
+        "main_state": "R",
+        "nice": 0,
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "main_wait": "0"
+      },
+      "updated_at_utc": "2026-10-29T09:02:19.874432+00:00"
+    },
+    "diagnostics": [
+      "- Loaded All Assemblies, in  0.780 seconds",
+      "AssetDatabase: script compilation time: 2.131724s",
+      "- Loaded All Assemblies, in  3.245 seconds",
+      "CONTENT_REFERENCE_INTEGRITY=PASS; runtimeSoTypes=144; publishedAssets=3550; invalid-target-before-play; JSON-restore; retry; immutable-ID/delete rejection",
+      "SO_DEFINITION_EXTENSIONS=PASS; enemy=enemy:crown-chaplain-qa-so-extension; deterministic=true; jsonRestore=true; enemyDefinitions=37; abilityDefinitions=19; modifierDefinitions=13; encounterDefinitions=37; backgroundDefinitions=13; ambitionDefinitions=19; heritableDefinitions=25; proficiencyDefinitions=10; lifeEventDefinitions=33; encounterRestored=true",
+      "SO_INCIDENT_VARIANTS=PASS; same-kind composition; real rejection/retry; JSON/fresh owner; exact replay",
+      "SO_ADDITIVE_CATALOGS=PASS; registered variants; subtype queries; real enemy/incident consumers; duplicate/broken reference reject",
+      "SO_CATALOG=PASS; typed snapshots; SetDefinitions/OnValidate invalidation; read-only; extensions",
+      "CONTENT_REFERENCE_AUTHORING=PASS",
+      "CONTENT_REFERENCE_RUNTIME=PASS; authored ambition3/practice7; legacy string/int IDs; fresh JSON owners; exact duplicate retry",
+      "DURABLE_PHYSICAL_RECOVERY=PASS; actual-consume/grant; consumed-output replay; rejected-candidates=7",
+      "DURABLE_PHYSICAL_PARTIAL_REPLAY=PASS; exact-plan resume; conflicts rejected; partial stock preserved",
+      "DURABLE_PHYSICAL_CAPACITY=PASS; preflight-no-mutation; joint-ack-reclaims-capacity; retry-completes",
+      "B112_CONTENT_CHILD_RECOVERY=PASS",
+      "B112_CONTENT_ACK_BEFORE=PASS"
+    ],
+    "available": [
+      "MemAvailable:    6241336 kB"
+    ],
+    "logBytes": 62944
+  },
+  {
+    "observedUTC": "2026-10-29T09:02:51.243105+00:00",
+    "busy": true,
+    "status": {
+      "phase": "running",
+      "pid": 1995415,
+      "seconds": 1310,
+      "available_memory": 6250209280,
+      "log_bytes": 64225,
+      "cpu": {
+        "total_seconds": 1332.15,
+        "main_seconds": 1286.79,
+        "main_state": "R",
+        "nice": 0,
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "main_wait": "0"
+      },
+      "updated_at_utc": "2026-10-29T09:02:49.878155+00:00"
+    },
+    "diagnostics": [
+      "AssetDatabase: script compilation time: 2.131724s",
+      "- Loaded All Assemblies, in  3.245 seconds",
+      "CONTENT_REFERENCE_INTEGRITY=PASS; runtimeSoTypes=144; publishedAssets=3550; invalid-target-before-play; JSON-restore; retry; immutable-ID/delete rejection",
+      "SO_DEFINITION_EXTENSIONS=PASS; enemy=enemy:crown-chaplain-qa-so-extension; deterministic=true; jsonRestore=true; enemyDefinitions=37; abilityDefinitions=19; modifierDefinitions=13; encounterDefinitions=37; backgroundDefinitions=13; ambitionDefinitions=19; heritableDefinitions=25; proficiencyDefinitions=10; lifeEventDefinitions=33; encounterRestored=true",
+      "SO_INCIDENT_VARIANTS=PASS; same-kind composition; real rejection/retry; JSON/fresh owner; exact replay",
+      "SO_ADDITIVE_CATALOGS=PASS; registered variants; subtype queries; real enemy/incident consumers; duplicate/broken reference reject",
+      "SO_CATALOG=PASS; typed snapshots; SetDefinitions/OnValidate invalidation; read-only; extensions",
+      "CONTENT_REFERENCE_AUTHORING=PASS",
+      "CONTENT_REFERENCE_RUNTIME=PASS; authored ambition3/practice7; legacy string/int IDs; fresh JSON owners; exact duplicate retry",
+      "DURABLE_PHYSICAL_RECOVERY=PASS; actual-consume/grant; consumed-output replay; rejected-candidates=7",
+      "DURABLE_PHYSICAL_PARTIAL_REPLAY=PASS; exact-plan resume; conflicts rejected; partial stock preserved",
+      "DURABLE_PHYSICAL_CAPACITY=PASS; preflight-no-mutation; joint-ack-reclaims-capacity; retry-completes",
+      "B112_CONTENT_CHILD_RECOVERY=PASS",
+      "B112_CONTENT_ACK_BEFORE=PASS",
+      "B112_CONTENT_ACK_AFTER=PASS"
+    ],
+    "available": [
+      "MemAvailable:    6122824 kB"
+    ],
+    "logBytes": 64225
+  },
+  {
+    "observedUTC": "2026-10-29T09:03:11.931189+00:00",
+    "busy": true,
+    "status": {
+      "phase": "running",
+      "pid": 1995415,
+      "seconds": 1330,
+      "available_memory": 6176866304,
+      "log_bytes": 64225,
+      "cpu": {
+        "total_seconds": 1352.35,
+        "main_seconds": 1306.63,
+        "main_state": "R",
+        "nice": 0,
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "main_wait": "0"
+      },
+      "updated_at_utc": "2026-10-29T09:03:09.880309+00:00"
+    },
+    "diagnostics": [
+      "AssetDatabase: script compilation time: 2.131724s",
+      "- Loaded All Assemblies, in  3.245 seconds",
+      "CONTENT_REFERENCE_INTEGRITY=PASS; runtimeSoTypes=144; publishedAssets=3550; invalid-target-before-play; JSON-restore; retry; immutable-ID/delete rejection",
+      "SO_DEFINITION_EXTENSIONS=PASS; enemy=enemy:crown-chaplain-qa-so-extension; deterministic=true; jsonRestore=true; enemyDefinitions=37; abilityDefinitions=19; modifierDefinitions=13; encounterDefinitions=37; backgroundDefinitions=13; ambitionDefinitions=19; heritableDefinitions=25; proficiencyDefinitions=10; lifeEventDefinitions=33; encounterRestored=true",
+      "SO_INCIDENT_VARIANTS=PASS; same-kind composition; real rejection/retry; JSON/fresh owner; exact replay",
+      "SO_ADDITIVE_CATALOGS=PASS; registered variants; subtype queries; real enemy/incident consumers; duplicate/broken reference reject",
+      "SO_CATALOG=PASS; typed snapshots; SetDefinitions/OnValidate invalidation; read-only; extensions",
+      "CONTENT_REFERENCE_AUTHORING=PASS",
+      "CONTENT_REFERENCE_RUNTIME=PASS; authored ambition3/practice7; legacy string/int IDs; fresh JSON owners; exact duplicate retry",
+      "DURABLE_PHYSICAL_RECOVERY=PASS; actual-consume/grant; consumed-output replay; rejected-candidates=7",
+      "DURABLE_PHYSICAL_PARTIAL_REPLAY=PASS; exact-plan resume; conflicts rejected; partial stock preserved",
+      "DURABLE_PHYSICAL_CAPACITY=PASS; preflight-no-mutation; joint-ack-reclaims-capacity; retry-completes",
+      "B112_CONTENT_CHILD_RECOVERY=PASS",
+      "B112_CONTENT_ACK_BEFORE=PASS",
+      "B112_CONTENT_ACK_AFTER=PASS"
+    ],
+    "available": [
+      "MemAvailable:    6010808 kB"
+    ],
+    "logBytes": 64225
+  },
+  {
+    "observedUTC": "2026-10-29T09:03:33.835329+00:00",
+    "busy": true,
+    "status": {
+      "phase": "running",
+      "pid": 1995415,
+      "seconds": 1350,
+      "available_memory": 6165446656,
+      "log_bytes": 66622,
+      "cpu": {
+        "total_seconds": 1372.58,
+        "main_seconds": 1326.48,
+        "main_state": "R",
+        "nice": 0,
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "main_wait": "0"
+      },
+      "updated_at_utc": "2026-10-29T09:03:29.883116+00:00"
+    },
+    "diagnostics": [
+      "CONTENT_REFERENCE_INTEGRITY=PASS; runtimeSoTypes=144; publishedAssets=3550; invalid-target-before-play; JSON-restore; retry; immutable-ID/delete rejection",
+      "SO_DEFINITION_EXTENSIONS=PASS; enemy=enemy:crown-chaplain-qa-so-extension; deterministic=true; jsonRestore=true; enemyDefinitions=37; abilityDefinitions=19; modifierDefinitions=13; encounterDefinitions=37; backgroundDefinitions=13; ambitionDefinitions=19; heritableDefinitions=25; proficiencyDefinitions=10; lifeEventDefinitions=33; encounterRestored=true",
+      "SO_INCIDENT_VARIANTS=PASS; same-kind composition; real rejection/retry; JSON/fresh owner; exact replay",
+      "SO_ADDITIVE_CATALOGS=PASS; registered variants; subtype queries; real enemy/incident consumers; duplicate/broken reference reject",
+      "SO_CATALOG=PASS; typed snapshots; SetDefinitions/OnValidate invalidation; read-only; extensions",
+      "CONTENT_REFERENCE_AUTHORING=PASS",
+      "CONTENT_REFERENCE_RUNTIME=PASS; authored ambition3/practice7; legacy string/int IDs; fresh JSON owners; exact duplicate retry",
+      "DURABLE_PHYSICAL_RECOVERY=PASS; actual-consume/grant; consumed-output replay; rejected-candidates=7",
+      "DURABLE_PHYSICAL_PARTIAL_REPLAY=PASS; exact-plan resume; conflicts rejected; partial stock preserved",
+      "DURABLE_PHYSICAL_CAPACITY=PASS; preflight-no-mutation; joint-ack-reclaims-capacity; retry-completes",
+      "B112_CONTENT_CHILD_RECOVERY=PASS",
+      "B112_CONTENT_ACK_BEFORE=PASS",
+      "B112_CONTENT_ACK_AFTER=PASS",
+      "B112_PARENT_CHILD_ATOMIC=PASS",
+      "B112_CONTENT_OBSERVERS=PASS"
+    ],
+    "available": [
+      "MemAvailable:    6195888 kB"
+    ],
+    "logBytes": 66622
+  },
+  {
+    "observedUTC": "2026-10-29T09:03:57.606580+00:00",
+    "busy": true,
+    "status": {
+      "phase": "running",
+      "pid": 1995415,
+      "seconds": 1370,
+      "available_memory": 6289088512,
+      "log_bytes": 66622,
+      "cpu": {
+        "total_seconds": 1392.81,
+        "main_seconds": 1346.38,
+        "main_state": "R",
+        "nice": 0,
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "main_wait": "0"
+      },
+      "updated_at_utc": "2026-10-29T09:03:49.885524+00:00"
+    },
+    "diagnostics": [
+      "CONTENT_REFERENCE_INTEGRITY=PASS; runtimeSoTypes=144; publishedAssets=3550; invalid-target-before-play; JSON-restore; retry; immutable-ID/delete rejection",
+      "SO_DEFINITION_EXTENSIONS=PASS; enemy=enemy:crown-chaplain-qa-so-extension; deterministic=true; jsonRestore=true; enemyDefinitions=37; abilityDefinitions=19; modifierDefinitions=13; encounterDefinitions=37; backgroundDefinitions=13; ambitionDefinitions=19; heritableDefinitions=25; proficiencyDefinitions=10; lifeEventDefinitions=33; encounterRestored=true",
+      "SO_INCIDENT_VARIANTS=PASS; same-kind composition; real rejection/retry; JSON/fresh owner; exact replay",
+      "SO_ADDITIVE_CATALOGS=PASS; registered variants; subtype queries; real enemy/incident consumers; duplicate/broken reference reject",
+      "SO_CATALOG=PASS; typed snapshots; SetDefinitions/OnValidate invalidation; read-only; extensions",
+      "CONTENT_REFERENCE_AUTHORING=PASS",
+      "CONTENT_REFERENCE_RUNTIME=PASS; authored ambition3/practice7; legacy string/int IDs; fresh JSON owners; exact duplicate retry",
+      "DURABLE_PHYSICAL_RECOVERY=PASS; actual-consume/grant; consumed-output replay; rejected-candidates=7",
+      "DURABLE_PHYSICAL_PARTIAL_REPLAY=PASS; exact-plan resume; conflicts rejected; partial stock preserved",
+      "DURABLE_PHYSICAL_CAPACITY=PASS; preflight-no-mutation; joint-ack-reclaims-capacity; retry-completes",
+      "B112_CONTENT_CHILD_RECOVERY=PASS",
+      "B112_CONTENT_ACK_BEFORE=PASS",
+      "B112_CONTENT_ACK_AFTER=PASS",
+      "B112_PARENT_CHILD_ATOMIC=PASS",
+      "B112_CONTENT_OBSERVERS=PASS"
+    ],
+    "available": [
+      "MemAvailable:    6129992 kB"
+    ],
+    "logBytes": 66622
+  },
+  {
+    "observedUTC": "2026-10-29T09:04:19.290799+00:00",
+    "busy": true,
+    "status": {
+      "phase": "running",
+      "pid": 1995415,
+      "seconds": 1400,
+      "available_memory": 6127407104,
+      "log_bytes": 66622,
+      "cpu": {
+        "total_seconds": 1423.14,
+        "main_seconds": 1376.17,
+        "main_state": "R",
+        "nice": 0,
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "main_wait": "0"
+      },
+      "updated_at_utc": "2026-10-29T09:04:19.889414+00:00"
+    },
+    "diagnostics": [
+      "CONTENT_REFERENCE_INTEGRITY=PASS; runtimeSoTypes=144; publishedAssets=3550; invalid-target-before-play; JSON-restore; retry; immutable-ID/delete rejection",
+      "SO_DEFINITION_EXTENSIONS=PASS; enemy=enemy:crown-chaplain-qa-so-extension; deterministic=true; jsonRestore=true; enemyDefinitions=37; abilityDefinitions=19; modifierDefinitions=13; encounterDefinitions=37; backgroundDefinitions=13; ambitionDefinitions=19; heritableDefinitions=25; proficiencyDefinitions=10; lifeEventDefinitions=33; encounterRestored=true",
+      "SO_INCIDENT_VARIANTS=PASS; same-kind composition; real rejection/retry; JSON/fresh owner; exact replay",
+      "SO_ADDITIVE_CATALOGS=PASS; registered variants; subtype queries; real enemy/incident consumers; duplicate/broken reference reject",
+      "SO_CATALOG=PASS; typed snapshots; SetDefinitions/OnValidate invalidation; read-only; extensions",
+      "CONTENT_REFERENCE_AUTHORING=PASS",
+      "CONTENT_REFERENCE_RUNTIME=PASS; authored ambition3/practice7; legacy string/int IDs; fresh JSON owners; exact duplicate retry",
+      "DURABLE_PHYSICAL_RECOVERY=PASS; actual-consume/grant; consumed-output replay; rejected-candidates=7",
+      "DURABLE_PHYSICAL_PARTIAL_REPLAY=PASS; exact-plan resume; conflicts rejected; partial stock preserved",
+      "DURABLE_PHYSICAL_CAPACITY=PASS; preflight-no-mutation; joint-ack-reclaims-capacity; retry-completes",
+      "B112_CONTENT_CHILD_RECOVERY=PASS",
+      "B112_CONTENT_ACK_BEFORE=PASS",
+      "B112_CONTENT_ACK_AFTER=PASS",
+      "B112_PARENT_CHILD_ATOMIC=PASS",
+      "B112_CONTENT_OBSERVERS=PASS"
+    ],
+    "available": [
+      "MemAvailable:    5976312 kB"
+    ],
+    "logBytes": 66622
+  },
+  {
+    "observedUTC": "2026-10-29T09:04:40.783376+00:00",
+    "busy": true,
+    "status": {
+      "phase": "running",
+      "pid": 1995415,
+      "seconds": 1420,
+      "available_memory": 5872246784,
+      "log_bytes": 66622,
+      "cpu": {
+        "total_seconds": 1443.4,
+        "main_seconds": 1396.07,
+        "main_state": "R",
+        "nice": 0,
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "main_wait": "0"
+      },
+      "updated_at_utc": "2026-10-29T09:04:39.892202+00:00"
+    },
+    "diagnostics": [
+      "CONTENT_REFERENCE_INTEGRITY=PASS; runtimeSoTypes=144; publishedAssets=3550; invalid-target-before-play; JSON-restore; retry; immutable-ID/delete rejection",
+      "SO_DEFINITION_EXTENSIONS=PASS; enemy=enemy:crown-chaplain-qa-so-extension; deterministic=true; jsonRestore=true; enemyDefinitions=37; abilityDefinitions=19; modifierDefinitions=13; encounterDefinitions=37; backgroundDefinitions=13; ambitionDefinitions=19; heritableDefinitions=25; proficiencyDefinitions=10; lifeEventDefinitions=33; encounterRestored=true",
+      "SO_INCIDENT_VARIANTS=PASS; same-kind composition; real rejection/retry; JSON/fresh owner; exact replay",
+      "SO_ADDITIVE_CATALOGS=PASS; registered variants; subtype queries; real enemy/incident consumers; duplicate/broken reference reject",
+      "SO_CATALOG=PASS; typed snapshots; SetDefinitions/OnValidate invalidation; read-only; extensions",
+      "CONTENT_REFERENCE_AUTHORING=PASS",
+      "CONTENT_REFERENCE_RUNTIME=PASS; authored ambition3/practice7; legacy string/int IDs; fresh JSON owners; exact duplicate retry",
+      "DURABLE_PHYSICAL_RECOVERY=PASS; actual-consume/grant; consumed-output replay; rejected-candidates=7",
+      "DURABLE_PHYSICAL_PARTIAL_REPLAY=PASS; exact-plan resume; conflicts rejected; partial stock preserved",
+      "DURABLE_PHYSICAL_CAPACITY=PASS; preflight-no-mutation; joint-ack-reclaims-capacity; retry-completes",
+      "B112_CONTENT_CHILD_RECOVERY=PASS",
+      "B112_CONTENT_ACK_BEFORE=PASS",
+      "B112_CONTENT_ACK_AFTER=PASS",
+      "B112_PARENT_CHILD_ATOMIC=PASS",
+      "B112_CONTENT_OBSERVERS=PASS"
+    ],
+    "available": [
+      "MemAvailable:    5706852 kB"
+    ],
+    "logBytes": 66622
+  },
+  {
+    "observedUTC": "2026-10-29T09:05:02.526636+00:00",
+    "busy": true,
+    "status": {
+      "phase": "running",
+      "pid": 1995415,
+      "seconds": 1440,
+      "available_memory": 5864620032,
+      "log_bytes": 66622,
+      "cpu": {
+        "total_seconds": 1463.68,
+        "main_seconds": 1416.0,
+        "main_state": "R",
+        "nice": 0,
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "main_wait": "0"
+      },
+      "updated_at_utc": "2026-10-29T09:04:59.896350+00:00"
+    },
+    "diagnostics": [
+      "CONTENT_REFERENCE_INTEGRITY=PASS; runtimeSoTypes=144; publishedAssets=3550; invalid-target-before-play; JSON-restore; retry; immutable-ID/delete rejection",
+      "SO_DEFINITION_EXTENSIONS=PASS; enemy=enemy:crown-chaplain-qa-so-extension; deterministic=true; jsonRestore=true; enemyDefinitions=37; abilityDefinitions=19; modifierDefinitions=13; encounterDefinitions=37; backgroundDefinitions=13; ambitionDefinitions=19; heritableDefinitions=25; proficiencyDefinitions=10; lifeEventDefinitions=33; encounterRestored=true",
+      "SO_INCIDENT_VARIANTS=PASS; same-kind composition; real rejection/retry; JSON/fresh owner; exact replay",
+      "SO_ADDITIVE_CATALOGS=PASS; registered variants; subtype queries; real enemy/incident consumers; duplicate/broken reference reject",
+      "SO_CATALOG=PASS; typed snapshots; SetDefinitions/OnValidate invalidation; read-only; extensions",
+      "CONTENT_REFERENCE_AUTHORING=PASS",
+      "CONTENT_REFERENCE_RUNTIME=PASS; authored ambition3/practice7; legacy string/int IDs; fresh JSON owners; exact duplicate retry",
+      "DURABLE_PHYSICAL_RECOVERY=PASS; actual-consume/grant; consumed-output replay; rejected-candidates=7",
+      "DURABLE_PHYSICAL_PARTIAL_REPLAY=PASS; exact-plan resume; conflicts rejected; partial stock preserved",
+      "DURABLE_PHYSICAL_CAPACITY=PASS; preflight-no-mutation; joint-ack-reclaims-capacity; retry-completes",
+      "B112_CONTENT_CHILD_RECOVERY=PASS",
+      "B112_CONTENT_ACK_BEFORE=PASS",
+      "B112_CONTENT_ACK_AFTER=PASS",
+      "B112_PARENT_CHILD_ATOMIC=PASS",
+      "B112_CONTENT_OBSERVERS=PASS"
+    ],
+    "available": [
+      "MemAvailable:    5662588 kB"
+    ],
+    "logBytes": 66622
+  },
+  {
+    "observedUTC": "2026-10-29T09:05:24.746345+00:00",
+    "busy": true,
+    "status": {
+      "phase": "running",
+      "pid": 1995415,
+      "seconds": 1460,
+      "available_memory": 6227222528,
+      "log_bytes": 66622,
+      "cpu": {
+        "total_seconds": 1483.82,
+        "main_seconds": 1435.78,
+        "main_state": "R",
+        "nice": 0,
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "main_wait": "0"
+      },
+      "updated_at_utc": "2026-10-29T09:05:19.898797+00:00"
+    },
+    "diagnostics": [
+      "CONTENT_REFERENCE_INTEGRITY=PASS; runtimeSoTypes=144; publishedAssets=3550; invalid-target-before-play; JSON-restore; retry; immutable-ID/delete rejection",
+      "SO_DEFINITION_EXTENSIONS=PASS; enemy=enemy:crown-chaplain-qa-so-extension; deterministic=true; jsonRestore=true; enemyDefinitions=37; abilityDefinitions=19; modifierDefinitions=13; encounterDefinitions=37; backgroundDefinitions=13; ambitionDefinitions=19; heritableDefinitions=25; proficiencyDefinitions=10; lifeEventDefinitions=33; encounterRestored=true",
+      "SO_INCIDENT_VARIANTS=PASS; same-kind composition; real rejection/retry; JSON/fresh owner; exact replay",
+      "SO_ADDITIVE_CATALOGS=PASS; registered variants; subtype queries; real enemy/incident consumers; duplicate/broken reference reject",
+      "SO_CATALOG=PASS; typed snapshots; SetDefinitions/OnValidate invalidation; read-only; extensions",
+      "CONTENT_REFERENCE_AUTHORING=PASS",
+      "CONTENT_REFERENCE_RUNTIME=PASS; authored ambition3/practice7; legacy string/int IDs; fresh JSON owners; exact duplicate retry",
+      "DURABLE_PHYSICAL_RECOVERY=PASS; actual-consume/grant; consumed-output replay; rejected-candidates=7",
+      "DURABLE_PHYSICAL_PARTIAL_REPLAY=PASS; exact-plan resume; conflicts rejected; partial stock preserved",
+      "DURABLE_PHYSICAL_CAPACITY=PASS; preflight-no-mutation; joint-ack-reclaims-capacity; retry-completes",
+      "B112_CONTENT_CHILD_RECOVERY=PASS",
+      "B112_CONTENT_ACK_BEFORE=PASS",
+      "B112_CONTENT_ACK_AFTER=PASS",
+      "B112_PARENT_CHILD_ATOMIC=PASS",
+      "B112_CONTENT_OBSERVERS=PASS"
+    ],
+    "available": [
+      "MemAvailable:    6031908 kB"
+    ],
+    "logBytes": 66622
+  },
+  {
+    "observedUTC": "2026-10-29T09:05:46.939115+00:00",
+    "busy": true,
+    "status": {
+      "phase": "running",
+      "pid": 1995415,
+      "seconds": 1480,
+      "available_memory": 6139568128,
+      "log_bytes": 66622,
+      "cpu": {
+        "total_seconds": 1504.1,
+        "main_seconds": 1455.71,
+        "main_state": "R",
+        "nice": 0,
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "main_wait": "0"
+      },
+      "updated_at_utc": "2026-10-29T09:05:39.903036+00:00"
+    },
+    "diagnostics": [
+      "CONTENT_REFERENCE_INTEGRITY=PASS; runtimeSoTypes=144; publishedAssets=3550; invalid-target-before-play; JSON-restore; retry; immutable-ID/delete rejection",
+      "SO_DEFINITION_EXTENSIONS=PASS; enemy=enemy:crown-chaplain-qa-so-extension; deterministic=true; jsonRestore=true; enemyDefinitions=37; abilityDefinitions=19; modifierDefinitions=13; encounterDefinitions=37; backgroundDefinitions=13; ambitionDefinitions=19; heritableDefinitions=25; proficiencyDefinitions=10; lifeEventDefinitions=33; encounterRestored=true",
+      "SO_INCIDENT_VARIANTS=PASS; same-kind composition; real rejection/retry; JSON/fresh owner; exact replay",
+      "SO_ADDITIVE_CATALOGS=PASS; registered variants; subtype queries; real enemy/incident consumers; duplicate/broken reference reject",
+      "SO_CATALOG=PASS; typed snapshots; SetDefinitions/OnValidate invalidation; read-only; extensions",
+      "CONTENT_REFERENCE_AUTHORING=PASS",
+      "CONTENT_REFERENCE_RUNTIME=PASS; authored ambition3/practice7; legacy string/int IDs; fresh JSON owners; exact duplicate retry",
+      "DURABLE_PHYSICAL_RECOVERY=PASS; actual-consume/grant; consumed-output replay; rejected-candidates=7",
+      "DURABLE_PHYSICAL_PARTIAL_REPLAY=PASS; exact-plan resume; conflicts rejected; partial stock preserved",
+      "DURABLE_PHYSICAL_CAPACITY=PASS; preflight-no-mutation; joint-ack-reclaims-capacity; retry-completes",
+      "B112_CONTENT_CHILD_RECOVERY=PASS",
+      "B112_CONTENT_ACK_BEFORE=PASS",
+      "B112_CONTENT_ACK_AFTER=PASS",
+      "B112_PARENT_CHILD_ATOMIC=PASS",
+      "B112_CONTENT_OBSERVERS=PASS"
+    ],
+    "available": [
+      "MemAvailable:    5929092 kB"
+    ],
+    "logBytes": 66622
+  },
+  {
+    "observedUTC": "2026-10-29T09:06:09.132054+00:00",
+    "busy": true,
+    "status": {
+      "phase": "running",
+      "pid": 1995415,
+      "seconds": 1510,
+      "available_memory": 5831606272,
+      "log_bytes": 66622,
+      "cpu": {
+        "total_seconds": 1534.33,
+        "main_seconds": 1485.4,
+        "main_state": "R",
+        "nice": 0,
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "main_wait": "0"
+      },
+      "updated_at_utc": "2026-10-29T09:06:09.906597+00:00"
+    },
+    "diagnostics": [
+      "CONTENT_REFERENCE_INTEGRITY=PASS; runtimeSoTypes=144; publishedAssets=3550; invalid-target-before-play; JSON-restore; retry; immutable-ID/delete rejection",
+      "SO_DEFINITION_EXTENSIONS=PASS; enemy=enemy:crown-chaplain-qa-so-extension; deterministic=true; jsonRestore=true; enemyDefinitions=37; abilityDefinitions=19; modifierDefinitions=13; encounterDefinitions=37; backgroundDefinitions=13; ambitionDefinitions=19; heritableDefinitions=25; proficiencyDefinitions=10; lifeEventDefinitions=33; encounterRestored=true",
+      "SO_INCIDENT_VARIANTS=PASS; same-kind composition; real rejection/retry; JSON/fresh owner; exact replay",
+      "SO_ADDITIVE_CATALOGS=PASS; registered variants; subtype queries; real enemy/incident consumers; duplicate/broken reference reject",
+      "SO_CATALOG=PASS; typed snapshots; SetDefinitions/OnValidate invalidation; read-only; extensions",
+      "CONTENT_REFERENCE_AUTHORING=PASS",
+      "CONTENT_REFERENCE_RUNTIME=PASS; authored ambition3/practice7; legacy string/int IDs; fresh JSON owners; exact duplicate retry",
+      "DURABLE_PHYSICAL_RECOVERY=PASS; actual-consume/grant; consumed-output replay; rejected-candidates=7",
+      "DURABLE_PHYSICAL_PARTIAL_REPLAY=PASS; exact-plan resume; conflicts rejected; partial stock preserved",
+      "DURABLE_PHYSICAL_CAPACITY=PASS; preflight-no-mutation; joint-ack-reclaims-capacity; retry-completes",
+      "B112_CONTENT_CHILD_RECOVERY=PASS",
+      "B112_CONTENT_ACK_BEFORE=PASS",
+      "B112_CONTENT_ACK_AFTER=PASS",
+      "B112_PARENT_CHILD_ATOMIC=PASS",
+      "B112_CONTENT_OBSERVERS=PASS"
+    ],
+    "available": [
+      "MemAvailable:    5678580 kB"
+    ],
+    "logBytes": 66622
+  },
+  {
+    "observedUTC": "2026-10-29T09:06:31.692090+00:00",
+    "busy": true,
+    "status": {
+      "phase": "running",
+      "pid": 1995415,
+      "seconds": 1530,
+      "available_memory": 5664763904,
+      "log_bytes": 66622,
+      "cpu": {
+        "total_seconds": 1554.57,
+        "main_seconds": 1505.17,
+        "main_state": "R",
+        "nice": 0,
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "main_wait": "0"
+      },
+      "updated_at_utc": "2026-10-29T09:06:29.910304+00:00"
+    },
+    "diagnostics": [
+      "CONTENT_REFERENCE_INTEGRITY=PASS; runtimeSoTypes=144; publishedAssets=3550; invalid-target-before-play; JSON-restore; retry; immutable-ID/delete rejection",
+      "SO_DEFINITION_EXTENSIONS=PASS; enemy=enemy:crown-chaplain-qa-so-extension; deterministic=true; jsonRestore=true; enemyDefinitions=37; abilityDefinitions=19; modifierDefinitions=13; encounterDefinitions=37; backgroundDefinitions=13; ambitionDefinitions=19; heritableDefinitions=25; proficiencyDefinitions=10; lifeEventDefinitions=33; encounterRestored=true",
+      "SO_INCIDENT_VARIANTS=PASS; same-kind composition; real rejection/retry; JSON/fresh owner; exact replay",
+      "SO_ADDITIVE_CATALOGS=PASS; registered variants; subtype queries; real enemy/incident consumers; duplicate/broken reference reject",
+      "SO_CATALOG=PASS; typed snapshots; SetDefinitions/OnValidate invalidation; read-only; extensions",
+      "CONTENT_REFERENCE_AUTHORING=PASS",
+      "CONTENT_REFERENCE_RUNTIME=PASS; authored ambition3/practice7; legacy string/int IDs; fresh JSON owners; exact duplicate retry",
+      "DURABLE_PHYSICAL_RECOVERY=PASS; actual-consume/grant; consumed-output replay; rejected-candidates=7",
+      "DURABLE_PHYSICAL_PARTIAL_REPLAY=PASS; exact-plan resume; conflicts rejected; partial stock preserved",
+      "DURABLE_PHYSICAL_CAPACITY=PASS; preflight-no-mutation; joint-ack-reclaims-capacity; retry-completes",
+      "B112_CONTENT_CHILD_RECOVERY=PASS",
+      "B112_CONTENT_ACK_BEFORE=PASS",
+      "B112_CONTENT_ACK_AFTER=PASS",
+      "B112_PARENT_CHILD_ATOMIC=PASS",
+      "B112_CONTENT_OBSERVERS=PASS"
+    ],
+    "available": [
+      "MemAvailable:    5611940 kB"
+    ],
+    "logBytes": 66622
+  },
+  {
+    "observedUTC": "2026-10-29T09:06:53.655529+00:00",
+    "busy": true,
+    "status": {
+      "phase": "running",
+      "pid": 1995415,
+      "seconds": 1550,
+      "available_memory": 5738516480,
+      "log_bytes": 66622,
+      "cpu": {
+        "total_seconds": 1574.82,
+        "main_seconds": 1525.07,
+        "main_state": "R",
+        "nice": 0,
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "main_wait": "0"
+      },
+      "updated_at_utc": "2026-10-29T09:06:49.912672+00:00"
+    },
+    "diagnostics": [
+      "CONTENT_REFERENCE_INTEGRITY=PASS; runtimeSoTypes=144; publishedAssets=3550; invalid-target-before-play; JSON-restore; retry; immutable-ID/delete rejection",
+      "SO_DEFINITION_EXTENSIONS=PASS; enemy=enemy:crown-chaplain-qa-so-extension; deterministic=true; jsonRestore=true; enemyDefinitions=37; abilityDefinitions=19; modifierDefinitions=13; encounterDefinitions=37; backgroundDefinitions=13; ambitionDefinitions=19; heritableDefinitions=25; proficiencyDefinitions=10; lifeEventDefinitions=33; encounterRestored=true",
+      "SO_INCIDENT_VARIANTS=PASS; same-kind composition; real rejection/retry; JSON/fresh owner; exact replay",
+      "SO_ADDITIVE_CATALOGS=PASS; registered variants; subtype queries; real enemy/incident consumers; duplicate/broken reference reject",
+      "SO_CATALOG=PASS; typed snapshots; SetDefinitions/OnValidate invalidation; read-only; extensions",
+      "CONTENT_REFERENCE_AUTHORING=PASS",
+      "CONTENT_REFERENCE_RUNTIME=PASS; authored ambition3/practice7; legacy string/int IDs; fresh JSON owners; exact duplicate retry",
+      "DURABLE_PHYSICAL_RECOVERY=PASS; actual-consume/grant; consumed-output replay; rejected-candidates=7",
+      "DURABLE_PHYSICAL_PARTIAL_REPLAY=PASS; exact-plan resume; conflicts rejected; partial stock preserved",
+      "DURABLE_PHYSICAL_CAPACITY=PASS; preflight-no-mutation; joint-ack-reclaims-capacity; retry-completes",
+      "B112_CONTENT_CHILD_RECOVERY=PASS",
+      "B112_CONTENT_ACK_BEFORE=PASS",
+      "B112_CONTENT_ACK_AFTER=PASS",
+      "B112_PARENT_CHILD_ATOMIC=PASS",
+      "B112_CONTENT_OBSERVERS=PASS"
+    ],
+    "available": [
+      "MemAvailable:    5598888 kB"
+    ],
+    "logBytes": 66622
+  },
+  {
+    "observedUTC": "2026-10-29T09:07:15.054516+00:00",
+    "busy": true,
+    "status": {
+      "phase": "running",
+      "pid": 1995415,
+      "seconds": 1570,
+      "available_memory": 6045356032,
+      "log_bytes": 66622,
+      "cpu": {
+        "total_seconds": 1594.99,
+        "main_seconds": 1544.88,
+        "main_state": "R",
+        "nice": 0,
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "main_wait": "0"
+      },
+      "updated_at_utc": "2026-10-29T09:07:09.917324+00:00"
+    },
+    "diagnostics": [
+      "CONTENT_REFERENCE_INTEGRITY=PASS; runtimeSoTypes=144; publishedAssets=3550; invalid-target-before-play; JSON-restore; retry; immutable-ID/delete rejection",
+      "SO_DEFINITION_EXTENSIONS=PASS; enemy=enemy:crown-chaplain-qa-so-extension; deterministic=true; jsonRestore=true; enemyDefinitions=37; abilityDefinitions=19; modifierDefinitions=13; encounterDefinitions=37; backgroundDefinitions=13; ambitionDefinitions=19; heritableDefinitions=25; proficiencyDefinitions=10; lifeEventDefinitions=33; encounterRestored=true",
+      "SO_INCIDENT_VARIANTS=PASS; same-kind composition; real rejection/retry; JSON/fresh owner; exact replay",
+      "SO_ADDITIVE_CATALOGS=PASS; registered variants; subtype queries; real enemy/incident consumers; duplicate/broken reference reject",
+      "SO_CATALOG=PASS; typed snapshots; SetDefinitions/OnValidate invalidation; read-only; extensions",
+      "CONTENT_REFERENCE_AUTHORING=PASS",
+      "CONTENT_REFERENCE_RUNTIME=PASS; authored ambition3/practice7; legacy string/int IDs; fresh JSON owners; exact duplicate retry",
+      "DURABLE_PHYSICAL_RECOVERY=PASS; actual-consume/grant; consumed-output replay; rejected-candidates=7",
+      "DURABLE_PHYSICAL_PARTIAL_REPLAY=PASS; exact-plan resume; conflicts rejected; partial stock preserved",
+      "DURABLE_PHYSICAL_CAPACITY=PASS; preflight-no-mutation; joint-ack-reclaims-capacity; retry-completes",
+      "B112_CONTENT_CHILD_RECOVERY=PASS",
+      "B112_CONTENT_ACK_BEFORE=PASS",
+      "B112_CONTENT_ACK_AFTER=PASS",
+      "B112_PARENT_CHILD_ATOMIC=PASS",
+      "B112_CONTENT_OBSERVERS=PASS"
+    ],
+    "available": [
+      "MemAvailable:    5737672 kB"
+    ],
+    "logBytes": 66622
+  },
+  {
+    "observedUTC": "2026-10-29T09:07:37.403159+00:00",
+    "busy": true,
+    "status": {
+      "phase": "running",
+      "pid": 1995415,
+      "seconds": 1590,
+      "available_memory": 5803581440,
+      "log_bytes": 66622,
+      "cpu": {
+        "total_seconds": 1615.22,
+        "main_seconds": 1564.76,
+        "main_state": "R",
+        "nice": 0,
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "main_wait": "0"
+      },
+      "updated_at_utc": "2026-10-29T09:07:29.919778+00:00"
+    },
+    "diagnostics": [
+      "CONTENT_REFERENCE_INTEGRITY=PASS; runtimeSoTypes=144; publishedAssets=3550; invalid-target-before-play; JSON-restore; retry; immutable-ID/delete rejection",
+      "SO_DEFINITION_EXTENSIONS=PASS; enemy=enemy:crown-chaplain-qa-so-extension; deterministic=true; jsonRestore=true; enemyDefinitions=37; abilityDefinitions=19; modifierDefinitions=13; encounterDefinitions=37; backgroundDefinitions=13; ambitionDefinitions=19; heritableDefinitions=25; proficiencyDefinitions=10; lifeEventDefinitions=33; encounterRestored=true",
+      "SO_INCIDENT_VARIANTS=PASS; same-kind composition; real rejection/retry; JSON/fresh owner; exact replay",
+      "SO_ADDITIVE_CATALOGS=PASS; registered variants; subtype queries; real enemy/incident consumers; duplicate/broken reference reject",
+      "SO_CATALOG=PASS; typed snapshots; SetDefinitions/OnValidate invalidation; read-only; extensions",
+      "CONTENT_REFERENCE_AUTHORING=PASS",
+      "CONTENT_REFERENCE_RUNTIME=PASS; authored ambition3/practice7; legacy string/int IDs; fresh JSON owners; exact duplicate retry",
+      "DURABLE_PHYSICAL_RECOVERY=PASS; actual-consume/grant; consumed-output replay; rejected-candidates=7",
+      "DURABLE_PHYSICAL_PARTIAL_REPLAY=PASS; exact-plan resume; conflicts rejected; partial stock preserved",
+      "DURABLE_PHYSICAL_CAPACITY=PASS; preflight-no-mutation; joint-ack-reclaims-capacity; retry-completes",
+      "B112_CONTENT_CHILD_RECOVERY=PASS",
+      "B112_CONTENT_ACK_BEFORE=PASS",
+      "B112_CONTENT_ACK_AFTER=PASS",
+      "B112_PARENT_CHILD_ATOMIC=PASS",
+      "B112_CONTENT_OBSERVERS=PASS"
+    ],
+    "available": [
+      "MemAvailable:    5561616 kB"
+    ],
+    "logBytes": 66622
+  },
+  {
+    "observedUTC": "2026-10-29T09:07:58.414894+00:00",
+    "busy": true,
+    "status": {
+      "phase": "running",
+      "pid": 1995415,
+      "seconds": 1610,
+      "available_memory": 5665988608,
+      "log_bytes": 66622,
+      "cpu": {
+        "total_seconds": 1635.45,
+        "main_seconds": 1584.65,
+        "main_state": "R",
+        "nice": 0,
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "main_wait": "0"
+      },
+      "updated_at_utc": "2026-10-29T09:07:49.922013+00:00"
+    },
+    "diagnostics": [
+      "CONTENT_REFERENCE_INTEGRITY=PASS; runtimeSoTypes=144; publishedAssets=3550; invalid-target-before-play; JSON-restore; retry; immutable-ID/delete rejection",
+      "SO_DEFINITION_EXTENSIONS=PASS; enemy=enemy:crown-chaplain-qa-so-extension; deterministic=true; jsonRestore=true; enemyDefinitions=37; abilityDefinitions=19; modifierDefinitions=13; encounterDefinitions=37; backgroundDefinitions=13; ambitionDefinitions=19; heritableDefinitions=25; proficiencyDefinitions=10; lifeEventDefinitions=33; encounterRestored=true",
+      "SO_INCIDENT_VARIANTS=PASS; same-kind composition; real rejection/retry; JSON/fresh owner; exact replay",
+      "SO_ADDITIVE_CATALOGS=PASS; registered variants; subtype queries; real enemy/incident consumers; duplicate/broken reference reject",
+      "SO_CATALOG=PASS; typed snapshots; SetDefinitions/OnValidate invalidation; read-only; extensions",
+      "CONTENT_REFERENCE_AUTHORING=PASS",
+      "CONTENT_REFERENCE_RUNTIME=PASS; authored ambition3/practice7; legacy string/int IDs; fresh JSON owners; exact duplicate retry",
+      "DURABLE_PHYSICAL_RECOVERY=PASS; actual-consume/grant; consumed-output replay; rejected-candidates=7",
+      "DURABLE_PHYSICAL_PARTIAL_REPLAY=PASS; exact-plan resume; conflicts rejected; partial stock preserved",
+      "DURABLE_PHYSICAL_CAPACITY=PASS; preflight-no-mutation; joint-ack-reclaims-capacity; retry-completes",
+      "B112_CONTENT_CHILD_RECOVERY=PASS",
+      "B112_CONTENT_ACK_BEFORE=PASS",
+      "B112_CONTENT_ACK_AFTER=PASS",
+      "B112_PARENT_CHILD_ATOMIC=PASS",
+      "B112_CONTENT_OBSERVERS=PASS"
+    ],
+    "available": [
+      "MemAvailable:    5498668 kB"
+    ],
+    "logBytes": 66622
+  },
+  {
+    "observedUTC": "2026-10-29T09:08:20.491937+00:00",
+    "busy": true,
+    "status": {
+      "phase": "running",
+      "pid": 1995415,
+      "seconds": 1640,
+      "available_memory": 5434474496,
+      "log_bytes": 66622,
+      "cpu": {
+        "total_seconds": 1665.73,
+        "main_seconds": 1614.38,
+        "main_state": "R",
+        "nice": 0,
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "main_wait": "0"
+      },
+      "updated_at_utc": "2026-10-29T09:08:19.930233+00:00"
+    },
+    "diagnostics": [
+      "CONTENT_REFERENCE_INTEGRITY=PASS; runtimeSoTypes=144; publishedAssets=3550; invalid-target-before-play; JSON-restore; retry; immutable-ID/delete rejection",
+      "SO_DEFINITION_EXTENSIONS=PASS; enemy=enemy:crown-chaplain-qa-so-extension; deterministic=true; jsonRestore=true; enemyDefinitions=37; abilityDefinitions=19; modifierDefinitions=13; encounterDefinitions=37; backgroundDefinitions=13; ambitionDefinitions=19; heritableDefinitions=25; proficiencyDefinitions=10; lifeEventDefinitions=33; encounterRestored=true",
+      "SO_INCIDENT_VARIANTS=PASS; same-kind composition; real rejection/retry; JSON/fresh owner; exact replay",
+      "SO_ADDITIVE_CATALOGS=PASS; registered variants; subtype queries; real enemy/incident consumers; duplicate/broken reference reject",
+      "SO_CATALOG=PASS; typed snapshots; SetDefinitions/OnValidate invalidation; read-only; extensions",
+      "CONTENT_REFERENCE_AUTHORING=PASS",
+      "CONTENT_REFERENCE_RUNTIME=PASS; authored ambition3/practice7; legacy string/int IDs; fresh JSON owners; exact duplicate retry",
+      "DURABLE_PHYSICAL_RECOVERY=PASS; actual-consume/grant; consumed-output replay; rejected-candidates=7",
+      "DURABLE_PHYSICAL_PARTIAL_REPLAY=PASS; exact-plan resume; conflicts rejected; partial stock preserved",
+      "DURABLE_PHYSICAL_CAPACITY=PASS; preflight-no-mutation; joint-ack-reclaims-capacity; retry-completes",
+      "B112_CONTENT_CHILD_RECOVERY=PASS",
+      "B112_CONTENT_ACK_BEFORE=PASS",
+      "B112_CONTENT_ACK_AFTER=PASS",
+      "B112_PARENT_CHILD_ATOMIC=PASS",
+      "B112_CONTENT_OBSERVERS=PASS"
+    ],
+    "available": [
+      "MemAvailable:    5293664 kB"
+    ],
+    "logBytes": 66622
+  },
+  {
+    "observedUTC": "2026-10-29T09:08:41.286890+00:00",
+    "busy": true,
+    "status": {
+      "phase": "running",
+      "pid": 1995415,
+      "seconds": 1660,
+      "available_memory": 5426475008,
+      "log_bytes": 66622,
+      "cpu": {
+        "total_seconds": 1685.99,
+        "main_seconds": 1634.29,
+        "main_state": "R",
+        "nice": 0,
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "main_wait": "0"
+      },
+      "updated_at_utc": "2026-10-29T09:08:39.932734+00:00"
+    },
+    "diagnostics": [
+      "CONTENT_REFERENCE_INTEGRITY=PASS; runtimeSoTypes=144; publishedAssets=3550; invalid-target-before-play; JSON-restore; retry; immutable-ID/delete rejection",
+      "SO_DEFINITION_EXTENSIONS=PASS; enemy=enemy:crown-chaplain-qa-so-extension; deterministic=true; jsonRestore=true; enemyDefinitions=37; abilityDefinitions=19; modifierDefinitions=13; encounterDefinitions=37; backgroundDefinitions=13; ambitionDefinitions=19; heritableDefinitions=25; proficiencyDefinitions=10; lifeEventDefinitions=33; encounterRestored=true",
+      "SO_INCIDENT_VARIANTS=PASS; same-kind composition; real rejection/retry; JSON/fresh owner; exact replay",
+      "SO_ADDITIVE_CATALOGS=PASS; registered variants; subtype queries; real enemy/incident consumers; duplicate/broken reference reject",
+      "SO_CATALOG=PASS; typed snapshots; SetDefinitions/OnValidate invalidation; read-only; extensions",
+      "CONTENT_REFERENCE_AUTHORING=PASS",
+      "CONTENT_REFERENCE_RUNTIME=PASS; authored ambition3/practice7; legacy string/int IDs; fresh JSON owners; exact duplicate retry",
+      "DURABLE_PHYSICAL_RECOVERY=PASS; actual-consume/grant; consumed-output replay; rejected-candidates=7",
+      "DURABLE_PHYSICAL_PARTIAL_REPLAY=PASS; exact-plan resume; conflicts rejected; partial stock preserved",
+      "DURABLE_PHYSICAL_CAPACITY=PASS; preflight-no-mutation; joint-ack-reclaims-capacity; retry-completes",
+      "B112_CONTENT_CHILD_RECOVERY=PASS",
+      "B112_CONTENT_ACK_BEFORE=PASS",
+      "B112_CONTENT_ACK_AFTER=PASS",
+      "B112_PARENT_CHILD_ATOMIC=PASS",
+      "B112_CONTENT_OBSERVERS=PASS"
+    ],
+    "available": [
+      "MemAvailable:    5262084 kB"
+    ],
+    "logBytes": 66622
+  },
+  {
+    "observedUTC": "2026-10-29T09:09:02.020630+00:00",
+    "busy": true,
+    "status": {
+      "phase": "running",
+      "pid": 1995415,
+      "seconds": 1680,
+      "available_memory": 5565661184,
+      "log_bytes": 66622,
+      "cpu": {
+        "total_seconds": 1706.23,
+        "main_seconds": 1654.18,
+        "main_state": "R",
+        "nice": 0,
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "main_wait": "0"
+      },
+      "updated_at_utc": "2026-10-29T09:08:59.936978+00:00"
+    },
+    "diagnostics": [
+      "CONTENT_REFERENCE_INTEGRITY=PASS; runtimeSoTypes=144; publishedAssets=3550; invalid-target-before-play; JSON-restore; retry; immutable-ID/delete rejection",
+      "SO_DEFINITION_EXTENSIONS=PASS; enemy=enemy:crown-chaplain-qa-so-extension; deterministic=true; jsonRestore=true; enemyDefinitions=37; abilityDefinitions=19; modifierDefinitions=13; encounterDefinitions=37; backgroundDefinitions=13; ambitionDefinitions=19; heritableDefinitions=25; proficiencyDefinitions=10; lifeEventDefinitions=33; encounterRestored=true",
+      "SO_INCIDENT_VARIANTS=PASS; same-kind composition; real rejection/retry; JSON/fresh owner; exact replay",
+      "SO_ADDITIVE_CATALOGS=PASS; registered variants; subtype queries; real enemy/incident consumers; duplicate/broken reference reject",
+      "SO_CATALOG=PASS; typed snapshots; SetDefinitions/OnValidate invalidation; read-only; extensions",
+      "CONTENT_REFERENCE_AUTHORING=PASS",
+      "CONTENT_REFERENCE_RUNTIME=PASS; authored ambition3/practice7; legacy string/int IDs; fresh JSON owners; exact duplicate retry",
+      "DURABLE_PHYSICAL_RECOVERY=PASS; actual-consume/grant; consumed-output replay; rejected-candidates=7",
+      "DURABLE_PHYSICAL_PARTIAL_REPLAY=PASS; exact-plan resume; conflicts rejected; partial stock preserved",
+      "DURABLE_PHYSICAL_CAPACITY=PASS; preflight-no-mutation; joint-ack-reclaims-capacity; retry-completes",
+      "B112_CONTENT_CHILD_RECOVERY=PASS",
+      "B112_CONTENT_ACK_BEFORE=PASS",
+      "B112_CONTENT_ACK_AFTER=PASS",
+      "B112_PARENT_CHILD_ATOMIC=PASS",
+      "B112_CONTENT_OBSERVERS=PASS"
+    ],
+    "available": [
+      "MemAvailable:    5325492 kB"
+    ],
+    "logBytes": 66622
+  },
+  {
+    "observedUTC": "2026-10-29T09:09:23.395086+00:00",
+    "busy": true,
+    "status": {
+      "phase": "running",
+      "pid": 1995415,
+      "seconds": 1700,
+      "available_memory": 5451730944,
+      "log_bytes": 66622,
+      "cpu": {
+        "total_seconds": 1726.35,
+        "main_seconds": 1673.94,
+        "main_state": "R",
+        "nice": 0,
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "main_wait": "0"
+      },
+      "updated_at_utc": "2026-10-29T09:09:19.939233+00:00"
+    },
+    "diagnostics": [
+      "CONTENT_REFERENCE_INTEGRITY=PASS; runtimeSoTypes=144; publishedAssets=3550; invalid-target-before-play; JSON-restore; retry; immutable-ID/delete rejection",
+      "SO_DEFINITION_EXTENSIONS=PASS; enemy=enemy:crown-chaplain-qa-so-extension; deterministic=true; jsonRestore=true; enemyDefinitions=37; abilityDefinitions=19; modifierDefinitions=13; encounterDefinitions=37; backgroundDefinitions=13; ambitionDefinitions=19; heritableDefinitions=25; proficiencyDefinitions=10; lifeEventDefinitions=33; encounterRestored=true",
+      "SO_INCIDENT_VARIANTS=PASS; same-kind composition; real rejection/retry; JSON/fresh owner; exact replay",
+      "SO_ADDITIVE_CATALOGS=PASS; registered variants; subtype queries; real enemy/incident consumers; duplicate/broken reference reject",
+      "SO_CATALOG=PASS; typed snapshots; SetDefinitions/OnValidate invalidation; read-only; extensions",
+      "CONTENT_REFERENCE_AUTHORING=PASS",
+      "CONTENT_REFERENCE_RUNTIME=PASS; authored ambition3/practice7; legacy string/int IDs; fresh JSON owners; exact duplicate retry",
+      "DURABLE_PHYSICAL_RECOVERY=PASS; actual-consume/grant; consumed-output replay; rejected-candidates=7",
+      "DURABLE_PHYSICAL_PARTIAL_REPLAY=PASS; exact-plan resume; conflicts rejected; partial stock preserved",
+      "DURABLE_PHYSICAL_CAPACITY=PASS; preflight-no-mutation; joint-ack-reclaims-capacity; retry-completes",
+      "B112_CONTENT_CHILD_RECOVERY=PASS",
+      "B112_CONTENT_ACK_BEFORE=PASS",
+      "B112_CONTENT_ACK_AFTER=PASS",
+      "B112_PARENT_CHILD_ATOMIC=PASS",
+      "B112_CONTENT_OBSERVERS=PASS"
+    ],
+    "available": [
+      "MemAvailable:    5218676 kB"
+    ],
+    "logBytes": 66622
+  },
+  {
+    "observedUTC": "2026-10-29T09:09:45.139172+00:00",
+    "busy": true,
+    "status": {
+      "phase": "running",
+      "pid": 1995415,
+      "seconds": 1720,
+      "available_memory": 5301870592,
+      "log_bytes": 66622,
+      "cpu": {
+        "total_seconds": 1746.6,
+        "main_seconds": 1693.85,
+        "main_state": "R",
+        "nice": 0,
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "main_wait": "0"
+      },
+      "updated_at_utc": "2026-10-29T09:09:39.944858+00:00"
+    },
+    "diagnostics": [
+      "CONTENT_REFERENCE_INTEGRITY=PASS; runtimeSoTypes=144; publishedAssets=3550; invalid-target-before-play; JSON-restore; retry; immutable-ID/delete rejection",
+      "SO_DEFINITION_EXTENSIONS=PASS; enemy=enemy:crown-chaplain-qa-so-extension; deterministic=true; jsonRestore=true; enemyDefinitions=37; abilityDefinitions=19; modifierDefinitions=13; encounterDefinitions=37; backgroundDefinitions=13; ambitionDefinitions=19; heritableDefinitions=25; proficiencyDefinitions=10; lifeEventDefinitions=33; encounterRestored=true",
+      "SO_INCIDENT_VARIANTS=PASS; same-kind composition; real rejection/retry; JSON/fresh owner; exact replay",
+      "SO_ADDITIVE_CATALOGS=PASS; registered variants; subtype queries; real enemy/incident consumers; duplicate/broken reference reject",
+      "SO_CATALOG=PASS; typed snapshots; SetDefinitions/OnValidate invalidation; read-only; extensions",
+      "CONTENT_REFERENCE_AUTHORING=PASS",
+      "CONTENT_REFERENCE_RUNTIME=PASS; authored ambition3/practice7; legacy string/int IDs; fresh JSON owners; exact duplicate retry",
+      "DURABLE_PHYSICAL_RECOVERY=PASS; actual-consume/grant; consumed-output replay; rejected-candidates=7",
+      "DURABLE_PHYSICAL_PARTIAL_REPLAY=PASS; exact-plan resume; conflicts rejected; partial stock preserved",
+      "DURABLE_PHYSICAL_CAPACITY=PASS; preflight-no-mutation; joint-ack-reclaims-capacity; retry-completes",
+      "B112_CONTENT_CHILD_RECOVERY=PASS",
+      "B112_CONTENT_ACK_BEFORE=PASS",
+      "B112_CONTENT_ACK_AFTER=PASS",
+      "B112_PARENT_CHILD_ATOMIC=PASS",
+      "B112_CONTENT_OBSERVERS=PASS"
+    ],
+    "available": [
+      "MemAvailable:    5098792 kB"
+    ],
+    "logBytes": 66622
+  },
+  {
+    "observedUTC": "2026-10-29T09:10:05.999641+00:00",
+    "busy": true,
+    "status": {
+      "phase": "running",
+      "pid": 1995415,
+      "seconds": 1740,
+      "available_memory": 5158711296,
+      "log_bytes": 66622,
+      "cpu": {
+        "total_seconds": 1766.85,
+        "main_seconds": 1713.74,
+        "main_state": "R",
+        "nice": 0,
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "main_wait": "0"
+      },
+      "updated_at_utc": "2026-10-29T09:09:59.947545+00:00"
+    },
+    "diagnostics": [
+      "CONTENT_REFERENCE_INTEGRITY=PASS; runtimeSoTypes=144; publishedAssets=3550; invalid-target-before-play; JSON-restore; retry; immutable-ID/delete rejection",
+      "SO_DEFINITION_EXTENSIONS=PASS; enemy=enemy:crown-chaplain-qa-so-extension; deterministic=true; jsonRestore=true; enemyDefinitions=37; abilityDefinitions=19; modifierDefinitions=13; encounterDefinitions=37; backgroundDefinitions=13; ambitionDefinitions=19; heritableDefinitions=25; proficiencyDefinitions=10; lifeEventDefinitions=33; encounterRestored=true",
+      "SO_INCIDENT_VARIANTS=PASS; same-kind composition; real rejection/retry; JSON/fresh owner; exact replay",
+      "SO_ADDITIVE_CATALOGS=PASS; registered variants; subtype queries; real enemy/incident consumers; duplicate/broken reference reject",
+      "SO_CATALOG=PASS; typed snapshots; SetDefinitions/OnValidate invalidation; read-only; extensions",
+      "CONTENT_REFERENCE_AUTHORING=PASS",
+      "CONTENT_REFERENCE_RUNTIME=PASS; authored ambition3/practice7; legacy string/int IDs; fresh JSON owners; exact duplicate retry",
+      "DURABLE_PHYSICAL_RECOVERY=PASS; actual-consume/grant; consumed-output replay; rejected-candidates=7",
+      "DURABLE_PHYSICAL_PARTIAL_REPLAY=PASS; exact-plan resume; conflicts rejected; partial stock preserved",
+      "DURABLE_PHYSICAL_CAPACITY=PASS; preflight-no-mutation; joint-ack-reclaims-capacity; retry-completes",
+      "B112_CONTENT_CHILD_RECOVERY=PASS",
+      "B112_CONTENT_ACK_BEFORE=PASS",
+      "B112_CONTENT_ACK_AFTER=PASS",
+      "B112_PARENT_CHILD_ATOMIC=PASS",
+      "B112_CONTENT_OBSERVERS=PASS"
+    ],
+    "available": [
+      "MemAvailable:    4999528 kB"
+    ],
+    "logBytes": 66622
+  },
+  {
+    "observedUTC": "2026-10-29T09:10:29.401124+00:00",
+    "busy": true,
+    "status": {
+      "phase": "running",
+      "pid": 1995415,
+      "seconds": 1770,
+      "available_memory": 4928299008,
+      "log_bytes": 66622,
+      "cpu": {
+        "total_seconds": 1797.06,
+        "main_seconds": 1743.42,
+        "main_state": "R",
+        "nice": 0,
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "main_wait": "0"
+      },
+      "updated_at_utc": "2026-10-29T09:10:29.951746+00:00"
+    },
+    "diagnostics": [
+      "CONTENT_REFERENCE_INTEGRITY=PASS; runtimeSoTypes=144; publishedAssets=3550; invalid-target-before-play; JSON-restore; retry; immutable-ID/delete rejection",
+      "SO_DEFINITION_EXTENSIONS=PASS; enemy=enemy:crown-chaplain-qa-so-extension; deterministic=true; jsonRestore=true; enemyDefinitions=37; abilityDefinitions=19; modifierDefinitions=13; encounterDefinitions=37; backgroundDefinitions=13; ambitionDefinitions=19; heritableDefinitions=25; proficiencyDefinitions=10; lifeEventDefinitions=33; encounterRestored=true",
+      "SO_INCIDENT_VARIANTS=PASS; same-kind composition; real rejection/retry; JSON/fresh owner; exact replay",
+      "SO_ADDITIVE_CATALOGS=PASS; registered variants; subtype queries; real enemy/incident consumers; duplicate/broken reference reject",
+      "SO_CATALOG=PASS; typed snapshots; SetDefinitions/OnValidate invalidation; read-only; extensions",
+      "CONTENT_REFERENCE_AUTHORING=PASS",
+      "CONTENT_REFERENCE_RUNTIME=PASS; authored ambition3/practice7; legacy string/int IDs; fresh JSON owners; exact duplicate retry",
+      "DURABLE_PHYSICAL_RECOVERY=PASS; actual-consume/grant; consumed-output replay; rejected-candidates=7",
+      "DURABLE_PHYSICAL_PARTIAL_REPLAY=PASS; exact-plan resume; conflicts rejected; partial stock preserved",
+      "DURABLE_PHYSICAL_CAPACITY=PASS; preflight-no-mutation; joint-ack-reclaims-capacity; retry-completes",
+      "B112_CONTENT_CHILD_RECOVERY=PASS",
+      "B112_CONTENT_ACK_BEFORE=PASS",
+      "B112_CONTENT_ACK_AFTER=PASS",
+      "B112_PARENT_CHILD_ATOMIC=PASS",
+      "B112_CONTENT_OBSERVERS=PASS"
+    ],
+    "available": [
+      "MemAvailable:    4804900 kB"
+    ],
+    "logBytes": 66622
+  },
+  {
+    "observedUTC": "2026-10-29T09:10:50.447833+00:00",
+    "busy": true,
+    "status": {
+      "phase": "running",
+      "pid": 1995415,
+      "seconds": 1790,
+      "available_memory": 4921196544,
+      "log_bytes": 66622,
+      "cpu": {
+        "total_seconds": 1817.3,
+        "main_seconds": 1763.29,
+        "main_state": "R",
+        "nice": 0,
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "main_wait": "0"
+      },
+      "updated_at_utc": "2026-10-29T09:10:49.954100+00:00"
+    },
+    "diagnostics": [
+      "CONTENT_REFERENCE_INTEGRITY=PASS; runtimeSoTypes=144; publishedAssets=3550; invalid-target-before-play; JSON-restore; retry; immutable-ID/delete rejection",
+      "SO_DEFINITION_EXTENSIONS=PASS; enemy=enemy:crown-chaplain-qa-so-extension; deterministic=true; jsonRestore=true; enemyDefinitions=37; abilityDefinitions=19; modifierDefinitions=13; encounterDefinitions=37; backgroundDefinitions=13; ambitionDefinitions=19; heritableDefinitions=25; proficiencyDefinitions=10; lifeEventDefinitions=33; encounterRestored=true",
+      "SO_INCIDENT_VARIANTS=PASS; same-kind composition; real rejection/retry; JSON/fresh owner; exact replay",
+      "SO_ADDITIVE_CATALOGS=PASS; registered variants; subtype queries; real enemy/incident consumers; duplicate/broken reference reject",
+      "SO_CATALOG=PASS; typed snapshots; SetDefinitions/OnValidate invalidation; read-only; extensions",
+      "CONTENT_REFERENCE_AUTHORING=PASS",
+      "CONTENT_REFERENCE_RUNTIME=PASS; authored ambition3/practice7; legacy string/int IDs; fresh JSON owners; exact duplicate retry",
+      "DURABLE_PHYSICAL_RECOVERY=PASS; actual-consume/grant; consumed-output replay; rejected-candidates=7",
+      "DURABLE_PHYSICAL_PARTIAL_REPLAY=PASS; exact-plan resume; conflicts rejected; partial stock preserved",
+      "DURABLE_PHYSICAL_CAPACITY=PASS; preflight-no-mutation; joint-ack-reclaims-capacity; retry-completes",
+      "B112_CONTENT_CHILD_RECOVERY=PASS",
+      "B112_CONTENT_ACK_BEFORE=PASS",
+      "B112_CONTENT_ACK_AFTER=PASS",
+      "B112_PARENT_CHILD_ATOMIC=PASS",
+      "B112_CONTENT_OBSERVERS=PASS"
+    ],
+    "available": [
+      "MemAvailable:    4774772 kB"
+    ],
+    "logBytes": 66622
+  },
+  {
+    "observedUTC": "2026-10-29T09:11:11.396482+00:00",
+    "busy": true,
+    "status": {
+      "phase": "running",
+      "pid": 1995415,
+      "seconds": 1800,
+      "available_memory": 4858454016,
+      "log_bytes": 69384,
+      "cpu": {
+        "total_seconds": 1827.37,
+        "main_seconds": 1773.19,
+        "main_state": "R",
+        "nice": 0,
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "main_wait": "0"
+      },
+      "updated_at_utc": "2026-10-29T09:10:59.955421+00:00"
+    },
+    "diagnostics": [
+      "SO_INCIDENT_VARIANTS=PASS; same-kind composition; real rejection/retry; JSON/fresh owner; exact replay",
+      "SO_ADDITIVE_CATALOGS=PASS; registered variants; subtype queries; real enemy/incident consumers; duplicate/broken reference reject",
+      "SO_CATALOG=PASS; typed snapshots; SetDefinitions/OnValidate invalidation; read-only; extensions",
+      "CONTENT_REFERENCE_AUTHORING=PASS",
+      "CONTENT_REFERENCE_RUNTIME=PASS; authored ambition3/practice7; legacy string/int IDs; fresh JSON owners; exact duplicate retry",
+      "DURABLE_PHYSICAL_RECOVERY=PASS; actual-consume/grant; consumed-output replay; rejected-candidates=7",
+      "DURABLE_PHYSICAL_PARTIAL_REPLAY=PASS; exact-plan resume; conflicts rejected; partial stock preserved",
+      "DURABLE_PHYSICAL_CAPACITY=PASS; preflight-no-mutation; joint-ack-reclaims-capacity; retry-completes",
+      "B112_CONTENT_CHILD_RECOVERY=PASS",
+      "B112_CONTENT_ACK_BEFORE=PASS",
+      "B112_CONTENT_ACK_AFTER=PASS",
+      "B112_PARENT_CHILD_ATOMIC=PASS",
+      "B112_CONTENT_OBSERVERS=PASS",
+      "CONTENT_EFFECT_PRIORITY_BOUNDARIES=PASS; debit/credit consumption rejection; same/fresh-owner retry; per-effect health/campaign receipts; frozen registry projection; faction alias",
+      "REGISTERED_CONTENT_EFFECTS=PASS; duplicate/missing/incomplete rejection; actual owner rollback; pending/completed JSON restore; exact-once retry; custom receipt; built-in health/exposure/pressure/retirement"
+    ],
+    "available": [
+      "MemAvailable:    4842128 kB"
+    ],
+    "logBytes": 69384
+  },
+  {
+    "observedUTC": "2026-10-29T09:11:32.723504+00:00",
+    "busy": true,
+    "status": {
+      "phase": "running",
+      "pid": 1995415,
+      "seconds": 1800,
+      "available_memory": 4858454016,
+      "log_bytes": 69384,
+      "cpu": {
+        "total_seconds": 1827.37,
+        "main_seconds": 1773.19,
+        "main_state": "R",
+        "nice": 0,
+        "allowed_cpus": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "main_wait": "0"
+      },
+      "updated_at_utc": "2026-10-29T09:10:59.955421+00:00"
+    },
+    "diagnostics": [
+      "SO_INCIDENT_VARIANTS=PASS; same-kind composition; real rejection/retry; JSON/fresh owner; exact replay",
+      "SO_ADDITIVE_CATALOGS=PASS; registered variants; subtype queries; real enemy/incident consumers; duplicate/broken reference reject",
+      "SO_CATALOG=PASS; typed snapshots; SetDefinitions/OnValidate invalidation; read-only; extensions",
+      "CONTENT_REFERENCE_AUTHORING=PASS",
+      "CONTENT_REFERENCE_RUNTIME=PASS; authored ambition3/practice7; legacy string/int IDs; fresh JSON owners; exact duplicate retry",
+      "DURABLE_PHYSICAL_RECOVERY=PASS; actual-consume/grant; consumed-output replay; rejected-candidates=7",
+      "DURABLE_PHYSICAL_PARTIAL_REPLAY=PASS; exact-plan resume; conflicts rejected; partial stock preserved",
+      "DURABLE_PHYSICAL_CAPACITY=PASS; preflight-no-mutation; joint-ack-reclaims-capacity; retry-completes",
+      "B112_CONTENT_CHILD_RECOVERY=PASS",
+      "B112_CONTENT_ACK_BEFORE=PASS",
+      "B112_CONTENT_ACK_AFTER=PASS",
+      "B112_PARENT_CHILD_ATOMIC=PASS",
+      "B112_CONTENT_OBSERVERS=PASS",
+      "CONTENT_EFFECT_PRIORITY_BOUNDARIES=PASS; debit/credit consumption rejection; same/fresh-owner retry; per-effect health/campaign receipts; frozen registry projection; faction alias",
+      "REGISTERED_CONTENT_EFFECTS=PASS; duplicate/missing/incomplete rejection; actual owner rollback; pending/completed JSON restore; exact-once retry; custom receipt; built-in health/exposure/pressure/retirement"
+    ],
+    "available": [
+      "MemAvailable:   10318148 kB"
+    ],
+    "logBytes": 69607
+  },
+  {
+    "observedUTC": "2026-10-29T09:11:55.022972+00:00",
+    "busy": false,
+    "status": {
+      "phase": "finished",
+      "report": {
+        "exit_code": -9,
+        "seconds": 1831,
+        "stop_reason": "resource-or-time-limit",
+        "source_label": "r249r30",
+        "compiler_error_count": 0,
+        "source_drift": []
+      },
+      "updated_at_utc": "2026-10-29T09:11:37.260026+00:00"
+    },
+    "diagnostics": [
+      "SO_INCIDENT_VARIANTS=PASS; same-kind composition; real rejection/retry; JSON/fresh owner; exact replay",
+      "SO_ADDITIVE_CATALOGS=PASS; registered variants; subtype queries; real enemy/incident consumers; duplicate/broken reference reject",
+      "SO_CATALOG=PASS; typed snapshots; SetDefinitions/OnValidate invalidation; read-only; extensions",
+      "CONTENT_REFERENCE_AUTHORING=PASS",
+      "CONTENT_REFERENCE_RUNTIME=PASS; authored ambition3/practice7; legacy string/int IDs; fresh JSON owners; exact duplicate retry",
+      "DURABLE_PHYSICAL_RECOVERY=PASS; actual-consume/grant; consumed-output replay; rejected-candidates=7",
+      "DURABLE_PHYSICAL_PARTIAL_REPLAY=PASS; exact-plan resume; conflicts rejected; partial stock preserved",
+      "DURABLE_PHYSICAL_CAPACITY=PASS; preflight-no-mutation; joint-ack-reclaims-capacity; retry-completes",
+      "B112_CONTENT_CHILD_RECOVERY=PASS",
+      "B112_CONTENT_ACK_BEFORE=PASS",
+      "B112_CONTENT_ACK_AFTER=PASS",
+      "B112_PARENT_CHILD_ATOMIC=PASS",
+      "B112_CONTENT_OBSERVERS=PASS",
+      "CONTENT_EFFECT_PRIORITY_BOUNDARIES=PASS; debit/credit consumption rejection; same/fresh-owner retry; per-effect health/campaign receipts; frozen registry projection; faction alias",
+      "REGISTERED_CONTENT_EFFECTS=PASS; duplicate/missing/incomplete rejection; actual owner rollback; pending/completed JSON restore; exact-once retry; custom receipt; built-in health/exposure/pressure/retirement"
+    ],
+    "available": [
+      "MemAvailable:   10297696 kB"
+    ],
+    "logBytes": 69607
+  }
+]

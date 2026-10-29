@@ -191,7 +191,6 @@ public readonly struct DefenseFacilityTriggeredEvent
 
 public class DefenseFacility : Facility
 {
-    private float nextTriggerTime;
     private DungeonStory.Foundation.IGameEventBus gameEventBus;
     private IWorldThreatModifierQuery worldThreatModifiers;
     private IDefenseFacilityRuntime defenseRuntime;
@@ -225,9 +224,8 @@ public class DefenseFacility : Facility
     }
 
     public DefenseFacilityData Defense => BuildingData != null ? BuildingData.Defense : null;
-    public float CooldownRemaining => Mathf.Max(
-        Mathf.Max(0f, nextTriggerTime - GameTime),
-        defenseRuntime?.GetSnapshot(this).CooldownRemaining ?? 0f);
+    public float CooldownRemaining =>
+        defenseRuntime?.GetSnapshot(this).CooldownRemaining ?? 0f;
 
     public bool CanTrigger(DefenseTriggerTiming timing, out DomainFailure failure)
     {
@@ -259,13 +257,11 @@ public class DefenseFacility : Facility
             return false;
         }
 
-        if (GameTime < nextTriggerTime)
+        float cooldown = CooldownRemaining;
+        if (cooldown > 0f)
         {
-            failure = new DomainFailure(
-                FailureCode.DefenseCooldownActive,
-                (nextTriggerTime - GameTime).ToString(
-                    "0.0",
-                    System.Globalization.CultureInfo.InvariantCulture));
+            failure = new DomainFailure(FailureCode.DefenseCooldownActive,
+                cooldown.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture));
             return false;
         }
 
@@ -312,7 +308,6 @@ public class DefenseFacility : Facility
 
         BuildingInstanceId facilityId = RequirePersistentInstanceId();
         DefenseFacilityState rollback = defenseRuntime.CaptureActivationState(this);
-        float previousNextTriggerTime = nextTriggerTime;
         var activation = new DefenseActivationFactData
         {
             facilityId = facilityId.Value,
@@ -343,14 +338,12 @@ public class DefenseFacility : Facility
             publication.SetActivationRollback(() =>
             {
                 defenseRuntime.RestoreActivationState(this, rollback);
-                nextTriggerTime = previousNextTriggerTime;
             });
             if (!defenseRuntime.TryBeginActivation(this, intruder, timing,
                     out DefenseActivationAuthorization operational, out _))
                 return null;
 
             report = new DefenseActivationReport(this, intruder, timing, activation.activationCount);
-            nextTriggerTime = GameTime + Mathf.Max(0f, Defense.cooldownSeconds);
             if (operational.Jammed) report.AddEffectTag("걸림");
             if (operational.Misfired) report.AddEffectTag("오작동");
             defenseRuntime.CompleteActivation(this, operational);

@@ -274,6 +274,14 @@ internal sealed class CropPlotSnapshotProjector
         snapshotsDirty = false;
     }
 
+    internal IReadOnlyList<CropPlotSnapshot> CreateSnapshotView()
+    {
+        CropPlotSnapshot[] view = snapshots
+            .Select(snapshot => snapshot.Clone())
+            .ToArray();
+        return ReadOnlyView.List(view);
+    }
+
     private static CropCycleWaterSupplyStatus ResolveCycleWaterSupplyStatus(
         CropPlotState state,
         CropDefinitionSO crop,

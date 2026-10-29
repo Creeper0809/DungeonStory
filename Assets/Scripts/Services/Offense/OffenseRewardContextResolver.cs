@@ -102,8 +102,8 @@ public sealed class OffenseRewardContextBuilder : IOffenseRewardContextBuilder
         return selection.ShopUnlockStateSource switch
         {
             OffenseRewardContextSource.DebugOverride => debugContext.shopUnlockState,
-            OffenseRewardContextSource.ShopRuntime => shopRuntime.UnlockState,
-            OffenseRewardContextSource.ResearchRuntime => researchRuntime.ShopUnlockState,
+            OffenseRewardContextSource.ShopRuntime => shopRuntime.OwnedUnlockState,
+            OffenseRewardContextSource.ResearchRuntime => researchRuntime.OwnedShopUnlockState,
             _ => null
         };
     }
@@ -115,7 +115,7 @@ public sealed class OffenseRewardContextBuilder : IOffenseRewardContextBuilder
         return selection.ResearchStateSource switch
         {
             OffenseRewardContextSource.DebugOverride => debugContext.researchState,
-            OffenseRewardContextSource.ResearchRuntime => researchRuntime.State,
+            OffenseRewardContextSource.ResearchRuntime => researchRuntime.OwnedState,
             _ => null
         };
     }

@@ -499,6 +499,36 @@ GameplayEffectDefinitionSO|effect:food:spoilage-detection:multiply,effect:food:s
 GameplayEffectDefinitionSO|effect:food:spoilage-detection:multiply,effect:food:spoilage-detection:multiply,stackingPolicy,0,GameplayEffectStackingPolicy,Stack All,explicit-serialized
 GameplayEffectDefinitionSO|effect:food:spoilage-detection:multiply,effect:food:spoilage-detection:multiply,minimumResult,0,,,explicit-serialized
 GameplayEffectDefinitionSO|effect:food:spoilage-detection:multiply,effect:food:spoilage-detection:multiply,maximumResult,10,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:graft:moss-boar-toughness:multiply,effect:graft:moss-boar-toughness:multiply,m_Name,effect_graft_moss-boar-toughness_multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:graft:moss-boar-toughness:multiply,effect:graft:moss-boar-toughness:multiply,numericId,103308940,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:graft:moss-boar-toughness:multiply,effect:graft:moss-boar-toughness:multiply,effectId,effect:graft:moss-boar-toughness:multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:graft:moss-boar-toughness:multiply,effect:graft:moss-boar-toughness:multiply,targetId,combat:blunt-damage-received,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:graft:moss-boar-toughness:multiply,effect:graft:moss-boar-toughness:multiply,operation,2,GameplayEffectOperation,Multiply,explicit-serialized
+GameplayEffectDefinitionSO|effect:graft:moss-boar-toughness:multiply,effect:graft:moss-boar-toughness:multiply,projectionPhase,2,GameplayEffectProjectionPhase,Multiplicative,explicit-serialized
+GameplayEffectDefinitionSO|effect:graft:moss-boar-toughness:multiply,effect:graft:moss-boar-toughness:multiply,allowedSources,64,GameplayEffectSourceKind,Surgical Part,explicit-serialized
+GameplayEffectDefinitionSO|effect:graft:moss-boar-toughness:multiply,effect:graft:moss-boar-toughness:multiply,stackingPolicy,0,GameplayEffectStackingPolicy,Stack All,explicit-serialized
+GameplayEffectDefinitionSO|effect:graft:moss-boar-toughness:multiply,effect:graft:moss-boar-toughness:multiply,minimumResult,0,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:graft:moss-boar-toughness:multiply,effect:graft:moss-boar-toughness:multiply,maximumResult,10,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:graft:rune-deer-night-sight:multiply,effect:graft:rune-deer-night-sight:multiply,m_Name,effect_graft_rune-deer-night-sight_multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:graft:rune-deer-night-sight:multiply,effect:graft:rune-deer-night-sight:multiply,numericId,1378799996,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:graft:rune-deer-night-sight:multiply,effect:graft:rune-deer-night-sight:multiply,effectId,effect:graft:rune-deer-night-sight:multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:graft:rune-deer-night-sight:multiply,effect:graft:rune-deer-night-sight:multiply,targetId,character:low-light-penalty,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:graft:rune-deer-night-sight:multiply,effect:graft:rune-deer-night-sight:multiply,operation,2,GameplayEffectOperation,Multiply,explicit-serialized
+GameplayEffectDefinitionSO|effect:graft:rune-deer-night-sight:multiply,effect:graft:rune-deer-night-sight:multiply,projectionPhase,2,GameplayEffectProjectionPhase,Multiplicative,explicit-serialized
+GameplayEffectDefinitionSO|effect:graft:rune-deer-night-sight:multiply,effect:graft:rune-deer-night-sight:multiply,allowedSources,64,GameplayEffectSourceKind,Surgical Part,explicit-serialized
+GameplayEffectDefinitionSO|effect:graft:rune-deer-night-sight:multiply,effect:graft:rune-deer-night-sight:multiply,stackingPolicy,0,GameplayEffectStackingPolicy,Stack All,explicit-serialized
+GameplayEffectDefinitionSO|effect:graft:rune-deer-night-sight:multiply,effect:graft:rune-deer-night-sight:multiply,minimumResult,0,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:graft:rune-deer-night-sight:multiply,effect:graft:rune-deer-night-sight:multiply,maximumResult,10,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:graft:shadow-wolf-endurance:multiply,effect:graft:shadow-wolf-endurance:multiply,m_Name,effect_graft_shadow-wolf-endurance_multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:graft:shadow-wolf-endurance:multiply,effect:graft:shadow-wolf-endurance:multiply,numericId,1309036145,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:graft:shadow-wolf-endurance:multiply,effect:graft:shadow-wolf-endurance:multiply,effectId,effect:graft:shadow-wolf-endurance:multiply,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:graft:shadow-wolf-endurance:multiply,effect:graft:shadow-wolf-endurance:multiply,targetId,character:fatigue-rate,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:graft:shadow-wolf-endurance:multiply,effect:graft:shadow-wolf-endurance:multiply,operation,2,GameplayEffectOperation,Multiply,explicit-serialized
+GameplayEffectDefinitionSO|effect:graft:shadow-wolf-endurance:multiply,effect:graft:shadow-wolf-endurance:multiply,projectionPhase,2,GameplayEffectProjectionPhase,Multiplicative,explicit-serialized
+GameplayEffectDefinitionSO|effect:graft:shadow-wolf-endurance:multiply,effect:graft:shadow-wolf-endurance:multiply,allowedSources,64,GameplayEffectSourceKind,Surgical Part,explicit-serialized
+GameplayEffectDefinitionSO|effect:graft:shadow-wolf-endurance:multiply,effect:graft:shadow-wolf-endurance:multiply,stackingPolicy,0,GameplayEffectStackingPolicy,Stack All,explicit-serialized
+GameplayEffectDefinitionSO|effect:graft:shadow-wolf-endurance:multiply,effect:graft:shadow-wolf-endurance:multiply,minimumResult,0,,,explicit-serialized
+GameplayEffectDefinitionSO|effect:graft:shadow-wolf-endurance:multiply,effect:graft:shadow-wolf-endurance:multiply,maximumResult,10,,,explicit-serialized
 GameplayEffectDefinitionSO|effect:harvest:seed-yield:multiply,effect:harvest:seed-yield:multiply,m_Name,effect_harvest_seed-yield_multiply,,,explicit-serialized
 GameplayEffectDefinitionSO|effect:harvest:seed-yield:multiply,effect:harvest:seed-yield:multiply,numericId,1678933936,,,explicit-serialized
 GameplayEffectDefinitionSO|effect:harvest:seed-yield:multiply,effect:harvest:seed-yield:multiply,effectId,effect:harvest:seed-yield:multiply,,,explicit-serialized

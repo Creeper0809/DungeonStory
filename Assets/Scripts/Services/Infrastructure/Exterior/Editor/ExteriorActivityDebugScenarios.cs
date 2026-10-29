@@ -606,6 +606,36 @@ public static class ExteriorActivityDebugScenarios
         return true;
     }
 
+    public static bool RunPlayModeZoneMembershipOnly(bool logSuccess)
+    {
+        List<string> errors = new List<string>();
+        RunScenario(
+            "playmode runtime services and zones",
+            VerifyPlayModeRuntimeServicesAndZones,
+            errors);
+        RunScenario(
+            "playmode exterior roundtrip publishes detached zones",
+            VerifyExteriorRoundtripPublishesDetachedZones,
+            errors);
+
+        if (errors.Count > 0)
+        {
+            foreach (string error in errors)
+            {
+                Debug.LogError(error);
+            }
+
+            return false;
+        }
+
+        if (logSuccess)
+        {
+            Debug.Log("Exterior activity zone membership PlayMode snapshot passed.");
+        }
+
+        return true;
+    }
+
     private static bool VerifySaveV19ContainsExteriorSnapshot()
     {
         DungeonGameSaveData save = new DungeonGameSaveData();
@@ -746,8 +776,28 @@ public static class ExteriorActivityDebugScenarios
 
         IExteriorZoneQuery query = scope.Container.Resolve<IExteriorZoneQuery>();
         ExteriorActivityOverviewSnapshot overview = query.GetOverview();
-        HashSet<ExteriorZoneType> types = query.Zones.Select(zone => zone.ZoneType).ToHashSet();
+        IReadOnlyList<ExteriorZoneMarker> firstView = query.Zones;
+        HashSet<ExteriorZoneType> types = firstView
+            .Select(zone => zone.ZoneType)
+            .ToHashSet();
+        bool membershipProtected = true;
+        if (firstView is IList<ExteriorZoneMarker> mutableView
+            && mutableView.Count > 0)
+        {
+            try
+            {
+                mutableView[0] = null;
+                membershipProtected = false;
+            }
+            catch (NotSupportedException)
+            {
+            }
+        }
+        IReadOnlyList<ExteriorZoneMarker> secondView = query.Zones;
         return overview.ZoneCount >= 7
+            && membershipProtected
+            && secondView.Count == firstView.Count
+            && secondView.All(zone => zone != null)
             && types.Contains(ExteriorZoneType.DropZone)
             && types.Contains(ExteriorZoneType.ReceptionPoint)
             && types.Contains(ExteriorZoneType.GuardPost)

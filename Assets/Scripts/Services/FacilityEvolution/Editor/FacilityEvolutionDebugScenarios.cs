@@ -3809,6 +3809,8 @@ public static partial class FacilityEvolutionDebugScenarios
         {
             return null;
         }
+
+        public BlueprintResearchState GetStateForDebug() => null;
     }
 
     private sealed class FixedFacilityEvolutionCalendar : IGameCalendar

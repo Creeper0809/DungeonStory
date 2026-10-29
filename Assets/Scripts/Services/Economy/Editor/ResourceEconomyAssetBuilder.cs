@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Balance;
+using Newtonsoft.Json.Linq;
 using UnityEditor;
 using UnityEngine;
 
@@ -42,13 +43,15 @@ public static class ResourceEconomyAssetBuilder
     [MenuItem("Tools/DungeonStory/Economy/Rebuild Resource Economy Content")]
     public static void Rebuild()
     {
+        ItemSpec[] itemSpecs = ItemSpecs();
+        ValidateAmmunitionProfiles(itemSpecs);
         RecipeAuthoringBaseline[] recipeBaselines =
             CaptureRecipeAuthoringBaselines();
         try
         {
             EnsureFolders(ItemRoot, RecipeRoot, CropRoot, MaterialRoot);
             ValidateNoLegacySubstanceAssets();
-            ResourceItemDefinitionSO[] items = BuildItems();
+            ResourceItemDefinitionSO[] items = BuildItems(itemSpecs);
             ProductionRecipeSO[] recipes = BuildRecipes();
             CropDefinitionSO[] crops = BuildCrops();
             CraftMaterialDefinitionSO[] materials = BuildMaterials();
@@ -83,6 +86,166 @@ public static class ResourceEconomyAssetBuilder
             foreach (RecipeAuthoringBaseline baseline in recipeBaselines)
                 UnityEngine.Object.DestroyImmediate(baseline.Snapshot);
         }
+    }
+
+    public static void RunR30AmmunitionAuthoringFocused()
+    {
+        VerifyManagedReferenceComparison();
+        ItemSpec[] specs = ItemSpecs();
+        ValidateAmmunitionProfiles(specs);
+        var ammunitionSpecs = specs
+            .Select((spec, index) => new { Spec = spec, Index = index })
+            .Where(entry => entry.Spec.Kind == ResourceItemKind.Ammunition)
+            .ToArray();
+        if (ammunitionSpecs.Length != 8)
+        {
+            throw new InvalidOperationException(
+                $"Expected 8 core ammunition specs, found {ammunitionSpecs.Length}.");
+        }
+
+        foreach (var entry in ammunitionSpecs)
+        {
+            ItemSpec spec = entry.Spec;
+            string assetPath = $"{ItemRoot}/{Sanitize(spec.Id)}.asset";
+            ResourceItemDefinitionSO asset = AssetDatabase
+                .LoadAssetAtPath<ResourceItemDefinitionSO>(assetPath);
+            if (asset == null)
+            {
+                throw new InvalidOperationException(
+                    "Core ammunition asset could not be loaded: " + assetPath);
+            }
+
+            string beforeJson = EditorJsonUtility.ToJson(asset, false);
+            bool wasDirty = EditorUtility.IsDirty(asset);
+            (float fuelValue, float feedValue, bool feedEligible) =
+                ResolveFacilitySupply(spec);
+            if (!ItemMatchesSpec(
+                    asset,
+                    spec,
+                    8000 + entry.Index,
+                    fuelValue,
+                    feedValue,
+                    feedEligible,
+                    asset.UnitPrice,
+                    ResolveAuthoredUnitWeight(spec, asset),
+                    asset.MarketSaleRate))
+            {
+                throw new InvalidOperationException(
+                    "Core ammunition asset does not match its authoring spec: "
+                    + spec.Id);
+            }
+            Action<ResourceItemDefinitionSO> configure = candidate =>
+                ConfigureItem(
+                    candidate,
+                    spec,
+                    8000 + entry.Index,
+                    fuelValue,
+                    feedValue,
+                    feedEligible,
+                    asset.UnitPrice,
+                    ResolveAuthoredUnitWeight(spec, asset),
+                    asset.MarketSaleRate);
+            if (entry.Index == ammunitionSpecs[0].Index)
+                WriteAmmunitionComparisonDiagnostic(asset, configure, spec.Id);
+            if (WouldChange(asset, configure))
+            {
+                throw new InvalidOperationException(
+                    "Core ammunition authoring is not idempotent: " + spec.Id);
+            }
+            if (!string.Equals(
+                    beforeJson,
+                    EditorJsonUtility.ToJson(asset, false),
+                    StringComparison.Ordinal)
+                || wasDirty != EditorUtility.IsDirty(asset))
+            {
+                throw new InvalidOperationException(
+                    "Core ammunition focused verification mutated the source asset: "
+                    + spec.Id);
+            }
+        }
+
+        var probeSpec = ammunitionSpecs[0];
+        ResourceItemDefinitionSO probe =
+            ScriptableObject.CreateInstance<ResourceItemDefinitionSO>();
+        try
+        {
+            (float fuelValue, float feedValue, bool feedEligible) =
+                ResolveFacilitySupply(probeSpec.Spec);
+            ConfigureItem(
+                probe,
+                probeSpec.Spec,
+                8000 + probeSpec.Index,
+                fuelValue,
+                feedValue,
+                feedEligible,
+                probeSpec.Spec.Price,
+                probeSpec.Spec.Weight,
+                probeSpec.Spec.MarketSaleRate);
+            if (!ItemMatchesSpec(
+                    probe,
+                    probeSpec.Spec,
+                    8000 + probeSpec.Index,
+                    fuelValue,
+                    feedValue,
+                    feedEligible,
+                    probeSpec.Spec.Price,
+                    probeSpec.Spec.Weight,
+                    probeSpec.Spec.MarketSaleRate))
+            {
+                throw new InvalidOperationException(
+                    "Fresh core ammunition authoring did not match its spec.");
+            }
+
+            probe.RemoveFeature<CombatAmmunitionProfileItemFeature>();
+            if (!WouldChange(
+                    probe,
+                    candidate => ConfigureItem(
+                        candidate,
+                        probeSpec.Spec,
+                        8000 + probeSpec.Index,
+                        fuelValue,
+                        feedValue,
+                        feedEligible,
+                        probeSpec.Spec.Price,
+                        probeSpec.Spec.Weight,
+                        probeSpec.Spec.MarketSaleRate)))
+            {
+                throw new InvalidOperationException(
+                    "Missing core ammunition profile was not detected.");
+            }
+            ConfigureItem(
+                probe,
+                probeSpec.Spec,
+                8000 + probeSpec.Index,
+                fuelValue,
+                feedValue,
+                feedEligible,
+                probeSpec.Spec.Price,
+                probeSpec.Spec.Weight,
+                probeSpec.Spec.MarketSaleRate);
+            if (WouldChange(
+                    probe,
+                    candidate => ConfigureItem(
+                        candidate,
+                        probeSpec.Spec,
+                        8000 + probeSpec.Index,
+                        fuelValue,
+                        feedValue,
+                        feedEligible,
+                        probeSpec.Spec.Price,
+                        probeSpec.Spec.Weight,
+                        probeSpec.Spec.MarketSaleRate)))
+            {
+                throw new InvalidOperationException(
+                    "Repaired core ammunition authoring is not idempotent.");
+            }
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(probe);
+        }
+
+        Debug.Log("R30 core ammunition authoring focused verification passed.");
     }
 
     [MenuItem("Tools/DungeonStory/Economy/WIM036/Apply Substance Specific Effects")]
@@ -404,10 +567,8 @@ public static class ResourceEconomyAssetBuilder
         }
     }
 
-    private static ResourceItemDefinitionSO[] BuildItems()
+    private static ItemSpec[] ItemSpecs() => new[]
     {
-        ItemSpec[] specs =
-        {
             I("resource:twilight-grain", "황혼곡", "죽, 빵, 술과 사료의 바탕이 되는 검푸른 곡물.", StockCategory.Food, ResourceItemKind.Raw, ResourceIngredientTag.Plant, 2, 0.35f, 75, "research:agriculture:field"),
             I("resource:ember-root", "잿불뿌리", "열량이 높고 보존에 유리한 뿌리 작물.", StockCategory.Food, ResourceItemKind.Raw, ResourceIngredientTag.Plant, 2, 0.45f, 75, "research:agriculture:field"),
             I("resource:night-grape", "밤포도", "시럽, 술과 호화식에 쓰는 단맛 강한 열매.", StockCategory.Food, ResourceItemKind.Raw, ResourceIngredientTag.Plant, 4, 0.25f, 75, "research:agriculture:field"),
@@ -514,40 +675,29 @@ public static class ResourceEconomyAssetBuilder
             I("drug:night-wine", "밤포도주", "기분과 사교성을 높이는 유흥성 술.", StockCategory.Food, ResourceItemKind.Substance, ResourceIngredientTag.Plant, 14, 0.325f, 40, "research:cuisine:fermentation"),
             I("drug:hallucinogenic-distillate", "환각균 증류액", "강한 환각과 오락 효과를 주는 유흥 약물.", StockCategory.Medicine, ResourceItemKind.Substance, ResourceIngredientTag.Fungus, 22, 0.9f, 12, "research:pharmacology:distillation"),
 
-            I("ammo:arrow-bone", "뼈촉 화살", "가볍지만 관통이 낮은 화살.", StockCategory.Ammunition, ResourceItemKind.Ammunition, ResourceIngredientTag.Wood | ResourceIngredientTag.Mineral, 2, 0.08f, 100, "research:defense:ranged-positions"),
-            I("ammo:arrow-iron", "철촉 화살", "표준 피해와 관통을 가진 화살.", StockCategory.Ammunition, ResourceItemKind.Ammunition, ResourceIngredientTag.Wood | ResourceIngredientTag.Mineral, 3, 0.09f, 100, "research:metallurgy:iron"),
-            I("ammo:arrow-steel", "강철촉 화살", "높은 관통을 가진 고급 화살.", StockCategory.Ammunition, ResourceItemKind.Ammunition, ResourceIngredientTag.Wood | ResourceIngredientTag.Mineral, 5, 0.085f, 100, "research:metallurgy:steel"),
-            I("ammo:arrow-rune", "룬촉 화살", "마나와 뿔을 새긴 비전 화살.", StockCategory.Ammunition, ResourceItemKind.Ammunition, ResourceIngredientTag.Wood | ResourceIngredientTag.Arcane, 9, 0.08f, 75, "research:arcane:advanced"),
-            I("ammo:bolt-bone", "뼈촉 볼트", "가벼운 연습용 석궁 볼트.", StockCategory.Ammunition, ResourceItemKind.Ammunition, ResourceIngredientTag.Wood | ResourceIngredientTag.Mineral, 2, 0.1f, 100, "research:defense:ranged-positions"),
-            I("ammo:bolt-iron", "철촉 볼트", "표준 석궁 볼트.", StockCategory.Ammunition, ResourceItemKind.Ammunition, ResourceIngredientTag.Wood | ResourceIngredientTag.Mineral, 4, 0.11f, 100, "research:metallurgy:iron"),
-            I("ammo:bolt-steel", "강철촉 볼트", "중장갑을 겨냥한 고관통 볼트.", StockCategory.Ammunition, ResourceItemKind.Ammunition, ResourceIngredientTag.Wood | ResourceIngredientTag.Mineral, 6, 0.105f, 100, "research:metallurgy:steel"),
-            I("ammo:bolt-rune", "룬촉 볼트", "비전 저항을 꿰뚫는 룬 볼트.", StockCategory.Ammunition, ResourceItemKind.Ammunition, ResourceIngredientTag.Wood | ResourceIngredientTag.Arcane, 10, 0.1f, 75, "research:arcane:advanced"),
+            I("ammo:arrow-bone", "뼈촉 화살", "가볍지만 관통이 낮은 화살.", StockCategory.Ammunition, ResourceItemKind.Ammunition, ResourceIngredientTag.Wood | ResourceIngredientTag.Mineral, 2, 0.08f, 100, "research:defense:ranged-positions", ammunitionProfile: Ammo(CombatSpecialEffectFlags.None, 0.95f, 0.8f, 1f, 0f, 0, false, 0f)),
+            I("ammo:arrow-iron", "철촉 화살", "표준 피해와 관통을 가진 화살.", StockCategory.Ammunition, ResourceItemKind.Ammunition, ResourceIngredientTag.Wood | ResourceIngredientTag.Mineral, 3, 0.09f, 100, "research:metallurgy:iron", ammunitionProfile: Ammo(CombatSpecialEffectFlags.None, 1f, 1f, 1f, 0f, 0, false, 0f)),
+            I("ammo:arrow-steel", "강철촉 화살", "높은 관통을 가진 고급 화살.", StockCategory.Ammunition, ResourceItemKind.Ammunition, ResourceIngredientTag.Wood | ResourceIngredientTag.Mineral, 5, 0.085f, 100, "research:metallurgy:steel", ammunitionProfile: Ammo(CombatSpecialEffectFlags.None, 1.1f, 1.18f, 1f, 0f, 0, false, 0f)),
+            I("ammo:arrow-rune", "룬촉 화살", "마나와 뿔을 새긴 비전 화살.", StockCategory.Ammunition, ResourceItemKind.Ammunition, ResourceIngredientTag.Wood | ResourceIngredientTag.Arcane, 9, 0.08f, 75, "research:arcane:advanced", ammunitionProfile: Ammo(CombatSpecialEffectFlags.RuneDamage, 1.2f, 1.15f, 1f, 0f, 0, false, 0f)),
+            I("ammo:bolt-bone", "뼈촉 볼트", "가벼운 연습용 석궁 볼트.", StockCategory.Ammunition, ResourceItemKind.Ammunition, ResourceIngredientTag.Wood | ResourceIngredientTag.Mineral, 2, 0.1f, 100, "research:defense:ranged-positions", ammunitionProfile: Ammo(CombatSpecialEffectFlags.None, 0.95f, 0.8f, 1f, 0f, 0, false, 0f)),
+            I("ammo:bolt-iron", "철촉 볼트", "표준 석궁 볼트.", StockCategory.Ammunition, ResourceItemKind.Ammunition, ResourceIngredientTag.Wood | ResourceIngredientTag.Mineral, 4, 0.11f, 100, "research:metallurgy:iron", ammunitionProfile: Ammo(CombatSpecialEffectFlags.None, 1f, 1f, 1f, 0f, 0, false, 0f)),
+            I("ammo:bolt-steel", "강철촉 볼트", "중장갑을 겨냥한 고관통 볼트.", StockCategory.Ammunition, ResourceItemKind.Ammunition, ResourceIngredientTag.Wood | ResourceIngredientTag.Mineral, 6, 0.105f, 100, "research:metallurgy:steel", ammunitionProfile: Ammo(CombatSpecialEffectFlags.None, 1.1f, 1.18f, 1f, 0f, 0, false, 0f)),
+            I("ammo:bolt-rune", "룬촉 볼트", "비전 저항을 꿰뚫는 룬 볼트.", StockCategory.Ammunition, ResourceItemKind.Ammunition, ResourceIngredientTag.Wood | ResourceIngredientTag.Arcane, 10, 0.1f, 75, "research:arcane:advanced", ammunitionProfile: Ammo(CombatSpecialEffectFlags.RuneDamage, 1.2f, 1.15f, 1f, 0f, 0, false, 0f)),
             I("offense:unappraised-loot", "미감정 전리품", "원정에서 회수한 봉인 상자와 귀중품. 전리품거치대에서 감정해야 판매할 수 있다.", StockCategory.General, ResourceItemKind.FinishedGood, ResourceIngredientTag.None, 0, 0.05f, 100, string.Empty, 0f),
             I("offense:appraised-valuables", "감정된 귀중품", "출처와 가치를 확인한 원정 귀중품. 판매 정책으로 금고 자금화할 수 있다.", StockCategory.General, ResourceItemKind.FinishedGood, ResourceIngredientTag.None, 1, 0.05f, 100, string.Empty, 1f),
 
             // Append-only placement preserves every existing 8000-series numeric
             // item id while assigning the reviewed fresh-feed identity 8109.
             I("feed:dog-food-fresh", "신선 개밥", "생고기와 곡물을 바로 섞어 만든 육식·잡식 사료.", StockCategory.Food, ResourceItemKind.FinishedGood, ResourceIngredientTag.Plant | ResourceIngredientTag.Meat, 6, 0.525f, 75, "research:husbandry:feed")
-        };
+    };
 
+    private static ResourceItemDefinitionSO[] BuildItems(
+        IReadOnlyList<ItemSpec> specs)
+    {
         return specs.Select((spec, index) =>
         {
-            (float fuelValue, float feedValue, bool feedEligible) = spec.Id switch
-            {
-                "resource:log" => (10f, 0f, false),
-                "material:low-fuel" => (6f, 0f, false),
-                "resource:coal" => (20f, 0f, false),
-                "material:charcoal" => (24f, 0f, false),
-                "feed:hay" => (0f, 8f, true),
-                "feed:dog-food" => (0f, 14f, true),
-                "feed:dog-food-fresh" => (0f, 14f, true),
-                "resource:twilight-grain" => (0f, 6f, true),
-                "resource:ember-root" => (0f, 6f, true),
-                "resource:cave-mushroom" => (0f, 5f, true),
-                "resource:meat" => (0f, 12f, true),
-                "craft:candle" => (2f, 0f, false),
-                _ => (0f, 0f, false)
-            };
+            (float fuelValue, float feedValue, bool feedEligible) =
+                ResolveFacilitySupply(spec);
             string assetPath = $"{ItemRoot}/{Sanitize(spec.Id)}.asset";
             ResourceItemDefinitionSO existing =
                 AssetDatabase.LoadAssetAtPath<ResourceItemDefinitionSO>(assetPath);
@@ -573,61 +723,134 @@ public static class ResourceEconomyAssetBuilder
             {
                 return asset;
             }
-            asset.id = 8000 + index;
-            asset.Configure(
-                spec.Id,
-                spec.Name,
-                spec.Description,
-                spec.Category,
-                spec.Kind,
-                spec.Tags,
-                authoredUnitPrice,
-                authoredUnitWeight,
-                spec.MaxStack,
-                spec.ResearchId);
-            asset.ConfigureFacilitySupply(
+            ConfigureItem(
+                asset,
+                spec,
+                8000 + index,
                 fuelValue,
                 feedValue,
                 feedEligible,
-                spec.Kind == ResourceItemKind.Intermediate);
-            asset.ConfigureMarketSaleRate(authoredMarketSaleRate);
-            if (spec.HasMealData)
-            {
-                asset.ConfigureMeal(
-                    spec.MealQuality,
-                    spec.Nutrition,
-                    spec.MealMood,
-                    spec.FreshnessSeconds,
-                    spec.Preserved,
-                    ResolveMealQualityBand(spec.Id),
-                    ResolveMealServingRole(spec.Id));
-            }
-            if (spec.HasMedicineData)
-            {
-                asset.ConfigureMedicine(
-                    spec.SupportsInjuryTreatment,
-                    spec.TreatmentPotency,
-                    spec.InfectionReduction,
-                    spec.DetoxReduction,
-                    spec.PainReduction);
-            }
-            if (spec.PackageTareGrams > 0)
-            {
-                asset.SetFeature(new PackagedLotItemFeature
-                {
-                    packageTareGrams = spec.PackageTareGrams,
-                    tareDisposition = spec.PackageTareDisposition,
-                    containerItemId = spec.PackageContainerItemId
-                });
-            }
-            else
-            {
-                asset.RemoveFeature<PackagedLotItemFeature>();
-            }
-            ConfigureSubstanceFeature(asset);
+                authoredUnitPrice,
+                authoredUnitWeight,
+                authoredMarketSaleRate);
             EditorUtility.SetDirty(asset);
             return asset;
         }).ToArray();
+    }
+
+    private static void ConfigureItem(
+        ResourceItemDefinitionSO asset,
+        ItemSpec spec,
+        int authoredId,
+        float fuelValue,
+        float feedValue,
+        bool feedEligible,
+        int authoredUnitPrice,
+        float authoredUnitWeight,
+        float authoredMarketSaleRate)
+    {
+        asset.id = authoredId;
+        asset.Configure(
+            spec.Id,
+            spec.Name,
+            spec.Description,
+            spec.Category,
+            spec.Kind,
+            spec.Tags,
+            authoredUnitPrice,
+            authoredUnitWeight,
+            spec.MaxStack,
+            spec.ResearchId);
+        asset.ConfigureFacilitySupply(
+            fuelValue,
+            feedValue,
+            feedEligible,
+            spec.Kind == ResourceItemKind.Intermediate);
+        asset.ConfigureMarketSaleRate(authoredMarketSaleRate);
+        if (spec.HasMealData)
+        {
+            asset.ConfigureMeal(
+                spec.MealQuality,
+                spec.Nutrition,
+                spec.MealMood,
+                spec.FreshnessSeconds,
+                spec.Preserved,
+                ResolveMealQualityBand(spec.Id),
+                ResolveMealServingRole(spec.Id));
+        }
+        if (spec.HasMedicineData)
+        {
+            asset.ConfigureMedicine(
+                spec.SupportsInjuryTreatment,
+                spec.TreatmentPotency,
+                spec.InfectionReduction,
+                spec.DetoxReduction,
+                spec.PainReduction);
+        }
+        if (spec.PackageTareGrams > 0)
+        {
+            asset.SetFeature(new PackagedLotItemFeature
+            {
+                packageTareGrams = spec.PackageTareGrams,
+                tareDisposition = spec.PackageTareDisposition,
+                containerItemId = spec.PackageContainerItemId
+            });
+        }
+        else
+        {
+            asset.RemoveFeature<PackagedLotItemFeature>();
+        }
+        ConfigureSubstanceFeature(asset);
+        ConfigureAmmunitionProfile(asset, spec.AmmunitionProfile);
+    }
+
+    private static (float FuelValue, float FeedValue, bool FeedEligible)
+        ResolveFacilitySupply(ItemSpec spec) => spec.Id switch
+        {
+            "resource:log" => (10f, 0f, false),
+            "material:low-fuel" => (6f, 0f, false),
+            "resource:coal" => (20f, 0f, false),
+            "material:charcoal" => (24f, 0f, false),
+            "feed:hay" => (0f, 8f, true),
+            "feed:dog-food" => (0f, 14f, true),
+            "feed:dog-food-fresh" => (0f, 14f, true),
+            "resource:twilight-grain" => (0f, 6f, true),
+            "resource:ember-root" => (0f, 6f, true),
+            "resource:cave-mushroom" => (0f, 5f, true),
+            "resource:meat" => (0f, 12f, true),
+            "craft:candle" => (2f, 0f, false),
+            _ => (0f, 0f, false)
+        };
+
+    private static void ValidateAmmunitionProfiles(
+        IEnumerable<ItemSpec> specs)
+    {
+        foreach (ItemSpec spec in specs)
+        {
+            bool isAmmunition = spec.Kind == ResourceItemKind.Ammunition;
+            if (isAmmunition != spec.AmmunitionProfile.HasValue)
+            {
+                throw new InvalidOperationException(
+                    $"Item spec {spec.Id} must author a combat ammunition profile exactly when it is ammunition.");
+            }
+        }
+    }
+
+    private static void ConfigureAmmunitionProfile(
+        ResourceItemDefinitionSO asset,
+        CombatAmmunitionProfile? profile)
+    {
+        if (!profile.HasValue)
+        {
+            asset.RemoveFeature<CombatAmmunitionProfileItemFeature>();
+            return;
+        }
+
+        CombatAmmunitionProfileItemFeature feature =
+            asset.GetFeatureOrDefault<CombatAmmunitionProfileItemFeature>()
+            ?? new CombatAmmunitionProfileItemFeature();
+        feature.Configure(profile.Value);
+        asset.SetFeature(feature);
     }
 
     private static float ResolveAuthoredUnitWeight(
@@ -760,6 +983,11 @@ public static class ResourceEconomyAssetBuilder
             return false;
         }
 
+        if (!MatchesAmmunitionProfile(asset, spec.AmmunitionProfile))
+        {
+            return false;
+        }
+
         bool hasResearch = asset.TryGetFeature(
             out ResearchGateItemFeature _);
         bool expectsResearch = !string.IsNullOrWhiteSpace(spec.ResearchId);
@@ -772,6 +1000,7 @@ public static class ResourceEconomyAssetBuilder
         int expectedFeatureCount = 2
             + (expectsResearch ? 1 : 0)
             + (expectsAmmunition ? 1 : 0)
+            + (spec.AmmunitionProfile.HasValue ? 1 : 0)
             + (expectsFacilitySupply ? 1 : 0)
             + (spec.HasMealData ? 1 : 0)
             + (spec.HasMedicineData ? 1 : 0)
@@ -779,6 +1008,41 @@ public static class ResourceEconomyAssetBuilder
             + (asset.GetFeatureOrDefault<SubstanceItemFeature>() != null ? 1 : 0);
         return asset.Features.Count(feature => feature != null)
             == expectedFeatureCount;
+    }
+
+    private static bool MatchesAmmunitionProfile(
+        ResourceItemDefinitionSO asset,
+        CombatAmmunitionProfile? expected)
+    {
+        bool hasProfile = asset.TryGetFeature(
+            out CombatAmmunitionProfileItemFeature feature);
+        if (hasProfile != expected.HasValue)
+        {
+            return false;
+        }
+        if (!hasProfile)
+        {
+            return true;
+        }
+
+        CombatAmmunitionProfile actual = feature.CreateSnapshot();
+        CombatAmmunitionProfile desired = expected.Value;
+        return actual.Effects == desired.Effects
+            && Mathf.Approximately(
+                actual.DamageMultiplier,
+                desired.DamageMultiplier)
+            && Mathf.Approximately(
+                actual.PenetrationMultiplier,
+                desired.PenetrationMultiplier)
+            && Mathf.Approximately(
+                actual.SuppressionMultiplier,
+                desired.SuppressionMultiplier)
+            && Mathf.Approximately(actual.StatusPotency, desired.StatusPotency)
+            && Mathf.Approximately(
+                actual.TargetAirborneExposure,
+                desired.TargetAirborneExposure)
+            && actual.StatusTurns == desired.StatusTurns
+            && actual.Nonlethal == desired.Nonlethal;
     }
 
     private static bool MatchesSubstanceFeature(
@@ -1329,7 +1593,8 @@ public static class ResourceEconomyAssetBuilder
         float weight,
         int maxStack,
         string researchId,
-        float marketSaleRate = 0.6f)
+        float marketSaleRate = 0.6f,
+        CombatAmmunitionProfile? ammunitionProfile = null)
     {
         return new ItemSpec(
             id,
@@ -1342,8 +1607,28 @@ public static class ResourceEconomyAssetBuilder
             weight,
             maxStack,
             researchId,
-            marketSaleRate: marketSaleRate);
+            marketSaleRate: marketSaleRate,
+            ammunitionProfile: ammunitionProfile);
     }
+
+    private static CombatAmmunitionProfile Ammo(
+        CombatSpecialEffectFlags effects,
+        float damageMultiplier,
+        float penetrationMultiplier,
+        float suppressionMultiplier,
+        float statusPotency,
+        int statusTurns,
+        bool nonlethal,
+        float targetAirborneExposure) =>
+        new CombatAmmunitionProfile(
+            effects,
+            damageMultiplier,
+            penetrationMultiplier,
+            suppressionMultiplier,
+            statusPotency,
+            statusTurns,
+            nonlethal,
+            targetAirborneExposure);
 
     private static ItemSpec M(
         string id,
@@ -1501,11 +1786,119 @@ public static class ResourceEconomyAssetBuilder
             ",(?=\\s*[}\\]])",
             string.Empty,
             options);
-        return System.Text.RegularExpressions.Regex.Replace(
-            canonical,
-            "\\\"rid\\\"\\s*:\\s*-?[0-9]+",
-            "\\\"rid\\\":0",
-            options);
+        return CanonicalizeManagedReferenceJson(canonical);
+    }
+
+    // Unity의 참조 번호와 할당 표 순서만 정규화한다. 값, 배열 순서, 공유 참조는 보존한다.
+    internal static string CanonicalizeManagedReferenceJson(string json)
+    {
+        var envelope = JObject.Parse(json);
+        var root = envelope["MonoBehaviour"] as JObject ?? envelope;
+        bool wrapped = !ReferenceEquals(root, envelope);
+        if (root["references"] is not JObject table || table["RefIds"] is not JArray entries)
+            return envelope.ToString(Newtonsoft.Json.Formatting.None);
+        var originals = entries.Cast<JObject>().ToDictionary(value => value.Value<long>("rid"));
+        var ids = new Dictionary<long, long>();
+        var records = new JArray();
+        JToken Visit(JToken token)
+        {
+            if (token is JObject value)
+            {
+                if (value.Count == 1 && value.TryGetValue("rid", out var reference))
+                {
+                    long originalId = reference.Value<long>();
+                    if ((originalId == -1 || originalId == -2) && !originals.ContainsKey(originalId))
+                        return value.DeepClone();
+                    if (!ids.TryGetValue(originalId, out long canonicalId))
+                    {
+                        if (!originals.TryGetValue(originalId, out var original))
+                            throw new InvalidOperationException("Serialized authoring reference is missing: " + originalId);
+                        canonicalId = ids.Count + 1;
+                        ids.Add(originalId, canonicalId);
+                        var record = (JObject)original.DeepClone();
+                        records.Add(record);
+                        record["rid"] = canonicalId;
+                        record["data"] = Visit(record["data"]);
+                    }
+                    return new JObject(new JProperty("rid", canonicalId));
+                }
+                var copy = new JObject();
+                foreach (var property in value.Properties()) copy[property.Name] = Visit(property.Value);
+                return copy;
+            }
+            if (token is JArray array) return new JArray(array.Select(Visit));
+            return token?.DeepClone() ?? JValue.CreateNull();
+        }
+        root.Remove("references");
+        root = (JObject)Visit(root);
+        if (ids.Count != originals.Count)
+            throw new InvalidOperationException("Serialized authoring has unreachable managed references.");
+        var metadata = (JObject)table.DeepClone();
+        metadata["RefIds"] = records;
+        root["references"] = metadata;
+        if (wrapped) envelope["MonoBehaviour"] = root;
+        else envelope = root;
+        return envelope.ToString(Newtonsoft.Json.Formatting.None);
+    }
+
+    private static void VerifyManagedReferenceComparison()
+    {
+        const string before = "{\"ordered\":[{\"rid\":42},{\"rid\":7},{\"rid\":42}],\"references\":{\"version\":2,\"RefIds\":[{\"rid\":7,\"type\":{\"class\":\"B\"},\"data\":{\"value\":0.85}},{\"rid\":42,\"type\":{\"class\":\"A\"},\"data\":{\"links\":[{\"rid\":7}],\"value\":0.5}}]}}";
+        const string renumbered = "{\"ordered\":[{\"rid\":2},{\"rid\":99},{\"rid\":2}],\"references\":{\"version\":2,\"RefIds\":[{\"rid\":2,\"type\":{\"class\":\"A\"},\"data\":{\"links\":[{\"rid\":99}],\"value\":0.5}},{\"rid\":99,\"type\":{\"class\":\"B\"},\"data\":{\"value\":0.85}}]}}";
+        string expected = CanonicalizeManagedReferenceJson(before);
+        if (expected != CanonicalizeManagedReferenceJson(renumbered))
+            throw new InvalidOperationException("Equivalent reference graph compared as a change.");
+        string wrappedBefore = "{\"MonoBehaviour\":" + before + "}";
+        string wrappedAfter = "{\"MonoBehaviour\":" + renumbered + "}";
+        if (CanonicalizeManagedReferenceJson(wrappedBefore) != CanonicalizeManagedReferenceJson(wrappedAfter))
+            throw new InvalidOperationException("Equivalent EditorJsonUtility host graph compared as a change.");
+        var changedValue = JObject.Parse(renumbered);
+        changedValue["references"]["RefIds"][0]["data"]["value"] = .6f;
+        var changedOrder = JObject.Parse(renumbered);
+        changedOrder["ordered"] = JArray.Parse("[{\"rid\":99},{\"rid\":2},{\"rid\":2}]");
+        var changedAlias = JObject.Parse(renumbered);
+        var extra = (JObject)changedAlias["references"]["RefIds"][0].DeepClone();
+        extra["rid"] = 3;
+        ((JArray)changedAlias["references"]["RefIds"]).Add(extra);
+        changedAlias["ordered"][2]["rid"] = 3;
+        var changedType = JObject.Parse(renumbered);
+        changedType["references"]["RefIds"][0]["type"]["class"] = "C";
+        foreach (var changed in new[] { changedValue, changedOrder, changedAlias, changedType })
+            if (expected == CanonicalizeManagedReferenceJson(changed.ToString())
+                || CanonicalizeManagedReferenceJson(wrappedBefore) ==
+                    CanonicalizeManagedReferenceJson("{\"MonoBehaviour\":" + changed + "}"))
+                throw new InvalidOperationException("Authoring comparison hid a value, order, alias or type change.");
+        bool missingRejected = false;
+        try { CanonicalizeManagedReferenceJson(renumbered.Replace("\"rid\":99,\"type\"", "\"rid\":100,\"type\"")); }
+        catch (InvalidOperationException) { missingRejected = true; }
+        if (!missingRejected) throw new InvalidOperationException("Dangling authoring reference was accepted.");
+    }
+
+    private static void WriteAmmunitionComparisonDiagnostic(
+        ResourceItemDefinitionSO asset, Action<ResourceItemDefinitionSO> configure, string itemId)
+    {
+        string reportPath = Environment.GetEnvironmentVariable("DUNGEONSTORY_A05_REPORT_PATH");
+        if (string.IsNullOrWhiteSpace(reportPath)) return;
+        string directory = System.IO.Path.GetDirectoryName(reportPath);
+        if (string.IsNullOrWhiteSpace(directory)) throw new InvalidOperationException("A05 report directory is missing.");
+        var candidate = UnityEngine.Object.Instantiate(asset);
+        try
+        {
+            candidate.name = asset.name;
+            configure(candidate);
+            string stem = System.IO.Path.Combine(directory, "core-ammo-authoring-" + Sanitize(itemId));
+            WriteCreateOnly(stem + "-before.raw.json", EditorJsonUtility.ToJson(asset, false));
+            WriteCreateOnly(stem + "-after.raw.json", EditorJsonUtility.ToJson(candidate, false));
+        }
+        finally { UnityEngine.Object.DestroyImmediate(candidate); }
+    }
+
+    private static void WriteCreateOnly(string path, string contents)
+    {
+        using var stream = new System.IO.FileStream(path, System.IO.FileMode.CreateNew,
+            System.IO.FileAccess.Write, System.IO.FileShare.Read);
+        using var writer = new System.IO.StreamWriter(stream, new System.Text.UTF8Encoding(false));
+        writer.Write(contents);
     }
 
     private static RecipeMassExplanationSpec Loss(
@@ -1690,7 +2083,8 @@ public static class ResourceEconomyAssetBuilder
             int packageTareGrams = 0,
             PackageTareDisposition packageTareDisposition =
                 PackageTareDisposition.None,
-            string packageContainerItemId = "")
+            string packageContainerItemId = "",
+            CombatAmmunitionProfile? ammunitionProfile = null)
         {
             Id = id; Name = name; Description = description; Category = category; Kind = kind;
             Tags = tags; Price = price; Weight = weight; MaxStack = maxStack; ResearchId = researchId;
@@ -1706,6 +2100,7 @@ public static class ResourceEconomyAssetBuilder
             PackageTareGrams = packageTareGrams;
             PackageTareDisposition = packageTareDisposition;
             PackageContainerItemId = packageContainerItemId ?? string.Empty;
+            AmmunitionProfile = ammunitionProfile;
         }
         public string Id { get; }
         public string Name { get; }
@@ -1733,6 +2128,7 @@ public static class ResourceEconomyAssetBuilder
         public int PackageTareGrams { get; }
         public PackageTareDisposition PackageTareDisposition { get; }
         public string PackageContainerItemId { get; }
+        public CombatAmmunitionProfile? AmmunitionProfile { get; }
     }
 
     private sealed class RecipeSpec

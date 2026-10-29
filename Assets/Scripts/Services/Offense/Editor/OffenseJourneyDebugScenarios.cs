@@ -22,6 +22,18 @@ public static class OffenseJourneyDebugScenarios
         if (!RunAll(true)) Debug.LogError("Offense journey scenarios failed.");
     }
 
+    [MenuItem("DungeonStory/Debug/Offense/Verify Expedition Query Projection")]
+    public static void RunExpeditionQueryProjection()
+    {
+        if (!VerifyExpeditionQueryProjectionIsolation())
+        {
+            throw new InvalidOperationException(
+                "Offense expedition query projection verification failed.");
+        }
+
+        Debug.Log("Offense expedition query projection passed.");
+    }
+
     public static bool RunAll(bool logSuccess)
     {
         List<string> errors = new List<string>();
@@ -37,6 +49,9 @@ public static class OffenseJourneyDebugScenarios
             VerifyExpeditionDeathLosesEquipmentModulesTogether,
             errors);
         Run("journey state restore", VerifyJourneyStateRestore, errors);
+        Run("expedition query projection isolation",
+            VerifyExpeditionQueryProjectionIsolation,
+            errors);
         Run("offense save payload round trip", VerifySavePayloadRoundTrip, errors);
         Run("offense departure restore publication",
             VerifyDepartureRestorePublication,
@@ -574,6 +589,102 @@ public static class OffenseJourneyDebugScenarios
         return true;
     }
 
+    private static bool VerifyExpeditionQueryProjectionIsolation()
+    {
+        using ActorFixture fixture = new ActorFixture("Query Projection Tester");
+        OffenseTargetDefinition target = Target();
+        OffenseExpeditionRun run = new OffenseExpeditionRun(
+            "expedition:query-projection",
+            target,
+            new[] { fixture.Actor },
+            12f,
+            83f,
+            OffenseRouteGenerator.Create(target),
+            Loadout((OffenseSupplyType.Rations, 2)),
+            new OffenseExpeditionPreparation(
+                startingLight: 61f,
+                fieldFunds: 19));
+        GameObject runtimeObject = new GameObject(
+            "Offense Expedition Query Projection Runtime");
+        try
+        {
+            OffenseExpeditionRuntime runtime =
+                runtimeObject.AddComponent<OffenseExpeditionRuntime>();
+            runtime.PublishRestoreCandidate(runtime.BuildRestoreCandidate(
+                new[] { run },
+                Array.Empty<OffenseExpeditionResult>()));
+
+            IReadOnlyList<OffenseExpeditionSnapshot> first =
+                OffenseApplication.ProjectActiveExpeditions(
+                    runtime.ActiveExpeditions);
+            IReadOnlyList<OffenseExpeditionSnapshot> second =
+                OffenseApplication.ProjectActiveExpeditions(
+                    runtime.ActiveExpeditions);
+            Require(first.Count == 1 && second.Count == 1,
+                "Expedition query projection did not preserve membership.");
+            Require(!ReferenceEquals(first, second)
+                    && !ReferenceEquals(first[0], second[0]),
+                "Expedition query projection reused externally visible identity.");
+
+            OffenseExpeditionSnapshot baseline = first[0];
+            Require(baseline.ExpeditionId == run.ExpeditionId
+                    && baseline.TargetId == target.id
+                    && baseline.TargetTitle == target.title
+                    && baseline.Phase == run.Phase
+                    && baseline.CurrentNodeId == run.CurrentNodeId
+                    && Mathf.Approximately(
+                        baseline.RemainingSeconds,
+                        run.RemainingSeconds)
+                    && Mathf.Approximately(baseline.Light, run.Light)
+                    && baseline.MemberCount == run.MemberActors.Count
+                    && baseline.FieldFunds == run.FieldFunds
+                    && baseline.UsesWorldTravel == run.UsesWorldTravel,
+                "Expedition query projection did not preserve owner values.");
+            Require(typeof(OffenseExpeditionSnapshot)
+                    .GetProperties()
+                    .All(property => !property.CanWrite),
+                "Expedition query row exposes a writable property.");
+
+            bool membershipMutationRejected = false;
+            try
+            {
+                ((ICollection<OffenseExpeditionSnapshot>)first).Clear();
+            }
+            catch (NotSupportedException)
+            {
+                membershipMutationRejected = true;
+            }
+            Require(membershipMutationRejected
+                    && runtime.ActiveExpeditions.Count == 1,
+                "Expedition query membership allowed external mutation.");
+
+            string originalNodeId = baseline.CurrentNodeId;
+            OffenseRouteNode nextNode = run.GetAvailableRouteNodes()
+                .First(node => node.Kind != OffenseRouteNodeKind.Battle);
+            Require(runtime.TryChooseRouteNode(
+                    run.ExpeditionId,
+                    nextNode.Id,
+                    out string routeFailure),
+                "Owner route command failed: " + routeFailure);
+
+            IReadOnlyList<OffenseExpeditionSnapshot> changed =
+                OffenseApplication.ProjectActiveExpeditions(
+                    runtime.ActiveExpeditions);
+            Require(baseline.Phase == OffenseExpeditionPhase.ChoosingRoute
+                    && baseline.CurrentNodeId == originalNodeId,
+                "A prior expedition query row changed with its owner.");
+            Require(changed.Single().Phase == run.Phase
+                    && changed.Single().CurrentNodeId == run.CurrentNodeId
+                    && changed.Single().CurrentNodeId == nextNode.Id,
+                "Expedition query did not refresh after the owner command.");
+            return true;
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(runtimeObject);
+        }
+    }
+
     private static bool VerifySavePayloadRoundTrip()
     {
         using ActorFixture fixture = new ActorFixture("Save Payload Tester");
@@ -989,6 +1100,7 @@ public static class OffenseJourneyDebugScenarios
             returnArrivals:
                 BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy
                     .Create<IOffenseReturnArrivalRuntime>(),
+            itemCatalog: EditorItemCatalogFactory.CreateDefinitions(),
             performance: CharacterAiEditorTestDependencies.NeutralPerformance);
     }
 
@@ -1368,13 +1480,27 @@ public static class OffenseJourneyDebugScenarios
         }
     }
 
-    private sealed class EmptyBattleRuntime : IOffenseBattleRuntime
+    private sealed class EmptyBattleRuntime : IOffenseBattleCompletionAuthority
     {
-        public OffenseBattleSession Session => null;
+        public OffenseBattleSnapshot Session => null;
         public bool HasActiveBattle => false;
         public bool IsBattleViewVisible => false;
         public event Action StateChanged { add { } remove { } }
         public event Action<OffenseBattleSession> BattleCompleted { add { } remove { } }
+        public CombatAttackPreview PreviewBasicAttack(string sourceId, string targetId) =>
+            new CombatAttackPreview(
+                false,
+                "fixture has no active battle",
+                CombatRangeBand.OutOfRange,
+                0f,
+                0f,
+                0f,
+                0f,
+                0f,
+                0f);
+        public OffenseBattleCommand CreateStrategicEnemyCommand(
+            string enemyId,
+            long commandId) => null;
         public bool TryStartBattle(OffenseExpeditionRun expedition, out string message)
         {
             message = string.Empty;

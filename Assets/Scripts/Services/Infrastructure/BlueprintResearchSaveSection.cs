@@ -163,17 +163,18 @@ public sealed class BlueprintResearchSaveSection :
 
     protected override DungeonResearchSaveData CapturePayload()
     {
+        BlueprintResearchState state = runtime.State;
         bool usesProjectAuthority = projectCatalog.Projects.Count > 0;
         return new DungeonResearchSaveData
         {
-            outcomeSequence = runtime.State.OutcomeSequence,
-            pendingWorkPublication = runtime.State.PendingPublication ?? new(),
+            outcomeSequence = state.OutcomeSequence,
+            pendingWorkPublication = state.PendingPublication ?? new(),
             nextKnowledgeTaskSequence = knowledgeProcessing.NextTaskSequence,
             knowledgeTaskIdentityGeneration =
                 knowledgeProcessing.TaskIdentityGeneration,
             tasks = usesProjectAuthority
                 ? new List<DungeonResearchTaskSaveData>()
-                : runtime.State.Tasks
+                : state.Tasks
                     .Where(task => task?.Blueprint != null)
                     .Select(task => new DungeonResearchTaskSaveData
                     {
@@ -183,15 +184,15 @@ public sealed class BlueprintResearchSaveSection :
                     .ToList(),
             completedBlueprintIds = usesProjectAuthority
                 ? new List<int>()
-                : runtime.State.CompletedBlueprintIds.OrderBy(id => id).ToList(),
-            unlockedBuildingIds = runtime.State.UnlockedBuildingIds
+                : state.CompletedBlueprintIds.OrderBy(id => id).ToList(),
+            unlockedBuildingIds = state.UnlockedBuildingIds
                 .OrderBy(id => id)
                 .ToList(),
-            unlockedRecipeIds = runtime.State.UnlockedRecipeIds
+            unlockedRecipeIds = state.UnlockedRecipeIds
                 .OrderBy(id => id, StringComparer.Ordinal)
                 .ToList(),
             knowledgeTasks = knowledgeProcessing.Capture().ToList(),
-            projectProgress = runtime.State.Projects.ProgressById.Values
+            projectProgress = state.Projects.ProgressById.Values
                 .OrderBy(progress => progress.ProjectId.Value, StringComparer.Ordinal)
                 .Select(progress =>
                 {
@@ -209,10 +210,10 @@ public sealed class BlueprintResearchSaveSection :
                     };
                 })
                 .ToList(),
-            completedProjectIds = runtime.State.Projects.CompletedProjectIds
+            completedProjectIds = state.Projects.CompletedProjectIds
                 .OrderBy(id => id, StringComparer.Ordinal)
                 .ToList(),
-            completedProjectResults = runtime.State.CompletedProjectResultKeys
+            completedProjectResults = state.CompletedProjectResultKeys
                 .OrderBy(pair => pair.Key, StringComparer.Ordinal)
                 .Select(pair => new DungeonResearchCompletionResultSaveData
                 {
@@ -220,16 +221,16 @@ public sealed class BlueprintResearchSaveSection :
                     publicationKey = pair.Value
                 })
                 .ToList(),
-            projectQueue = runtime.State.Projects.Queue
+            projectQueue = state.Projects.Queue
                 .Select(entry => new DungeonResearchQueueEntrySaveData
                 {
                     projectId = entry.ProjectId.Value,
                     suspendedReason = entry.SuspendedReason
                 })
                 .ToList(),
-            activeProjectId = runtime.State.Projects.ActiveProjectId.Value,
+            activeProjectId = state.Projects.ActiveProjectId.Value,
             materializeLegacyBlueprintItems = false,
-            shopFulfillments = runtime.State.CaptureShopFulfillments()
+            shopFulfillments = state.CaptureShopFulfillments()
                 .Select(value => new FacilityShopFulfillmentSaveData
                 {
                     purchaseResultKey = value.PurchaseResultKey,

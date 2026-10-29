@@ -33,6 +33,7 @@ MonoBehaviour:
   features:
   - rid: 7737211673752633576
   - rid: 7737211673752633577
+  - rid: 7737211673752633578
   references:
     version: 2
     RefIds:
@@ -46,3 +47,14 @@ MonoBehaviour:
       type: {class: AmmunitionItemFeature, ns: , asm: Assembly-CSharp}
       data:
         ammunitionKindId: ammo:bolt
+    - rid: 7737211673752633578
+      type: {class: CombatAmmunitionProfileItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        effects: 0
+        damageMultiplier: 1
+        penetrationMultiplier: 1
+        suppressionMultiplier: 1
+        statusPotency: 0
+        targetAirborneExposure: 0
+        statusTurns: 0
+        nonlethal: 0

@@ -9,6 +9,13 @@ using UnityEngine;
 
 public static class EmergencyLaborDebugScenarios
 {
+    public static void RunR30AlertQueryFocused()
+    {
+        ValidateAlertHysteresisAndPersistence();
+        ValidateRestoreTransactionIsolation();
+        Debug.Log("R30_ALERT_QUERY=PASS");
+    }
+
     [MenuItem("Tools/Dungeon Story/Validation/Phase 157 Emergency Labor")]
     public static void RunAll()
     {
@@ -537,13 +544,24 @@ public static class EmergencyLaborDebugScenarios
             "Red escalation was not immediate.");
         SettlementAlertSnapshot cachedFirst = alert.Capture();
         SettlementAlertSnapshot cachedSecond = alert.Capture();
-        Require(ReferenceEquals(
-                cachedFirst.ActiveIncidentIds,
-                cachedSecond.ActiveIncidentIds)
-            && ReferenceEquals(
-                cachedFirst.SuspendedWork,
-                cachedSecond.SuspendedWork),
-            "Unchanged alert snapshots rebuilt collection payloads on the hot read path.");
+        Require(cachedFirst.ActiveIncidentIds.SequenceEqual(
+                    cachedSecond.ActiveIncidentIds,
+                    StringComparer.Ordinal)
+                && cachedFirst.SuspendedWork.SequenceEqual(
+                    cachedSecond.SuspendedWork),
+            "Unchanged alert snapshots changed their collection values.");
+        RequireThrows<NotSupportedException>(
+            () => ((IList<string>)cachedFirst.ActiveIncidentIds)[0] =
+                "incident:caller-mutated",
+            "Alert incident membership accepted caller mutation.");
+        RequireThrows<NotSupportedException>(
+            () => ((IList<SettlementSuspendedWorkSnapshot>)
+                cachedFirst.SuspendedWork).Add(default),
+            "Alert suspended-work membership accepted caller mutation.");
+        Require(alert.Capture().ActiveIncidentIds.SequenceEqual(
+                new[] { "incident:test-fire" },
+                StringComparer.Ordinal),
+            "Caller mutation changed the same-revision alert snapshot.");
         long epoch = alert.Capture().AlertEpochId;
         Require(alert.RecordSuspendedWork(
                 new SettlementSuspendedWorkSnapshot(
@@ -557,6 +575,19 @@ public static class EmergencyLaborDebugScenarios
                     workerDisplayName: "비상 작업자",
                     targetDisplayName: "비상 작업장")).Success,
             "Externally persisted work could not enter the suspended-work journal.");
+        SettlementAlertSnapshot withSuspendedWork = alert.Capture();
+        Require(withSuspendedWork.SuspendedWork.Count == 1
+                && withSuspendedWork.SuspendedWork[0].CharacterId
+                    == "character:test",
+            "Owner suspended-work command did not refresh the alert view.");
+        RequireThrows<NotSupportedException>(
+            () => ((IList<SettlementSuspendedWorkSnapshot>)
+                    withSuspendedWork.SuspendedWork)[0] = default,
+            "Alert suspended-work row accepted caller replacement.");
+        Require(alert.Capture().SuspendedWork.Count == 1
+                && alert.Capture().SuspendedWork[0].CharacterId
+                    == "character:test",
+            "Caller replacement changed the same-revision suspended-work view.");
         Require(alert.ResolveIncident("incident:test-fire", 2L).Success,
             "Incident resolution failed.");
 
@@ -696,8 +727,10 @@ public static class EmergencyLaborDebugScenarios
 
             SettlementLaborAccountingSnapshot originalLabor = labor.Capture();
             originalAlert = alert.Capture();
-            object originalIncidents = originalAlert.ActiveIncidentIds;
-            object originalSuspendedWork = originalAlert.SuspendedWork;
+            string[] originalIncidents =
+                originalAlert.ActiveIncidentIds.ToArray();
+            SettlementSuspendedWorkSnapshot[] originalSuspendedWork =
+                originalAlert.SuspendedWork.ToArray();
             string originalLaborJson = JsonUtility.ToJson(labor.CaptureLaborSaveData());
             string originalAlertJson = JsonUtility.ToJson(alert.CaptureAlertSaveData());
             Require(originalLabor.ActualLaborMilliWu == 1_340L
@@ -720,8 +753,11 @@ public static class EmergencyLaborDebugScenarios
             Require(JsonUtility.ToJson(labor.CaptureLaborSaveData()) == originalLaborJson
                 && JsonUtility.ToJson(alert.CaptureAlertSaveData()) == originalAlertJson
                 && labor.Capture().Revision == originalLabor.Revision
-                && ReferenceEquals(alert.Capture().ActiveIncidentIds, originalIncidents)
-                && ReferenceEquals(alert.Capture().SuspendedWork, originalSuspendedWork),
+                && alert.Capture().ActiveIncidentIds.SequenceEqual(
+                    originalIncidents,
+                    StringComparer.Ordinal)
+                && alert.Capture().SuspendedWork.SequenceEqual(
+                    originalSuspendedWork),
                 "Staged restore changed live labor or alert authority before publication.");
 
             labor.PublishRestoreCandidate();
@@ -738,8 +774,11 @@ public static class EmergencyLaborDebugScenarios
             Require(JsonUtility.ToJson(labor.CaptureLaborSaveData()) == originalLaborJson
                 && JsonUtility.ToJson(alert.CaptureAlertSaveData()) == originalAlertJson
                 && labor.Capture().Revision == originalLabor.Revision
-                && ReferenceEquals(rolledBackAlert.ActiveIncidentIds, originalIncidents)
-                && ReferenceEquals(rolledBackAlert.SuspendedWork, originalSuspendedWork)
+                && rolledBackAlert.ActiveIncidentIds.SequenceEqual(
+                    originalIncidents,
+                    StringComparer.Ordinal)
+                && rolledBackAlert.SuspendedWork.SequenceEqual(
+                    originalSuspendedWork)
                 && !alert.TryClaimContextTransition(
                     "character:restore-transaction",
                     epoch,
@@ -759,8 +798,11 @@ public static class EmergencyLaborDebugScenarios
             Require(JsonUtility.ToJson(labor.CaptureLaborSaveData()) == originalLaborJson
                 && JsonUtility.ToJson(alert.CaptureAlertSaveData()) == originalAlertJson
                 && labor.Capture().Revision == originalLabor.Revision
-                && ReferenceEquals(discardedAlert.ActiveIncidentIds, originalIncidents)
-                && ReferenceEquals(discardedAlert.SuspendedWork, originalSuspendedWork),
+                && discardedAlert.ActiveIncidentIds.SequenceEqual(
+                    originalIncidents,
+                    StringComparer.Ordinal)
+                && discardedAlert.SuspendedWork.SequenceEqual(
+                    originalSuspendedWork),
                 "Discarded restore candidate changed live labor or alert authority.");
 
             labor.BeginRestoreCandidate();
@@ -797,6 +839,23 @@ public static class EmergencyLaborDebugScenarios
     {
         if (!condition)
             throw new InvalidOperationException(message);
+    }
+
+    private static void RequireThrows<TException>(
+        Action action,
+        string message)
+        where TException : Exception
+    {
+        try
+        {
+            action();
+        }
+        catch (TException)
+        {
+            return;
+        }
+
+        throw new InvalidOperationException(message);
     }
 
     private sealed class FakeCalendar : IGameCalendar

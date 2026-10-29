@@ -310,7 +310,6 @@ public sealed class DungeonDebugWorkCommandProvider : IDungeonDebugCommandProvid
     private readonly IWorldItemStackRuntime itemRuntime;
     private readonly BlueprintResearchRuntime research;
     private readonly IFacilityShopCatalog facilityCatalog;
-    private readonly IFacilityShopUnlockStateService shopUnlockStateService;
     private readonly IBuildingDestructiveLossRuntime destructiveLoss;
 
     public DungeonDebugWorkCommandProvider(
@@ -318,7 +317,6 @@ public sealed class DungeonDebugWorkCommandProvider : IDungeonDebugCommandProvid
         IWorldItemStackRuntime itemRuntime,
         ProgressionSceneRuntimeReferences progressionRuntimes,
         IFacilityShopCatalog facilityCatalog,
-        IFacilityShopUnlockStateService shopUnlockStateService,
         IBuildingDestructiveLossRuntime destructiveLoss)
     {
         this.workOrderRuntime = workOrderRuntime ?? throw new ArgumentNullException(nameof(workOrderRuntime));
@@ -329,8 +327,6 @@ public sealed class DungeonDebugWorkCommandProvider : IDungeonDebugCommandProvid
             ?? throw new InvalidOperationException(
                 $"{nameof(DungeonDebugWorkCommandProvider)} requires a loaded {nameof(BlueprintResearchRuntime)}.");
         this.facilityCatalog = facilityCatalog ?? throw new ArgumentNullException(nameof(facilityCatalog));
-        this.shopUnlockStateService = shopUnlockStateService
-            ?? throw new ArgumentNullException(nameof(shopUnlockStateService));
         this.destructiveLoss = destructiveLoss
             ?? throw new ArgumentNullException(nameof(destructiveLoss));
     }
@@ -532,19 +528,7 @@ public sealed class DungeonDebugWorkCommandProvider : IDungeonDebugCommandProvid
                     return DungeonDebugCommandResult.Failed("연구 런타임이 없습니다.");
                 }
 
-                FacilityShopUnlockState shopState = shopUnlockStateService.GetUnlockState();
-                foreach (BuildingSO building in facilityCatalog.Buildings.Where(building => building != null))
-                {
-                    research.State.UnlockBuilding(building.id);
-                    shopState.UnlockBasicPurchaseById(building.id);
-                }
-
-                foreach (FacilityBlueprintSO blueprint in facilityCatalog.Blueprints
-                             .Where(blueprint => blueprint != null))
-                {
-                    research.State.MarkCompleted(blueprint);
-                    shopState.MarkBlueprintAcquired(blueprint);
-                }
+                research.UnlockAllForDebug();
 
                 return DungeonDebugCommandResult.Succeeded(
                     $"건물 {facilityCatalog.Buildings.Count}개와 설계도 {facilityCatalog.Blueprints.Count}개를 해금했습니다.");

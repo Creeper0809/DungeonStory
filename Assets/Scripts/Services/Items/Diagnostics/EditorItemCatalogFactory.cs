@@ -2,11 +2,13 @@
 public static class EditorItemCatalogFactory
 {
     public static ResourceDungeonItemCatalogProvider Create()
+        => new ResourceDungeonItemCatalogProvider(CreateDefinitions());
+
+    public static ResourceItemDefinitionCatalog CreateDefinitions()
     {
         ResourceGameContentCatalog content = new ResourceGameContentCatalog(
             new UnityGameContentRootLoader());
-        return new ResourceDungeonItemCatalogProvider(
-            new ResourceItemDefinitionCatalog(content));
+        return new ResourceItemDefinitionCatalog(content);
     }
 }
 #endif

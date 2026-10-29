@@ -1,0 +1,375 @@
+{
+  "schema": "r30-structure-evidence-v1",
+  "collection": "raw-evidence-copy-complete",
+  "preconditions": {
+    "allFiveImpactReceiptMatchesCurrent": true,
+    "r250SourceBindingMatchesCurrent": true,
+    "publicationReviewAndPromotionMatch": true
+  },
+  "inputSha256": {
+    "tracking.json": "d98fb64749c3eea01f399799da2aff7916e2ecaabef1a99b3b8065c9c9b4d416",
+    "phase3-current-state.json": "53dcc2ec78f580a02811a8977a281fabac85bfd5620d2593102cd8f4410d6169",
+    "r250-binding-review.json": "4dddd45d7c33e04345e1508ec18aa401bd931a24fd2131e7204c10049b4b4c6b",
+    "continuity-r249-r250.json": "6f72cafe931db93aabc5a01031a31cae1621af66ccc960b3a27096b41640fe98",
+    "effect-partition-coverage.json": "6ea192303ff805758c1ab5684377b5caa3536f2dfed36502ab8b716152b1ad38",
+    "item-closure.json": "98830192dd0aa7c798f4ea3a42efa7e5e46cda5a98bef44398e63e38a520a133",
+    "item-closure.md": "cdaee2f4cc4c5fe49f6c0f118da647b81a9f77a18b627e494c3e85afeb5e1be5",
+    "effects-02-timing.json": "e026626bede4ba69b6f528aa1776c7d288b5373d45eaa1d1b4ba9e60c0354885",
+    "r249r30-impact-so-inspector-r30-g12-01/report.json": "74d171c1d2cd4ef8f4cc17ea512fe588ce02dbdbe045fcbf432b07b7f56dc733",
+    "python-ci-final-03.log": "50563d99ddfb0b398a403c7d113f90a1dac8e678e834a533fd68200ec8ad4085",
+    "analyzer-final-01.log": "8320663fe3620a7651c4aa4fcbe9a415f68e90f2f78675c141e8bfe42f85f433",
+    "knowledge-rebuild-final-02.log": "25e71a8bdecef8332914cd3f774bc7e8b3eadbc81b5228c889df0615c388a754",
+    "identity-publication-review.json": "7de8103468fcd770fb98402dcf611f647abbd1642ad4692a38438a1e97dd41a0",
+    "identity-publication-promotion.json": "ef3917df9cb438036550a5ac797841e9001b42900998bc7a566c45e2365cb27c",
+    "continuity-r246-r248.json": "1b94dc38bedf5e709db0d7eb4c4681172da6af00d6d29a6849de35504ac180b1",
+    "continuity-r248-r249.json": "9d9aa6666e07989f384b82315edcf9ac15292fff124d551dbcc6233f0d479776",
+    "source-batch-03-r250.json": "c2f05ad81b92388b8d4b78d70d8c7cedf6d09b940e6bd4e268d3055ab94201b3",
+    "source-binding-r250.json": "780492530a2701640ff9787f55672720cea5f553389fd1cc56521f5985102a6d"
+  },
+  "runs": [
+    {
+      "label": "r221r30-impact-so-inspector-r30-first-01",
+      "sourceLabel": "r221r30",
+      "originalResult": {
+        "exit_code": 0,
+        "stop_reason": null,
+        "compiler_error_count": 0,
+        "source_drift": []
+      },
+      "reports": [
+        "r30-first-contracts.txt"
+      ]
+    },
+    {
+      "label": "r226r30-impact-so-inspector-r30-second-01",
+      "sourceLabel": "r226r30",
+      "originalResult": {
+        "exit_code": 1,
+        "stop_reason": null,
+        "compiler_error_count": 0,
+        "source_drift": []
+      },
+      "reports": []
+    },
+    {
+      "label": "r228r30-impact-so-inspector-r30-second-remaining-01",
+      "sourceLabel": "r228r30",
+      "originalResult": {
+        "exit_code": 1,
+        "stop_reason": null,
+        "compiler_error_count": 0,
+        "source_drift": []
+      },
+      "reports": []
+    },
+    {
+      "label": "r231r30-impact-so-inspector-r30-third-01",
+      "sourceLabel": "r231r30",
+      "originalResult": {
+        "exit_code": 1,
+        "stop_reason": null,
+        "compiler_error_count": 0,
+        "source_drift": []
+      },
+      "reports": []
+    },
+    {
+      "label": "r233r30-impact-so-inspector-r30-third-remaining-01",
+      "sourceLabel": "r233r30",
+      "originalResult": {
+        "exit_code": 1,
+        "stop_reason": null,
+        "compiler_error_count": 0,
+        "source_drift": []
+      },
+      "reports": []
+    },
+    {
+      "label": "r234r30-impact-so-inspector-r30-third-repairs-01",
+      "sourceLabel": "r234r30",
+      "originalResult": {
+        "exit_code": 1,
+        "stop_reason": null,
+        "compiler_error_count": 0,
+        "source_drift": []
+      },
+      "reports": []
+    },
+    {
+      "label": "r236r30-impact-so-inspector-r30-third-pending-01",
+      "sourceLabel": "r236r30",
+      "originalResult": {
+        "exit_code": 1,
+        "stop_reason": null,
+        "compiler_error_count": 0,
+        "source_drift": []
+      },
+      "reports": []
+    },
+    {
+      "label": "r242r30-impact-so-inspector-r30-play-pause-01",
+      "sourceLabel": "r242r30",
+      "originalResult": {
+        "exit_code": 0,
+        "stop_reason": null,
+        "compiler_error_count": 0,
+        "source_drift": []
+      },
+      "reports": [
+        "pause-native-report.txt",
+        "r30-pause-play.txt",
+        "research-pause-native.txt",
+        "research-pause-progress.txt"
+      ]
+    },
+    {
+      "label": "r246r30-impact-so-inspector-r30-play-fluid-01",
+      "sourceLabel": "r246r30",
+      "originalResult": {
+        "exit_code": 0,
+        "stop_reason": null,
+        "compiler_error_count": 0,
+        "source_drift": []
+      },
+      "reports": [
+        "fluid-native-report.txt",
+        "r30-fluid-play.txt"
+      ]
+    },
+    {
+      "label": "r246r30-impact-so-inspector-r30-play-commands-01",
+      "sourceLabel": "r246r30",
+      "originalResult": {
+        "exit_code": 0,
+        "stop_reason": null,
+        "compiler_error_count": 0,
+        "source_drift": []
+      },
+      "reports": [
+        "commands-native-report.txt",
+        "r30-commands-play.txt"
+      ]
+    },
+    {
+      "label": "r246r30-impact-so-inspector-r30-play-exterior-01",
+      "sourceLabel": "r246r30",
+      "originalResult": {
+        "exit_code": 0,
+        "stop_reason": null,
+        "compiler_error_count": 0,
+        "source_drift": []
+      },
+      "reports": [
+        "exterior-native-report.txt",
+        "exterior-native.txt",
+        "r30-exterior-play.txt"
+      ]
+    },
+    {
+      "label": "r246r30-impact-so-inspector-r30-transport-01",
+      "sourceLabel": "r246r30",
+      "originalResult": {
+        "exit_code": 0,
+        "stop_reason": null,
+        "compiler_error_count": 0,
+        "source_drift": []
+      },
+      "reports": [
+        "capture.txt"
+      ]
+    },
+    {
+      "label": "r246r30-impact-so-inspector-r30-fourth-final-01",
+      "sourceLabel": "r246r30",
+      "originalResult": {
+        "exit_code": 0,
+        "stop_reason": null,
+        "compiler_error_count": 0,
+        "source_drift": []
+      },
+      "reports": [
+        "r30-fourth-contracts.txt"
+      ]
+    },
+    {
+      "label": "r248r30-impact-so-inspector-r30-play-staff-01",
+      "sourceLabel": "r248r30",
+      "originalResult": {
+        "exit_code": 0,
+        "stop_reason": null,
+        "compiler_error_count": 0,
+        "source_drift": []
+      },
+      "reports": [
+        "r30-staff-play.txt",
+        "staff-native-report.txt"
+      ]
+    },
+    {
+      "label": "r248r30-impact-so-inspector-r30-play-door-01",
+      "sourceLabel": "r248r30",
+      "originalResult": {
+        "exit_code": 0,
+        "stop_reason": null,
+        "compiler_error_count": 0,
+        "source_drift": []
+      },
+      "reports": [
+        "door-native-report.txt",
+        "prior-door-door-access-playmode.txt",
+        "r30-door-play.txt"
+      ]
+    },
+    {
+      "label": "r249r30-impact-so-inspector-r30-g12-01",
+      "sourceLabel": "r249r30",
+      "originalResult": {
+        "exit_code": 0,
+        "stop_reason": null,
+        "compiler_error_count": 0,
+        "source_drift": []
+      },
+      "reports": [
+        "isolation-checks.txt"
+      ]
+    },
+    {
+      "label": "r249r30-impact-so-inspector-r30-ci-effects-01",
+      "sourceLabel": "r249r30",
+      "originalResult": {
+        "exit_code": -9,
+        "stop_reason": "resource-or-time-limit",
+        "compiler_error_count": 0,
+        "source_drift": []
+      },
+      "reports": []
+    },
+    {
+      "label": "r249r30-impact-so-inspector-r30-ci-effects-02",
+      "sourceLabel": "r249r30",
+      "originalResult": {
+        "exit_code": -9,
+        "stop_reason": "resource-or-time-limit",
+        "compiler_error_count": 0,
+        "source_drift": []
+      },
+      "reports": []
+    }
+  ],
+  "files": {
+    "analyzer-final-01.log": "8320663fe3620a7651c4aa4fcbe9a415f68e90f2f78675c141e8bfe42f85f433",
+    "continuity-r246-r248.json": "1b94dc38bedf5e709db0d7eb4c4681172da6af00d6d29a6849de35504ac180b1",
+    "continuity-r248-r249.json": "9d9aa6666e07989f384b82315edcf9ac15292fff124d551dbcc6233f0d479776",
+    "continuity-r249-r250.json": "6f72cafe931db93aabc5a01031a31cae1621af66ccc960b3a27096b41640fe98",
+    "effect-partition-coverage.json": "6ea192303ff805758c1ab5684377b5caa3536f2dfed36502ab8b716152b1ad38",
+    "effects-02-timing.json": "e026626bede4ba69b6f528aa1776c7d288b5373d45eaa1d1b4ba9e60c0354885",
+    "identity-publication-promotion.json": "ef3917df9cb438036550a5ac797841e9001b42900998bc7a566c45e2365cb27c",
+    "identity-publication-review.json": "7de8103468fcd770fb98402dcf611f647abbd1642ad4692a38438a1e97dd41a0",
+    "item-closure.json": "98830192dd0aa7c798f4ea3a42efa7e5e46cda5a98bef44398e63e38a520a133",
+    "item-closure.md": "cdaee2f4cc4c5fe49f6c0f118da647b81a9f77a18b627e494c3e85afeb5e1be5",
+    "knowledge-rebuild-final-02.log": "25e71a8bdecef8332914cd3f774bc7e8b3eadbc81b5228c889df0615c388a754",
+    "python-ci-final-03.log": "50563d99ddfb0b398a403c7d113f90a1dac8e678e834a533fd68200ec8ad4085",
+    "r221r30-impact-so-inspector-r30-first-01/isolated-display.json": "9be4ae9904131d3c39f4ed8cedfdce26a17861e720ec7d7d8f823ab94b4df77c",
+    "r221r30-impact-so-inspector-r30-first-01/owned-process-cleanup.json": "cb273eae317001e0f541e328d98152c3638ec2312c45a33d448c298ee59b0482",
+    "r221r30-impact-so-inspector-r30-first-01/r30-first-contracts.txt": "1e01a995754e7e77f610220cec855055bd015f387d9f06ba8a3145b56f026322",
+    "r221r30-impact-so-inspector-r30-first-01/run-summary.json": "a986dd1f599cab31d27678450b9fca399bace92dbd49d9c2a7f5136097376e89",
+    "r221r30-impact-so-inspector-r30-first-01/unity.redacted.log": "9e5ea163f3b334c35c456a0a20138f278e6b17a5b768070e0322862e165e85f6",
+    "r226r30-impact-so-inspector-r30-second-01/isolated-display.json": "7ef4d75af0c60585eefed7a75fa04806b0b0df465ac122bb5fc4589bf1571b88",
+    "r226r30-impact-so-inspector-r30-second-01/owned-process-cleanup.json": "3cd940e54f85dee1317cab348f06408e43a6500894a04a5387546027f0c8d8af",
+    "r226r30-impact-so-inspector-r30-second-01/run-summary.json": "51e5e35dfdc7615327a8c4c56a0abccca86d29f2f83e8468a3e2e08de16dcde6",
+    "r226r30-impact-so-inspector-r30-second-01/unity.redacted.log": "cdf1d5acbe43ad1508c0fd55ce2fbfe47e994ae4dc3f340d0bb81841a37a28ad",
+    "r228r30-impact-so-inspector-r30-second-remaining-01/isolated-display.json": "4dc22c2b15ff5152d81df49605d11576920cb0a29559340264474912c1f6157c",
+    "r228r30-impact-so-inspector-r30-second-remaining-01/owned-process-cleanup.json": "447c6104be943a1b5a7b4f2a849335a4e0f037926387bc63fd8284ef5eae8312",
+    "r228r30-impact-so-inspector-r30-second-remaining-01/run-summary.json": "324a18ce5dbee628b8e6afb646c3ba402f84f168d901e8624484f129261e2ce9",
+    "r228r30-impact-so-inspector-r30-second-remaining-01/unity.redacted.log": "2b2c8a524cc43cf7208d69a49391f39f4fe53434108f0afecd294f84b6dcc118",
+    "r231r30-impact-so-inspector-r30-third-01/isolated-display.json": "24c87052cd32eef7054907c3f69bf1a3835eaf59337b056c8ef2439547d8b5c9",
+    "r231r30-impact-so-inspector-r30-third-01/owned-process-cleanup.json": "c7d857d70a52ae060ad26c00f688e2e5a1422dc2563fa49ae35b74512c201a87",
+    "r231r30-impact-so-inspector-r30-third-01/run-summary.json": "eebca32f1bc4dfc82f1d6f6ab010d089716b99e04b6320e89bbf83c2da4adf24",
+    "r231r30-impact-so-inspector-r30-third-01/unity.redacted.log": "94e1d24edd30cfdc90d310b7e9eadc728ed06f2d516cc14b44a1115da9e42ded",
+    "r233r30-impact-so-inspector-r30-third-remaining-01/isolated-display.json": "e3c9dd102561ba5d24e6b9a31a157f8ccf9b382a204c637b4aa9c985705fb530",
+    "r233r30-impact-so-inspector-r30-third-remaining-01/owned-process-cleanup.json": "5b1c8411898ca8e556eece98a7444bde0bf726b1f37e9184dfd09abc5983cef7",
+    "r233r30-impact-so-inspector-r30-third-remaining-01/run-summary.json": "6e72830da7c26ce23321d7b007536d3e8cc6350796b69a338d384f57cf1760bc",
+    "r233r30-impact-so-inspector-r30-third-remaining-01/unity.redacted.log": "2c25575ebe8fffc2b0b69b2a0f87a5edcafaddbacf17aeaf0e75b6adc00ece97",
+    "r234r30-impact-so-inspector-r30-third-repairs-01/isolated-display.json": "37a64378589c072fa33945f44fc65bac9e97d1934dfdc9af2fb56926d0a8cf0e",
+    "r234r30-impact-so-inspector-r30-third-repairs-01/owned-process-cleanup.json": "9259839772ca0e066f76005a355d8df253de0f946850943242110711ff26b5a8",
+    "r234r30-impact-so-inspector-r30-third-repairs-01/run-summary.json": "8a9e2911d12ca521b6488caa4436795782eae837d5122d2f0a3f0eae45e526e0",
+    "r234r30-impact-so-inspector-r30-third-repairs-01/unity.redacted.log": "3ca90a2995878ebe18a064eaa451cb9531e190683b56e3cef31e2137ebd33d93",
+    "r236r30-impact-so-inspector-r30-third-pending-01/isolated-display.json": "c1d2c5b82512ccf77979478b1b8c03bc3025b97154c2cb13aa000dd1b29374f7",
+    "r236r30-impact-so-inspector-r30-third-pending-01/owned-process-cleanup.json": "f2195f8bdb20e2be31a15a2f70a96744b4de8f1efd551c8424fb3dc94a8ceabe",
+    "r236r30-impact-so-inspector-r30-third-pending-01/run-summary.json": "6f281ae9947ed1ba6b72754ac9aa6195a0ef005ff3ceed62d24db3ddd354dba9",
+    "r236r30-impact-so-inspector-r30-third-pending-01/unity.redacted.log": "c05a5742f976a7ec18774b070d1cb150b6144eb7e6d190c7b179710f9ad029bd",
+    "r242r30-impact-so-inspector-r30-play-pause-01/isolated-display.json": "66cdf757d90f88f9e6f0a5c3ab97bea94b2b8e06170cea2df8f6d35faa8b7d3c",
+    "r242r30-impact-so-inspector-r30-play-pause-01/owned-process-cleanup.json": "18aa3f50aee51357692c0aea3720d5dfb20699f9649cad5e1272e34d61bf999d",
+    "r242r30-impact-so-inspector-r30-play-pause-01/pause-native-report.txt": "ec8e43a88f78ca0b6403475efe5c7ed7df3240dfa1e97ee338e5b45b555301e5",
+    "r242r30-impact-so-inspector-r30-play-pause-01/r30-pause-play.txt": "99a25c89d2927f0fadfea7e029c698addddfc0d19508c9ffd802d9e4aff055c5",
+    "r242r30-impact-so-inspector-r30-play-pause-01/research-pause-native.txt": "ec8e43a88f78ca0b6403475efe5c7ed7df3240dfa1e97ee338e5b45b555301e5",
+    "r242r30-impact-so-inspector-r30-play-pause-01/research-pause-progress.txt": "8878a2301a30b0b0eae4c4bf0ceb4aa556edd174cfd1772e1e856c0c2e05161d",
+    "r242r30-impact-so-inspector-r30-play-pause-01/run-summary.json": "a70b446c1b7c34197c78094f21bc3e378d9f949bb709038869eef9937a9044cc",
+    "r242r30-impact-so-inspector-r30-play-pause-01/unity.redacted.log": "8fc1bd6ac6d32cb74248e335eb7329b1c7e92d93c3fead1ca079017d8a0209f2",
+    "r246r30-impact-so-inspector-r30-fourth-final-01/isolated-display.json": "f0531ca2463a5131f71941b3686266b6285f9365583b2b2eecb171d61fa5b171",
+    "r246r30-impact-so-inspector-r30-fourth-final-01/owned-process-cleanup.json": "ae334bcb5e482db6dcc17db026b68ae9cb544c0d1f74c0f165ff70c15306a8ad",
+    "r246r30-impact-so-inspector-r30-fourth-final-01/r30-fourth-contracts.txt": "9a55f7ad56e1173481449e746a308011dd73f645e2fdb7de225b82e52ec7c3c0",
+    "r246r30-impact-so-inspector-r30-fourth-final-01/run-summary.json": "a81cbbd68564e1cb3e30665ca569105a440fd033c37a697d42397ae910422c02",
+    "r246r30-impact-so-inspector-r30-fourth-final-01/unity.redacted.log": "6cfc0f0379cfd2fc53e201529c80d32f76d7b56cc344167985721c3e78b546ce",
+    "r246r30-impact-so-inspector-r30-play-commands-01/commands-native-report.txt": "de632629bb23d2ef467287a43cbd27123cd14f61c14936ead165eb3eacf33ba3",
+    "r246r30-impact-so-inspector-r30-play-commands-01/isolated-display.json": "ce29bbfcbbcc5a7688d911bf380686143217cb550991bb2d000fdf8d6fd541ac",
+    "r246r30-impact-so-inspector-r30-play-commands-01/owned-process-cleanup.json": "5376cab81a75101acf0b31c1031f3f0272d79999959a0a8d376620345b7c590c",
+    "r246r30-impact-so-inspector-r30-play-commands-01/r30-commands-play.txt": "337b4eee4f56cbce4529e015fed78c25822ad219b980b627872266de398a3ef0",
+    "r246r30-impact-so-inspector-r30-play-commands-01/run-summary.json": "87535f7de8c43a7c847227ff7ea0c5747dee80e6ad9645775498fe9149acfc7a",
+    "r246r30-impact-so-inspector-r30-play-commands-01/unity.redacted.log": "54b90a55893386dfff1c6186c2c180ce112825a2baaa4a0bad1890be2a2359e2",
+    "r246r30-impact-so-inspector-r30-play-exterior-01/exterior-native-report.txt": "e1be83cb9b2e3b406a9de9319c2215e47de711552f6bf75694b4fb1f592966a1",
+    "r246r30-impact-so-inspector-r30-play-exterior-01/exterior-native.txt": "e1be83cb9b2e3b406a9de9319c2215e47de711552f6bf75694b4fb1f592966a1",
+    "r246r30-impact-so-inspector-r30-play-exterior-01/isolated-display.json": "6c666bec276ce3ede702926cea635fc1ae6404955e607ad93f7a6ec91343233d",
+    "r246r30-impact-so-inspector-r30-play-exterior-01/owned-process-cleanup.json": "eb58df1adf59ba383e0e757c782c6729d051ea6140f59b07a9fca699f54da8a0",
+    "r246r30-impact-so-inspector-r30-play-exterior-01/r30-exterior-play.txt": "4a17be3dd8efd6ebef17035e92e4368d07563e7d2a41393373576277013edab4",
+    "r246r30-impact-so-inspector-r30-play-exterior-01/run-summary.json": "87535f7de8c43a7c847227ff7ea0c5747dee80e6ad9645775498fe9149acfc7a",
+    "r246r30-impact-so-inspector-r30-play-exterior-01/unity.redacted.log": "7aea400f25bab656bd1fdcce95baa063ed8ada10de3a0a687305c4f989994b8d",
+    "r246r30-impact-so-inspector-r30-play-fluid-01/fluid-native-report.txt": "e5a80b8407608bdbe41dc02da4a46be993b116abb6a774dc65437dbb38bbb3b2",
+    "r246r30-impact-so-inspector-r30-play-fluid-01/isolated-display.json": "840b8fc2271dfd53e42e78809a6b39e514343b329ebe2f5a7d35a106a6315842",
+    "r246r30-impact-so-inspector-r30-play-fluid-01/owned-process-cleanup.json": "ab43ceafc60f8d5e27f269046a66fbbd9ff2e33f375fe50ea3ed051e5bca0222",
+    "r246r30-impact-so-inspector-r30-play-fluid-01/r30-fluid-play.txt": "c83a204e6948de3279d9ac564ed318f0c0d566a9f78277b68f63084d5e86da16",
+    "r246r30-impact-so-inspector-r30-play-fluid-01/run-summary.json": "b345af15a8f42618eeacf4314afb4dbef7e2a3b5ab98830eec7796e4c5411baf",
+    "r246r30-impact-so-inspector-r30-play-fluid-01/unity.redacted.log": "6c96f6e3ee98f2fafe0237e2480311a56342002f93ffc6b78e0ef4497204d2e6",
+    "r246r30-impact-so-inspector-r30-transport-01/capture.txt": "9c45bfa27b18b2766a91770f9d07b643bfaf6a240be1d74b09b77e8d747a8ddb",
+    "r246r30-impact-so-inspector-r30-transport-01/isolated-display.json": "b3da929d4ef5e7df3f424a6f4c1e122f44ae9c687fc44e3e9d697909c7afc641",
+    "r246r30-impact-so-inspector-r30-transport-01/owned-process-cleanup.json": "9bca1428532bb34afdf12d414fbdc6096d9cd9f4e170c497308cbac6af5057f5",
+    "r246r30-impact-so-inspector-r30-transport-01/run-summary.json": "a81cbbd68564e1cb3e30665ca569105a440fd033c37a697d42397ae910422c02",
+    "r246r30-impact-so-inspector-r30-transport-01/unity.redacted.log": "e8ad8ffeb53ab223addf62dd01a2d1e9bbfcf94df5759d792c1ed780b138c99b",
+    "r248r30-impact-so-inspector-r30-play-door-01/door-native-report.txt": "8fefc3465859c5627253775a3fbd21f7c561bd6477069fe783143309a98028aa",
+    "r248r30-impact-so-inspector-r30-play-door-01/isolated-display.json": "35f194d9ef4f7ee16aaaa3392005c476a0474b91596ae5f39f86b2d4a9c463fb",
+    "r248r30-impact-so-inspector-r30-play-door-01/owned-process-cleanup.json": "7b0845cf92bb69cafad1db1180e8673b11bfabe865bc3ff129e6d6ea22fa9f52",
+    "r248r30-impact-so-inspector-r30-play-door-01/prior-door-door-access-playmode.txt": "fd95a195a428ed4968cc7c8c17d702b12cbf0345050db84aec91cacb034cbb0a",
+    "r248r30-impact-so-inspector-r30-play-door-01/r30-door-play.txt": "460311bf3db0c5663561dc023cb9de9dda8653db7fa5cfabe4db72486b98f950",
+    "r248r30-impact-so-inspector-r30-play-door-01/run-summary.json": "e27b2c342eff535820c1f8c93c434e10047106436d63900537e308b197815827",
+    "r248r30-impact-so-inspector-r30-play-door-01/unity.redacted.log": "e9ed32bd7e6de05f54080739f35d4197141ae38a7c1322b4dfd9c45bc845334c",
+    "r248r30-impact-so-inspector-r30-play-staff-01/isolated-display.json": "d66b15d8893622d054593659ff548e5f6b85b8e3a8f028790f0d67290925c414",
+    "r248r30-impact-so-inspector-r30-play-staff-01/owned-process-cleanup.json": "864fa2537a0d8a93e87c07cc200772911d8499bbdde0ec531264d0545375ea77",
+    "r248r30-impact-so-inspector-r30-play-staff-01/r30-staff-play.txt": "5bb97a7a82bc957637af39a53d5e7e03da6a36388c24860978403fc7473dddcf",
+    "r248r30-impact-so-inspector-r30-play-staff-01/run-summary.json": "ed0907a3ee035a9ba129d03c1b05a15ad710817bd95d9403395382c9b8aed173",
+    "r248r30-impact-so-inspector-r30-play-staff-01/staff-native-report.txt": "7fadbf5d8a10300f8d930f87bbc1b01ea7e003b02282a242d1864bb53e9a14f2",
+    "r248r30-impact-so-inspector-r30-play-staff-01/unity.redacted.log": "a63de735a7b1ec8457d27faec1dcbf9a89b66c9f2e5cd13417ea4f9d514282fa",
+    "r249r30-impact-so-inspector-r30-ci-effects-01/isolated-display.json": "405958f8a43cb8a508689052819a3b4ef7a765e286b3c695015e329d801e2fea",
+    "r249r30-impact-so-inspector-r30-ci-effects-01/owned-process-cleanup.json": "20b40b8ae4368dcaadd5cf4511f8382d07d5ca904f59313abff975763e719fe2",
+    "r249r30-impact-so-inspector-r30-ci-effects-01/run-summary.json": "f7c3c996fbd8eddf4d3bf00dcd726ab383c4883d0d0bbb1b65cd9e2f845dc2fd",
+    "r249r30-impact-so-inspector-r30-ci-effects-01/unity.redacted.log": "dcb247c9d50bb489a3106a74dcbf589065c5202a6c9b5e6a2d876ceba3107d09",
+    "r249r30-impact-so-inspector-r30-ci-effects-02/isolated-display.json": "9d9313a5c0747644f9ab27e17471c5052a6ef4d2ba0226cd033b079c3e6ea3c1",
+    "r249r30-impact-so-inspector-r30-ci-effects-02/owned-process-cleanup.json": "168228a995b2d47155e80eca4917b98dcad6e8fdc38073afdcad79a19c384a57",
+    "r249r30-impact-so-inspector-r30-ci-effects-02/run-summary.json": "f7c3c996fbd8eddf4d3bf00dcd726ab383c4883d0d0bbb1b65cd9e2f845dc2fd",
+    "r249r30-impact-so-inspector-r30-ci-effects-02/unity.redacted.log": "8b2fcdab43f3049208672de43cbb1d36c9825311f8930f46f42afb69b2902732",
+    "r249r30-impact-so-inspector-r30-g12-01/isolated-display.json": "395230ea5edbc8f9c361b35e7ea71b14f97fee9deda6f1606bd3e6ef6c1d7604",
+    "r249r30-impact-so-inspector-r30-g12-01/isolation-checks.txt": "fb83817fad316dfaa1f554a2a5ddf1fd76d2a5fac8a7f41a20d48bf3dcb370b1",
+    "r249r30-impact-so-inspector-r30-g12-01/owned-process-cleanup.json": "7373092b5eb8c16d6747ae01eb4f1a911fdaa843d3a5bf2e6c55290ddf27fb79",
+    "r249r30-impact-so-inspector-r30-g12-01/report.json": "74d171c1d2cd4ef8f4cc17ea512fe588ce02dbdbe045fcbf432b07b7f56dc733",
+    "r249r30-impact-so-inspector-r30-g12-01/run-summary.json": "8d17a8c74f603fdeface703151dac20d3658155fe8f321f6eb492a62a5a78032",
+    "r249r30-impact-so-inspector-r30-g12-01/unity.redacted.log": "5728f6c84bc965a4b81e5084b29989afaa97c42af40e1ac05f6c26e9862eb100",
+    "r250-binding-review.json": "4dddd45d7c33e04345e1508ec18aa401bd931a24fd2131e7204c10049b4b4c6b",
+    "source-batch-03-r250.json": "c2f05ad81b92388b8d4b78d70d8c7cedf6d09b940e6bd4e268d3055ab94201b3",
+    "source-binding-r250.json": "780492530a2701640ff9787f55672720cea5f553389fd1cc56521f5985102a6d"
+  },
+  "limits": [
+    "Run summaries retain their original exit and failure values; this bundle does not convert historical whole failures into passes.",
+    "Scoped fixture evidence keeps its original source and whole outcome; item-closure documents the thirty reported fixes and limits without proving every possible path.",
+    "Pixel verification and model inference are not executed or asserted by this bundle.",
+    "Redacted Unity logs are copied as strict UTF-8 originals under one MiB; unredacted Unity logs, command files, xdpyinfo, full identity candidates, and screenshots are excluded."
+  ]
+}

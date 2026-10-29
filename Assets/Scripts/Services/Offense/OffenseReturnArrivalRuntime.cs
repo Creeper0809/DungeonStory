@@ -816,15 +816,6 @@ public sealed class OffenseReturnArrivalRuntime :
             return;
         }
 
-        BuildableObject pen = buildingWorld.Buildings.FirstOrDefault(building =>
-            building != null
-            && !building.isDestroy
-            && building.BuildingData.GetBeastPenAbility() != null);
-        if (pen == null)
-        {
-            return;
-        }
-
         foreach (string id in arrival.materializedIds)
         {
             if (wildlifeCapture.IsCaptured(id))
@@ -835,12 +826,25 @@ public sealed class OffenseReturnArrivalRuntime :
             WildlifeActor animal = wildlife.Wildlife.FirstOrDefault(candidate =>
                 candidate != null
                 && string.Equals(candidate.WildlifeId, id, StringComparison.Ordinal));
-            CharacterActor carrier = FindNearestCarrier(animal != null
-                ? animal.GridPosition
-                : pen.centerPos);
-            if (animal != null && carrier != null)
+            if (animal == null) continue;
+            BuildableObject pen = buildingWorld.Buildings
+                .Where(building => wildlifeCapture.CanAcceptCapture(building, out _))
+                .OrderBy(building => Manhattan(building.centerPos, animal.GridPosition))
+                .FirstOrDefault();
+            if (pen == null)
             {
-                wildlifeCapture.TryOrderCapture(animal, carrier, pen, out _);
+                arrival.lastStatus = "수용 가능한 야수 우리가 없어 생포 운반을 대기합니다.";
+                continue;
+            }
+            CharacterActor carrier = FindNearestCarrier(animal.GridPosition);
+            if (carrier == null)
+            {
+                arrival.lastStatus = "생포한 동물을 운반할 직원이 없어 대기합니다.";
+                continue;
+            }
+            if (!wildlifeCapture.TryOrderCapture(animal, carrier, pen, out string failure))
+            {
+                arrival.lastStatus = failure;
             }
         }
     }
@@ -1097,7 +1101,9 @@ public sealed class OffenseReturnArrivalRuntime :
             .Where(actor => actor != null
                 && !actor.IsDead
                 && actor.characterType == CharacterType.NPC
-                && actor.CurrentLifecycleState == CharacterLifecycleState.Active)
+                && actor.CurrentLifecycleState == CharacterLifecycleState.Active
+                && actor.GetComponent<AbilityCaptiveEscort>()?.IsEscorting != true
+                && actor.GetComponent<AbilityWildlifeCaptureTransport>()?.IsTransporting != true)
             .OrderBy(actor => Manhattan(actor.GetNowXY(), position))
             .FirstOrDefault();
     }

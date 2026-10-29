@@ -1120,6 +1120,9 @@ public sealed class CharacterSkillActivationTransaction :
             failureReason = "skill-activation-source-unavailable";
         else if (request.Source.Progression == null)
             failureReason = "skill-activation-source-progression-unavailable";
+        else if (request.ActivationKind == CharacterSkillActivationKind.ManualDungeon
+            && request.Source.CurrentLifecycleState != CharacterLifecycleState.Active)
+            failureReason = "skill-activation-source-not-in-dungeon";
         else if (request.Skill == null || !request.Skill.IsReady)
             failureReason = "skill-activation-skill-unavailable";
         else if (request.ActivationKind is not
@@ -1154,6 +1157,13 @@ public sealed class CharacterSkillActivationTransaction :
         if (recipients.Length == 0)
         {
             failureReason = "skill-activation-recipient-empty";
+            return false;
+        }
+        if (request.ActivationKind == CharacterSkillActivationKind.ManualDungeon
+            && recipients.Any(value =>
+                value.CurrentLifecycleState != CharacterLifecycleState.Active))
+        {
+            failureReason = "skill-activation-recipient-not-in-dungeon";
             return false;
         }
         if (recipients.Distinct().Count() != recipients.Length)

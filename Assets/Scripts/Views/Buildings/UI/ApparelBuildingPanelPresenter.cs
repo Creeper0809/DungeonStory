@@ -294,9 +294,13 @@ public sealed class ApparelBuildingPanelPresenter : IApparelBuildingPanelPresent
         AddChoice(parent, "작업자: 예상 품질 우선",
             IsAnyone(settings.WorkerPolicy, WorkerCandidateSortMode.BestExpectedQuality),
             () => settings.WorkerPolicy = WorkerSelectionPolicySaveData.Anyone(WorkerCandidateSortMode.BestExpectedQuality));
-        AddChoice(parent, "작업자: 민첩 7 이상",
-            settings.WorkerPolicy?.mode == WorkerSelectionMode.RuleSet,
-            () => settings.WorkerPolicy = DexterityPolicy());
+        WorkerSelectionPolicySaveData craftingExperiencePolicy =
+            CraftingExperiencePolicy();
+        AddChoice(parent,
+            "작업자: "
+            + GameplayUiPresentationText.WorkerPolicy(craftingExperiencePolicy),
+            IsCraftingExperiencePolicy(settings.WorkerPolicy),
+            () => settings.WorkerPolicy = craftingExperiencePolicy.CloneNormalized());
         AddAction(parent,
             $"최소 품질 낮추기 · {GameplayUiPresentationText.Quality(settings.MinimumQuality)}",
             font, created, () =>
@@ -594,7 +598,27 @@ public sealed class ApparelBuildingPanelPresenter : IApparelBuildingPanelPresent
         WorkerCandidateSortMode sort) =>
         policy?.mode == WorkerSelectionMode.Anyone && policy.sortMode == sort;
 
-    private static WorkerSelectionPolicySaveData DexterityPolicy() => new()
+    private static bool IsCraftingExperiencePolicy(
+        WorkerSelectionPolicySaveData policy)
+    {
+        WorkerSelectionPolicySaveData normalized = policy?.CloneNormalized();
+        return normalized != null
+            && normalized.mode == WorkerSelectionMode.RuleSet
+            && normalized.matchMode == WorkerRequirementMatchMode.All
+            && normalized.sortMode == WorkerCandidateSortMode.BestExpectedQuality
+            && string.Equals(
+                normalized.minimumSkillId,
+                BuiltInCharacterProficiencyIds.Crafting.Value,
+                StringComparison.Ordinal)
+            && normalized.minimumSkillExperience == 400
+            && normalized.minimumCareerRank == 0
+            && normalized.specificCharacterIds.Count == 0
+            && normalized.excludedCharacterIds.Count == 0
+            && normalized.requiredTraitIds.Count == 0
+            && normalized.excludedTraitIds.Count == 0;
+    }
+
+    private static WorkerSelectionPolicySaveData CraftingExperiencePolicy() => new()
     {
         mode = WorkerSelectionMode.RuleSet,
         matchMode = WorkerRequirementMatchMode.All,

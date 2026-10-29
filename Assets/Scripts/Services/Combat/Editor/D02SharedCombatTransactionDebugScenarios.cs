@@ -973,6 +973,8 @@ public static partial class MigratedProducerCombatDefenseEntryE2EDebugScenarios
 
     private sealed class D02CaptivityQuery : ICaptivityRuntime
     {
+        public bool CanAssignPerformer(string captiveId, out string failureReason)
+        { failureReason = "D02 combat fixture does not assign performers."; return false; }
         private readonly Dictionary<string, CharacterActor> actors;
 
         internal D02CaptivityQuery(params CharacterActor[] actors)

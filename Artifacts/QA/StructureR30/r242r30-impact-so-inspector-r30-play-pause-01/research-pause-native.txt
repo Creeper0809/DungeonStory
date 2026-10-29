@@ -1,0 +1,32 @@
+PLAYABLE_RUN_READY=PASS; owner=Leon
+RUN_OVERLAYS_CLEARED=PASS; owner selection overlays cleared
+SCOPE=PASS; gameplay lifetime scope resolved
+CATALOG_COUNT=PASS; projects=180
+RUNTIME=PASS; research runtime resolved
+R30_UI_MANAGER=PASS; actual popup input consumer
+POINTER_TopTabButton_Research_연구=PASS; TopTabButton_Research_연구
+POINTER_DISPATCH=PASS; target=TopTabButton_Research_연구; point=(247.03, 9.17)
+R30_RESEARCH_PAUSE=PASS; research owns pause
+R30_ESCAPE_FRAME phase=before-manager; queued=53; frame=54; automation=True; lateConsumer=True; managerEnabled=False; rawEscape=True; readerEscape=True; optionsVisible=False; blocksDismiss=True; popupClosed=0; researchActive=True; isPaused=True; timeScale=0
+R30_ESCAPE_FRAME phase=after-manager; queued=53; frame=54; automation=True; lateConsumer=True; managerEnabled=False; rawEscape=True; readerEscape=True; optionsVisible=False; blocksDismiss=True; popupClosed=0; researchActive=True; isPaused=True; timeScale=0
+R30_ESCAPE_FRAME phase=after-release; queued=53; frame=55; automation=True; lateConsumer=True; managerEnabled=False; rawEscape=False; readerEscape=False; optionsVisible=False; blocksDismiss=False; popupClosed=0; researchActive=True; isPaused=True; timeScale=0
+R30_ESCAPE_SINGLE_DISMISS=PASS; real keyboard event closes reduced-motion options only; underlying popup and research retained
+R30_ESCAPE_FRAME phase=before-manager; queued=55; frame=56; automation=True; lateConsumer=False; managerEnabled=True; rawEscape=True; readerEscape=True; optionsVisible=False; blocksDismiss=False; popupClosed=1; researchActive=True; isPaused=True; timeScale=0
+R30_ESCAPE_FRAME phase=after-manager; queued=55; frame=56; automation=True; lateConsumer=False; managerEnabled=True; rawEscape=True; readerEscape=True; optionsVisible=False; blocksDismiss=False; popupClosed=1; researchActive=True; isPaused=True; timeScale=0
+R30_ESCAPE_FRAME phase=after-release; queued=55; frame=57; automation=True; lateConsumer=False; managerEnabled=True; rawEscape=False; readerEscape=False; optionsVisible=False; blocksDismiss=False; popupClosed=1; researchActive=True; isPaused=True; timeScale=0
+R30_ESCAPE_NEXT_FRAME=PASS; a fresh Escape closes the lower popup while research retains pause
+R30_REVERSE_CLOSE=PASS; research close callback releases only its own pause while options remains open
+R30_LAST_CLOSE_RESUME=PASS; last UI request restores the selected speed
+POINTER_TopTabButton_Research_연구=PASS; TopTabButton_Research_연구
+POINTER_DISPATCH=PASS; target=TopTabButton_Research_연구; point=(247.03, 9.17)
+R30_MANUAL_PAUSE_WINDOW=PASS; research reopened while manually paused
+R30_MANUAL_PAUSE_PRESERVED=PASS; closing both windows retains player pause
+POINTER_TopTabButton_Research_연구=PASS; TopTabButton_Research_연구
+POINTER_DISPATCH=PASS; target=TopTabButton_Research_연구; point=(247.03, 9.17)
+R30_ESCAPE_FRAME phase=before-manager; queued=68; frame=69; automation=True; lateConsumer=True; managerEnabled=False; rawEscape=True; readerEscape=True; optionsVisible=True; blocksDismiss=True; popupClosed=1; researchActive=True; isPaused=True; timeScale=0
+R30_ESCAPE_FRAME phase=after-manager; queued=68; frame=69; automation=True; lateConsumer=True; managerEnabled=False; rawEscape=True; readerEscape=True; optionsVisible=True; blocksDismiss=True; popupClosed=1; researchActive=True; isPaused=True; timeScale=0
+R30_ESCAPE_FRAME phase=after-release; queued=68; frame=70; automation=True; lateConsumer=True; managerEnabled=False; rawEscape=False; readerEscape=False; optionsVisible=False; blocksDismiss=False; popupClosed=1; researchActive=True; isPaused=True; timeScale=0
+R30_ANIMATED_ESCAPE=PASS; animated close also retains underlying popup and research pause
+R30_ANIMATED_LAST_CLOSE=PASS; animated path releases the final UI request
+CONSOLE errors=0; warnings=0
+RESULT=PASS

@@ -9,6 +9,68 @@ using Object = UnityEngine.Object;
 
 public static class OffenseRewardDebugScenarios
 {
+    public static void RunR30BattleQueryFocused()
+    {
+        using (ExpeditionRewardScenario scenario = new(includeExpeditionFixture: false))
+        {
+            CharacterActor actor = scenario.CreateCharacter("R30 battle query", CharacterType.NPC,
+                CharacterRole.Regular, 100);
+            string actorId = scenario.EquipCharacterWithWeapon(actor, "weapon:shortbow");
+            OffenseTargetDefinition target = OffenseEditorTestDependencies.CreateCampaignCatalog()
+                .Targets.First(value => value.id == "food_farm");
+            var expedition = new OffenseExpeditionRun("r30:battle-query", target, new[] { actor }, 1f);
+            OffenseBattleRuntime runtime = scenario.Battle;
+            Require(runtime.TryStartBattle(expedition, out string failure), failure);
+            runtime.AdvanceToPlayerDecision();
+            string savedBefore = JsonUtility.ToJson(runtime.CapturePersistentState());
+            string counterTags = string.Join(",", runtime.OwnedSession.EncounterRules.AvailableCounterTags.OrderBy(value => value));
+            OffenseBattleSnapshot view = runtime.Session;
+            OffenseBattleCombatant copied = view.FindCombatant(actorId);
+            Require(copied != null && !ReferenceEquals(copied, runtime.OwnedSession.FindCombatant(actorId)),
+                "Battle query returned the owner's combatant.");
+            copied.RestoreHealth(0, 999);
+            copied.SetCooldown("r30:query", 20);
+            copied.AddStatus(new OffenseBattleStatus("r30:query", OffenseBattleStatusType.Guard, .8f, 3, actorId));
+            copied.Weapon.Verb.baseDamage = 999;
+            if (copied.Weapon.Ranges.Count > 0) copied.Weapon.Ranges[0].damageMultiplier = 999;
+            copied.BodyParts[0].currentHealth = 0;
+            runtime.OwnedSession.FindCombatant(actorId).BodyParts[0].currentHealth = 0;
+            view.EncounterRules.EvaluatePartyCounters(Array.Empty<OffenseBattleCombatant>());
+            Require(JsonUtility.ToJson(runtime.CapturePersistentState()) == savedBefore
+                && string.Join(",", runtime.OwnedSession.EncounterRules.AvailableCounterTags.OrderBy(value => value)) == counterTags
+                && runtime.Session.FindCombatant(actorId).GetCooldown("r30:query") == 0
+                && runtime.Session.FindCombatant(actorId).Weapon.Verb.baseDamage != 999
+                && runtime.Session.FindCombatant(actorId).Weapon.Ranges.All(value => value.damageMultiplier != 999),
+                "A battle query mutated persisted health, cooldown, status, weapon or counter state.");
+            OffenseBattleSnapshot pristine = runtime.Session;
+            OffenseBattleCombatant current = pristine.CurrentActor;
+            Require(current != null && current.Team == OffenseBattleTeam.Allies,
+                "Battle query fixture has no player decision after enemy advancement.");
+            var command = new OffenseBattleCommand(pristine.LastProcessedCommandId + 1,
+                current.PersistentId, OffenseBattleActionType.Guard, current.PersistentId);
+            int changedEvents = 0;
+            runtime.StateChanged += () => changedEvents++;
+            Require(runtime.TryExecuteCommand(command, out _), "Guard command through the runtime was rejected.");
+            string committed = JsonUtility.ToJson(runtime.CapturePersistentState());
+            long committedCommandId = runtime.Session.LastProcessedCommandId;
+            int committedEvents = changedEvents;
+            bool replayAccepted = runtime.TryExecuteCommand(command, out OffenseBattleCommandResult replay);
+            Require(!replayAccepted && !replay.Accepted
+                && replay.Message == "이미 처리한 명령입니다."
+                && JsonUtility.ToJson(runtime.CapturePersistentState()) == committed
+                && runtime.Session.LastProcessedCommandId == committedCommandId
+                && changedEvents == committedEvents
+                && pristine.LastProcessedCommandId == command.CommandId - 1
+                && committedCommandId >= command.CommandId,
+                "Runtime command retry did not reject the duplicate without state/event/snapshot changes: "
+                    + $"accepted={replayAccepted}; reason={replay.Message}; events={committedEvents}->{changedEvents}; "
+                    + $"command={command.CommandId}; last={committedCommandId}/{runtime.Session.LastProcessedCommandId}");
+        }
+        Require(VerifyPersistentBattleSnapshotRestore(), "Battle saved projections or rejected restore changed.");
+        Require(VerifyPlannedCommandPayloadForwarding(), "Actual planned command payload/weapon execution failed.");
+        Debug.Log("R30_BATTLE_QUERY=PASS; detached nested state/owner command/duplicate/JSON restore/invalid restore/planned weapon payload");
+    }
+
     public static void VerifyRuntimeOwnerRestoreIsolation()
     {
         // Controlled production-owner test; actual full-world restore is a separate run.
@@ -83,7 +145,7 @@ public static class OffenseRewardDebugScenarios
             () => battle.Session == null && !battle.IsBattleViewVisible
                 && battle.EnemyTacticalTrace.Count == 0,
             () => JsonUtility.ToJson(battle.CapturePersistentState()),
-            "<Session>k__BackingField", "actorsById", "activeEncounterId",
+            "<OwnedSession>k__BackingField", "actorsById", "activeEncounterId",
             "activeEnemyIndividuals", "completionRaised", "<IsBattleViewVisible>k__BackingField",
             "enemyTacticalTrace", "enemyTacticalTraceSequence");
         if (battleEvents != 0 || string.IsNullOrEmpty(battleBefore))
@@ -128,7 +190,7 @@ public static class OffenseRewardDebugScenarios
         Require(savedBattle != null,
             "Persistent battle snapshot fixture did not capture its live battle.");
         string liveBattleJson = JsonUtility.ToJson(savedBattle);
-        OffenseBattleSession liveSession = battle.Session;
+        OffenseBattleSession liveSession = battle.OwnedSession;
         bool liveViewVisible = battle.IsBattleViewVisible;
         int stateEvents = 0;
         battle.StateChanged += () => stateEvents++;
@@ -171,7 +233,7 @@ public static class OffenseRewardDebugScenarios
             null);
         Require(prepared != null,
             "Persistent battle snapshot did not prepare a restore candidate.");
-        Require(ReferenceEquals(battle.Session, liveSession)
+        Require(ReferenceEquals(battle.OwnedSession, liveSession)
                 && string.Equals(
                     JsonUtility.ToJson(battle.CapturePersistentState()),
                     liveBattleJson,
@@ -197,7 +259,7 @@ public static class OffenseRewardDebugScenarios
             OffenseBattlePersistenceState malformed,
             string description)
         {
-            OffenseBattleSession sessionBefore = battle.Session;
+            OffenseBattleSession sessionBefore = battle.OwnedSession;
             string battleBefore = JsonUtility.ToJson(battle.CapturePersistentState());
             bool viewBefore = battle.IsBattleViewVisible;
             int eventsBefore = stateEvents;
@@ -215,7 +277,7 @@ public static class OffenseRewardDebugScenarios
             }
 
             Require(rejected, description + " was not rejected.");
-            Require(ReferenceEquals(battle.Session, sessionBefore)
+            Require(ReferenceEquals(battle.OwnedSession, sessionBefore)
                     && string.Equals(
                         JsonUtility.ToJson(battle.CapturePersistentState()),
                         battleBefore,
@@ -242,7 +304,7 @@ public static class OffenseRewardDebugScenarios
 
             Require(publicRejected,
                 description + " was not rejected by the public restore entry.");
-            Require(ReferenceEquals(battle.Session, sessionBefore)
+            Require(ReferenceEquals(battle.OwnedSession, sessionBefore)
                     && string.Equals(
                         JsonUtility.ToJson(battle.CapturePersistentState()),
                         battleBefore,
@@ -1182,7 +1244,7 @@ public static class OffenseRewardDebugScenarios
             new[] { unarmedActor, firearmActor },
             totalPower: 1f);
         bool started = scenario.Battle.TryStartBattle(expedition, out string startMessage);
-        OffenseBattleSession session = scenario.Battle.Session;
+        OffenseBattleSession session = scenario.Battle.OwnedSession;
         if (!started || session == null)
         {
             throw new InvalidOperationException(
@@ -1335,7 +1397,7 @@ public static class OffenseRewardDebugScenarios
         Require(
             scenario.Battle.TryStartBattle(expedition, out string startFailure),
             "Public offense ultimate battle did not start: " + startFailure);
-        OffenseBattleSession session = scenario.Battle.Session;
+        OffenseBattleSession session = scenario.Battle.OwnedSession;
         if (!planned)
         {
             scenario.Battle.AdvanceToPlayerDecision();
@@ -1986,6 +2048,7 @@ public static class OffenseRewardDebugScenarios
                         new ResourceGameContentCatalog(
                             new UnityGameContentRootLoader()))),
                 returnArrivals: Context.ReturnArrivals,
+                itemCatalog: EditorItemCatalogFactory.CreateDefinitions(),
                 performance: battlePerformance);
             Battle.ConstructProficiencyProgression(
                 BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy
@@ -1994,7 +2057,8 @@ public static class OffenseRewardDebugScenarios
                 battleCommandPublications);
             Battle.ConstructSkillActivationRuntime(
                 skillActivationTransaction);
-            Battle.BattleCompleted += OnBattleCompleted;
+            ((IOffenseBattleCompletionAuthority)Battle).BattleCompleted +=
+                OnBattleCompleted;
             if (includeExpeditionFixture)
             {
                 Expedition = new ExpeditionFixture(
@@ -2104,7 +2168,8 @@ public static class OffenseRewardDebugScenarios
 
         public void Dispose()
         {
-            Battle.BattleCompleted -= OnBattleCompleted;
+            ((IOffenseBattleCompletionAuthority)Battle).BattleCompleted -=
+                OnBattleCompleted;
             Expedition?.Dispose();
             Battle.Dispose();
             Reward.Dispose();
@@ -2186,7 +2251,7 @@ public static class OffenseRewardDebugScenarios
             OffenseWorldMapRuntime worldMap,
             OffenseRewardRuntime rewards,
             DungeonStory.Foundation.IGameEventBus gameEventBus,
-            IOffenseBattleRuntime battleRuntime,
+            IOffenseBattleCompletionAuthority battleRuntime,
             MigratedProducerOutcomeEditorFixture outcomes,
             ICharacterLifetimeQuery characters)
         {
@@ -2213,7 +2278,7 @@ public static class OffenseRewardDebugScenarios
                 obj.AddComponent<MetaProgressionRuntime>();
             BlueprintResearchRuntime expeditionResearch =
                 obj.AddComponent<BlueprintResearchRuntime>();
-            expeditionResearch.State.Projects.Complete(
+            expeditionResearch.StateForDebug.Projects.Complete(
                 new ResearchProjectId(
                     OffenseExpeditionAccessRules.RequiredResearchId));
             metaProgression.Construct(

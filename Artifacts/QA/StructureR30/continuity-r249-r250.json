@@ -1,0 +1,10 @@
+{
+  "from": "r249r30",
+  "to": "r250r30",
+  "unchangedUnityInputs": 21765,
+  "changed": [
+    "Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs"
+  ],
+  "productionAndAuthoredAssetBytesIdentical": true,
+  "scope": "Only existing Editor CI producer partitioned into the same ordered eight scenario calls. All R30 focused gameplay/UI fixtures and production bytes unchanged. Old source labels and whole failures retained."
+}

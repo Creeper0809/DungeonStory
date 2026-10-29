@@ -147,7 +147,8 @@ public sealed partial class PhysicalItemLogisticsPlayModeVerificationRunner
             var resolution = new CombatResolutionService(new Wim023CombatRolls(0f, roll, .5f),
                 null, null, scope.Container.Resolve<ICharacterEnvironmentStatusQuery>(),
                 scope.Container.Resolve<IEnvironmentalFieldQuery>(), world,
-                scope.Container.Resolve<ICharacterEnvironmentExposureCommand>());
+                scope.Container.Resolve<ICharacterEnvironmentExposureCommand>(),
+                itemCatalog: EditorItemCatalogFactory.CreateDefinitions());
             return resolution.Resolve(new CombatAttackRequest(eventId, actorId, actorId,
                 baseline, defender, weapon, 1, CombatFireMode.Aimed, default));
         }

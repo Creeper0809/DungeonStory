@@ -44,29 +44,16 @@ ResourceItemDefinitionSO,content-type,,type-reference; save-restore-reference,se
 ResourceItemDefinitionSO,content-type,,type-reference,views,player-observation,structural-type-consumer,Assets/Scripts/Views/Buildings/UI/CropPlotBuildingPanelPresenter.cs
 ResourceItemDefinitionSO,content-type,,type-reference,views,player-observation,structural-type-consumer,Assets/Scripts/Views/Buildings/UI/ProductionBuildingPanelPresenter.cs
 ResourceItemDefinitionSO,content-type,,type-reference; save-restore-reference,views,player-observation,structural-type-consumer,Assets/Scripts/Views/UI/WarehouseFeatureSurfacePresenter.cs
-ResourceItemDefinitionSO,stable-id,ammo:armor-piercing-cartridge,stable-id-literal,models:combat,runtime,exact-literal-consumer,Assets/Scripts/Models/Combat/Core/CombatWeaponPrimitives.cs
 ResourceItemDefinitionSO,stable-id,ammo:arrow-steel,stable-id-literal,models:economy,content-loading,exact-literal-consumer,Assets/Scripts/Models/Economy/Content/GrandProjectRuntime.cs
-ResourceItemDefinitionSO,stable-id,ammo:blacksteel-bolt,stable-id-literal,models:combat,runtime,exact-literal-consumer,Assets/Scripts/Models/Combat/Core/CombatWeaponPrimitives.cs
 ResourceItemDefinitionSO,stable-id,ammo:bolt-steel,stable-id-literal,models:economy,content-loading,exact-literal-consumer,Assets/Scripts/Models/Economy/Content/GrandProjectRuntime.cs
-ResourceItemDefinitionSO,stable-id,ammo:incendiary-arrow,stable-id-literal,models:combat,runtime,exact-literal-consumer,Assets/Scripts/Models/Combat/Core/CombatWeaponPrimitives.cs
-ResourceItemDefinitionSO,stable-id,ammo:incendiary-bolt,stable-id-literal,models:combat,runtime,exact-literal-consumer,Assets/Scripts/Models/Combat/Core/CombatWeaponPrimitives.cs
-ResourceItemDefinitionSO,stable-id,ammo:mana-disruptor-bolt,stable-id-literal,models:combat,runtime,exact-literal-consumer,Assets/Scripts/Models/Combat/Core/CombatWeaponPrimitives.cs
-ResourceItemDefinitionSO,stable-id,ammo:paper-cartridge,stable-id-literal,models:economy,content-loading,exact-literal-consumer,Assets/Scripts/Models/Economy/Content/ProductionOutputPlanningService.cs
-ResourceItemDefinitionSO,stable-id,ammo:rune-cartridge,stable-id-literal,models:combat,runtime,exact-literal-consumer,Assets/Scripts/Models/Combat/Core/CombatWeaponPrimitives.cs
-ResourceItemDefinitionSO,stable-id,ammo:scatter-cartridge,stable-id-literal,models:combat,runtime,exact-literal-consumer,Assets/Scripts/Models/Combat/Core/CombatWeaponPrimitives.cs
-ResourceItemDefinitionSO,stable-id,ammo:signal-flare,stable-id-literal,models:combat,runtime,exact-literal-consumer,Assets/Scripts/Models/Combat/Core/CombatWeaponPrimitives.cs
-ResourceItemDefinitionSO,stable-id,ammo:smoke-cartridge,stable-id-literal,models:combat,runtime,exact-literal-consumer,Assets/Scripts/Models/Combat/Core/CombatWeaponPrimitives.cs
-ResourceItemDefinitionSO,stable-id,ammo:tranquilizer-dart,stable-id-literal,models:combat,runtime,exact-literal-consumer,Assets/Scripts/Models/Combat/Core/CombatWeaponPrimitives.cs
 ResourceItemDefinitionSO,stable-id,ammo:tranquilizer-dart,stable-id-literal,models:offense,runtime,exact-literal-consumer,Assets/Scripts/Models/Offense/Core/OffenseBattleSessionRules.cs
 ResourceItemDefinitionSO,stable-id,apparel:lower-underwear,stable-id-literal,services:character,runtime,exact-literal-consumer,Assets/Scripts/Services/Character/Core/PreparedStartPartyGameplayApplier.cs
 ResourceItemDefinitionSO,stable-id,apparel:undershirt,stable-id-literal,services:character,runtime,exact-literal-consumer,Assets/Scripts/Services/Character/Core/PreparedStartPartyGameplayApplier.cs
 ResourceItemDefinitionSO,stable-id,book:seasonal-almanac,stable-id-literal,models:items,runtime,exact-literal-consumer,Assets/Scripts/Models/Items/Core/ItemPrimitives.cs
 ResourceItemDefinitionSO,stable-id,component:golem-core-case,stable-id-literal,services:character,runtime,exact-literal-consumer,Assets/Scripts/Services/Character/ReproductionCommandRuntime.cs
-ResourceItemDefinitionSO,stable-id,component:machine-parts,stable-id-literal,models:economy,content-loading,exact-literal-consumer,Assets/Scripts/Models/Economy/Content/ProductionOutputPlanningService.cs
 ResourceItemDefinitionSO,stable-id,component:material-test-coupon,stable-id-literal,models:items,content-loading,exact-literal-consumer,Assets/Scripts/Models/Items/Core/PhysicalItemRuntimeConsumerCatalog.cs
 ResourceItemDefinitionSO,stable-id,component:material-test-coupon,stable-id-literal,services:combat,runtime,exact-literal-consumer,Assets/Scripts/Services/Combat/EquipmentModuleInputOwnerRuntime.cs
 ResourceItemDefinitionSO,stable-id,component:material-test-coupon,stable-id-literal,services:combat,runtime,exact-literal-consumer,Assets/Scripts/Services/Combat/EquipmentModuleRuntime.cs
-ResourceItemDefinitionSO,stable-id,component:precision-parts,stable-id-literal,models:economy,content-loading,exact-literal-consumer,Assets/Scripts/Models/Economy/Content/ProductionOutputPlanningService.cs
 ResourceItemDefinitionSO,stable-id,component:reclaimed-water-filter,stable-id-literal,models:items,content-loading,exact-literal-consumer,Assets/Scripts/Models/Items/Core/PhysicalItemRuntimeConsumerCatalog.cs
 ResourceItemDefinitionSO,stable-id,component:reclaimed-water-filter,stable-id-literal,services:character,runtime,exact-literal-consumer,Assets/Scripts/Services/Character/DiseaseFieldResponseRuntime.cs
 ResourceItemDefinitionSO,stable-id,component:rune-conductor,stable-id-literal,services:character,runtime,exact-literal-consumer,Assets/Scripts/Services/Character/PhysicalAgeTreatmentRuntime.cs
@@ -87,7 +74,6 @@ ResourceItemDefinitionSO,stable-id,food:preserved-ration,stable-id-literal,servi
 ResourceItemDefinitionSO,stable-id,item:equipment-module,stable-id-literal,services:items,runtime,exact-literal-consumer,Assets/Scripts/Services/Items/PhysicalItemIds.cs
 ResourceItemDefinitionSO,stable-id,item:lineage-seal,stable-id-literal,models:combat,runtime,exact-literal-consumer,Assets/Scripts/Models/Combat/Core/EquipmentProgressionModels.cs
 ResourceItemDefinitionSO,stable-id,material:alchemical-solvent,stable-id-literal,models:economy,content-loading,exact-literal-consumer,Assets/Scripts/Models/Economy/Content/GrandProjectRuntime.cs
-ResourceItemDefinitionSO,stable-id,material:black-powder,stable-id-literal,models:economy,content-loading,exact-literal-consumer,Assets/Scripts/Models/Economy/Content/ProductionOutputPlanningService.cs
 ResourceItemDefinitionSO,stable-id,material:blacksteel-ingot,stable-id-literal,models:economy,content-loading,exact-literal-consumer,Assets/Scripts/Models/Economy/Content/GrandProjectRuntime.cs
 ResourceItemDefinitionSO,stable-id,material:cloth,stable-id-literal,models:economy,content-loading,exact-literal-consumer,Assets/Scripts/Models/Economy/Content/GrandProjectRuntime.cs
 ResourceItemDefinitionSO,stable-id,material:cloth,stable-id-literal,services:character,runtime,exact-literal-consumer,Assets/Scripts/Services/Character/Core/PreparedStartPartyGameplayApplier.cs
@@ -98,8 +84,6 @@ ResourceItemDefinitionSO,stable-id,material:gold-ingot,stable-id-literal,models:
 ResourceItemDefinitionSO,stable-id,material:iron-ingot,stable-id-literal,models:economy,content-loading,exact-literal-consumer,Assets/Scripts/Models/Economy/Content/GrandProjectRuntime.cs
 ResourceItemDefinitionSO,stable-id,material:iron-ingot,stable-id-literal,services:combat,content-loading,exact-literal-consumer,Assets/Scripts/Services/Combat/CombatCraftDefinitionCatalog.cs
 ResourceItemDefinitionSO,stable-id,material:iron-ingot,stable-id-literal,services:defense,runtime,exact-literal-consumer,Assets/Scripts/Services/Defense/DefenseFacilityPhysicalTransactionOutbox.cs
-ResourceItemDefinitionSO,stable-id,material:lead-ingot,stable-id-literal,models:economy,content-loading,exact-literal-consumer,Assets/Scripts/Models/Economy/Content/ProductionOutputPlanningService.cs
-ResourceItemDefinitionSO,stable-id,material:lead-shot,stable-id-literal,models:economy,content-loading,exact-literal-consumer,Assets/Scripts/Models/Economy/Content/ProductionOutputPlanningService.cs
 ResourceItemDefinitionSO,stable-id,material:low-fuel,stable-id-literal,models:items,content-loading,exact-literal-consumer,Assets/Scripts/Models/Items/Core/PhysicalItemRuntimeConsumerCatalog.cs
 ResourceItemDefinitionSO,stable-id,material:low-fuel,stable-id-literal,services:infrastructure,runtime,exact-literal-consumer,Assets/Scripts/Services/Infrastructure/Industrial/IndustrialInfrastructureBuildingAbilities.cs
 ResourceItemDefinitionSO,stable-id,material:lumber,stable-id-literal,models:economy,content-loading,exact-literal-consumer,Assets/Scripts/Models/Economy/Content/GrandProjectRuntime.cs
@@ -116,7 +100,6 @@ ResourceItemDefinitionSO,stable-id,material:lumber,stable-id-literal,services:it
 ResourceItemDefinitionSO,stable-id,material:mending-scrap,stable-id-literal,services:character,runtime,exact-literal-consumer,Assets/Scripts/Services/Character/Core/PreparedStartPartyGameplayApplier.cs
 ResourceItemDefinitionSO,stable-id,material:mending-scrap,stable-id-literal,services:economy,content-loading,exact-literal-consumer,Assets/Scripts/Services/Economy/ResourceEconomyContentCatalog.cs
 ResourceItemDefinitionSO,stable-id,material:mending-scrap,stable-id-literal,services:infrastructure,runtime,exact-literal-consumer,Assets/Scripts/Services/Infrastructure/Environment/ApparelWorkOrderRuntime.cs
-ResourceItemDefinitionSO,stable-id,material:paper,stable-id-literal,models:economy,content-loading,exact-literal-consumer,Assets/Scripts/Models/Economy/Content/ProductionOutputPlanningService.cs
 ResourceItemDefinitionSO,stable-id,material:sewing-thread,stable-id-literal,services:character,runtime,exact-literal-consumer,Assets/Scripts/Services/Character/Core/PreparedStartPartyGameplayApplier.cs
 ResourceItemDefinitionSO,stable-id,material:sewing-thread,stable-id-literal,services:economy,content-loading,exact-literal-consumer,Assets/Scripts/Services/Economy/ResourceEconomyContentCatalog.cs
 ResourceItemDefinitionSO,stable-id,material:sewing-thread,stable-id-literal,services:infrastructure,runtime,exact-literal-consumer,Assets/Scripts/Services/Infrastructure/Environment/ApparelWorkOrderRuntime.cs

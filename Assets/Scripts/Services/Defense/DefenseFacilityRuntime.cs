@@ -62,6 +62,7 @@ public sealed class DefenseFacilityRuntime : IDefenseFacilityRuntime
     private readonly DungeonRuntimeAggregateRootStore aggregateRootStore;
     private readonly DefenseServicePublicationRuntime serviceOutcomes;
     private readonly IGameCalendar calendar;
+    private readonly IGrandProjectBenefitQuery grandProjectBenefits;
 
     private DefenseFacilityAggregateState Current =>
         aggregateRootStore.GetOrCreate(
@@ -85,7 +86,8 @@ public sealed class DefenseFacilityRuntime : IDefenseFacilityRuntime
         IFacilityCapabilityQuery facilities,
         DungeonRuntimeAggregateRootStore aggregateRootStore,
         DefenseServicePublicationRuntime serviceOutcomes,
-        IGameCalendar calendar)
+        IGameCalendar calendar,
+        IGrandProjectBenefitQuery grandProjectBenefits)
     {
         this.items = items ?? throw new ArgumentNullException(nameof(items));
         this.physicalItems = physicalItems
@@ -102,6 +104,8 @@ public sealed class DefenseFacilityRuntime : IDefenseFacilityRuntime
         this.aggregateRootStore = aggregateRootStore
             ?? throw new ArgumentNullException(nameof(aggregateRootStore));
         this.calendar = calendar ?? throw new ArgumentNullException(nameof(calendar));
+        this.grandProjectBenefits = grandProjectBenefits
+            ?? throw new ArgumentNullException(nameof(grandProjectBenefits));
         this.serviceOutcomes = serviceOutcomes
             ?? throw new ArgumentNullException(nameof(serviceOutcomes));
     }
@@ -117,7 +121,8 @@ public sealed class DefenseFacilityRuntime : IDefenseFacilityRuntime
         IPowerInfrastructureQuery power,
         IDefenseFacilityNetworkRuntime facilityNetwork,
         IFacilityCapabilityQuery facilities,
-        DungeonRuntimeAggregateRootStore aggregateRootStore)
+        DungeonRuntimeAggregateRootStore aggregateRootStore,
+        IGrandProjectBenefitQuery grandProjectBenefits)
     {
         this.items = items ?? throw new ArgumentNullException(nameof(items));
         this.physicalItems = physicalItems
@@ -133,6 +138,8 @@ public sealed class DefenseFacilityRuntime : IDefenseFacilityRuntime
             ?? throw new ArgumentNullException(nameof(facilities));
         this.aggregateRootStore = aggregateRootStore
             ?? throw new ArgumentNullException(nameof(aggregateRootStore));
+        this.grandProjectBenefits = grandProjectBenefits
+            ?? throw new ArgumentNullException(nameof(grandProjectBenefits));
     }
 
     public DefenseFacilitySnapshot GetSnapshot(DefenseFacility facility)
@@ -299,7 +306,8 @@ public sealed class DefenseFacilityRuntime : IDefenseFacilityRuntime
         state.cooldownUntil = DefenseFacilityRules.ResolveCooldown(
             clock.Time,
             facility.Defense.cooldownSeconds,
-            state.growth.resetSpeedLevel);
+            state.growth.resetSpeedLevel,
+            grandProjectBenefits.DefensePreparationMultiplier);
         state.operationalState = state.cooldownUntil > clock.Time
             ? DefenseFacilityOperationalState.Cooldown
             : DefenseFacilityOperationalState.Ready;

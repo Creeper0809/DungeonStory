@@ -34,7 +34,6 @@ BuildingSO,content-type,,type-reference; save-restore-reference,services:codex,r
 BuildingSO,content-type,,type-reference; save-restore-reference,services:combat,runtime,structural-type-consumer,Assets/Scripts/Services/Combat/CharacterMedicalOutcomeProductionEntryDebugScenarios.cs
 BuildingSO,content-type,,type-reference; save-restore-reference,services:combat,content-loading,structural-type-consumer,Assets/Scripts/Services/Combat/CombatCraftDefinitionCatalog.cs
 BuildingSO,content-type,,type-reference; save-restore-reference,services:combat,runtime,structural-type-consumer,Assets/Scripts/Services/Combat/EquipmentProgressionCraftOperationContributor.cs
-BuildingSO,content-type,,type-reference,services:debugging,runtime,structural-type-consumer,Assets/Scripts/Services/Debugging/DungeonDebugCommandProviders.cs
 BuildingSO,content-type,,type-reference; save-restore-reference,services:defense,runtime,structural-type-consumer,Assets/Scripts/Services/Defense/DefenseFacilitySystem.cs
 BuildingSO,content-type,,type-reference,services:economy,runtime,structural-type-consumer,Assets/Scripts/Services/Economy/ApparelTailoringFacilityEligibility.cs
 BuildingSO,content-type,,type-reference,services:economy,runtime,structural-type-consumer,Assets/Scripts/Services/Economy/CertifiedSeedFacilityEligibility.cs

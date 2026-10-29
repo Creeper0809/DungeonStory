@@ -344,7 +344,7 @@ public sealed class EquipmentExpeditionUiMatrixRunner : MonoBehaviour
     {
         foreach (string researchId in RequiredResearchIds)
         {
-            research.State.Projects.RestoreCompleted(
+            research.StateForDebug.Projects.RestoreCompleted(
                 new ResearchProjectId(researchId));
         }
 

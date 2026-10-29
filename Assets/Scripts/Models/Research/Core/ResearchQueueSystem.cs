@@ -114,6 +114,11 @@ public sealed class ResearchProjectRuntimeState
         return state;
     }
 
+    public ResearchProjectProgressState GetProgressSnapshot(ResearchProjectId projectId) =>
+        progressById.TryGetValue(projectId.Value, out ResearchProjectProgressState state)
+            ? state.DeepClone()
+            : new ResearchProjectProgressState(projectId);
+
     public bool IsCompleted(ResearchProjectId projectId) =>
         completedIds.Contains(projectId.Value);
 

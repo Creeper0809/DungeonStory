@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.Serialization;
+using DungeonStory.Foundation;
 using UnityEditor;
 using UnityEngine;
 
@@ -41,6 +42,13 @@ public static class CaptivityCircusDebugScenarios
         }
     }
 
+    [MenuItem("DungeonStory/Debug/Captivity/Run R30 Performer Eligibility Focused")]
+    public static void RunR30PerformerEligibilityFocused()
+    {
+        string result = VerifyR30PerformerEligibility();
+        Debug.Log("R30 performer eligibility PASS: " + result);
+    }
+
     public static bool RunAll(bool logSuccess)
     {
         Directory.CreateDirectory("Temp");
@@ -59,6 +67,11 @@ public static class CaptivityCircusDebugScenarios
             errors);
         Run("interaction_registry_and_materials", VerifyInteractions, lines, errors);
         Run("circus_registry_and_programs", VerifyCircusPrograms, lines, errors);
+        Run(
+            "r30_circus_performer_eligibility",
+            VerifyR30PerformerEligibility,
+            lines,
+            errors);
         Run("circus_persistent_identity", VerifyCircusPersistentIdentity, lines, errors);
         Run("circus_and_wildlife_save_clone", VerifyCircusSaveModels, lines, errors);
         Run("circus_save_validation", VerifyCircusSaveValidation, lines, errors);
@@ -575,6 +588,131 @@ public static class CaptivityCircusDebugScenarios
         return "8 programs cover nonlethal, dangerous, combat, wildlife, and cruel shows";
     }
 
+    private static string VerifyR30PerformerEligibility()
+    {
+        using R30PerformerEligibilityFixture fixture = new();
+        const string captiveProgram = "circus:nonlethal-act";
+        const string noCaptiveProgram = "circus:trophy-display";
+
+        Require(!fixture.Captivity.CanAssignPerformer(
+                fixture.DisallowedId,
+                out string policyFailure)
+                && !string.IsNullOrWhiteSpace(policyFailure),
+            "Captivity assignment query allowed the policy-disallowed captive.");
+        Require(fixture.Captivity.CanAssignPerformer(
+                fixture.EligibleId,
+                out string eligibleFailure),
+            "Captivity assignment query rejected the eligible captive: "
+            + eligibleFailure);
+        IReadOnlyList<string> selected = fixture.Circus
+            .GetAutoSelectedPerformerIds(fixture.Stage, captiveProgram);
+        Require(selected.SequenceEqual(new[] { fixture.EligibleId }),
+            "Auto selection did not exclude the disallowed high-skill captive and injured captive.");
+        Require(fixture.Circus
+                .GetAutoSelectedPerformerIds(fixture.Stage, noCaptiveProgram)
+                .Count == 0,
+            "A program that does not need captives auto-selected a performer.");
+
+        VerifyForecastAndScheduleRejectTogether(
+            fixture,
+            captiveProgram,
+            fixture.DisallowedId,
+            "policy-disallowed performer");
+        VerifyForecastAndScheduleRejectTogether(
+            fixture,
+            captiveProgram,
+            fixture.InjuredId,
+            "injured performer");
+
+        CircusProgramForecast forecast = fixture.Circus.GetForecast(
+            fixture.Stage,
+            captiveProgram,
+            CircusLethalityPolicy.StopWhenDowned,
+            selected,
+            Array.Empty<string>());
+        Require(forecast.CanSchedule,
+            "Eligible low-skill performer was rejected by forecast: "
+            + forecast.FailureReason);
+        Require(fixture.Circus.TrySchedule(
+                fixture.Stage,
+                captiveProgram,
+                CircusLethalityPolicy.StopWhenDowned,
+                new[] { fixture.EligibleId, fixture.EligibleId },
+                Array.Empty<string>(),
+                out CircusShowOrder scheduled,
+                out string scheduleFailure),
+            "Eligible performer was rejected by schedule: " + scheduleFailure);
+        Require(scheduled.performerIds.SequenceEqual(
+                new[] { fixture.EligibleId }),
+            "Schedule did not remove duplicate performer input IDs.");
+        Require(!fixture.Captivity.TryAssignPerformer(
+                fixture.EligibleId,
+                true,
+                out string duplicateAssignmentFailure)
+                && !string.IsNullOrWhiteSpace(duplicateAssignmentFailure),
+            "Captivity owner accepted a duplicate performer assignment.");
+
+        VerifyForecastAndScheduleRejectTogether(
+            fixture,
+            captiveProgram,
+            fixture.EligibleId,
+            "already-assigned performer");
+        Require(fixture.Circus.GetAutoSelectedPerformerIds(
+                fixture.Stage,
+                captiveProgram).Count == 0,
+            "An active-order performer remained auto-selectable.");
+        Require(fixture.Circus.Cancel(scheduled.orderId, "r30-fixture-cancel"),
+            "Normal circus cancellation failed.");
+        Require(fixture.Circus.GetAutoSelectedPerformerIds(
+                fixture.Stage,
+                captiveProgram).SequenceEqual(new[] { fixture.EligibleId }),
+            "Cancelled performer did not become selectable again.");
+        Require(fixture.Circus.TrySchedule(
+                fixture.Stage,
+                captiveProgram,
+                CircusLethalityPolicy.StopWhenDowned,
+                new[] { fixture.EligibleId },
+                Array.Empty<string>(),
+                out CircusShowOrder retried,
+                out string retryFailure),
+            "Cancelled performer could not be scheduled again: " + retryFailure);
+        Require(retried.orderId != scheduled.orderId
+                && fixture.Circus.Orders.Count(order => !order.IsTerminal) == 1,
+            "Retry created duplicate active orders or reused the prior order ID.");
+
+        return "policy, injury, assignment, empty selection, forecast parity, cancel retry PASS";
+    }
+
+    private static void VerifyForecastAndScheduleRejectTogether(
+        R30PerformerEligibilityFixture fixture,
+        string programId,
+        string performerId,
+        string caseName)
+    {
+        CircusProgramForecast forecast = fixture.Circus.GetForecast(
+            fixture.Stage,
+            programId,
+            CircusLethalityPolicy.StopWhenDowned,
+            new[] { performerId },
+            Array.Empty<string>());
+        bool scheduled = fixture.Circus.TrySchedule(
+            fixture.Stage,
+            programId,
+            CircusLethalityPolicy.StopWhenDowned,
+            new[] { performerId },
+            Array.Empty<string>(),
+            out _,
+            out string failureReason);
+        Require(!forecast.CanSchedule && !scheduled,
+            caseName + " was not rejected by both forecast and schedule.");
+        Require(!string.IsNullOrWhiteSpace(forecast.FailureReason)
+                && string.Equals(
+                    forecast.FailureReason,
+                    failureReason,
+                    StringComparison.Ordinal),
+            caseName + " produced different forecast and schedule reasons.");
+    }
+
     private static string VerifyCircusSaveModels()
     {
         CircusShowOrder order = new CircusShowOrder
@@ -986,6 +1124,344 @@ public static class CaptivityCircusDebugScenarios
         Require(
             expectedRole == FacilityRole.None || (facility.roles & expectedRole) != 0,
             $"{path} missing role {expectedRole}");
+    }
+
+    private sealed class R30PerformerEligibilityFixture : IDisposable
+    {
+        private const string StageAssetPath =
+            "Assets/Resources/SO/Building/Captivity/CS01_중앙무대.asset";
+        private const string SeatingAssetPath =
+            "Assets/Resources/SO/Building/Captivity/CS02_관람석.asset";
+        private readonly List<UnityEngine.Object> cleanup = new();
+        private readonly List<CharacterActor> actors = new();
+        private readonly ICharacterAiWorldRegistry world =
+            CharacterAiEditorTestDependencies.WorldRegistry;
+        private readonly CharacterBodyHealthRuntime bodyHealth =
+            CharacterAiEditorTestDependencies.BodyHealthRuntime;
+
+        internal R30PerformerEligibilityFixture()
+        {
+            Stage = CreateBuilding(
+                "R30 Circus Stage",
+                StageAssetPath,
+                new BuildingInstanceId("building:r30-circus-stage"),
+                new Vector2Int(8, 8));
+            BuildableObject seating = CreateBuilding(
+                "R30 Circus Seating",
+                SeatingAssetPath,
+                new BuildingInstanceId("building:r30-circus-seating"),
+                new Vector2Int(8, 9));
+            GameObject doorObject = new("R30 Circus Door");
+            cleanup.Add(doorObject);
+            Door door = doorObject.AddComponent<Door>();
+            RoomInstance room = new(
+                303,
+                new[]
+                {
+                    new Vector2Int(8, 8),
+                    new Vector2Int(8, 9),
+                    new Vector2Int(9, 8),
+                    new Vector2Int(9, 9)
+                },
+                new[] { Stage, seating },
+                new BuildableObject[] { door },
+                Array.Empty<BuildableObject>(),
+                solidBoundaryCount: 4,
+                openBoundaryCount: 0);
+            FixedRoomCache rooms = new(room);
+
+            CharacterActor disallowed = CreateActor(
+                DisallowedId,
+                "Policy Blocked Performer");
+            CharacterActor injured = CreateActor(
+                InjuredId,
+                "Injured Performer");
+            CharacterActor eligible = CreateActor(
+                EligibleId,
+                "Eligible Performer");
+
+            DungeonRuntimeAggregateRootStore captivityStore = new();
+            CaptivityActorAccess actorAccess = new(
+                captivityStore,
+                _ => { });
+            R30PerformerPort performerPort = new(actors);
+            CaptivityPolicyRuntime policies = new(
+                actorAccess,
+                performerPort);
+            actorAccess.AddState(CreateState(
+                DisallowedId,
+                disallowed.Identity.DisplayName,
+                CaptivityPolicyIds.ForcedLabor,
+                99f));
+            actorAccess.AddState(CreateState(
+                InjuredId,
+                injured.Identity.DisplayName,
+                CaptivityPolicyIds.Standard,
+                80f));
+            actorAccess.AddState(CreateState(
+                EligibleId,
+                eligible.Identity.DisplayName,
+                CaptivityPolicyIds.Standard,
+                10f));
+
+            bool RejectTransition(string _, out string failureReason)
+            {
+                failureReason = "R30 performer fixture does not exercise release or recruit.";
+                return false;
+            }
+            CaptivityPerformerRuntime performer = new(
+                actorAccess.FindState,
+                policies.Find,
+                RejectTransition,
+                RejectTransition,
+                performerPort);
+#pragma warning disable SYSLIB0050
+            Captivity = (CaptivityRuntime)
+                FormatterServices.GetUninitializedObject(
+                    typeof(CaptivityRuntime));
+#pragma warning restore SYSLIB0050
+            SetField(Captivity, "actorAccess", actorAccess);
+            SetField(Captivity, "policyRuntime", policies);
+            SetField(Captivity, "performerRuntime", performer);
+            SetField(Captivity, "queryView", new CaptivityQueryView(
+                actorAccess,
+                policies));
+            SetField(Captivity, "worldRegistry", world);
+
+            bodyHealth.ConfigureVitals(disallowed, 100f, true);
+            bodyHealth.ConfigureVitals(injured, 100f, true);
+            bodyHealth.ConfigureVitals(eligible, 100f, true);
+            bodyHealth.ApplyLocalizedDamage(
+                injured,
+                CombatBodyPart.LeftArm,
+                5f,
+                "r30-circus-fixture-injury",
+                allowDeath: false);
+
+            IWildlifeCaptureRuntime wildlife =
+                NullPort<IWildlifeCaptureRuntime>();
+            CircusPerformanceSupplyRuntime supplies = new(
+                NullPort<IDurableFacilityEquipmentPolicyQuery>(),
+                NullPort<IDurableFacilityEquipmentSlotCommand>(),
+                NullPort<IDurableFacilityEquipmentSlotQuery>(),
+                NullPort<IDurableFacilityEquipmentUseCommand>(),
+                NullPort<IWorldItemStackRuntime>(),
+                NullPort<IPhysicalItemBatchDispositionService>());
+            CircusProgramContext program = new(
+                new CircusProgramRegistry(new ICircusProgramHandler[]
+                {
+                    new NonlethalActCircusProgram(),
+                    new TrophyDisplayCircusProgram()
+                }),
+                Captivity,
+                Captivity,
+                wildlife,
+                NullPort<IExternalInfluenceRuntime>(),
+                supplies);
+            CircusWorldContext worldContext = new(
+                world,
+                NullPort<IGridSystemProvider>(),
+                rooms,
+                NullPort<IDoorAccessCommandService>(),
+                NullPort<IWorldFilthQuery>());
+#pragma warning disable SYSLIB0050
+            CharacterCombatTransactionFacade combatTransactions =
+                (CharacterCombatTransactionFacade)
+                FormatterServices.GetUninitializedObject(
+                    typeof(CharacterCombatTransactionFacade));
+#pragma warning restore SYSLIB0050
+            CircusCombatContext combat = new(
+                bodyHealth,
+                bodyHealth,
+                NullPort<ICombatResolutionService>(),
+                NullPort<ICombatEquipmentRuntime>(),
+                NullPort<ICharacterMedicalQuery>(),
+                NullPort<ICharacterMedicalCommand>(),
+                NullPort<ICharacterPerformanceQuery>(),
+                combatTransactions);
+            CircusSessionContext session = new(
+                NullPort<IGameMoneyAccount>(),
+                CharacterAiEditorTestDependencies.GameClock,
+                new RandomStreamProvider(303),
+                new GameEventBus(),
+                new DungeonRuntimeAggregateRootStore());
+            Circus = new CircusRuntime(
+                program,
+                worldContext,
+                combat,
+                session);
+        }
+
+        internal string DisallowedId => "character:r30-circus-disallowed";
+        internal string InjuredId => "character:r30-circus-injured";
+        internal string EligibleId => "character:r30-circus-eligible";
+        internal BuildableObject Stage { get; }
+        internal CaptivityRuntime Captivity { get; }
+        internal CircusRuntime Circus { get; }
+
+        public void Dispose()
+        {
+            Circus.Dispose();
+            foreach (CharacterActor actor in actors)
+            {
+                world.UnregisterCharacterLifetime(actor);
+            }
+            for (int index = cleanup.Count - 1; index >= 0; index--)
+            {
+                if (cleanup[index] != null)
+                {
+                    UnityEngine.Object.DestroyImmediate(cleanup[index]);
+                }
+            }
+        }
+
+        private CharacterActor CreateActor(string id, string displayName)
+        {
+            CharacterSO data = CharacterAiEditorTestDependencies
+                .CreateCharacterFixtureData(
+                    CharacterType.NPC,
+                    displayName,
+                    "human",
+                    CharacterRole.Regular);
+            cleanup.Add(data);
+            GameObject actorObject = new(displayName);
+            cleanup.Add(actorObject);
+            actorObject.AddComponent<SpriteRenderer>();
+            CharacterActor actor = actorObject.AddComponent<CharacterActor>();
+            actorObject.AddComponent<AbilityMove>();
+            CharacterAiEditorTestDependencies.Inject(actorObject);
+            actor.RefreshAbilityCache();
+            actor.Initialization(data);
+            actor.EnsureRuntimeState();
+            actor.Identity.SetPersistentId(id);
+            actor.Identity.SetCharacterType(CharacterType.NPC);
+            world.RegisterCharacterLifetime(actor);
+            actors.Add(actor);
+            return actor;
+        }
+
+        private BuildableObject CreateBuilding(
+            string name,
+            string path,
+            BuildingInstanceId id,
+            Vector2Int position)
+        {
+            BuildingSO data = AssetDatabase.LoadAssetAtPath<BuildingSO>(path);
+            Require(data != null, "R30 circus fixture asset is missing: " + path);
+            GameObject buildingObject = new(name);
+            cleanup.Add(buildingObject);
+            BuildableObject building =
+                buildingObject.AddComponent<BuildableObject>();
+            CharacterAiEditorTestDependencies.Inject(building);
+            building.RestorePersistentIdentity(id);
+            building.Initialization(data, position);
+            return building;
+        }
+
+        private static CaptiveState CreateState(
+            string captiveId,
+            string displayName,
+            string policyId,
+            float skill) => new()
+        {
+            captiveId = captiveId,
+            displayName = displayName,
+            status = CaptivityStatus.Confined,
+            policyId = policyId,
+            restrained = true,
+            performerSkill = skill
+        };
+
+        private static TPort NullPort<TPort>()
+            where TPort : class =>
+            BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy
+                .Create<TPort>();
+
+        private static void SetField(
+            object target,
+            string fieldName,
+            object value)
+        {
+            FieldInfo field = target.GetType().GetField(
+                fieldName,
+                BindingFlags.Instance | BindingFlags.NonPublic)
+                ?? throw new MissingFieldException(
+                    target.GetType().FullName,
+                    fieldName);
+            field.SetValue(target, value);
+        }
+    }
+
+    private sealed class R30PerformerPort :
+        ICaptivityPerformerPort,
+        ICaptivityPolicyActorPort
+    {
+        private readonly IReadOnlyList<CharacterActor> actors;
+
+        internal R30PerformerPort(IReadOnlyList<CharacterActor> actors)
+        {
+            this.actors = actors;
+        }
+
+        public bool IsActorAvailable(string captiveId) => actors.Any(actor =>
+            string.Equals(
+                actor?.Identity?.PersistentId,
+                captiveId,
+                StringComparison.Ordinal));
+
+        public void ApplyAssignmentState(string captiveId, bool assigned)
+        {
+        }
+
+        public void Publish(CaptivePerformerMilestoneEvent gameEvent)
+        {
+        }
+
+        public void RaiseAlert(
+            string title,
+            string message,
+            CaptivityMilestoneImportance importance,
+            string category)
+        {
+        }
+
+        public void ConfineLaborer(string captiveId)
+        {
+        }
+    }
+
+    private sealed class FixedRoomCache : IRoomLayoutCache
+    {
+        private readonly RoomInstance room;
+
+        internal FixedRoomCache(RoomInstance room)
+        {
+            this.room = room ?? throw new ArgumentNullException(nameof(room));
+        }
+
+        public RoomLayout GetLayout(Grid grid) =>
+            new(new[] { room });
+
+        public bool TryGetRoom(
+            Grid grid,
+            Vector2Int cell,
+            out RoomInstance value)
+        {
+            value = room.ContainsCell(cell) ? room : null;
+            return value != null;
+        }
+
+        public bool TryGetRoom(
+            BuildableObject part,
+            out RoomInstance value)
+        {
+            value = room.ContainsPart(part) ? room : null;
+            return value != null;
+        }
+
+        public void Clear()
+        {
+        }
     }
 
     private sealed class TrackingEscortRestoreLifecycle :

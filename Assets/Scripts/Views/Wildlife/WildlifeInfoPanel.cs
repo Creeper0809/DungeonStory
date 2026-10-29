@@ -340,14 +340,14 @@ public sealed class WildlifeInfoPanel : UIPopUp
         BuildableObject pen = worldRegistry.Buildings
             .Where(building =>
                 building != null
-                && building.BuildingData.GetBeastPenAbility() != null)
+                && captureRuntime.CanAcceptCapture(building, out _))
             .OrderBy(building => Manhattan(
                 building.centerPos,
                 current.GridPosition))
             .FirstOrDefault();
         if (pen == null)
         {
-            actionMessage = "먼저 닫힌 방 안에 야수 우리를 설치하고 문 권한을 제한해야 합니다.";
+            actionMessage = "수용 가능한 야수 우리가 없습니다. 빈 수용량과 안전한 방, 동물을 놓을 칸을 확인하세요.";
             Render();
             return;
         }
@@ -356,7 +356,7 @@ public sealed class WildlifeInfoPanel : UIPopUp
             current,
             pen,
             out string captureReason)
-            ? "가장 가까운 야수 우리로 생포·운반을 명령했습니다."
+            ? "가장 가까운 수용 가능한 야수 우리로 생포와 운반을 명령했습니다."
             : captureReason;
         Render();
     }

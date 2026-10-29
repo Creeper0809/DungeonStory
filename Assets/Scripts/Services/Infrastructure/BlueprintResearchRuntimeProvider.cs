@@ -18,6 +18,9 @@ public interface IBlueprintResearchWorkService
 public interface IBlueprintResearchStateService
 {
     BlueprintResearchState GetState();
+#if UNITY_EDITOR
+    BlueprintResearchState GetStateForDebug();
+#endif
 }
 
 public interface IBlueprintResearchWorkforcePolicyQuery
@@ -181,4 +184,7 @@ public sealed class BlueprintResearchStateService : IBlueprintResearchStateServi
     {
         return runtime.State;
     }
+#if UNITY_EDITOR
+    public BlueprintResearchState GetStateForDebug() => runtime.StateForDebug;
+#endif
 }

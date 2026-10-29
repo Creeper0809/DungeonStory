@@ -1860,7 +1860,7 @@ public static partial class MigratedProducerCombatDefenseEntryE2EDebugScenarios
                 new AlwaysPoweredQuery(),
                 new NoopDefenseFacilityNetwork(),
                 new EmptyFacilityCapabilities(),
-                new DungeonRuntimeAggregateRootStore());
+                new DungeonRuntimeAggregateRootStore(), new R30DefensePreparationBenefits(1f));
             facts = new DomainFactDispatcher();
             var commits = new GameplayDomainFactCommitGroup(
                 harness.Recorder,
@@ -2607,15 +2607,17 @@ public static partial class MigratedProducerCombatDefenseEntryE2EDebugScenarios
 
     private sealed class BuildingFixture : IDisposable
     {
+        private readonly BuildingSO ownedData;
         internal BuildingFixture(
             Grid grid,
             string assetPath,
             Vector2Int position,
-            string persistentId)
+            string persistentId, bool cloneDefinition = false)
         {
             BuildingSO data = AssetDatabase.LoadAssetAtPath<BuildingSO>(assetPath)
                 ?? throw new InvalidOperationException(
                     "Authored building fixture is missing: " + assetPath);
+            if (cloneDefinition) data = ownedData = Object.Instantiate(data);
             Building = new GridBuildingFactory().Create(grid, data, position)
                 ?? throw new InvalidOperationException(
                     "Building fixture could not be created: " + assetPath);
@@ -2651,6 +2653,7 @@ public static partial class MigratedProducerCombatDefenseEntryE2EDebugScenarios
         {
             if (Building != null)
                 Object.DestroyImmediate(Building.gameObject);
+            if (ownedData != null) Object.DestroyImmediate(ownedData);
         }
     }
 

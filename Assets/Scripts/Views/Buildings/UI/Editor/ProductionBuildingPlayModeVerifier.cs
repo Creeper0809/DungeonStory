@@ -263,7 +263,7 @@ public sealed class ProductionBuildingPlayModeVerificationRunner : MonoBehaviour
             && !research.State.Projects.IsCompleted(
                 new ResearchProjectId(recipe.RequiredResearchId)))
         {
-            research.State.Projects.RestoreCompleted(
+            research.StateForDebug.Projects.RestoreCompleted(
                 new ResearchProjectId(recipe.RequiredResearchId));
         }
         activeFacility = PlaceFacility(building);

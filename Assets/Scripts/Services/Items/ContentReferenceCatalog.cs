@@ -20,25 +20,35 @@ public sealed class ContentReferenceCatalog
         public Entry(ScriptableObject asset, string id, string label = null) { Asset = asset; Id = id; Label = label ?? asset?.name ?? id; }
     }
     private readonly ScriptableObject[] assets;
+    private readonly ProductionMassExplanationCapabilityRegistry massExplanations;
     private readonly Dictionary<string, Entry[]> entries = new(StringComparer.Ordinal);
     private readonly Dictionary<string, Dictionary<string, int>> matchCounts = new(StringComparer.Ordinal);
     private static readonly Dictionary<Type, FieldInfo[]> fields = new();
     private static readonly Dictionary<FieldInfo, ContentReferenceAttribute> references = new();
 
-    public ContentReferenceCatalog(IEnumerable<ScriptableObject> definitions) =>
+    public ContentReferenceCatalog(IEnumerable<ScriptableObject> definitions)
+        : this(definitions, ProductionMassExplanationCapabilityRegistry.CreateDefault()) { }
+
+    public ContentReferenceCatalog(IEnumerable<ScriptableObject> definitions,
+        ProductionMassExplanationCapabilityRegistry massExplanations)
+    {
+        this.massExplanations = massExplanations ?? throw new ArgumentNullException(nameof(massExplanations));
         assets = (definitions ?? throw new ArgumentNullException(nameof(definitions)))
             .Where(value => value != null).Distinct().ToArray();
+    }
 
     public static ContentReferenceCatalog FromCatalogs(
         IEnumerable<GameDomainContentCatalogSO> domainCatalogs,
         ItemDefinitionCatalogSO items,
-        CharacterSkillSystemSettingsSO skillSettings)
+        CharacterSkillSystemSettingsSO skillSettings,
+        ProductionMassExplanationCapabilityRegistry massExplanations = null)
     {
         if (domainCatalogs == null) throw new ArgumentNullException(nameof(domainCatalogs));
         return new ContentReferenceCatalog(domainCatalogs
             .SelectMany(value => value.Definitions.Concat(new ScriptableObject[] { value })).Concat(items != null
                 ? items.Definitions.Cast<ScriptableObject>() : Array.Empty<ScriptableObject>())
-            .Concat(new ScriptableObject[] { skillSettings }));
+            .Concat(new ScriptableObject[] { skillSettings }),
+            massExplanations ?? ProductionMassExplanationCapabilityRegistry.CreateDefault());
     }
 
     public static bool IsKeyReference(ContentReferenceKind kind) => kind is
@@ -383,7 +393,7 @@ public sealed class ContentReferenceCatalog
             case ContentReferenceKind.EquipmentApplicator:
                 return KeyEntries(EquipmentEvolutionFormulaCapabilityDefinition.ApplicatorIds).ToArray();
             case ContentReferenceKind.ProductionMassPolicy:
-                return KeyEntries(ProductionMassExplanationCapabilityRegistry.CreateDefault().RegisteredKeys).ToArray();
+                return KeyEntries(massExplanations.RegisteredKeys).ToArray();
             case ContentReferenceKind.ProductionOutputCostPolicy:
                 return KeyEntries(ProductionOutputCostAllocationCapabilityRegistry.CreateDefault().RegisteredKeys).ToArray();
             case ContentReferenceKind.RoomScore:
@@ -553,7 +563,8 @@ public sealed class ContentReferenceCatalog
         return fields[type] = result.ToArray();
     }
 
-    public static ContentReferenceKind? ResolveKind(ContentReferenceKind kind, string path, object owner)
+    public static ContentReferenceKind? ResolveKind(ContentReferenceKind kind, string path, object owner,
+        ContentReferenceKind? contextKind = null)
     {
         if (kind == ContentReferenceKind.AuthoredEffectText)
             return owner is AuthoredGameplayEffectRecord authored ? authored.kind switch
@@ -566,16 +577,35 @@ public sealed class ContentReferenceCatalog
             return owner is OffenseEncounterSO encounter && encounter.objective == OffenseEncounterObjective.CaptureLeader
                 ? ContentReferenceKind.EnemyArchetype : null;
         if (kind == ContentReferenceKind.WeightedTarget)
-            return ResolveWeightedTargetKind(path);
+            return contextKind;
         if (kind != ContentReferenceKind.EffectTarget) return kind;
         if (owner is not V20ContentEffect effect) return null;
         return ResolveEffectTargetKind(effect.kind);
     }
 
-    public static ContentReferenceKind? ResolveWeightedTargetKind(string path) =>
-        path.Contains("relatedEventWeights.") ? ContentReferenceKind.LifeEvent
-            : path.Contains("otherCultureAttitudes.") ? ContentReferenceKind.Culture
-            : path.Contains("factionReactions.") ? ContentReferenceKind.EnemyFaction : null;
+    public static bool RequiresContainerContext(ContentReferenceKind kind) => kind is
+        ContentReferenceKind.WeightedTarget or ContentReferenceKind.FacilityValueKey
+        or ContentReferenceKind.RoomProfileKey;
+
+    public static ContentReferenceKind? ResolveContainerContext(Type rootType, string propertyPath)
+    {
+        ContentReferenceKind? context = null;
+        Type current = rootType;
+        foreach (string segment in propertyPath.Split('.'))
+        {
+            if (segment == "Array" || segment.StartsWith("data[", StringComparison.Ordinal)
+                || segment.StartsWith("[", StringComparison.Ordinal)) continue;
+            if (current.IsArray) current = current.GetElementType();
+            else if (current.IsGenericType && typeof(IEnumerable).IsAssignableFrom(current))
+                current = current.GetGenericArguments()[0];
+            FieldInfo field = SerializedFields(current).FirstOrDefault(value => value.Name == segment);
+            if (field == null) return null;
+            var declared = field.GetCustomAttribute<ContentReferenceContextAttribute>();
+            if (declared != null) context = declared.Kind;
+            current = field.FieldType;
+        }
+        return context;
+    }
 
     public static ContentReferenceKind? ResolveEffectTargetKind(V20ContentEffectKind kind) =>
         kind switch
@@ -589,8 +619,13 @@ public sealed class ContentReferenceCatalog
         };
 
     public static ContentReferenceAttribute ResolveReference(ContentReferenceAttribute reference, string path, object owner,
-        ScriptableObject root = null)
+        ScriptableObject root = null, ContentReferenceKind? contextKind = null)
     {
+        if (RequiresContainerContext(reference.Kind))
+            return contextKind.HasValue
+                ? new ContentReferenceAttribute(contextKind.Value, reference.EmptyNumericId)
+                    { Aliases = reference.Aliases, IgnoreCase = reference.IgnoreCase, ContextMember = reference.ContextMember }
+                : null;
         if (reference.Kind == ContentReferenceKind.IdentityRuleProtocol)
             return new ContentReferenceAttribute(ContentReferenceKind.IdentityRuleProtocol)
                 { ContextMember = path.Substring(path.LastIndexOf('.') + 1) };
@@ -600,11 +635,6 @@ public sealed class ContentReferenceCatalog
             return owner is FacilityEvolutionRecordTokenDefinitionSO token
                 && token.generationTrigger == FacilityEvolutionRecordTokenGenerationTrigger.MetricThresholdCrossing
                 ? reference : null;
-        if (reference.Kind == ContentReferenceKind.FacilityValueKey)
-            return path.Contains("identityPressureWeights")
-                ? new ContentReferenceAttribute(ContentReferenceKind.FacilityPressure) : null;
-        if (reference.Kind == ContentReferenceKind.RoomProfileKey)
-            return new ContentReferenceAttribute(path.Contains("requiredRoomScores") ? ContentReferenceKind.RoomScore : ContentReferenceKind.RoomMetric);
         if (reference.Kind == ContentReferenceKind.MetaEffectTarget)
             return owner is AuthoredGameplayEffectRecord { kind: AuthoredGameplayEffectKind.MetaIntegerBonus or AuthoredGameplayEffectKind.MetaMultiplierDelta }
                 ? reference : null;
@@ -627,7 +657,7 @@ public sealed class ContentReferenceCatalog
                 InGameNarrativeTextKind.ExpeditionChoice => new ContentReferenceAttribute(ContentReferenceKind.ExpeditionChoice),
                 _ => throw new InvalidOperationException($"Unknown narrative kind at {path}.")
             };
-        var kind = ResolveKind(reference.Kind, path, owner);
+        var kind = ResolveKind(reference.Kind, path, owner, contextKind);
         return kind == null ? null : kind == reference.Kind ? reference
             : new ContentReferenceAttribute(kind.Value, reference.EmptyNumericId) { Aliases = reference.Aliases, IgnoreCase = reference.IgnoreCase };
     }
@@ -655,7 +685,8 @@ public sealed class ContentReferenceCatalog
         return errors;
     }
 
-    private void Visit(object value, string path, ScriptableObject root, HashSet<object> visited, List<string> errors)
+    private void Visit(object value, string path, ScriptableObject root, HashSet<object> visited, List<string> errors,
+        ContentReferenceKind? contextKind = null)
     {
         if (value == null || value is string || value.GetType().IsPrimitive || value.GetType().IsEnum) return;
         if (!visited.Add(value)) return;
@@ -663,14 +694,18 @@ public sealed class ContentReferenceCatalog
         if (value is UnityEngine.Object && value is not ScriptableObject) return;
         // Collection elements establish their own definition scope just like
         // directly referenced SO fields; nested records retain that scope.
-        if (value is ScriptableObject definition) root = definition;
+        if (value is ScriptableObject definition)
+        {
+            root = definition;
+            contextKind = null;
+        }
         if (value is IEnumerable sequence)
         {
             Type element = value.GetType().IsArray ? value.GetType().GetElementType()
                 : value.GetType().IsGenericType ? value.GetType().GetGenericArguments().FirstOrDefault() : null;
             if (element != null && (element.IsPrimitive || element.IsEnum || element == typeof(string))) return;
             int index = 0;
-            foreach (object item in sequence) Visit(item, $"{path}.[{index++}]", root, visited, errors);
+            foreach (object item in sequence) Visit(item, $"{path}.[{index++}]", root, visited, errors, contextKind);
             return;
         }
         if (value is EnemyArchetypeDefinitionSO enemy)
@@ -724,7 +759,7 @@ public sealed class ContentReferenceCatalog
         {
             try
             {
-                ProductionMassExplanationCapabilityRegistry.CreateDefault().ValidateRegistered(production.MassExplanation);
+                massExplanations.ValidateRegistered(production.MassExplanation);
                 ProductionOutputCostAllocationCapabilityRegistry.CreateDefault().ValidateForOutputs(production.OutputCostAllocation, production.Outputs);
             }
             catch (InvalidOperationException error) { errors.Add(path + ": " + error.Message); }
@@ -829,7 +864,9 @@ public sealed class ContentReferenceCatalog
                 && field.Name == "homeFactionId";
             if (reference != null && !inactiveHome)
             {
-                var resolved = ResolveReference(reference, memberPath, value, root);
+                var resolved = ResolveReference(reference, memberPath, value, root, contextKind);
+                if (resolved == null && RequiresContainerContext(reference.Kind))
+                    errors.Add(memberPath + ": missing explicit container reference context for " + reference.Kind + ".");
                 if (resolved != null)
                 {
                     if (member is IEnumerable collection && member is not string)
@@ -840,7 +877,9 @@ public sealed class ContentReferenceCatalog
                     else ValidateId(member, resolved, reference.Kind, memberPath, errors, root, value);
                 }
             }
-            Visit(member, memberPath, member as ScriptableObject ?? root, visited, errors);
+            var childContext = field.GetCustomAttribute<ContentReferenceContextAttribute>();
+            Visit(member, memberPath, member as ScriptableObject ?? root, visited, errors,
+                member is ScriptableObject ? null : childContext?.Kind ?? contextKind);
         }
     }
 

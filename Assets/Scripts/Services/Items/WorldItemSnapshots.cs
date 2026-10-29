@@ -58,6 +58,18 @@ public sealed class WorldItemStackSnapshot
     public bool IsFullyReserved => TotalQuantity > 0 && AvailableQuantity == 0;
     [Obsolete("Use ReservedQuantity or AvailableQuantity.")]
     public bool IsReserved => HasReservations;
+
+    public WorldItemStackSnapshot Clone()
+    {
+        WorldItemStackSnapshot clone =
+            (WorldItemStackSnapshot)MemberwiseClone();
+        clone.Components = (Components
+                ?? Array.Empty<ItemInstanceComponentSaveData>())
+            .Where(component => component != null)
+            .Select(component => component.Clone())
+            .ToArray();
+        return clone;
+    }
 }
 
 public sealed class WorldItemPileSnapshot

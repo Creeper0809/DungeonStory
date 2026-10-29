@@ -921,7 +921,7 @@ public sealed class CharacterWorldSaveService :
             {
                 // Rebind only the restored population index. BindActor would
                 // reapply profile growth over the authoritative actor snapshot.
-                characterPopulationService.TryGetProfile(actor, out _);
+                characterPopulationService.TryRebindRestoredProfile(actor);
                 actor.ReconcilePublishedRuntimeRegistration();
                 actor.Brain?.RequestImmediateReplan(clearFailures: true);
             }

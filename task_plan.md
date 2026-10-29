@@ -1,5 +1,33 @@
 # DungeonStory Current Task Plan
 
+## 현재 Goal - R30 전체 수정과 실행 검증 및 main 통합
+
+Status: source_verified / 기준 main842eb205, branch codex/fix-structure-r30. 보고서30항목과 MP01/MP02의 수정 및 필요한 실행 검증을 마쳤다. CP01~06은 실제 계약 근거로 유지했다. 이 기록은 Git 통합 직전이며 PR/main의 최종 상태와 CI 결과는 GitHub 기록을 따른다.
+
+1. 완료: 포획 시작/수용/공연 기준, 제작 정책, 날씨/농사 소비, 정지 요청, 직원 선택/재주입, 수동 능력과 문 정책 안내를 고쳤다. 관련 통제 native와 실제 UI/운반 실행을 확인했다.
+2. 완료: 탄약23개와 두 생성기, 전술/충전 메타데이터, 용량/질량 권위를 연결했다. 사용자 위임으로 장기3종의 저조도/피로/둔기 효과와 방어 준비 재정비 속도를 설계하고 물리 추출/설치/JSON/재시도/기한 복원을 확인했다. 새 정의6개를 게시했고 기존3544에셋/12510보호 값은 유지했다.
+3. 완료: 조회 원본/중첩 캐시/전투 상태를 보호하고 소유자 명령 및 기존 DTO/영수증/저장 ID를 유지했다. 진화 조회의 영속 쓰기를 명령으로 옮겼으며 carry 복원의 실패 원자성과 손상 씨앗 거절도 보완했다.
+4. 완료: r250 source8c410383/configdc5e9dae의 effects-traits300초/definitions1020초/recovery1000초/core330초/character220초/crop210초/world260초 모두 whole PASS다. 각 native CS0/console0/drift0/terminal을 확인했다. Python111개42.642초, analyzer DSB001~008, 최종 인덱스 내용/freshness도 PASS다.
+5. 완료: Artifacts/QA/StructureR30의109파일과 항목별 수정/한계, 현재 ImpactCI 영수증을 봉인했다. 과거18실행의 원래 source/전체 실패를 보존하고 현행 PASS로 바꾸지 않았다. 효과 검사는 같은8개 본문 호출을 세 실행으로 묶었으며 모든 part의 현재 입력/정상 종료/콘솔/SHA를 요구한다. 기존 시간/메모리/복원/재시도 기준은 유지한다.
+6. Git 통합: 이 검증 기록 이후 소유 변경만 commit/push하고 PR 생성/attach, head CI, main 병합 및 병합 후 CI를 확인한다. 최종 성공 판정은 실제 GitHub 결과를 따른다.
+
+작업 창: SOURCE_EDIT CLOSED, UNITY_VERIFY CLOSED. CUHA 입력21766개 drift0과 owned Unity/display/compiler terminal을 확인했다. 원본 Documents의 사용자/R80 변경과 사용자 앱/포커스를 보존했다. r249 이후 Unity 입력 변경은 기존 Editor CI 생산자1파일이며 생산 로직/에셋은 동일하다. 저장/행동 관련 추가 source 편집은 없다.
+
+## 현재 작업 - main 구조 전수 재감사 R30 확대판
+
+Status: completed / 이번 추가 검사에서 신규3묶음과 기존 캐시 항목의 추가4경계를 확인해 보고서를30묶음으로 갱신했다. 미확인/잠재/반증과 구문 수집만 된 위치를 구별했다. main842eb205는 원격과 동일하다. 모든 함수의 의미/실행 검증을 완료했다는 뜻은 아니다.
+
+1. 완료: Runtime 경로2985파일, 입력20753개와 기존 의미 그래프/asmdef를 고정했다. SDK 구현과 원본 Documents 사용자 변경은 제외했다.
+2. 완료: 기존9개 외에 화면 명령/정지/능력 접근, 콘텐츠 소비 단절, 하위 명령과 공유 캐시를 추가 추적했다. 현재 동작 불일치11, 권한/계약14, 조건부 중복1, 낮은 영향 안내1로 구분했다.
+3. 완료: 조회/Models/문자열/UI 후보별 판정과 반증, 크기 후보76개 책임 분류, Runtime2985파일 및 실패/수명 구문 후보 전체 위치를 단일 보고서에 통합했다. 구문 수집만 된 위치를 미검토로 명시했다.
+4. 완료: 확대 보고서27개 번호, 원본 위치 링크10151개, 파일 행과 입력 불변을 검사했다. remote main/HEAD842eb205 일치, 입력 변경/누락/추가/삭제0과 게임 source/config/tool diff0이다.
+
+산출물: docs/dev/code-structure-review-main-r30-20261028.md. 최신 외부 증거: C:/Users/vulpo/Documents/Codex/2026-10-28/structure-audit-r30/deeper-audit-verification.json. 최초9개 검증은 initial-audit-verification.json, 확대27개는 r30-27-verification.json에 별도 보존했다. 소스/에셋/생성 인덱스 수정, Unity 실행과 commit/push는 이번 범위에서 하지 않았다.
+
+5. 완료: getter block143개를 추가 수집/분류하고 중첩 값 경계29개, 잠재 UI5개, 공식107개와 건물 숙련800행을 원본 대조했다. 각 판정의 검토 깊이는 부록에 구별했다.
+6. 완료: 방어 정책 원본4반환, 진화 조회의 영속 후보 확정, 원정 문구 손상3묶음과 공유 캐시4경계를 추가했다. f069/f070은 반증, 내용 정책 차이는 계약 미확정으로 보류했다.
+7. 완료: 본문30번호와 Runtime2985행, getter143행, 원본 링크10850개를 확인했다. 입력20753개 불변과 게임 diff0, remote main 동일을 확인했다. 실제 실행 검증은 하지 않았다.
+
 ## 현재 Goal - R29 수정과 실행 검증 및 main 통합
 
 Status: completed / R29-01~07 수정과 필요한 실제 실행/저장/복원/재시도를 완료했다. 소유89파일을 commit/push하고 PR26으로 main a36a611f1에 병합했다. PR CI40666471317 및 main push CI40667128217이 모두 success다. 기존 저장 형식과 검사 기준을 유지했다.

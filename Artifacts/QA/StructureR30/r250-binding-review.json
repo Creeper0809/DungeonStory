@@ -1,0 +1,16 @@
+{
+  "source": {
+    "source": [
+      "8c4103838649f1acca5a6f6b3f997e739043221261e42f0cc7758760c2b42cf5",
+      4802,
+      "4586d293364c62ee65c8430511006d33772536b5f3d0ca1f26109451e3d4241b"
+    ],
+    "configurationDigest": "dc5e9dae2ffbb85dc1de06974deafb019faf91a4affbd7df6c88c376a6664e6f"
+  },
+  "changedUnityInputs": [
+    "Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs"
+  ],
+  "unchangedUnityInputs": 21765,
+  "productionAndAuthoredAssetsIdentical": true,
+  "localDiagnosticCorrection": "An external check wrongly expected configuration digest unchanged. configuration_snapshot includes C# too, so both source and config must change for the one Editor producer edit. No gate or fingerprint rule changed."
+}

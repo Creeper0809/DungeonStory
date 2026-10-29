@@ -1963,6 +1963,9 @@ public static class ReproductionProcessTransitionDebugScenarios
             return profile != null;
         }
 
+        public bool TryRebindRestoredProfile(CharacterActor actor) =>
+            throw new NotSupportedException("Birth population fixture does not rebind restored actors.");
+
         public List<WorldCharacterProfile> CaptureProfiles() =>
             profiles.Select(value => value.Clone()).ToList();
         public void RestoreProfiles(IEnumerable<WorldCharacterProfile> values)

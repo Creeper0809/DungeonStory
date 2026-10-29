@@ -27,6 +27,7 @@ public sealed class AbilityCaptiveEscort : MonoBehaviour
     private Coroutine routine;
     private bool escortExecutionActive;
     private string activeCaptiveId = string.Empty;
+    private string terminalFailure = string.Empty;
 #if UNITY_EDITOR
     public System.Action<string> DebugBeforeEscortRoutineStart;
 #endif
@@ -40,18 +41,21 @@ public sealed class AbilityCaptiveEscort : MonoBehaviour
             ?? throw new System.ArgumentNullException(nameof(gameClock));
     }
 
-    public void StartEscort(string captiveId)
+    public bool TryStartEscort(string captiveId, out string failureReason)
     {
-        StopEscort("새 호송 명령");
+        failureReason = string.Empty;
         if (port == null
             || gameClock == null
             || !CaptiveEscortAbilityRules.TryNormalizeId(
                 captiveId,
                 out string normalizedId))
         {
-            return;
+            failureReason = "호송 행동의 필수 연결이나 포로 ID가 없습니다.";
+            return false;
         }
 
+        StopEscort("새 호송 명령");
+        terminalFailure = string.Empty;
         if (!port.TryBeginActionOwnership(
                 normalizedId,
                 out string ownershipFailure))
@@ -62,7 +66,8 @@ public sealed class AbilityCaptiveEscort : MonoBehaviour
             port.SetActionPhase(
                 "Escort cancelled",
                 ownershipFailure);
-            return;
+            failureReason = ownershipFailure;
+            return false;
         }
 
         activeCaptiveId = normalizedId;
@@ -72,6 +77,8 @@ public sealed class AbilityCaptiveEscort : MonoBehaviour
 #endif
         Coroutine started = StartCoroutine(EscortRoutine(activeCaptiveId));
         routine = escortExecutionActive ? started : null;
+        failureReason = terminalFailure;
+        return string.IsNullOrEmpty(terminalFailure);
     }
 
     public void StopEscort(string reason)
@@ -348,6 +355,7 @@ public sealed class AbilityCaptiveEscort : MonoBehaviour
 
     private void Fail(string reason)
     {
+        terminalFailure = reason ?? "호송 행동이 중단되었습니다.";
         port?.FailEscort(activeCaptiveId, reason);
         activeCaptiveId = string.Empty;
         escortExecutionActive = false;

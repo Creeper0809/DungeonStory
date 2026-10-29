@@ -1571,6 +1571,7 @@ public sealed class SurvivalFoodRuntimeDependencies
         IItemDefinitionCatalog itemCatalog,
         IStockQuery stockQuery,
         IClimateQuery climate,
+        IClimateDefinitionCatalog climateDefinitions,
         IPhysicalFacilityItemSinkGateway physicalSinks = null,
         IPackagedLotTareDispositionService packagedTare = null,
         IWorkforceReplanService workforce = null,
@@ -1589,6 +1590,8 @@ public sealed class SurvivalFoodRuntimeDependencies
         StockQuery = stockQuery
             ?? throw new ArgumentNullException(nameof(stockQuery));
         Climate = climate ?? throw new ArgumentNullException(nameof(climate));
+        ClimateDefinitions = climateDefinitions
+            ?? throw new ArgumentNullException(nameof(climateDefinitions));
         PhysicalSinks = physicalSinks;
         PackagedTare = packagedTare;
         Workforce = workforce;
@@ -1608,6 +1611,8 @@ public sealed class SurvivalFoodRuntimeDependencies
     public IStockQuery StockQuery { get; }
 
     public IClimateQuery Climate { get; }
+
+    public IClimateDefinitionCatalog ClimateDefinitions { get; }
 
     public IPhysicalFacilityItemSinkGateway PhysicalSinks { get; }
 

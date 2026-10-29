@@ -1651,7 +1651,9 @@ public sealed class CaptivityWildlifeLifecyclePlayModeRunner : MonoBehaviour
             try
             {
                 ability.Configure(probe);
-                ability.StartTransport("qa-pickup-contract");
+                if (!ability.TryStartTransport("qa-pickup-contract", out string startFailure))
+                    throw new InvalidOperationException(
+                        "Pickup contract transport start was rejected: " + startFailure);
                 bool startsBeforeEffects = ability.IsTransporting
                     && probe.Owned && probe.CarryCount == 0 && probe.CompleteCount == 0;
                 if (scenario == "PENDING_OWNER_LOST")
@@ -2177,6 +2179,8 @@ public sealed class CaptivityWildlifeLifecyclePlayModeRunner : MonoBehaviour
             + $"->{worker.Brain?.ExternalIntentTerminalCount}:"
             + $"{worker.Brain?.LastExternalIntentTerminalKind};"
             + $"failure={transport?.LastTerminalFailureReasonForDiagnostics}");
+        if (transportOnly && failures.Count == 0)
+            VerifyR30NearestEligiblePenSelection();
         if (!transportOnly && failures.Count == 0)
         {
             yield return VerifyCapturedAnimalTamingCompletion(successWildlifeId);
@@ -5135,6 +5139,141 @@ public sealed class CaptivityWildlifeLifecyclePlayModeRunner : MonoBehaviour
         public Vector3 LastProgressWorldPosition;
         public Vector2Int LastProgressGridPosition;
         public int ProgressSamples;
+    }
+
+    // 실제 운반으로 채운 우리를 사용한다. 선택 요청의 명시적 거절만 통제한다.
+    private void VerifyR30NearestEligiblePenSelection()
+    {
+        const string refusal = "r30-nearest-pen-controlled-start-refusal";
+        var flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+        var panel = UnityEngine.Object.FindFirstObjectByType<WildlifeInfoPanel>(FindObjectsInactive.Include);
+        var arrival = scope.Container.Resolve<IOffenseReturnArrivalRuntime>() as OffenseReturnArrivalRuntime;
+        BuildingSO originalDefinition = pen.BuildingData;
+        int originalCapacity = originalDefinition.GetBeastPenAbility().capacity;
+        BuildingSO definition = null;
+        WildlifeActor target = null;
+        bool oldDestroyed = faultPen.isDestroy;
+        var dataProperty = typeof(BuildableObject).GetProperty(nameof(BuildableObject.BuildingData));
+        var uiCapture = typeof(WildlifeInfoPanel).GetField("captureRuntime", flags);
+        var uiWorld = typeof(WildlifeInfoPanel).GetField("worldRegistry", flags);
+        var returnCapture = typeof(OffenseReturnArrivalRuntime).GetField("wildlifeCapture", flags);
+        var returnWorld = typeof(OffenseReturnArrivalRuntime).GetField("buildingWorld", flags);
+        object previousUiCapture = panel != null ? uiCapture?.GetValue(panel) : null;
+        object previousUiWorld = panel != null ? uiWorld?.GetValue(panel) : null;
+        object previousReturnCapture = arrival != null ? returnCapture?.GetValue(arrival) : null;
+        object previousReturnWorld = arrival != null ? returnWorld?.GetValue(arrival) : null;
+        bool portsInstalled = false;
+        try
+        {
+            Ensure(panel != null && arrival != null && dataProperty?.GetSetMethod(true) != null
+                && uiCapture != null && uiWorld != null && returnCapture != null && returnWorld != null,
+                "R30_PEN_SELECTION_BINDINGS", "actual wildlife popup and return-arrival consumer resolved");
+            definition = UnityEngine.Object.Instantiate(originalDefinition);
+            var ability = definition.GetBeastPenAbility();
+            Ensure(ability != null && !ReferenceEquals(ability, originalDefinition.GetBeastPenAbility()),
+                "R30_PEN_DEFINITION_OWNED", "capacity fixture owns an isolated definition clone");
+            ability.capacity = 1;
+            dataProperty.SetValue(pen, definition);
+            Ensure(!capture.CanAcceptCapture(pen, out string fullReason) && fullReason.Contains("수용량")
+                && capture.CanAcceptCapture(faultPen, out _), "R30_PEN_REAL_CAPACITY",
+                "naturally captured occupant fills near pen; farther pen has a safe empty stand");
+            var positions = grid.GetCells().Where(cell => cell != null
+                && WildlifeRuntime.IsInitialWildlifeSpawnCell(grid, cell)
+                && IsUnoccupiedTransportStand(cell)
+                && Distance(cell.Position, pen.centerPos) < Distance(cell.Position, faultPen.centerPos))
+                .OrderBy(cell => Distance(cell.Position, pen.centerPos)).ToArray();
+            Ensure(positions.Length > 0, "R30_PEN_SELECTION_SOURCE", "lawful exterior source nearer the full pen");
+            target = SpawnCaptureAnimal(positions[0].Position);
+            Ensure(target != null && Distance(target.GridPosition, pen.centerPos) < Distance(target.GridPosition, faultPen.centerPos),
+                "R30_PEN_SELECTION_DISTANCE", "actual spawned target is closer to the full pen");
+            DamageForCapture(target);
+            Ensure(target.IsAlive && target.CurrentHealth <= target.MaxHealth * .35f,
+                "R30_PEN_SELECTION_ELIGIBILITY", "actual nonlethal damage establishes capture eligibility");
+            var requests = new List<BuildableObject>();
+            IWildlifeCaptureRuntime observedCapture = CreateR30PenPort<IWildlifeCaptureRuntime>((method, args) =>
+            {
+                if (method.Name == nameof(IWildlifeCaptureRuntime.TryCapture))
+                { requests.Add((BuildableObject)args[1]); args[2] = refusal; return false; }
+                if (method.Name == nameof(IWildlifeCaptureRuntime.TryOrderCapture))
+                { requests.Add((BuildableObject)args[2]); args[3] = refusal; return false; }
+                return method.Invoke(capture, args);
+            });
+            ICharacterAiWorldRegistry observedWorld = CreateR30PenPort<ICharacterAiWorldRegistry>((method, args) =>
+                method.Name == "get_Buildings" ? new[] { pen, faultPen } : method.Invoke(previousUiWorld, args));
+            IBuildingWorldQuery observedBuildings = CreateR30PenPort<IBuildingWorldQuery>((method, args) =>
+                method.Name == "get_Buildings" ? new[] { pen, faultPen } : method.Invoke(previousReturnWorld, args));
+            portsInstalled = true;
+            uiCapture.SetValue(panel, observedCapture);
+            uiWorld.SetValue(panel, observedWorld);
+            returnCapture.SetValue(arrival, observedCapture);
+            returnWorld.SetValue(arrival, observedBuildings);
+            string before = CaptureOwner();
+            panel.OnTriggerEvent(new InfoFeedEvent(target));
+            var button = panel.GetComponentsInChildren<UnityEngine.UI.Button>(true).Single(value => value.name == "Action_3");
+            button.onClick.Invoke();
+            Ensure(requests.Count == 1 && requests[0] == faultPen && CaptureOwner() == before
+                && panel.GetComponentsInChildren<TMPro.TMP_Text>(true).Any(value => value.text.Contains(refusal)),
+                "R30_PEN_UI_NEAREST_ELIGIBLE", "real popup callback skips full near pen; controlled start refusal remains visible; owner unchanged");
+            requests.Clear();
+            var scratchArrival = new OffenseReturnArrivalState { kind = OffenseReturnArrivalKind.SpecialWildlife,
+                materializedIds = new List<string> { target.WildlifeId } };
+            var contain = typeof(OffenseReturnArrivalRuntime).GetMethod("TryAutomaticContainment", flags);
+            Ensure(contain != null, "R30_PEN_RETURN_ENTRY", "actual return-arrival selection method resolved");
+            contain.Invoke(arrival, new object[] { scratchArrival });
+            Ensure(requests.Count == 1 && requests[0] == faultPen && scratchArrival.lastStatus == refusal
+                && CaptureOwner() == before, "R30_PEN_RETURN_NEAREST_ELIGIBLE",
+                "actual return selection skips full near pen; controlled refusal returned; owner unchanged");
+            requests.Clear();
+            faultPen.isDestroy = true;
+            button.onClick.Invoke();
+            scratchArrival.lastStatus = string.Empty;
+            contain.Invoke(arrival, new object[] { scratchArrival });
+            Ensure(requests.Count == 0 && CaptureOwner() == before
+                && scratchArrival.lastStatus.Contains("수용 가능한 야수 우리가 없어")
+                && panel.GetComponentsInChildren<TMPro.TMP_Text>(true).Any(value => value.text.Contains("수용 가능한 야수 우리가 없습니다")),
+                "R30_PEN_ALL_INELIGIBLE", "both consumers show no eligible destination without a capture command or owner mutation");
+            Ensure(!capture.TryOrderCapture(target, worker, faultPen, out string recheck)
+                && recheck.Contains("유효한 야수 우리가 아닙니다") && CaptureOwner() == before,
+                "R30_PEN_COMMAND_RECHECK", "real command rejects a destination invalidated after selection before reservation");
+
+            string CaptureOwner() => Newtonsoft.Json.JsonConvert.SerializeObject(new
+            { animals = capture.Capture(), outcomes = capture.CaptureGameplayOutcomes(), sequence = capture.NextGameplayOutcomeSequence });
+        }
+        catch (Exception error) { Check(false, "R30_PEN_SELECTION_EXCEPTION", error.ToString()); }
+        finally
+        {
+            if (portsInstalled)
+            {
+                uiCapture.SetValue(panel, previousUiCapture);
+                uiWorld.SetValue(panel, previousUiWorld);
+                returnCapture.SetValue(arrival, previousReturnCapture);
+                returnWorld.SetValue(arrival, previousReturnWorld);
+                scope.Container.Resolve<IUiPopupService>().CloseAll();
+            }
+            dataProperty?.SetValue(pen, originalDefinition);
+            faultPen.isDestroy = oldDestroyed;
+            if (target != null) wildlife.TryRemoveArrival(target.WildlifeId);
+            if (definition != null) UnityEngine.Object.Destroy(definition);
+            Check(ReferenceEquals(pen.BuildingData, originalDefinition)
+                && originalDefinition.GetBeastPenAbility().capacity == originalCapacity,
+                "R30_PEN_ORIGINAL_DEFINITION_RESTORED", "original definition reference and capacity retained");
+        }
+        void Ensure(bool valid, string id, string detail)
+        { Check(valid, id, detail); if (!valid) throw new InvalidOperationException(id + ":" + detail); }
+        static int Distance(Vector2Int a, Vector2Int b) => Mathf.Abs(a.x - b.x) + Mathf.Abs(a.y - b.y);
+    }
+
+    private static T CreateR30PenPort<T>(Func<System.Reflection.MethodInfo, object[], object> handler) where T : class
+    {
+        T port = System.Reflection.DispatchProxy.Create<T, R30PenSelectionPort>();
+        ((R30PenSelectionPort)(object)port).Handler = handler;
+        return port;
+    }
+
+    public class R30PenSelectionPort : System.Reflection.DispatchProxy
+    {
+        public Func<System.Reflection.MethodInfo, object[], object> Handler;
+        protected override object Invoke(System.Reflection.MethodInfo method, object[] args) => Handler(method, args);
     }
 
     private sealed class TransportFixturePlanProbe

@@ -196,7 +196,7 @@ public sealed partial class PhysicalItemLogisticsPlayModeVerificationRunner
         Wim023Require(expected.ItemId == itemId && expected.Amount == 1 && expected.Probability == 1f
             && bench.MatchesProductionWorkstation(recipe), "Recipe/output/M06 authored mismatch.");
         if (!string.IsNullOrEmpty(recipe.RequiredResearchId))
-            scope.Container.Resolve<ProgressionSceneRuntimeReferences>().BlueprintResearch.State.Projects
+            scope.Container.Resolve<ProgressionSceneRuntimeReferences>().BlueprintResearch.StateForDebug.Projects
                 .RestoreCompleted(new ResearchProjectId(recipe.RequiredResearchId));
         var priorIds = new HashSet<string>(parts.Parts.Select(x => x.partInstanceId), StringComparer.Ordinal);
         var added = orders.AddBill(bench, recipeId, ProductionOrderMode.RepeatCount, 1);
@@ -275,7 +275,7 @@ public sealed partial class PhysicalItemLogisticsPlayModeVerificationRunner
             BuiltInCharacterProficiencyIds.Medicine, 900f, calendar.AbsoluteHour, applyLearningMultiplier: false);
         proficiency.AddDirectExperience(CharacterPersistentIdentity.Require(doctor),
             BuiltInCharacterProficiencyIds.Scholarship, 300f, calendar.AbsoluteHour, applyLearningMultiplier: false);
-        scope.Container.Resolve<IBlueprintResearchStateService>().GetState().Projects
+        scope.Container.Resolve<IBlueprintResearchStateService>().GetStateForDebug().Projects
             .RestoreCompleted(new ResearchProjectId("research:medical:surgery"));
         scope.Container.Resolve<IServiceSessionRuntime>().SetAdvertisingEnabled(ServiceCategory.Medical, false);
         var procedures = scope.Container.Resolve<ISurgicalProcedureCatalog>();

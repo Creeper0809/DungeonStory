@@ -65,6 +65,7 @@ public sealed class CombatResolutionService :
     ICombatResolutionTransactionService
 {
     private readonly ICombatRandomSource random;
+    private readonly IItemDefinitionCatalog itemCatalog;
     private readonly IEquipmentEvolutionRuntime evolution;
     private readonly IEquipmentOverclockRuntime overclock;
     private readonly ICharacterEnvironmentStatusQuery environmentStatus;
@@ -85,11 +86,13 @@ public sealed class CombatResolutionService :
         IEnvironmentalFieldQuery environmentalField,
         ICharacterWorldQuery characters,
         ICharacterEnvironmentExposureCommand environmentExposure,
+        IItemDefinitionCatalog itemCatalog,
         ICombatEquipmentRuntime equipment = null,
         ICharacterEnvironmentPersistence environmentPersistence = null,
         TreasuryEconomyAggregateStateStore treasuryStateStore = null)
     {
         this.random = random ?? throw new ArgumentNullException(nameof(random));
+        this.itemCatalog = itemCatalog ?? throw new ArgumentNullException(nameof(itemCatalog));
         this.evolution = evolution;
         this.overclock = overclock;
         this.environmentStatus = environmentStatus;
@@ -109,6 +112,21 @@ public sealed class CombatResolutionService :
         CombatAttackResult result = ResolveCore(request);
         CommitResolvedResult(request, result);
         return result;
+    }
+
+    private CombatAmmunitionProfile ResolveAmmunitionProfile(string itemId) =>
+        ResolveAmmunitionProfile(itemCatalog, itemId);
+
+    internal static CombatAmmunitionProfile ResolveAmmunitionProfile(IItemDefinitionCatalog itemCatalog, string itemId)
+    {
+        if (string.IsNullOrEmpty(itemId)) return new CombatAmmunitionProfile(CombatSpecialEffectFlags.None);
+        if (!string.Equals(itemId, itemId.Trim(), StringComparison.Ordinal))
+            throw new ArgumentException("Combat ammunition ID must be canonical.", nameof(itemId));
+        ItemDefinitionSO definition = itemCatalog.GetRequired(new ItemDefinitionId(itemId));
+        if (!definition.TryGetFeature(out AmmunitionItemFeature _)
+            || !definition.TryGetFeature(out CombatAmmunitionProfileItemFeature profile))
+            throw new InvalidOperationException($"Combat ammunition '{itemId}' requires an authored combat profile.");
+        return profile.CreateSnapshot();
     }
 
     public CombatAttackResult ResolveDetached(CombatAttackRequest request)
@@ -435,7 +453,7 @@ public sealed class CombatResolutionService :
         CombatWeaponSnapshot weapon = request.Weapon ?? CombatWeaponSnapshot.CreateUnarmed();
         CombatAttackVerb verb = weapon.Verb ?? CombatWeaponSnapshot.CreateUnarmed().Verb;
         CombatAmmunitionProfile ammunition =
-            CombatAmmunitionProfile.For(weapon.AmmunitionItemId);
+            ResolveAmmunitionProfile(weapon.AmmunitionItemId);
         CombatEquipmentRoleFlags weaponRoles = weapon.RoleFlags;
         int ammunitionPerAttack = CombatEquipmentRoleRules.GetAmmunitionPerAttack(
             weapon,
@@ -635,7 +653,7 @@ public sealed class CombatResolutionService :
         CombatAttackResult result)
     {
         CombatWeaponSnapshot resolvedWeapon = request.Weapon;
-        CombatAmmunitionProfile ammunition = CombatAmmunitionProfile.For(
+        CombatAmmunitionProfile ammunition = ResolveAmmunitionProfile(
             resolvedWeapon?.AmmunitionItemId);
         if (result.Executed && resolvedWeapon?.RequiresAmmo == true)
         {
@@ -912,7 +930,7 @@ public sealed class CombatResolutionService :
         CombatWeaponSnapshot weapon = request.Weapon ?? CombatWeaponSnapshot.CreateUnarmed();
         CombatAttackVerb verb = weapon.Verb ?? CombatWeaponSnapshot.CreateUnarmed().Verb;
         CombatAmmunitionProfile ammunition =
-            CombatAmmunitionProfile.For(weapon.AmmunitionItemId);
+            ResolveAmmunitionProfile(weapon.AmmunitionItemId);
         CombatRangeBand band = CombatRangeRules.GetBand(request.Distance);
         bool isRanged = weapon.IsRanged;
         string failureReason = string.Empty;
@@ -1116,13 +1134,15 @@ public sealed class CombatResolutionService :
                     attacker.GetNowXY(),
                     out EnvironmentalCellSnapshot environment))
             {
-                penaltyPoints += environment.LightLevel switch
+                float lightPenalty = environment.LightLevel switch
                 {
                     < 20f => 40f,
                     < 40f => 25f,
                     < 50f => 10f,
                     _ => 0f
                 };
+                penaltyPoints += lightPenalty * attacker.Stats.ProjectDetailedStat(
+                    GameplayEffectTargetIds.LowLightPenalty, 1f).Value;
             }
         }
 

@@ -244,7 +244,9 @@ public class FacilityEvolutionContributionData
 {
     public bool contributesToRoomProfile = true;
     public string[] tags = Array.Empty<string>();
+    [ContentReferenceContext(ContentReferenceKind.RoomScore)]
     public FacilityEvolutionValue[] scores = Array.Empty<FacilityEvolutionValue>();
+    [ContentReferenceContext(ContentReferenceKind.RoomMetric)]
     public FacilityEvolutionValue[] metrics = Array.Empty<FacilityEvolutionValue>();
 
     public bool HasExplicitData =>

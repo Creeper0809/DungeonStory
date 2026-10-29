@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 99c7a92f563b43a191cd66345dfc7836, type: 3}
+  m_Name: graft_shadow-wolf-endurance
+  m_EditorClassIdentifier: Assembly-CSharp::SurgicalGraftEffectDefinitionSO
+  numericId: 353384416
+  graftId: graft:shadow-wolf-endurance
+  donorSpecies: {fileID: 11400000, guid: 2f36ac90cbe8d2e46bec8e29f2d0366e, type: 2}
+  requiredNodeKind: 1
+  requiredFunction: 8
+  displayName: "\uadf8\ub9bc\uc790\ub291\ub300\uc758 \uc9c0\uad6c\ub825"
+  description: "\uac74\uac15\ud55c \uc591\ucabd \ud3d0 \uc774\uc2dd \uc2dc \uc791\uc5c5 \ud53c\ub85c \ub204\uc801 15% \uac10\uc18c. \uc190\uc0c1\uacfc \ud55c\ucabd \uc774\uc2dd \uc2dc \ud61c\ud0dd \uac10\uc18c."
+  effects:
+  - bindingId: graft:shadow-wolf-endurance:effect:0
+    definition: {fileID: 11400000, guid: a3103546ccc942e19fe2afdd7add71b1, type: 2}
+    value: 0.85
+    condition: {fileID: 0}

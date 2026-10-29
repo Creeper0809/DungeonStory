@@ -113,7 +113,8 @@ public sealed class CharacterPopulationApplicationAdapter : IDisposable
         this.identityMoods = identityMoods;
     }
 
-    public IReadOnlyList<WorldCharacterProfile> Profiles => population.Profiles;
+    public IReadOnlyList<WorldCharacterProfile> Profiles =>
+        population.Profiles.Select(profile => profile?.Clone()).ToArray();
 
     public WorldCharacterProfile AcquireVisitor(
         CharacterSO characterData,
@@ -207,7 +208,7 @@ public sealed class CharacterPopulationApplicationAdapter : IDisposable
 
     public void ReleaseVisitor(CharacterActor actor)
     {
-        if (!TryGetProfile(actor, out WorldCharacterProfile profile))
+        if (!TryGetOwnedProfile(actor, out WorldCharacterProfile profile))
         {
             return;
         }
@@ -228,7 +229,7 @@ public sealed class CharacterPopulationApplicationAdapter : IDisposable
 
     public void RefreshProfile(CharacterActor actor)
     {
-        if (TryGetProfile(actor, out WorldCharacterProfile profile))
+        if (TryGetOwnedProfile(actor, out WorldCharacterProfile profile))
         {
             SynchronizeProfile(profile, actor);
             ApplyStaffRuntimeState(profile, actor);
@@ -242,7 +243,7 @@ public sealed class CharacterPopulationApplicationAdapter : IDisposable
             return;
         }
 
-        if (!TryGetProfile(actor, out WorldCharacterProfile profile))
+        if (!TryGetOwnedProfile(actor, out WorldCharacterProfile profile))
         {
             profile = CreateExternalProfile(actor);
             AddNewProfile(profile, actor.data);
@@ -267,7 +268,7 @@ public sealed class CharacterPopulationApplicationAdapter : IDisposable
                          .Where(value => value != null
                              && value != actor
                              && !value.IsDead
-                             && TryGetProfile(value, out WorldCharacterProfile incumbentProfile)
+                             && TryGetOwnedProfile(value, out WorldCharacterProfile incumbentProfile)
                              && GetStanding(incumbentProfile)
                                 == CharacterSettlementStanding.Resident)
                          .OrderBy(value => value.Identity?.PersistentId,
@@ -304,7 +305,7 @@ public sealed class CharacterPopulationApplicationAdapter : IDisposable
                 "A concrete settlement standing is required.");
         }
 
-        if (!TryGetProfile(actor, out WorldCharacterProfile profile))
+        if (!TryGetOwnedProfile(actor, out WorldCharacterProfile profile))
         {
             profile = CreateExternalProfile(actor);
             AddNewProfile(profile, actor.data);
@@ -328,14 +329,14 @@ public sealed class CharacterPopulationApplicationAdapter : IDisposable
             throw new ArgumentNullException(nameof(actor));
         }
 
-        bool profileWasCreated = !TryGetProfile(
+        bool profileWasCreated = !TryGetOwnedProfile(
             actor,
             out WorldCharacterProfile profile);
         CharacterSettlementStanding previous = profileWasCreated
             ? GetStanding(actor)
             : GetStanding(profile);
         SetSettlementStanding(actor, standing);
-        if (!TryGetProfile(actor, out profile))
+        if (!TryGetOwnedProfile(actor, out profile))
         {
             throw new InvalidOperationException(
                 "Settlement-standing transition did not produce a population profile.");
@@ -382,7 +383,7 @@ public sealed class CharacterPopulationApplicationAdapter : IDisposable
         {
             throw new ArgumentNullException(nameof(actor));
         }
-        if (!TryGetProfile(actor, out WorldCharacterProfile profile))
+        if (!TryGetOwnedProfile(actor, out WorldCharacterProfile profile))
         {
             throw new InvalidOperationException(
                 "Settlement-standing rollback requires an existing population profile.");
@@ -412,7 +413,7 @@ public sealed class CharacterPopulationApplicationAdapter : IDisposable
         {
             return CharacterSettlementStanding.Unknown;
         }
-        if (TryGetProfile(actor, out WorldCharacterProfile profile))
+        if (TryGetOwnedProfile(actor, out WorldCharacterProfile profile))
         {
             return GetStanding(profile);
         }
@@ -514,6 +515,16 @@ public sealed class CharacterPopulationApplicationAdapter : IDisposable
     }
 
     public bool TryGetProfile(CharacterActor actor, out WorldCharacterProfile profile)
+    {
+        profile = null;
+        if (actor == null) return false;
+        if (!(actors.TryGetValue(actor, out WorldCharacterProfile owned) && owned != null)
+            && !population.TryGet(actor.Identity?.PersistentId, out owned)) return false;
+        profile = owned.Clone();
+        return true;
+    }
+
+    internal bool TryGetOwnedProfile(CharacterActor actor, out WorldCharacterProfile profile)
     {
         profile = null;
         if (actor == null)

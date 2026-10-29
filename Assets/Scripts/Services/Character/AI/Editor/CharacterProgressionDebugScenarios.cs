@@ -4713,7 +4713,8 @@ public static class CharacterProgressionDebugScenarios
             environmentalField: NoEnvironmentalFieldQuery.Instance,
             characters: null,
             environmentExposure:
-                NoOpCharacterEnvironmentExposureCommand.Instance);
+                NoOpCharacterEnvironmentExposureCommand.Instance,
+            itemCatalog: EditorItemCatalogFactory.CreateDefinitions());
         OffenseBattleSession passiveSession = new OffenseBattleSession(
             "qa-battle-passive-session",
             "qa-expedition",
@@ -9420,6 +9421,9 @@ public static class CharacterProgressionDebugScenarios
 
 public static class CharacterPopulationDebugScenarios
 {
+    public static bool RunR30PopulationQueryFocused() =>
+        VerifyR30PopulationQueryIsolation();
+
     public static void RunDeadVisitorCaptureBatch()
     {
         // This edit-mode fixture uses transient actors and in-memory profile
@@ -9456,6 +9460,157 @@ public static class CharacterPopulationDebugScenarios
         }
 
         return errors.Count == 0;
+    }
+
+    private static bool VerifyR30PopulationQueryIsolation()
+    {
+        using PopulationFixture source = new PopulationFixture();
+        WorldCharacterProfile owned = source.Service.AcquireVisitor(
+            source.Customers[0]);
+        if (owned == null)
+        {
+            return false;
+        }
+
+        GameObject sourceActorObject = new GameObject(
+            "R30 Population Query Source Actor");
+        GameObject restoredActorObject = new GameObject(
+            "R30 Population Query Restored Actor");
+        try
+        {
+            CharacterActor sourceActor = CreatePopulationActor(
+                sourceActorObject,
+                source.Customers[0],
+                owned.persistentId);
+            bool sourceQueryWasPure = source.Service.TryGetProfile(
+                    sourceActor,
+                    out WorldCharacterProfile unboundQuery)
+                && unboundQuery != null
+                && sourceActor.characterType == CharacterType.Customer
+                && sourceActor.Identity.CharacterType == CharacterType.Customer;
+
+            source.Service.BindActor(owned, sourceActor);
+            source.Service.PromoteToStaff(sourceActor);
+            bool ownerCommandUpdatedFreshQuery = source.Service.TryGetProfile(
+                    sourceActor,
+                    out WorldCharacterProfile promoted)
+                && promoted.isStaff
+                && !promoted.isVisiting
+                && promoted.settlementStanding
+                    == CharacterSettlementStanding.Resident;
+
+            List<WorldCharacterProfile> captureBeforeMutation =
+                source.Service.CaptureProfiles();
+            string canonicalJson = JsonConvert.SerializeObject(
+                captureBeforeMutation);
+            WorldCharacterProfile listCopy = source.Service.Profiles.Single(
+                profile => profile.persistentId == owned.persistentId);
+            bool lookupFound = source.Service.TryGetProfile(
+                sourceActor,
+                out WorldCharacterProfile lookupCopy);
+            listCopy.growth.traitIds ??= new List<int>();
+            listCopy.growth.traitIds.Add(int.MaxValue);
+            listCopy.growth.displayName = "r30-query-tampered-growth";
+            listCopy.narrative.Record(
+                CharacterNarrativeDomain.Relationship,
+                "r30-query-tampered-narrative",
+                listCopy.persistentId,
+                "tampered",
+                1f,
+                1);
+            listCopy.acquiredTraits.revision++;
+            listCopy.acquiredTraits.processedMilestones.Add(999);
+            listCopy.visitorExitOperation.operationId =
+                "visitor-exit:r30-query-tampered:1";
+            lookupCopy.visitCount += 99;
+            lookupCopy.isStaff = false;
+            lookupCopy.isVisiting = true;
+
+            List<WorldCharacterProfile> captureAfterMutation =
+                source.Service.CaptureProfiles();
+            bool queryCopiesDidNotMutateOwner = lookupFound
+                && string.Equals(
+                    canonicalJson,
+                    JsonConvert.SerializeObject(captureAfterMutation),
+                    StringComparison.Ordinal)
+                && source.Service.TryGetProfile(
+                    sourceActor,
+                    out WorldCharacterProfile fresh)
+                && fresh.isStaff
+                && !fresh.isVisiting
+                && !fresh.growth.traitIds.Contains(
+                    int.MaxValue)
+                && !fresh.narrative.Facts.Any(fact => fact != null
+                    && fact.factId == "r30-query-tampered-narrative")
+                && !fresh.acquiredTraits.processedMilestones.Contains(999)
+                && string.IsNullOrEmpty(
+                    fresh.visitorExitOperation.operationId);
+
+            List<WorldCharacterProfile> restoredProfiles =
+                JsonConvert.DeserializeObject<List<WorldCharacterProfile>>(
+                    canonicalJson);
+            using PopulationFixture restored = new PopulationFixture();
+            restored.Service.RestoreProfiles(restoredProfiles);
+            CharacterSO restoredCustomer = restored.Customers.Single(
+                customer => customer.id == owned.characterDataId);
+            CharacterActor restoredActor = CreatePopulationActor(
+                restoredActorObject,
+                restoredCustomer,
+                owned.persistentId);
+            bool restoredQueryWasPure = restored.Service.TryGetProfile(
+                    restoredActor,
+                    out WorldCharacterProfile restoredQuery)
+                && restoredQuery != null
+                && restoredActor.characterType == CharacterType.Customer
+                && restoredActor.Identity.CharacterType == CharacterType.Customer;
+            bool freshOwnerRestoredAndRebound = restoredQueryWasPure
+                && restored.Service.TryRebindRestoredProfile(restoredActor)
+                && restoredActor.characterType == CharacterType.NPC
+                && restoredActor.Identity.CharacterType == CharacterType.NPC
+                && restored.Service.TryGetProfile(
+                    restoredActor,
+                    out WorldCharacterProfile rebound)
+                && rebound.isStaff
+                && !rebound.isVisiting
+                && rebound.settlementStanding
+                    == CharacterSettlementStanding.Resident
+                && !rebound.growth.traitIds.Contains(
+                    int.MaxValue)
+                && !rebound.narrative.Facts.Any(fact => fact != null
+                    && fact.factId == "r30-query-tampered-narrative")
+                && !rebound.acquiredTraits.processedMilestones.Contains(999)
+                && string.IsNullOrEmpty(
+                    rebound.visitorExitOperation.operationId);
+
+            return sourceQueryWasPure
+                && ownerCommandUpdatedFreshQuery
+                && queryCopiesDidNotMutateOwner
+                && freshOwnerRestoredAndRebound;
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(sourceActorObject);
+            UnityEngine.Object.DestroyImmediate(restoredActorObject);
+        }
+    }
+
+    private static CharacterActor CreatePopulationActor(
+        GameObject actorObject,
+        CharacterSO characterData,
+        string persistentId)
+    {
+        actorObject.AddComponent<SpriteRenderer>();
+        CharacterActor actor = actorObject.AddComponent<CharacterActor>();
+        actorObject.AddComponent<AbilityMove>();
+        actorObject.AddComponent<AbilityWork>();
+        actor.EnsureRuntimeState();
+        CharacterAiEditorTestDependencies.Inject(actorObject);
+        actor.Identity.SetPersistentId(persistentId);
+        actor.Initialize(characterData);
+        actor.characterType = CharacterType.Customer;
+        actor.Identity.SetCharacterType(CharacterType.Customer);
+        actor.SetLifecycleState(CharacterLifecycleState.Active);
+        return actor;
     }
 
     private static bool VerifyDeadVisitorCapture()

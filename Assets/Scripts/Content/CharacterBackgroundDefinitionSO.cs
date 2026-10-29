@@ -7,6 +7,7 @@ public sealed class CharacterBackgroundDefinitionSO : V20AuthoredContentSO
 {
     public List<V20SkillBonus> startingSkills = new();
     public List<V20ContentEffect> startingEffects = new();
+    [ContentReferenceContext(ContentReferenceKind.EnemyFaction)]
     public List<V20WeightedId> factionReactions = new();
     public string initialMemoryCode = string.Empty;
 

@@ -4,7 +4,7 @@
 
 | 상태 | 항목 | 의미 |
 |---|---:|---|
-| `catalog-registered-static-consumer` | 3,254 | 카탈로그 등록과 비-Editor 코드 소비가 함께 확인됨 |
+| `catalog-registered-static-consumer` | 3,257 | 카탈로그 등록과 비-Editor 코드 소비가 함께 확인됨 |
 | `resources-authored-consumer-unverified` | 181 | Resources 아래 작성 자산이나 구체 소비 경로는 미확인 |
 | `stable-id-literal-consumer` | 29 | 비-Editor 코드가 안정 ID를 직접 조회함 |
 | `type-consumer-registration-unverified` | 19 | 유형 소비 코드는 있으나 이 자산의 등록은 확인되지 않음 |

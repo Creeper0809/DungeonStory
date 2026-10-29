@@ -1,0 +1,4 @@
+result=PASS
+source=32dd40eab5188741ad5e4b90fe0aa3e9a966818e39d44a5feafe1c04b7ef5146
+consoleErrors=0
+boundary=native controlled fourth contracts

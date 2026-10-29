@@ -1274,7 +1274,7 @@ internal static class WimDoorConsumerScenario
         bool researchWasAlreadyComplete = OffenseExpeditionAccessRules.IsUnlocked(research.GetState());
         if (!researchWasAlreadyComplete)
         {
-            research.GetState().Projects.RestoreCompleted(
+            research.GetStateForDebug().Projects.RestoreCompleted(
                 new ResearchProjectId(OffenseExpeditionAccessRules.RequiredResearchId));
         }
         Require(OffenseExpeditionAccessRules.IsUnlocked(research.GetState()),

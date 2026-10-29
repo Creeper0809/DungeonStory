@@ -505,15 +505,11 @@ public sealed class CropEcologyRuntime :
         foreach (WorldItemStackSnapshot stack in stock.GetAllStacks())
         {
             if (stack == null || stack.Quantity <= 0) continue;
-            try
-            {
-                SeedLotState seed = SeedLotItemStateCodec.Decode(stack.Components);
-                references.Add(seed.cultivarGenomeId);
-            }
-            catch (InvalidOperationException)
-            {
-                // Non-seed physical stacks intentionally have no seed-lot component.
-            }
+            if (!stack.Components.Any(component => component != null
+                && string.Equals(component.componentTypeId, SeedLotItemStateCodec.ComponentTypeId,
+                    StringComparison.Ordinal))) continue;
+            SeedLotState seed = SeedLotItemStateCodec.Decode(stack.Components);
+            references.Add(seed.cultivarGenomeId);
         }
         return references;
     }

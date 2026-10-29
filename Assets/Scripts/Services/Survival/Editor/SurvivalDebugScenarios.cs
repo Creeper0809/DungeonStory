@@ -13,6 +13,10 @@ using VContainer;
 
 public static class SurvivalDebugScenarios
 {
+    private static readonly IClimateDefinitionCatalog AuthoredClimateDefinitions =
+        new ResourceClimateDefinitionCatalog(
+            new ResourceGameContentCatalog(new UnityGameContentRootLoader()));
+
     internal static SurvivalFoodRuntime CreateMealMissedOutcomeEntryFixture(
         GameEventBus events,
         DungeonRuntimeAggregateRootStore aggregateRootStore,
@@ -34,7 +38,8 @@ public static class SurvivalDebugScenarios
                 new EditorWarehouseStockRuntime(),
                 itemCatalog,
                 new EmptyStockQuery(),
-                FixedClimateQuery.Instance),
+                FixedClimateQuery.Instance,
+                AuthoredClimateDefinitions),
             new EmptyWildlifeSpeciesCatalog(),
             events,
             CharacterAiEditorTestDependencies.WorldRegistry,
@@ -74,6 +79,7 @@ public static class SurvivalDebugScenarios
         Run("save_v19_contract", VerifySaveContract, errors);
         Run("stock_categories", VerifyStockCategories, errors);
         Run("work_types", VerifyWorkTypes, errors);
+        Run("weather_front_kind_mapping", VerifyWeatherFrontKindMapping, errors);
         Run("survival_item_definitions", VerifySurvivalItemDefinitions, errors);
         Run("ability_modules", VerifyAbilityModules, errors);
         Run("room_snapshot_survival_metrics", VerifyRoomSnapshotMetrics, errors);
@@ -106,6 +112,121 @@ public static class SurvivalDebugScenarios
 
     public static string RunPhysicalMealAuthorityFocused() =>
         VerifyPhysicalMealAuthority();
+
+    [MenuItem("DungeonStory/Debug/Survival/Run Weather Front Mapping")]
+    public static void RunWeatherFrontMappingFromMenu() =>
+        Debug.Log(RunWeatherFrontMappingFocused());
+
+    public static string RunWeatherFrontMappingFocused() =>
+        VerifyWeatherFrontKindMapping();
+
+    private static string VerifyWeatherFrontKindMapping()
+    {
+        IItemDefinitionCatalog itemCatalog = new ResourceItemDefinitionCatalog(
+            new ResourceGameContentCatalog(new UnityGameContentRootLoader()));
+        WeatherFrontDefinition[] fronts =
+        {
+            CreateWeatherFront("weather:clear", WeatherFrontKind.Clear),
+            CreateWeatherFront("weather:rain", WeatherFrontKind.Rain),
+            CreateWeatherFront("weather:fog", WeatherFrontKind.Fog),
+            CreateWeatherFront("weather:heatwave", WeatherFrontKind.Heatwave),
+            CreateWeatherFront("weather:cold-snap", WeatherFrontKind.ColdSnap),
+            CreateWeatherFront("weather:storm", WeatherFrontKind.Storm),
+            CreateWeatherFront("weather:rain-variant", WeatherFrontKind.Rain)
+        };
+        IClimateDefinitionCatalog definitions = new WeatherFrontCatalogFixture(fronts);
+        KeyValuePair<string, SurvivalWeatherType>[] expected =
+        {
+            new("weather:clear", SurvivalWeatherType.Clear),
+            new("weather:rain", SurvivalWeatherType.Rain),
+            new("weather:fog", SurvivalWeatherType.Fog),
+            new("weather:heatwave", SurvivalWeatherType.HeatWave),
+            new("weather:cold-snap", SurvivalWeatherType.ColdSnap),
+            new("weather:storm", SurvivalWeatherType.Storm)
+        };
+        foreach (KeyValuePair<string, SurvivalWeatherType> entry in expected)
+        {
+            Require(
+                ResolveWeather(itemCatalog, definitions, entry.Key) == entry.Value,
+                "Existing weather front changed survival classification: " + entry.Key);
+        }
+
+        Require(
+            ResolveWeather(itemCatalog, definitions, "weather:rain-variant")
+                == SurvivalWeatherType.Rain,
+            "A distinct rain stable ID did not receive the rain classification.");
+
+        ClimateAggregateState restored = ClimateAggregateState.Restore(
+            new ClimateWorldSaveData
+            {
+                version = ClimateWorldSaveData.CurrentVersion,
+                absoluteDay = 6,
+                climateZoneId = ClimateRuntime.DefaultClimateZoneId,
+                weatherFrontId = "weather:rain-variant",
+                frontRemainingDays = 1,
+                dailyNoiseC = 0f
+            },
+            definitions);
+        Require(
+            ResolveWeather(itemCatalog, definitions, restored.WeatherFrontId)
+                == SurvivalWeatherType.Rain,
+            "A restored weather front ID changed survival classification.");
+
+        RequireThrows<KeyNotFoundException>(
+            () => ResolveWeather(itemCatalog, definitions, "weather:missing"),
+            "An unregistered weather front used a survival fallback.");
+
+        IClimateDefinitionCatalog invalidKind = new WeatherFrontCatalogFixture(
+            CreateWeatherFront("weather:invalid-kind", (WeatherFrontKind)99));
+        RequireThrows<InvalidOperationException>(
+            () => ResolveWeather(itemCatalog, invalidKind, "weather:invalid-kind"),
+            "An invalid weather kind used a survival fallback.");
+
+        return "fronts=6; alternate-rain=Rain; restore=Rain; missing=throws; invalid-kind=throws";
+    }
+
+    private static SurvivalWeatherType ResolveWeather(
+        IItemDefinitionCatalog itemCatalog,
+        IClimateDefinitionCatalog definitions,
+        string weatherFrontId)
+    {
+        SurvivalFoodRuntime runtime = new(
+            new UnityUiClock(),
+            new SurvivalFoodRuntimeDependencies(
+                new EmptyGridSystemProvider(),
+                new EditorWarehouseStockRuntime(),
+                itemCatalog,
+                new EmptyStockQuery(),
+                new FixedClimateQuery(weatherFrontId),
+                definitions),
+            new EmptyWildlifeSpeciesCatalog(),
+            new GameEventBus(),
+            CharacterAiEditorTestDependencies.WorldRegistry,
+            new FixedGameClock(),
+            new EditorFixedGameCalendar(137, 9),
+            EmptyWorldThreatModifiers.Instance,
+            EmptySurvivalServiceSessions.Instance,
+            new DungeonRuntimeAggregateRootStore());
+        try
+        {
+            return runtime.GetEnvironmentSnapshot().Weather;
+        }
+        finally
+        {
+            runtime.Dispose();
+        }
+    }
+
+    private static WeatherFrontDefinition CreateWeatherFront(
+        string id,
+        WeatherFrontKind kind) => new(
+            id,
+            kind,
+            minimumDurationDays: 1,
+            maximumDurationDays: 1,
+            temperatureModifierC: 0f,
+            expeditionTravelMultiplier: 1f,
+            seasonalWeights: new[] { 1f, 1f, 1f, 1f });
 
     public static string RunWim035MealQualityFocused() =>
         VerifyMealFourSecondCommitAndSpoilAbort("food:lavish-meat", true)
@@ -1703,7 +1824,8 @@ public static class SurvivalDebugScenarios
                 new EditorWarehouseStockRuntime(),
                 itemCatalog,
                 new EmptyStockQuery(),
-                FixedClimateQuery.Instance),
+                FixedClimateQuery.Instance,
+                AuthoredClimateDefinitions),
             new EmptyWildlifeSpeciesCatalog(),
             events,
             CharacterAiEditorTestDependencies.WorldRegistry,
@@ -1871,7 +1993,8 @@ public static class SurvivalDebugScenarios
                 physicalItems,
                 itemCatalog,
                 new EmptyStockQuery(),
-                FixedClimateQuery.Instance),
+                FixedClimateQuery.Instance,
+                AuthoredClimateDefinitions),
             new EmptyWildlifeSpeciesCatalog(),
             new GameEventBus(),
             CharacterAiEditorTestDependencies.WorldRegistry,
@@ -1905,7 +2028,8 @@ public static class SurvivalDebugScenarios
                 new EditorWarehouseStockRuntime(),
                 itemCatalog,
                 new EmptyStockQuery(),
-                FixedClimateQuery.Instance),
+                FixedClimateQuery.Instance,
+                AuthoredClimateDefinitions),
             new EmptyWildlifeSpeciesCatalog(),
             new GameEventBus(),
             CharacterAiEditorTestDependencies.WorldRegistry,
@@ -1990,7 +2114,8 @@ public static class SurvivalDebugScenarios
                 new EditorWarehouseStockRuntime(),
                 itemCatalog,
                 new EmptyStockQuery(),
-                FixedClimateQuery.Instance);
+                FixedClimateQuery.Instance,
+                AuthoredClimateDefinitions);
         ICharacterAiWorldRegistry world =
             CharacterAiEditorTestDependencies.WorldRegistry;
         IGameClock clock = new FixedGameClock();
@@ -4379,7 +4504,8 @@ public static class SurvivalDebugScenarios
             environmentalField: NoEnvironmentalFieldQuery.Instance,
             characters: world,
             environmentExposure:
-                NoOpCharacterEnvironmentExposureCommand.Instance);
+                NoOpCharacterEnvironmentExposureCommand.Instance,
+            itemCatalog: EditorItemCatalogFactory.CreateDefinitions());
 
         float ActiveWorldDamage(
             CombatWeaponSnapshot weapon,
@@ -4443,7 +4569,8 @@ public static class SurvivalDebugScenarios
                 environmentalField: NoEnvironmentalFieldQuery.Instance,
                 characters: null,
                 environmentExposure:
-                    NoOpCharacterEnvironmentExposureCommand.Instance);
+                    NoOpCharacterEnvironmentExposureCommand.Instance,
+                itemCatalog: EditorItemCatalogFactory.CreateDefinitions());
         ICombatEquipmentRuntime detachedEquipment =
             OffenseEditorTestDependencies.CreateCombatEquipmentRuntime();
 
@@ -5824,7 +5951,7 @@ public static class SurvivalDebugScenarios
             food = new SurvivalFoodRuntime(
                 new UnityUiClock(),
                 new SurvivalFoodRuntimeDependencies(gridProvider, items, catalog, stock,
-                    FixedClimateQuery.Instance, sinks,
+                    FixedClimateQuery.Instance, AuthoredClimateDefinitions, sinks,
                     treatmentBufferCapacities: capacities,
                     treatmentBufferOccupancy: occupancy,
                     treatmentBufferClaims: claims,
@@ -6171,6 +6298,7 @@ public static class SurvivalDebugScenarios
                 catalog,
                 stock ?? new EmptyStockQuery(),
                 FixedClimateQuery.Instance,
+                AuthoredClimateDefinitions,
                 physicalSinks,
                 packagedTare,
                 treatmentBufferCapacities: treatmentBufferCapacities,
@@ -6769,12 +6897,60 @@ public static class SurvivalDebugScenarios
     {
         internal static readonly FixedClimateQuery Instance = new();
 
+        private readonly string weatherFrontId;
+
+        internal FixedClimateQuery(string weatherFrontId = "weather:clear")
+        {
+            this.weatherFrontId = weatherFrontId
+                ?? throw new ArgumentNullException(nameof(weatherFrontId));
+        }
+
         public int Version => 1;
         public int AbsoluteDay => 1;
         public string ClimateZoneId => "climate:temperate-cave";
-        public string WeatherFrontId => "weather:clear";
+        public string WeatherFrontId => weatherFrontId;
         public int FrontRemainingDays => 1;
         public float OutdoorTemperatureC => 18f;
+    }
+
+    private sealed class WeatherFrontCatalogFixture : IClimateDefinitionCatalog
+    {
+        private readonly Dictionary<string, WeatherFrontDefinition> fronts;
+
+        internal WeatherFrontCatalogFixture(
+            params WeatherFrontDefinition[] definitions)
+        {
+            fronts = (definitions ?? throw new ArgumentNullException(nameof(definitions)))
+                .ToDictionary(value => value.Id, StringComparer.Ordinal);
+            Fronts = fronts.Values
+                .OrderBy(value => value.Id, StringComparer.Ordinal)
+                .ToArray();
+        }
+
+        public IReadOnlyList<WeatherFrontDefinition> Fronts { get; }
+
+        public ClimateZoneDefinition RequireZone(string id)
+        {
+            if (string.Equals(
+                    id,
+                    ClimateRuntime.DefaultClimateZoneId,
+                    StringComparison.Ordinal))
+            {
+                return new ClimateZoneDefinition(
+                    ClimateRuntime.DefaultClimateZoneId,
+                    meanTemperatureC: 0f,
+                    annualAmplitudeC: 0f,
+                    localHourOffset: 0);
+            }
+
+            throw new KeyNotFoundException("Unknown fixture climate zone '" + id + "'.");
+        }
+
+        public WeatherFrontDefinition RequireFront(string id) =>
+            fronts.TryGetValue(id?.Trim() ?? string.Empty, out WeatherFrontDefinition value)
+                ? value
+                : throw new KeyNotFoundException(
+                    "Unknown fixture weather front '" + id + "'.");
     }
 
     private sealed class EmptyWorldThreatModifiers : IWorldThreatModifierQuery

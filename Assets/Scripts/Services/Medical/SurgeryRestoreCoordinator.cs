@@ -11,6 +11,7 @@ public sealed class SurgeryRestoreCoordinator :
     private const string RestoreParticipantId = "525.world.surgery";
 
     private readonly SurgeryContentServices content;
+    private readonly SurgicalGraftEffectCatalog graftEffects;
     private readonly SurgeryWorldServices world;
     private readonly SurgeryResourceServices resources;
     private readonly SurgeryAggregateStateStore stateStore;
@@ -43,9 +44,11 @@ public sealed class SurgeryRestoreCoordinator :
         IFacilityBufferDestinationClaimAuthorityQuery destinationClaims,
         IFacilityBufferMassCapacityAuthorityQuery destinationCapacities,
         IFacilityBufferDestinationLifecycleCommand destinationLifecycle,
-        IFacilityBufferDestinationReleaseService destinationReleases)
+        IFacilityBufferDestinationReleaseService destinationReleases,
+        SurgicalGraftEffectCatalog graftEffects)
     {
         this.content = content ?? throw new ArgumentNullException(nameof(content));
+        this.graftEffects = graftEffects ?? throw new ArgumentNullException(nameof(graftEffects));
         this.world = world ?? throw new ArgumentNullException(nameof(world));
         this.resources = resources ?? throw new ArgumentNullException(nameof(resources));
         this.stateStore = stateStore
@@ -116,6 +119,7 @@ public sealed class SurgeryRestoreCoordinator :
                 + string.Join(" | ", report.Errors));
         }
 
+        graftEffects.ValidateSavedParts(saveData?.parts);
         SurgeryAggregateState state = SurgerySaveValidation.CreateState(saveData);
         return state;
     }

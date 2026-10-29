@@ -143,6 +143,7 @@ internal sealed class ResearchTreePresentationRules
         BlueprintResearchRuntime runtime)
     {
         HashSet<string> visited = new HashSet<string>(StringComparer.Ordinal);
+        BlueprintResearchState state = runtime.State;
         float total = 0f;
         void Visit(ResearchProjectSO current)
         {
@@ -151,13 +152,13 @@ internal sealed class ResearchTreePresentationRules
             {
                 if (prerequisite == null
                     || !visited.Add(prerequisite.ProjectId.Value)
-                    || runtime.State.Projects.IsCompleted(
+                    || state.Projects.IsCompleted(
                         prerequisite.ProjectId))
                 {
                     continue;
                 }
                 ResearchProjectProgressState progress =
-                    runtime.State.Projects.GetProgress(prerequisite.ProjectId);
+                    state.Projects.GetProgressSnapshot(prerequisite.ProjectId);
                 total += Mathf.Max(
                     0f,
                     prerequisite.RequiredWork - progress.Progress);

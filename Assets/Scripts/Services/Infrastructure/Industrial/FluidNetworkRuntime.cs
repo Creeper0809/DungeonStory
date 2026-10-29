@@ -244,7 +244,7 @@ internal sealed class FluidNetworkRuntime :
         {
             commandOutcomes?.AssertIdle();
             EnsureTopology();
-            return projectionAdapter.GetSnapshots(Version);
+            return projectionAdapter.CreateSnapshotView(Version);
         }
     }
 
@@ -631,7 +631,8 @@ internal sealed class FluidNetworkRuntime :
             nodeId);
         snapshot = projectionAdapter.GetSnapshots(Version).FirstOrDefault(candidate =>
             string.Equals(candidate.NetworkId, cleanId, StringComparison.Ordinal)
-            || string.Equals(candidate.NetworkId, wasteId, StringComparison.Ordinal));
+            || string.Equals(candidate.NetworkId, wasteId, StringComparison.Ordinal))
+            ?.Clone();
         return snapshot != null;
     }
 

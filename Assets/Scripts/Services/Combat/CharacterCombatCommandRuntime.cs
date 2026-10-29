@@ -118,11 +118,15 @@ public sealed class CharacterCombatCommandRuntime :
     {
         get
         {
-            if (!viewDirty) return commandView;
-            commandView = CharacterCombatCommandLifecyclePolicy
-                .CreateActiveCommandView(commands.Values);
-            viewDirty = false;
-            return commandView;
+            if (viewDirty)
+            {
+                commandView = CharacterCombatCommandLifecyclePolicy
+                    .CreateActiveCommandView(commands.Values);
+                viewDirty = false;
+            }
+
+            return CharacterCombatCommandLifecyclePolicy
+                .CreateActiveCommandView(commandView);
         }
     }
 

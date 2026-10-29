@@ -7,6 +7,8 @@ using Object = UnityEngine.Object;
 
 public static class CharacterModelDebugScenarios
 {
+    public static bool RunR30RuntimeProfileFocused() => VerifyCharacterRuntimeProfile();
+
     private static IGameContentDefinitionSource Content =>
         CharacterAiEditorTestDependencies.ContentDefinitions;
     private static ICharacterSpeciesCatalog SpeciesCatalog =>
@@ -142,30 +144,115 @@ public static class CharacterModelDebugScenarios
 
     private static bool VerifyCharacterRuntimeProfile()
     {
-        CharacterSO data = CreateCharacterData("Species_Vampire", "Trait_Researcher");
-        GameObject obj = CharacterAiPlanDebugFixtures.CreateActorObject(
-            "Character Model Scenario Character");
-        CharacterActor character = obj.GetComponent<CharacterActor>();
+        CharacterSO data = null;
+        GameObject obj = null;
+        try
+        {
+            data = CreateCharacterData("Species_Vampire", "Trait_Researcher");
+            obj = CharacterAiPlanDebugFixtures.CreateActorObject(
+                "Character Model Scenario Character");
+            CharacterActor character = obj.GetComponent<CharacterActor>();
 
-        character.Progression.ApplyPreparedIdentity(
-            data.characterName,
-            "debug:character-model",
-            data.traits.Select(trait => trait.id),
-            CharacterPotentialGrade.Ordinary,
-            generationSeed: 990001,
-            autoChooseDrafts: false);
-        character.Initialization(data);
-        bool connected = character.SpeciesTag == "Vampire"
-            && character.Progression.ResolveSelectedTraits()
-                .Any(trait => trait != null && trait.id == data.traits[0].id)
-            && character.Stats.EvaluatePerformance(
-                "performance:work:research:speed").Value > 0f
-            && character.GetFacilityPreferenceScore(FacilityRole.Mana) > 0.5f
-            && character.GetWorkSpeedMultiplier(BuiltInWorkTypeIds.Research) > 0f;
+            character.Initialization(data);
+            character.Progression.ApplyPreparedIdentity(
+                data.characterName,
+                "debug:character-model",
+                data.traits.Select(trait => trait.id),
+                CharacterPotentialGrade.Ordinary,
+                generationSeed: 990001,
+                autoChooseDrafts: false);
+            CharacterRuntimeProfile effective =
+                character.Progression.GetEffectiveRuntimeProfile();
+            string[] expressedBefore = effective.ExpressedTraitIds.ToArray();
+            string[] latentBefore = effective.LatentTraitIds.ToArray();
+            string[] displayNamesBefore = effective.TraitDisplayNames.ToArray();
+            Dictionary<string, int> aptitudesBefore = effective.InnateAptitudes
+                .ToDictionary(pair => pair.Key, pair => pair.Value,
+                    StringComparer.Ordinal);
+            bool nestedViewsRejectMutation = RejectsMutation(() =>
+                    ((IList<string>)effective.ExpressedTraitIds)[0] =
+                        "qa:mutated-trait")
+                && RejectsMutation(() =>
+                    ((IList<string>)effective.LatentTraitIds).Add(
+                        "qa:mutated-latent"))
+                && RejectsMutation(() =>
+                    ((IList<string>)effective.TraitDisplayNames)[0] =
+                        "qa:mutated-display")
+                && RejectsMutation(() =>
+                    ((IDictionary<string, int>)effective.InnateAptitudes).Add(
+                        "qa:mutated-aptitude",
+                        999));
+            CharacterRuntimeProfile sameRevision =
+                character.Progression.GetEffectiveRuntimeProfile();
+            CharacterProgressionSnapshot savedProgression =
+                character.Progression.CapturePersistentState();
+            character.Progression.ApplyPreparedIdentity(
+                data.characterName,
+                "debug:character-model:changed",
+                Array.Empty<int>(),
+                CharacterPotentialGrade.Ordinary,
+                generationSeed: 990002,
+                autoChooseDrafts: false,
+                ensureInitialDrafts: false);
+            CharacterRuntimeProfile ownerChanged =
+                character.Progression.GetEffectiveRuntimeProfile();
+            bool ownerChangeProjected = ownerChanged.ExpressedTraitIds.Count == 0;
+            character.Progression.RestorePersistentState(savedProgression);
+            CharacterRuntimeProfile restored =
+                character.Progression.GetEffectiveRuntimeProfile();
+            return character.SpeciesTag == "Vampire"
+                && character.Progression.ResolveSelectedTraits()
+                    .Any(trait => trait != null && trait.id == data.traits[0].id)
+                && character.Stats.EvaluatePerformance(
+                    "performance:work:research:speed").Value > 0f
+                && character.GetFacilityPreferenceScore(FacilityRole.Mana) > 0.5f
+                && character.GetWorkSpeedMultiplier(BuiltInWorkTypeIds.Research) > 0f
+                && nestedViewsRejectMutation
+                && sameRevision.ExpressedTraitIds.SequenceEqual(
+                    expressedBefore,
+                    StringComparer.Ordinal)
+                && sameRevision.LatentTraitIds.SequenceEqual(
+                    latentBefore,
+                    StringComparer.Ordinal)
+                && sameRevision.TraitDisplayNames.SequenceEqual(
+                    displayNamesBefore,
+                    StringComparer.Ordinal)
+                && sameRevision.InnateAptitudes.Count == aptitudesBefore.Count
+                && sameRevision.InnateAptitudes.All(pair =>
+                    aptitudesBefore.TryGetValue(pair.Key, out int value)
+                    && value == pair.Value)
+                && ownerChangeProjected
+                && restored.ExpressedTraitIds.SequenceEqual(
+                    expressedBefore,
+                    StringComparer.Ordinal)
+                && restored.LatentTraitIds.SequenceEqual(
+                    latentBefore,
+                    StringComparer.Ordinal);
+        }
+        finally
+        {
+            if (obj != null)
+            {
+                Object.DestroyImmediate(obj);
+            }
+            if (data != null)
+            {
+                Object.DestroyImmediate(data);
+            }
+        }
+    }
 
-        Object.DestroyImmediate(obj);
-        Object.DestroyImmediate(data);
-        return connected;
+    private static bool RejectsMutation(Action mutation)
+    {
+        try
+        {
+            mutation();
+            return false;
+        }
+        catch (NotSupportedException)
+        {
+            return true;
+        }
     }
 
     private static bool VerifySpeciesOperationalData()

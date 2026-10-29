@@ -49,6 +49,8 @@ public class StaffWorkPriorityPanel :
     private ICombatEquipmentRuntime combatEquipment;
     private ICharacterPerformanceQuery performance;
     private StaffManagementSurfacePanel managementSurface;
+    private bool managementMode;
+    private bool managementRefreshPending;
     private IDisposable infoFeedSubscription;
     public int VisibleWorkerCount { get; private set; }
     public int VisibleCellCount { get; private set; }
@@ -65,7 +67,7 @@ public class StaffWorkPriorityPanel :
             ?? throw new ArgumentNullException(nameof(uiFactory));
         this.uiClock = uiClock
             ?? throw new ArgumentNullException(nameof(uiClock));
-        managementSurface = null;
+        InvalidateManagementSurface();
     }
 
     [Inject]
@@ -89,7 +91,7 @@ public class StaffWorkPriorityPanel :
             ?? throw new ArgumentNullException(nameof(playerStaffCommands));
         this.moodImpulseQuery = moodImpulseQuery
             ?? throw new ArgumentNullException(nameof(moodImpulseQuery));
-        managementSurface = null;
+        InvalidateManagementSurface();
     }
 
     [Inject]
@@ -97,7 +99,7 @@ public class StaffWorkPriorityPanel :
     {
         this.gameEventBus = gameEventBus
             ?? throw new ArgumentNullException(nameof(gameEventBus));
-        managementSurface = null;
+        InvalidateManagementSurface();
         SubscribeToInfoFeed();
     }
 
@@ -115,7 +117,7 @@ public class StaffWorkPriorityPanel :
     {
         this.apologyCommands = apologyCommands
             ?? throw new ArgumentNullException(nameof(apologyCommands));
-        managementSurface = null;
+        InvalidateManagementSurface();
     }
 
     [Inject]
@@ -127,7 +129,7 @@ public class StaffWorkPriorityPanel :
             ?? throw new ArgumentNullException(nameof(ritualFastingQuery));
         this.ritualFastingCommands = ritualFastingCommands
             ?? throw new ArgumentNullException(nameof(ritualFastingCommands));
-        managementSurface = null;
+        InvalidateManagementSurface();
     }
 
     [Inject]
@@ -145,7 +147,7 @@ public class StaffWorkPriorityPanel :
             ?? throw new ArgumentNullException(nameof(combatEquipment));
         this.performance = performance
             ?? throw new ArgumentNullException(nameof(performance));
-        managementSurface = null;
+        InvalidateManagementSurface();
     }
 
     private void Awake()
@@ -161,14 +163,14 @@ public class StaffWorkPriorityPanel :
 
     private void Update()
     {
-        if (!isActiveAndEnabled || uiClock.Time < nextAutoRefreshAt)
+        if (!isActiveAndEnabled || (!managementRefreshPending && uiClock.Time < nextAutoRefreshAt))
         {
             return;
         }
 
         nextAutoRefreshAt = uiClock.Time + 0.5f;
         int workerHash = CalculateWorkerHash();
-        if (workerHash != lastWorkerHash)
+        if (managementRefreshPending || workerHash != lastWorkerHash)
         {
             Refresh();
         }
@@ -195,6 +197,7 @@ public class StaffWorkPriorityPanel :
     {
         EnsureLayout();
         BuildTable();
+        managementRefreshPending = false;
     }
 
     private void EnsureLayout()
@@ -702,6 +705,13 @@ public class StaffWorkPriorityPanel :
                 $"{nameof(StaffWorkPriorityPanel)} requires {nameof(IStaffWorkPriorityPanelUiFactory)} injection before use.");
     }
 
+    private void InvalidateManagementSurface()
+    {
+        managementSurface?.Clear();
+        managementSurface = null;
+        managementRefreshPending = true;
+    }
+
     private StaffManagementSurfacePanel RequireManagementSurface()
     {
         if (managementSurface != null)
@@ -742,6 +752,7 @@ public class StaffWorkPriorityPanel :
     }
 
     RectTransform IStaffManagementSurfaceQuery.ContentRoot => contentRoot;
+    bool IStaffManagementSurfaceQuery.IsManagementMode => managementMode;
     Transform IStaffManagementSurfaceQuery.TableRoot => tableRoot;
     TMP_Text IStaffManagementSurfaceQuery.TitleText => titleText;
     IStaffWorkPriorityPanelUiFactory IStaffManagementSurfaceQuery.UiFactory =>
@@ -756,6 +767,7 @@ public class StaffWorkPriorityPanel :
     }
 
     void IStaffManagementSurfaceCommand.RequestRefresh() => Refresh();
+    void IStaffManagementSurfaceCommand.SetManagementMode(bool value) => managementMode = value;
 }
 
 public static class StaffWorkPriorityIdentityOrderPolicy

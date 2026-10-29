@@ -550,16 +550,8 @@ public sealed class ProductionBuildingPanelPresenter :
     }
 
     private static string FormatWorkerPolicy(
-        WorkerSelectionPolicySaveData policy)
-    {
-        WorkerSelectionPolicySaveData normalized = policy?.CloneNormalized()
-            ?? WorkerSelectionPolicySaveData.Anyone();
-        if (normalized.mode == WorkerSelectionMode.RuleSet)
-            return "작업자: 민첩 7+";
-        return normalized.sortMode == WorkerCandidateSortMode.BestExpectedQuality
-            ? "작업자: 품질 우선"
-            : "작업자: 속도 우선";
-    }
+        WorkerSelectionPolicySaveData policy) =>
+        "작업자: " + GameplayUiPresentationText.WorkerPolicy(policy);
 
     private static WorkerSelectionPolicySaveData NextWorkerPolicy(
         WorkerSelectionPolicySaveData policy)

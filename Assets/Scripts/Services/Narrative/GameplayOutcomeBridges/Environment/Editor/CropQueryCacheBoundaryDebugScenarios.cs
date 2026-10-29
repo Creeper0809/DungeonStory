@@ -21,43 +21,89 @@ public static partial class EnvironmentCropProductionEntryDebugScenarios
         _ = runtime.Plots;
         IReadOnlyList<CropPlotSnapshot> initialList = runtime.Plots;
         CropPlotSnapshot initial = initialList.First();
+        string initialPlotId = initial.PlotId;
+        string initialCropId = initial.CropId;
+        KeyValuePair<string, int>[] initialRequired = initial.RequiredMaterials
+            .OrderBy(value => value.Key, StringComparer.Ordinal)
+            .ToArray();
+        KeyValuePair<string, int>[] initialDelivered = initial.DeliveredMaterials
+            .OrderBy(value => value.Key, StringComparer.Ordinal)
+            .ToArray();
         List<string> rows = new() { "check\tresult" };
-        Require(ReferenceEquals(initial, runtime.Plots.First()),
-            "Stable crop queries rebuilt their derived snapshot cache.");
-        rows.Add("unchanged inputs retain snapshot cache\tPASS");
+        initial.PlotId = "external:crop-query-mutation";
+        initial.CropId = "external:crop-query-mutation";
+        if (initial.RequiredMaterials is IDictionary<string, int> required)
+        {
+            required["external:nested-required"] = 998;
+        }
+        if (initial.DeliveredMaterials is IDictionary<string, int> delivered)
+        {
+            delivered["external:nested-delivered"] = 998;
+        }
+        initial.RequiredMaterials = new Dictionary<string, int>
+        {
+            ["external:required"] = 999
+        };
+        initial.DeliveredMaterials = new Dictionary<string, int>
+        {
+            ["external:delivered"] = 999
+        };
+        CropPlotSnapshot stable = runtime.Plots.Single(value =>
+            value.PlotId == initialPlotId);
+        Require(!ReferenceEquals(initial, stable)
+                && stable.CropId == initialCropId
+                && stable.RequiredMaterials
+                    .OrderBy(value => value.Key, StringComparer.Ordinal)
+                    .SequenceEqual(initialRequired)
+                && stable.DeliveredMaterials
+                    .OrderBy(value => value.Key, StringComparer.Ordinal)
+                    .SequenceEqual(initialDelivered),
+            "An external crop row or material mutation reached the next query.");
+        rows.Add("unchanged inputs return detached rows and materials\tPASS");
 
-        Require(runtime.TryBindNextCycle("action:qa-crop-query-cache",
-                initial.PlotId, initial.CropId, out string bindFailure), bindFailure);
-        CropPlotSnapshot afterCommand = runtime.Plots.Single(value => value.PlotId == initial.PlotId);
-        Require(!ReferenceEquals(initial, afterCommand),
-            "A real crop command did not invalidate the snapshot cache.");
-        rows.Add("command invalidates derived cache\tPASS");
-        Require(ReferenceEquals(afterCommand,
-                runtime.Plots.Single(value => value.PlotId == initial.PlotId)),
-            "A refreshed crop snapshot did not settle to a cache hit.");
-        rows.Add("refreshed inputs settle to cache hit\tPASS");
+        CropDefinitionSO alternate = fixture.RequireAlternateOutdoorCrop();
+        int versionBeforeCommand = runtime.Version;
+        Require(runtime.TrySetCrop(
+                fixture.Plot,
+                alternate.CropId,
+                out string setCropFailure),
+            setCropFailure);
+        CropPlotSnapshot afterCommand = runtime.Plots.Single(value =>
+            value.PlotId == initialPlotId);
+        Require(runtime.Version > versionBeforeCommand
+                && afterCommand.CropId == alternate.CropId
+                && stable.CropId == initialCropId,
+            "A crop owner command did not publish a detached current view.");
+        rows.Add("owner command publishes current detached view\tPASS");
 
         DungeonCropPlotSaveData saved = runtime.Capture();
-        saved.plots.Single(value => value.buildingInstanceId == initial.PlotId).pestLureNextAllowedDay = 7;
+        saved.plots.Single(value => value.buildingInstanceId == initialPlotId)
+            .pestLureNextAllowedDay = 7;
         CropPlotRestoreCandidate candidate = runtime.BuildRestore(saved);
-        Require(ReferenceEquals(afterCommand,
-                runtime.Plots.Single(value => value.PlotId == initial.PlotId)),
-            "Staging a crop restore changed the current view.");
+        CropPlotSnapshot staged = runtime.Plots.Single(value =>
+            value.PlotId == initialPlotId);
+        Require(staged.PestLureNextAllowedDay == 0
+                && staged.CropId == alternate.CropId,
+            "Staging a crop restore changed the current view values.");
         rows.Add("staged restore preserves current view\tPASS");
         runtime.Restore(candidate);
         IReadOnlyList<CropPlotSnapshot> restoredList = runtime.Plots;
-        CropPlotSnapshot restored = restoredList.Single(value => value.PlotId == initial.PlotId);
+        CropPlotSnapshot restored = restoredList.Single(value =>
+            value.PlotId == initialPlotId);
         Require(!ReferenceEquals(initialList, restoredList)
             && !ReferenceEquals(afterCommand, restored)
             && restored.PestLureNextAllowedDay == 7
             && afterCommand.PestLureNextAllowedDay == 0,
             "Crop view retained the replaced root or rewrote an older view.");
         rows.Add("restored root owns new cache; old view stays detached\tPASS");
-        Require(ReferenceEquals(restored,
-                runtime.Plots.Single(value => value.PlotId == initial.PlotId)),
-            "Restored crop cache did not retain its computed snapshot.");
-        rows.Add("restored view cache hit\tPASS");
-        Require(runtime.CaptureActiveOutputOwners((BuildingInstanceId)initial.PlotId).Count == 0
+        CropPlotSnapshot restoredAgain = runtime.Plots.Single(value =>
+            value.PlotId == initialPlotId);
+        Require(!ReferenceEquals(restored, restoredAgain)
+                && restoredAgain.PestLureNextAllowedDay == 7
+                && restoredAgain.CropId == alternate.CropId,
+            "A restored crop query did not return detached current values.");
+        rows.Add("restored view remains detached and current\tPASS");
+        Require(runtime.CaptureActiveOutputOwners((BuildingInstanceId)initialPlotId).Count == 0
             && runtime.CapturePendingOutputOwners().Count == 0,
             "An inactive restored plot invented physical harvest output owners.");
         rows.Add("harvest queries read current inactive root\tPASS");
@@ -66,7 +112,7 @@ public static partial class EnvironmentCropProductionEntryDebugScenarios
                    FileMode.CreateNew, FileAccess.Write))
         using (StreamWriter writer = new(file))
             foreach (string row in rows) writer.WriteLine(row);
-        Debug.Log("ARCHITECTURE_CROP_QUERY_CACHE=PASS; stable inputs; command invalidation; staged/committed current root; detached old view; harvest owner query");
+        Debug.Log("ARCHITECTURE_CROP_QUERY_CACHE=PASS; detached rows and materials; owner command; staged and committed current root; harvest owner query");
     }
 }
 #endif

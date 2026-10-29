@@ -52,8 +52,28 @@ public sealed class CaptivityPerformerRuntime
         bool assigned,
         out string failureReason)
     {
+        if (!CanAssign(captiveId, assigned, out CaptiveState state, out failureReason))
+            return false;
+
+        state.status = assigned
+            ? CaptivityStatus.Performer
+            : CaptivityStatus.Confined;
+        state.lastResult = assigned ? "공연 참가 준비" : "감방 복귀";
+        port.ApplyAssignmentState(captiveId, assigned);
+        return true;
+    }
+
+    public bool CanAssign(string captiveId, out string failureReason) =>
+        CanAssign(captiveId, true, out _, out failureReason);
+
+    private bool CanAssign(
+        string captiveId,
+        bool assigned,
+        out CaptiveState state,
+        out string failureReason)
+    {
         failureReason = string.Empty;
-        CaptiveState state = findState(captiveId);
+        state = findState(captiveId);
         CaptivePolicyData policy = state != null
             ? findPolicy(state.policyId)
             : null;
@@ -69,11 +89,12 @@ public sealed class CaptivityPerformerRuntime
             return false;
         }
 
-        state.status = assigned
-            ? CaptivityStatus.Performer
-            : CaptivityStatus.Confined;
-        state.lastResult = assigned ? "공연 참가 준비" : "감방 복귀";
-        port.ApplyAssignmentState(captiveId, assigned);
+        if (assigned && state.status == CaptivityStatus.Performer)
+        {
+            failureReason = "이미 공연에 배정된 포로입니다.";
+            return false;
+        }
+
         return true;
     }
 

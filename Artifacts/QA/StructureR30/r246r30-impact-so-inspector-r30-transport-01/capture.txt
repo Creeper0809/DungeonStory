@@ -1,0 +1,88 @@
+# Captivity / Wildlife production-live lifecycle matrix
+RESULT=PASS; failures=0
+mode=transport-only
+runFinished=True;verificationBodyCompleted=True
+memoryDiagnostic=qa-observation-only;sample=100;phase=CONSOLE_WARNING_ERROR_ZERO;frame=71;realtime=68.077;unityScaledTime=132.335;calendarHours=0;managedUsedBytes=1866780672;managedHeapBytes=2103468032;engineAllocatedBytes=328478965;engineReservedBytes=776609792
+fixture=GameplayScene+official-start-party+authored-room+V18-save-boundary
+terminal-policy=no-direct-runtime-terminal-calls
+INFO	BATCH_STARTUP_GC_PREPARATION	managedBeforeBytes=1574371328;managedAfterBytes=1527726080;fullCollections=174->175;one-preparation-only;gameplay-collection=false;trainingEligible=false
+PASS	PICKUP_CONTRACT_MOVING_TARGET_PENDING	active=False;startBeforeEffects=True;approaches=2;pending=1;retargets=1;carry=1;complete=1;failure=0;end=1;replan=1;distance=1;reason=;controlled-port-contract;not-world-gameplay;trainingEligible=false
+PASS	PICKUP_CONTRACT_ADJACENT_PUBLICATION	active=False;startBeforeEffects=True;approaches=0;pending=0;retargets=0;carry=1;complete=1;failure=0;end=1;replan=1;distance=1;reason=;controlled-port-contract;not-world-gameplay;trainingEligible=false
+PASS	PICKUP_CONTRACT_ARRIVAL_FAILED	active=False;startBeforeEffects=True;approaches=1;pending=1;retargets=0;carry=0;complete=0;failure=1;end=1;replan=1;distance=0;reason=qa-planned-stand-not-reached;controlled-port-contract;not-world-gameplay;trainingEligible=false
+PASS	PICKUP_CONTRACT_UNREACHABLE	active=False;startBeforeEffects=True;approaches=0;pending=0;retargets=0;carry=0;complete=0;failure=1;end=1;replan=1;distance=0;reason=생포한 동물에게 갈 수 없습니다.;controlled-port-contract;not-world-gameplay;trainingEligible=false
+PASS	PICKUP_CONTRACT_PENDING_OWNER_LOST	active=False;startBeforeEffects=True;approaches=0;pending=1;retargets=0;carry=0;complete=0;failure=1;end=1;replan=1;distance=0;reason=Wildlife transport lost AI action ownership while approaching the animal.;controlled-port-contract;not-world-gameplay;trainingEligible=false
+PASS	LIVE_SCOPE	DungeonRuntimeSystems
+PASS	BACKGROUND_LLM_DEFERRAL_PREPARATION	queuePresent=True;running=0;hostStarting=False;hostRunning=False;isolated-non-target-preparation;trainingEligible=false
+PASS	BACKGROUND_LLM_REQUESTS_RETAINED	queued=0->0;clear=false;abort=false;response-provider=false;trainingEligible=false
+INFO	START_PARTY	committed=True; message=준비한 사장과 직원으로 새 런을 시작했습니다.; tierZero=changed=True;columns=27->29;startX=17;entrance=(17, 0); liveStaff=2; inactiveStaffObjects=0; customerPoolInactive=0; actors=Roma:-54718:character:staff:1:01:active=True,Miru:-54786:character:staff:1:02:active=True; diagnostics=prepared-1:name=Roma;go=-54690;id=character:staff:1:01;active=False || prepared-2:name=Miru;go=-54758;id=character:staff:1:02;active=False || scan:name=Roma;go=-54690;id=character:staff:1:01;active=True;retained=True || scan:name=Miru;go=-54758;id=character:staff:1:02;active=True;retained=True || retained:name=Roma;go=-54690;id=character:staff:1:01;active=True || retained:name=Miru;go=-54758;id=character:staff:1:02;active=True
+PASS	FIXTURE_SIMULATION_SPEED	timeScale=8
+PASS	LIVE_ACTORS	actors=3;worker=Leon:owner:proficiencies=9;captive=Roma:character:staff:1:01:proficiencies=9
+PASS	ESCAPE_INVASION_FIXTURE_ISOLATED	day=1;randomAllowed=False;activeIntruders=0;threat=0;safety=178.781;candidatePending=False
+PASS	LIVE_GRID	60x3
+PASS	FIXTURE_ORIGINAL_OWNERS_QUIESCENT	actors=3;settled=2/2;actual-cancellation-before-building-preparation;trainingEligible=false
+PASS	FIXTURE_ORIGINAL_BUILDING_RETIRED	id=building:bf0db118912d47f6a252b23e1d24438f;definition=1052;anchor=(33, 0);cells=1;removed=True;owner=DestroySelf;bounded-test-preparation;trainingEligible=false
+PASS	FIXTURE_ORIGINAL_BUILDING_RETIRED	id=building:d7650ecbe4a34debaf72c43c02a9efeb;definition=8;anchor=(34, 0);cells=1;removed=True;owner=DestroySelf;bounded-test-preparation;trainingEligible=false
+PASS	FIXTURE_ORIGINAL_BUILDING_RETIRED	id=building:90d1bfb41a264732a714e29ed6170f4c;definition=8;anchor=(33, 1);cells=1;removed=True;owner=DestroySelf;bounded-test-preparation;trainingEligible=false
+PASS	FIXTURE_ORIGINAL_BUILDING_RETIRED	id=building:c5028122faba4107ade7f2bb5a7fbd88;definition=1000;anchor=(34, 1);cells=1;removed=True;owner=DestroySelf;bounded-test-preparation;trainingEligible=false
+PASS	FIXTURE_ORIGINAL_BUILDING_RETIRED	id=building:62e0528ccae94cbe84f7c0a1732adc47;definition=1064;anchor=(35, 1);cells=1;removed=True;owner=DestroySelf;bounded-test-preparation;trainingEligible=false
+PASS	FIXTURE_ORIGINAL_BUILDING_RETIRED	id=building:bd7696fbfeab48dcad916211ce08444a;definition=1003;anchor=(36, 1);cells=2;removed=True;owner=DestroySelf;bounded-test-preparation;trainingEligible=false
+PASS	FIXTURE_ORIGINAL_BUILDING_RETIRED	id=building:5bff15b0687c4825834087017f101dbe;definition=8;anchor=(37, 1);cells=1;removed=True;owner=DestroySelf;bounded-test-preparation;trainingEligible=false
+PASS	FIXTURE_ORIGINAL_BUILDING_RETIRED	id=building:9153e7b579d846098f05448c8e9e3277;definition=1001;anchor=(39, 1);cells=2;removed=True;owner=DestroySelf;bounded-test-preparation;trainingEligible=false
+PASS	FIXTURE_ORIGINAL_BUILDING_RETIRED	id=building:5eb88dbb40654d898212dce6c38af1cf;definition=1010;anchor=(40, 1);cells=1;removed=True;owner=DestroySelf;bounded-test-preparation;trainingEligible=false
+PASS	FIXTURE_ORIGINAL_BUILDING_RETIRED	id=building:d1548bbdbdbc44e2ab51299189630051;definition=1002;anchor=(41, 1);cells=2;removed=True;owner=DestroySelf;bounded-test-preparation;trainingEligible=false
+PASS	FIXTURE_ORIGINAL_BUILDING_RETIRED	id=building:263ebf11822242d88846b964a2c0bfa7;definition=8;anchor=(42, 1);cells=1;removed=True;owner=DestroySelf;bounded-test-preparation;trainingEligible=false
+PASS	FIXTURE_ORIGINAL_BUILDING_RETIRED	id=building:b22462689a6d41f0bb275ebdbd84fe9e;definition=8;anchor=(33, 2);cells=1;removed=True;owner=DestroySelf;bounded-test-preparation;trainingEligible=false
+PASS	FIXTURE_ORIGINAL_BUILDING_RETIRED	id=building:a0709a175d824a788455cc18f9994258;definition=1030;anchor=(35, 2);cells=2;removed=True;owner=DestroySelf;bounded-test-preparation;trainingEligible=false
+PASS	FIXTURE_ORIGINAL_BUILDING_RETIRED	id=building:8b80d3bcb5904bb687cd94c98a033c23;definition=1035;anchor=(36, 2);cells=1;removed=True;owner=DestroySelf;bounded-test-preparation;trainingEligible=false
+PASS	FIXTURE_ORIGINAL_BUILDING_RETIRED	id=building:b5bfccfa59c944649f04f1ce8fb2af8c;definition=1032;anchor=(36, 2);cells=1;removed=True;owner=DestroySelf;bounded-test-preparation;trainingEligible=false
+PASS	FIXTURE_ORIGINAL_BUILDING_RETIRED	id=building:b7552a198434430bb1ee27c57ea4cb6d;definition=1033;anchor=(37, 2);cells=1;removed=True;owner=DestroySelf;bounded-test-preparation;trainingEligible=false
+PASS	FIXTURE_ORIGINAL_BUILDING_RETIRED	id=building:a4fcda011370402d8a70eb33207ceb5e;definition=8;anchor=(38, 2);cells=1;removed=True;owner=DestroySelf;bounded-test-preparation;trainingEligible=false
+PASS	FIXTURE_ORIGINAL_BUILDING_RETIRED	id=building:1269bd2158a44f9ca1b31a1fe5ae6c4d;definition=1068;anchor=(40, 2);cells=1;removed=True;owner=DestroySelf;bounded-test-preparation;trainingEligible=false
+PASS	FIXTURE_ORIGINAL_BUILDING_RETIRED	id=building:d4e1827d53ca4023b92c511bd7a076aa;definition=1037;anchor=(40, 2);cells=2;removed=True;owner=DestroySelf;bounded-test-preparation;trainingEligible=false
+PASS	FIXTURE_ORIGINAL_BUILDING_RETIRED	id=building:ad722745736a4399812930dba6e4c752;definition=1038;anchor=(41, 2);cells=1;removed=True;owner=DestroySelf;bounded-test-preparation;trainingEligible=false
+PASS	FIXTURE_ORIGINAL_BUILDING_RETIRED	id=building:0d701f141f8d46bc90c3a8598e045deb;definition=8;anchor=(42, 2);cells=1;removed=True;owner=DestroySelf;bounded-test-preparation;trainingEligible=false
+PASS	AUTHORED_ROOM	housing=True;pen=True;faultPen=True;room=6;stage=ready:bounds=33,0..42,2;room=6;escape=(43, 1)->(46, 0);layoutColumns=29;baselineUnchanged=True;reusedInteriorHallways=8;preparedOriginalBuildings=21;displacedWildlife=0;areas=40
+PASS	TRANSPORT_SUCCESS_ATOMIC_PREPARATION	settled=2/2;paused=True;action=;external=False;haul=False;work=False:False;movement=False
+PASS	TRANSPORT_SUCCESS_LAWFUL_SOURCE_PLAN	source=(46, 0);pickup=(45, 0);delivery=(34, 1);pathEnd=(34, 1);pathSteps=12;deferred=0;sourceCell=(46, 0):area=ExteriorPath:walkableArea=True:walkable=True:occupants=[]:links=[];pickupCell=(45, 0):area=DungeonInterior:walkableArea=True:walkable=True:occupants=[Building:Stair#4]:links=[(45, 1)/Stair/Stair];deliveryCell=(34, 1):area=DungeonInterior:walkableArea=True:walkable=True:occupants=[Hallway:Hallway#0]:links=[];doors=(42, 1):area=DungeonInterior:walkableArea=True:walkable=True:occupants=[Hallway:Hallway#0,Building:InteriorDoor#8]:links=[]
+PASS	TRANSPORT_SUCCESS_SOURCE	wild:9:planned=(46, 0):actual=(46, 0)
+PASS	TRANSPORT_SUCCESS_PICKUP_TO_DELIVERY_PREFLIGHT	animal=(46, 0);carrier=(38, 1);pickup=(45, 0);delivery=(34, 1);pathEnd=(34, 1);pickupSteps=8;deliverySteps=12;pathWorldDistance=24;controlledCarrierStartPlacement=False;deferred=0;pickupCell=(45, 0):area=DungeonInterior:walkableArea=True:walkable=True:occupants=[Building:Stair#4]:links=[(45, 1)/Stair/Stair];deliveryCell=(34, 1):area=DungeonInterior:walkableArea=True:walkable=True:occupants=[Hallway:Hallway#0]:links=[];doors=(42, 1):area=DungeonInterior:walkableArea=True:walkable=True:occupants=[Hallway:Hallway#0,Building:InteriorDoor#8]:links=[]
+INFO	E11_CANONICAL_CAPTURE_CLOCK	stage=prepared-before-order;clock=15.5556488;deadline=absent;interval=5;canonicalCaptureCompleted=false
+PASS	TRANSPORT_SUCCESS_STARTED	
+PASS	TRANSPORT_CAPTURE_ORDER_PARENT_RESULT_ONCE	wildlife=wild:9;before=0;after=1
+INFO	E11_CANONICAL_CAPTURE_CLOCK	stage=TRANSPORT_CAPTURE_ORDER_PARENT_RESULT_ONCE;clock=15.5556488;deadline=20.5556488;interval=5;canonicalCaptureCompleted=false
+PASS	TRANSPORT_SUCCESS_ATOMIC_PICKUP_OWNERSHIP	ordered=True;reason=;paused=True;carrier=(38, 1);approach=(38, 1);pickup=(45, 0);animal=(46, 0);action=;external=True;owner=captivity:wildlife-transport:wild:9;expectedOwner=captivity:wildlife-transport:wild:9;transport=True;state=AwaitingTransport;reservedCarrier=owner;terminalFailure=;movement=False;movementOwner=;preemption=
+INFO	E11_CANONICAL_CAPTURE_CLOCK	stage=TRANSPORT_SUCCESS_ATOMIC_PICKUP_OWNERSHIP;clock=15.5556488;deadline=20.5556488;interval=5;canonicalCaptureCompleted=false
+PASS	TRANSPORT_CARRIER_PEN_PARENT_RESULTS_ONCE	wildlife=wild:9;carry=1;penned=1;pending=0
+INFO	E11_CANONICAL_CAPTURE_CLOCK	stage=TRANSPORT_CARRIER_PEN_PARENT_RESULTS_ONCE;clock=129.668518;deadline=134.668518;interval=5;canonicalCaptureCompleted=false
+INFO	TRANSPORT_LIVE_PICKUP_PURSUIT	source=(46, 0);live=(34, 1);retargets=1;pending=0;terminalFailure=;actual-production-approach;no-immobilization-or-capture-terminal-injection
+PASS	TRANSPORT_SUCCESS_DELIVERY_CELL	exists=True;position=(34, 1);area=DungeonInterior;terrain=Dry;walkable=True;insidePenFootprint=False;layers=Hallway=[Hallway:gridId=0:destroyed=False:visitable=False:movement=False:building:building:91884e5c692c4f95ad8ac29ba6cd6c4f:Hallway@(34, 1):unity:복도:-6962]|Building=[none]|Character=[none]|WallFixture=[none]|CeilingFixture=[none]|FloorOverlay=[none]|Item=[none]|Wildlife=[WildlifeActor:gridId=-56296:destroyed=False:visitable=True:movement=False:wildlife:wild:9:cave_rat:Captured@(34, 1):unity:Wildlife_동굴쥐_wild:9:-56296]|Construction=[none]|Filth=[none]|DownedCharacter=[none]|Utility=[none]|Conveyor=[none]
+PASS	TRANSPORT_SUCCESS_DELIVERY_BLOCKING_LAYERS	building=none;construction=none;conveyor=none;character=none;downed=none
+PASS	TRANSPORT_SUCCESS_DELIVERY_WILDLIFE_REGISTRATION	cell=WildlifeActor:gridId=-56296:destroyed=False:visitable=True:movement=False:wildlife:wild:9:cave_rat:Captured@(34, 1):unity:Wildlife_동굴쥐_wild:9:-56296;expected=WildlifeActor:gridId=-56296:destroyed=False:visitable=True:movement=False:wildlife:wild:9:cave_rat:Captured@(34, 1):unity:Wildlife_동굴쥐_wild:9:-56296;registrations=1:(34, 1);gridIndexMatches=1;gridIndexExact=True;gridPosition=(34, 1);state=Captured;alive=True;worldMatches=1;worldExact=True
+PASS	TRANSPORT_SUCCESS_SOURCE_RELEASE	source=(46, 0);delivery=(34, 1);occupant=none;sameReference=False
+PASS	TRANSPORT_SUCCESS_PARENT_RELEASE	before=Wildlife:92346;after=Wildlife:92346;carrier=Leon:-54888;childOfCarrier=False
+PASS	TRANSPORT_SUCCESS_CAPTURE_STATE	matches=1;state=Penned;reservedCarrier=;wildlifeId=wild:9;expectedId=wild:9
+INFO	E11_CANONICAL_CAPTURE_CLOCK	stage=TRANSPORT_SUCCESS_CAPTURE_STATE;clock=129.668518;deadline=134.668518;interval=5;canonicalCaptureCompleted=false
+PASS	TRANSPORT_SUCCESS_LIVE_ACTOR_COLOCATION	position=(34, 1);count=1;workerCount=1;otherCount=0;actors=owner:Leon:Active:active=True:paused=True@(34, 1);worker=owner:Leon:Active:active=True:paused=True@(34, 1)
+PASS	TRANSPORT_SUCCESS_TERMINAL	state=Penned;active=False;delivery=(34, 1);stand=True;cell=True;blocking=True;wildlife=True;source=True;parent=True;capture=True;worldWildlife=True;liveActors=True;carrier=(34, 1);world=(-33.50, 3.00, 0.00);movement=None;systemMove=False;systemDestination=;systemDestinationMatches=False;movementOwner=;movementVersion=13;observation=24.519/50.584;stalled=False;secondsSinceProgress=0.362;progressSamples=40;pickupApproach=True:True:True:True;lastProgress=(34, 1):(-33.50, 3.00, 0.00);cancellationSource=;operationPreemption=;rejectedOperation=;external=False;externalOwner=;externalKind=None;externalEpoch=1;deliverySearchDeferrals=0;terminal=0->1:Completed;failure=
+INFO	E11_CANONICAL_CAPTURE_CLOCK	stage=TRANSPORT_SUCCESS_TERMINAL;clock=129.668518;deadline=134.668518;interval=5;canonicalCaptureCompleted=false
+PASS	R30_PEN_SELECTION_BINDINGS	actual wildlife popup and return-arrival consumer resolved
+PASS	R30_PEN_DEFINITION_OWNED	capacity fixture owns an isolated definition clone
+PASS	R30_PEN_REAL_CAPACITY	naturally captured occupant fills near pen; farther pen has a safe empty stand
+PASS	R30_PEN_SELECTION_SOURCE	lawful exterior source nearer the full pen
+PASS	R30_PEN_SELECTION_DISTANCE	actual spawned target is closer to the full pen
+PASS	R30_PEN_SELECTION_ELIGIBILITY	actual nonlethal damage establishes capture eligibility
+PASS	R30_PEN_UI_NEAREST_ELIGIBLE	real popup callback skips full near pen; controlled start refusal remains visible; owner unchanged
+PASS	R30_PEN_RETURN_ENTRY	actual return-arrival selection method resolved
+PASS	R30_PEN_RETURN_NEAREST_ELIGIBLE	actual return selection skips full near pen; controlled refusal returned; owner unchanged
+PASS	R30_PEN_ALL_INELIGIBLE	both consumers show no eligible destination without a capture command or owner mutation
+PASS	R30_PEN_COMMAND_RECHECK	real command rejects a destination invalidated after selection before reservation
+PASS	R30_PEN_ORIGINAL_DEFINITION_RESTORED	original definition reference and capacity retained
+PASS	TRANSPORT_RELEASE_PARENT_RESULT_ONCE	released=True;reason=;before=0;after=1;pending=0
+INFO	E11_CANONICAL_CAPTURE_CLOCK	stage=TRANSPORT_RELEASE_PARENT_RESULT_ONCE;clock=129.668518;deadline=absent;interval=5;canonicalCaptureCompleted=false
+PASS	BACKGROUND_LLM_DEFERRED_THROUGH_RUN	queued=8;running=0;requests-retained-until-normal-queue-teardown;no-response-provider;trainingEligible=false
+PASS	FIXTURE_OCCUPANTS_REMOVED	count=26;exact=True
+PASS	FIXTURE_AREA_RESTORE	count=40;exact=True
+PASS	FIXTURE_CHARACTER_IDENTITY_RESTORE	published=3;duplicates=;captive=;restoredCount=0;oldInstanceRetired=True
+PASS	FIXTURE_ORIGINAL_BUILDINGS_BASELINE_RESTORE	count=21;exact=True;mismatches=[];identity=id+definition+placement+single-world/grid-registration;actual-whole-world-restore;trainingEligible=false
+PASS	FIXTURE_WILDLIFE_V18_RESTORE	count=0;exact=True;grid=True;identity=id+species+position+grid-occupancy
+PASS	CONSOLE_WARNING_ERROR_ZERO	0/0

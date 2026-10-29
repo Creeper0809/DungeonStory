@@ -44,7 +44,8 @@ public static class GameplayUiPresentationText
         string subject = policy.mode switch
         {
             WorkerSelectionMode.SpecificCharacters => "지정 주민만",
-            WorkerSelectionMode.SpecificOrRuleSet => "지정 주민 우선",
+            WorkerSelectionMode.SpecificOrRuleSet =>
+                "지정 주민 또는 " + FormatRequirements(policy),
             WorkerSelectionMode.RuleSet => FormatRequirements(policy),
             _ => "작업 가능한 주민"
         };
@@ -134,14 +135,35 @@ public static class GameplayUiPresentationText
     private static string FormatRequirements(WorkerSelectionPolicySaveData policy)
     {
         List<string> requirements = new();
-        if (!string.IsNullOrWhiteSpace(policy.minimumSkillId))
+        List<string> skillAndCareerRequirements = new();
+        if (!string.IsNullOrWhiteSpace(policy.minimumSkillId)
+            || policy.minimumSkillExperience > 0)
         {
-            requirements.Add(
+            skillAndCareerRequirements.Add(
                 $"{ProficiencyName(policy.minimumSkillId)} {policy.minimumSkillExperience}+ XP");
         }
         if (policy.minimumCareerRank > 0)
         {
-            requirements.Add($"경력 등급 {policy.minimumCareerRank}+" );
+            skillAndCareerRequirements.Add($"경력 등급 {policy.minimumCareerRank}+");
+        }
+        if (skillAndCareerRequirements.Count > 0)
+        {
+            string skillAndCareer = string.Join(" 그리고 ", skillAndCareerRequirements);
+            bool hasTraitRequirement = policy.requiredTraitIds.Count > 0
+                || policy.excludedTraitIds.Count > 0;
+            requirements.Add(policy.matchMode == WorkerRequirementMatchMode.Any
+                    && skillAndCareerRequirements.Count > 1
+                    && hasTraitRequirement
+                ? "(" + skillAndCareer + ")"
+                : skillAndCareer);
+        }
+        foreach (string traitId in policy.requiredTraitIds)
+        {
+            requirements.Add($"특성 {traitId} 보유");
+        }
+        foreach (string traitId in policy.excludedTraitIds)
+        {
+            requirements.Add($"특성 {traitId} 없음");
         }
         if (requirements.Count == 0)
         {
@@ -149,7 +171,7 @@ public static class GameplayUiPresentationText
         }
         string joiner = policy.matchMode == WorkerRequirementMatchMode.Any
             ? " 또는 "
-            : " · ";
+            : " 그리고 ";
         return string.Join(joiner, requirements);
     }
 

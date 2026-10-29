@@ -1,0 +1,145 @@
+{
+  "schemaVersion": 1,
+  "scope": "R30-13 content identity publication review",
+  "status": "PASS",
+  "baseline": {
+    "path": "ProjectSettings/PublishedContentIdentities.json",
+    "sha256": "4f22882fadb0b9411fe81c25baff3dab688e11d72607efa05a7168d6a0cbf3fb",
+    "gitHeadSha256": "c085c95ffd9a0e222aa90d7418347e0454c6a38778fe09dc2bda8ab3aad3505e",
+    "assetCount": 3544
+  },
+  "candidate": {
+    "path": "publication-candidate.json",
+    "sha256": "5d367a3562d0545d17508c52e3697a3ca14b107efb3bbaffe8005c0766d8db25",
+    "assetCount": 3550
+  },
+  "expectedNewGuids": [
+    "74cd4ffde48f4e5cb2ab2184acc239f8",
+    "6d3f8cd0aada4c2792a165ca6e370a0b",
+    "c9042bb7429a4224851bbde4e3674775",
+    "caf5965f66ad40e9829cc0a4c7c1fd0c",
+    "a3103546ccc942e19fe2afdd7add71b1",
+    "86ddc40876dd41bfb774d58502fe38ab"
+  ],
+  "newRows": [
+    {
+      "guid": "74cd4ffde48f4e5cb2ab2184acc239f8",
+      "scriptGuid": "99c7a92f563b43a191cd66345dfc7836",
+      "typeName": "SurgicalGraftEffectDefinitionSO",
+      "fields": [
+        {
+          "path": "graftId",
+          "value": "graft:rune-deer-night-sight"
+        },
+        {
+          "path": "numericId",
+          "value": "16023043"
+        }
+      ]
+    },
+    {
+      "guid": "6d3f8cd0aada4c2792a165ca6e370a0b",
+      "scriptGuid": "99c7a92f563b43a191cd66345dfc7836",
+      "typeName": "SurgicalGraftEffectDefinitionSO",
+      "fields": [
+        {
+          "path": "graftId",
+          "value": "graft:shadow-wolf-endurance"
+        },
+        {
+          "path": "numericId",
+          "value": "353384416"
+        }
+      ]
+    },
+    {
+      "guid": "c9042bb7429a4224851bbde4e3674775",
+      "scriptGuid": "99c7a92f563b43a191cd66345dfc7836",
+      "typeName": "SurgicalGraftEffectDefinitionSO",
+      "fields": [
+        {
+          "path": "graftId",
+          "value": "graft:moss-boar-toughness"
+        },
+        {
+          "path": "numericId",
+          "value": "1298834623"
+        }
+      ]
+    },
+    {
+      "guid": "caf5965f66ad40e9829cc0a4c7c1fd0c",
+      "scriptGuid": "cb023a38f7c844b4a9a1d995b88bc1ad",
+      "typeName": "GameplayEffectDefinitionSO",
+      "fields": [
+        {
+          "path": "effectId",
+          "value": "effect:graft:rune-deer-night-sight:multiply"
+        },
+        {
+          "path": "numericId",
+          "value": "1378799996"
+        }
+      ]
+    },
+    {
+      "guid": "a3103546ccc942e19fe2afdd7add71b1",
+      "scriptGuid": "cb023a38f7c844b4a9a1d995b88bc1ad",
+      "typeName": "GameplayEffectDefinitionSO",
+      "fields": [
+        {
+          "path": "effectId",
+          "value": "effect:graft:shadow-wolf-endurance:multiply"
+        },
+        {
+          "path": "numericId",
+          "value": "1309036145"
+        }
+      ]
+    },
+    {
+      "guid": "86ddc40876dd41bfb774d58502fe38ab",
+      "scriptGuid": "cb023a38f7c844b4a9a1d995b88bc1ad",
+      "typeName": "GameplayEffectDefinitionSO",
+      "fields": [
+        {
+          "path": "effectId",
+          "value": "effect:graft:moss-boar-toughness:multiply"
+        },
+        {
+          "path": "numericId",
+          "value": "103308940"
+        }
+      ]
+    }
+  ],
+  "catalog": {
+    "guid": "ca85b9de9b508c046af6fe6dfdc302cd",
+    "addedRegistrations": [
+      {
+        "path": "@registration:definitions:6d3f8cd0aada4c2792a165ca6e370a0b",
+        "value": "6d3f8cd0aada4c2792a165ca6e370a0b"
+      },
+      {
+        "path": "@registration:definitions:74cd4ffde48f4e5cb2ab2184acc239f8",
+        "value": "74cd4ffde48f4e5cb2ab2184acc239f8"
+      },
+      {
+        "path": "@registration:definitions:86ddc40876dd41bfb774d58502fe38ab",
+        "value": "86ddc40876dd41bfb774d58502fe38ab"
+      },
+      {
+        "path": "@registration:definitions:a3103546ccc942e19fe2afdd7add71b1",
+        "value": "a3103546ccc942e19fe2afdd7add71b1"
+      },
+      {
+        "path": "@registration:definitions:c9042bb7429a4224851bbde4e3674775",
+        "value": "c9042bb7429a4224851bbde4e3674775"
+      },
+      {
+        "path": "@registration:definitions:caf5965f66ad40e9829cc0a4c7c1fd0c",
+        "value": "caf5965f66ad40e9829cc0a4c7c1fd0c"
+      }
+    ]
+  }
+}

@@ -10,6 +10,8 @@ public sealed class DungeonTitleLifetimeScope : LifetimeScope
     {
         private readonly IGameTimeScaleController timeScaleController;
         private int speed = 1;
+        private bool manualPause;
+        private int pauseRequests;
 
         public TitleGameSpeedController(
             IGameTimeScaleController timeScaleController)
@@ -17,10 +19,11 @@ public sealed class DungeonTitleLifetimeScope : LifetimeScope
             this.timeScaleController = timeScaleController
                 ?? throw new ArgumentNullException(
                     nameof(timeScaleController));
+            manualPause = timeScaleController.Scale <= 0f;
         }
 
         public int Speed => speed;
-        public bool IsPaused => timeScaleController.Scale <= 0f;
+        public bool IsPaused => manualPause || pauseRequests > 0;
 
         public void CycleSpeed()
         {
@@ -38,13 +41,28 @@ public sealed class DungeonTitleLifetimeScope : LifetimeScope
 
         public void TogglePause()
         {
-            SetPaused(!IsPaused);
+            SetPaused(!manualPause);
         }
 
         public void SetPaused(bool paused)
         {
-            timeScaleController.Scale = paused ? 0f : speed;
+            manualPause = paused;
+            ApplyTimeScale();
         }
+
+        public IDisposable AcquirePause()
+        {
+            pauseRequests++;
+            ApplyTimeScale();
+            return new GamePauseRequest(() =>
+            {
+                pauseRequests--;
+                ApplyTimeScale();
+            });
+        }
+
+        private void ApplyTimeScale() =>
+            timeScaleController.Scale = IsPaused ? 0f : speed;
     }
 
     protected override void Configure(IContainerBuilder builder)

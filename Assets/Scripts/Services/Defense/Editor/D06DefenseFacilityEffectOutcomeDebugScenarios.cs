@@ -12,6 +12,69 @@ using Object = UnityEngine.Object;
 
 public static partial class MigratedProducerCombatDefenseEntryE2EDebugScenarios
 {
+    public static void RunR30DefensePreparationFocused()
+    {
+        foreach (var test in new[] { (Speed: 1f, Level: 0), (Speed: 1.2f, Level: 0), (Speed: 1.2f, Level: 2) })
+        {
+            var clock = new R30DefenseClock();
+            using var scenario = new D06Scenario("r30-preparation", gameClock: clock,
+                projectBenefits: new R30DefensePreparationBenefits(test.Speed), cooldownSeconds: 6f);
+            scenario.SetEffects(scenario.CreateDamage(1f));
+            var initial = scenario.Runtime.CaptureState();
+            initial.facilities.Single().growth.resetSpeedLevel = test.Level;
+            scenario.Runtime.PublishRestoreState(scenario.Runtime.PrepareRestoreState(initial));
+            Require(scenario.Trigger() != null, "Defense preparation activation failed.");
+            float expected = 6f / (1f + test.Level * .1f) / test.Speed;
+            var saved = scenario.Runtime.CaptureState();
+            Require(Mathf.Abs(saved.facilities.Single().cooldownUntil - expected) < .0001f
+                && Mathf.Abs(scenario.Facility.CooldownRemaining - expected) < .0001f,
+                "Defense owner deadline and presented cooldown diverged.");
+            clock.Now = expected - .001f;
+            string before = JsonUtility.ToJson(scenario.Runtime.CaptureState());
+            int rows = scenario.Ledger.CaptureGameplayOutcomes().exactOutcomes.Count;
+            Require(!scenario.Facility.CanTrigger(DefenseTriggerTiming.OnEnter, out var failure)
+                && failure.Code == FailureCode.DefenseCooldownActive && scenario.Trigger() == null
+                && before == JsonUtility.ToJson(scenario.Runtime.CaptureState())
+                && rows == scenario.Ledger.CaptureGameplayOutcomes().exactOutcomes.Count,
+                "Early retry bypassed cooldown or changed owner/receipt state.");
+            var fresh = new DefenseFacilityRuntime(UnavailableEquipmentPhysicalItemGateway.Instance,
+                new NoopDefensePhysicalGateway(), new AlwaysReadyDefenseInputOwner(), clock,
+                new GameEventBus(), new AlwaysPoweredQuery(), new NoopDefenseFacilityNetwork(),
+                new EmptyFacilityCapabilities(), new DungeonRuntimeAggregateRootStore(),
+                new R30DefensePreparationBenefits(1f));
+            fresh.PublishRestoreState(fresh.PrepareRestoreState(
+                JsonUtility.FromJson<DefenseFacilitySaveData>(JsonUtility.ToJson(saved))));
+            Require(Mathf.Abs(fresh.CaptureState().facilities.Single().cooldownUntil - expected) < .0001f
+                && Mathf.Abs(fresh.GetSnapshot(scenario.Facility).CooldownRemaining - .001f) < .0001f,
+                "Fresh JSON restore recalculated a started cooldown using current benefits.");
+            clock.Now = expected;
+            Require(scenario.Facility.CanTrigger(DefenseTriggerTiming.OnEnter, out _)
+                && scenario.Trigger() != null && scenario.FacilityAfter.ActivationCount == 2,
+                "Defense did not accept exactly one activation at the cooldown boundary.");
+        }
+        Debug.Log("R30_DEFENSE_PREPARATION=PASS actual Trigger/readiness/UI owner timer;6->5;upgrade composition;JSON fresh owner;early rejection and retry");
+    }
+
+    internal sealed class R30DefensePreparationBenefits : IGrandProjectBenefitQuery
+    {
+        private readonly float speed;
+        internal R30DefensePreparationBenefits(float speed) { this.speed = speed; }
+        public bool IsCompleted(string projectId) => false;
+        public float GetProductionOutputMultiplier(string facilityTag) => 1f;
+        public float ContractRewardMultiplier => 1f;
+        public float DefensePreparationMultiplier => speed;
+        public int ExpeditionSupplyCapacityBonus => 0;
+    }
+
+    private sealed class R30DefenseClock : IGameClock
+    {
+        internal float Now;
+        public float Time => Now;
+        public float DeltaTime => 0f;
+        public int FrameCount => 0;
+        public bool IsPaused => false;
+    }
+
     public const string D06FocusedReportPath =
         "Artifacts/QA/d06-defense-facility-effect-focused.txt";
 
@@ -275,7 +338,9 @@ public static partial class MigratedProducerCombatDefenseEntryE2EDebugScenarios
         private readonly float originalMisfire;
 
         internal D06Scenario(string scope, bool rejectEffectCommit = false, bool hideActivationAck = false,
-            bool hideEffectAck = false, bool rejectActivation = false)
+            bool hideEffectAck = false, bool rejectActivation = false,
+            IGameClock gameClock = null, IGrandProjectBenefitQuery projectBenefits = null,
+            float? cooldownSeconds = null)
         {
             string suffix = scope + ":" + Guid.NewGuid().ToString("N");
             var josa = new KoreanJosaFormatter();
@@ -338,7 +403,7 @@ public static partial class MigratedProducerCombatDefenseEntryE2EDebugScenarios
                 grid,
                 "Assets/Resources/SO/Building/P1/P1_SpikeTrap.asset",
                 new Vector2Int(2, 0),
-                FacilityId);
+                FacilityId, cloneDefinition: true);
             facility = building.Building as DefenseFacility
                 ?? throw new InvalidOperationException(
                     "D06 authored facility is not a defense facility.");
@@ -352,12 +417,13 @@ public static partial class MigratedProducerCombatDefenseEntryE2EDebugScenarios
                 UnavailableEquipmentPhysicalItemGateway.Instance,
                 new NoopDefensePhysicalGateway(),
                 new AlwaysReadyDefenseInputOwner(),
-                new UnityGameClock(),
+                gameClock ?? new UnityGameClock(),
                 events,
                 new AlwaysPoweredQuery(),
                 new NoopDefenseFacilityNetwork(),
                 new EmptyFacilityCapabilities(),
-                new DungeonRuntimeAggregateRootStore());
+                new DungeonRuntimeAggregateRootStore(),
+                projectBenefits ?? new R30DefensePreparationBenefits(1f));
             statuses = new DefenseStatusRuntimeService(
                 new DefenseStatusRuntimeFactory());
             facility.ConstructDefenseFacilityEventBus(events, null, runtime);
@@ -365,6 +431,14 @@ public static partial class MigratedProducerCombatDefenseEntryE2EDebugScenarios
                 Publications,
                 CharacterAiEditorTestDependencies.GameCalendar,
                 target.Health);
+            if (cooldownSeconds.HasValue)
+            {
+                facility.Defense.cooldownSeconds = cooldownSeconds.Value;
+                int twoActivations = checked(facility.Defense.supplyPerActivation * 2);
+                Require(facility.Defense.supplyCapacity >= twoActivations,
+                    "Cooldown fixture cannot supply two real activations.");
+                facility.Defense.initialSupply = twoActivations;
+            }
             originalEffects = facility.Defense.effectAssets;
             originalJam = facility.Defense.baseJamChance;
             originalMisfire = facility.Defense.baseMisfireChance;

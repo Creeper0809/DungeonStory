@@ -35,19 +35,21 @@ public sealed class AbilityWildlifeCaptureTransport : MonoBehaviour
         this.port = replacement;
     }
 
-    public void StartTransport(string wildlifeId)
+    public bool TryStartTransport(string wildlifeId, out string failureReason)
     {
-        CancelCurrent(
-            reportFailure: transportExecutionActive,
-            reason: "wildlife-transport-restarted");
+        failureReason = string.Empty;
         if (port == null
             || !WildlifeCaptureTransportAbilityRules.TryNormalizeId(
                 wildlifeId,
                 out string normalizedId))
         {
-            return;
+            failureReason = "동물 운반 행동의 필수 연결이나 야생동물 ID가 없습니다.";
+            return false;
         }
 
+        CancelCurrent(
+            reportFailure: transportExecutionActive,
+            reason: "wildlife-transport-restarted");
         activeWildlifeId = normalizedId;
         transportExecutionActive = true;
         LastTerminalFailureReasonForDiagnostics = string.Empty;
@@ -59,10 +61,13 @@ public sealed class AbilityWildlifeCaptureTransport : MonoBehaviour
                 out string ownershipFailure))
         {
             Fail(ownershipFailure);
-            return;
+            failureReason = ownershipFailure;
+            return false;
         }
         Coroutine started = StartCoroutine(TransportRoutine(activeWildlifeId));
         routine = transportExecutionActive ? started : null;
+        failureReason = LastTerminalFailureReasonForDiagnostics;
+        return string.IsNullOrEmpty(failureReason);
     }
 
     public void StopForLifecycleTransition(string reason)

@@ -4,8 +4,7 @@ public sealed class ResearchTreePauseScope
 {
     private readonly IDungeonUserSettingsService settingsService;
     private readonly IGameSpeedController gameSpeedController;
-    private bool captured;
-    private bool wasPaused;
+    private IDisposable pauseRequest;
 
     public ResearchTreePauseScope(
         IDungeonUserSettingsService settingsService,
@@ -19,24 +18,18 @@ public sealed class ResearchTreePauseScope
 
     public void Capture()
     {
-        if (captured || !settingsService.Current.pauseOnResearchTree)
+        if (pauseRequest != null || !settingsService.Current.pauseOnResearchTree)
         {
             return;
         }
 
-        wasPaused = gameSpeedController.IsPaused;
-        captured = true;
-        gameSpeedController.SetPaused(true);
+        pauseRequest = gameSpeedController.AcquirePause();
     }
 
     public void Restore()
     {
-        if (!captured)
-        {
-            return;
-        }
-
-        gameSpeedController.SetPaused(wasPaused);
-        captured = false;
+        IDisposable request = pauseRequest;
+        pauseRequest = null;
+        request?.Dispose();
     }
 }

@@ -8,6 +8,51 @@ public static class WimCraftQualityEstimateDebugScenarios
 {
     public const string ReportPath = "Artifacts/QA/wim-implementation/wim-056-quality-estimate.txt";
 
+    [MenuItem("DungeonStory/QA/Presentation/Worker Policy Focused")]
+    public static void RunWorkerPolicyPresentationFromMenu()
+    {
+        Debug.Log("Worker policy presentation focused PASS: "
+            + RunWorkerPolicyPresentationFocused());
+    }
+
+    public static string RunWorkerPolicyPresentationFocused()
+    {
+        WorkerSelectionPolicySaveData anyPolicy = new()
+        {
+            mode = WorkerSelectionMode.RuleSet,
+            matchMode = WorkerRequirementMatchMode.Any,
+            sortMode = WorkerCandidateSortMode.BestExpectedQuality,
+            minimumSkillId = BuiltInCharacterProficiencyIds.Crafting.Value,
+            minimumSkillExperience = 400,
+            minimumCareerRank = 2,
+            requiredTraitIds = new System.Collections.Generic.List<string> { "trait:artisan" },
+            excludedTraitIds = new System.Collections.Generic.List<string> { "trait:injured" }
+        };
+        string anyText = GameplayUiPresentationText.WorkerPolicy(anyPolicy);
+        Require(anyText.Contains("(제작 400+ XP 그리고 경력 등급 2+)"),
+            "Any policy flattened the experience and career conjunction.");
+        Require(anyText.Contains("또는 특성 trait:artisan 보유")
+                && anyText.Contains("또는 특성 trait:injured 없음"),
+            "Any policy omitted a stored trait requirement.");
+        Require(!anyText.Contains("제작 400+ XP 또는 경력 등급 2+"),
+            "Any policy described experience or career as separate alternatives.");
+
+        WorkerSelectionPolicySaveData apprenticeOnly = new()
+        {
+            mode = WorkerSelectionMode.RuleSet,
+            minimumCareerRank = 0
+        };
+        Require(!GameplayUiPresentationText.WorkerPolicy(apprenticeOnly).Contains("경력 등급"),
+            "Apprentice rank became a worker-rule requirement.");
+
+        WorkerSelectionPolicySaveData specificOrRuleSet = anyPolicy.CloneNormalized();
+        specificOrRuleSet.mode = WorkerSelectionMode.SpecificOrRuleSet;
+        Require(GameplayUiPresentationText.WorkerPolicy(specificOrRuleSet)
+                .StartsWith("지정 주민 또는 (제작 400+ XP 그리고 경력 등급 2+)"),
+            "SpecificOrRuleSet did not explain the stored rule-set alternative.");
+        return "any-group=preserved; apprentice=not-required; specific-or-rule-set=explained";
+    }
+
     [MenuItem("DungeonStory/QA/WIM/056 Quality Estimate Focused")]
     public static void Run()
     {

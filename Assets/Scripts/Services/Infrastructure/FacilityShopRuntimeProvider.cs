@@ -12,9 +12,18 @@ public interface IFacilityShopCatalog
 public interface IFacilityShopUnlockStateService
 {
     FacilityShopUnlockState GetUnlockState();
+#if UNITY_EDITOR
+    FacilityShopUnlockState GetUnlockStateForDebug();
+#endif
 }
 
-public sealed class FacilityShopUnlockStateService : IFacilityShopUnlockStateService
+public interface IFacilityShopUnlockStateAuthority
+{
+    FacilityShopUnlockState GetOwnedUnlockState();
+}
+
+public sealed class FacilityShopUnlockStateService : IFacilityShopUnlockStateService,
+    IFacilityShopUnlockStateAuthority
 {
     private readonly DailyFacilityShopRuntime runtime;
 
@@ -32,6 +41,11 @@ public sealed class FacilityShopUnlockStateService : IFacilityShopUnlockStateSer
     {
         return runtime.UnlockState;
     }
+
+    public FacilityShopUnlockState GetOwnedUnlockState() => runtime.OwnedUnlockState;
+#if UNITY_EDITOR
+    public FacilityShopUnlockState GetUnlockStateForDebug() => runtime.UnlockStateForDebug;
+#endif
 }
 
 public sealed class DataCatalogFacilityShopCatalog :

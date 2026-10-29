@@ -2525,7 +2525,7 @@ public static partial class EnvironmentCropProductionEntryDebugScenarios
             research = researchObject.AddComponent<BlueprintResearchRuntime>();
             if (!string.IsNullOrWhiteSpace(Crop.RequiredResearchId))
             {
-                research.State.Projects.Complete(
+                research.StateForDebug.Projects.Complete(
                     new ResearchProjectId(Crop.RequiredResearchId));
             }
             Fluid = new ControlledFluid { Water = fluidWater };
@@ -2573,7 +2573,7 @@ public static partial class EnvironmentCropProductionEntryDebugScenarios
                 "The crop fixture requires a second authored crop.");
             if (!string.IsNullOrWhiteSpace(alternate.RequiredResearchId))
             {
-                research.State.Projects.Complete(
+                research.StateForDebug.Projects.Complete(
                     new ResearchProjectId(alternate.RequiredResearchId));
             }
             return alternate;
@@ -3067,7 +3067,8 @@ public static partial class EnvironmentCropProductionEntryDebugScenarios
     private sealed class ControlledResearch : IBlueprintResearchStateService
     {
         private readonly BlueprintResearchState state = new();
-        public BlueprintResearchState GetState() => state;
+        public BlueprintResearchState GetState() => state.CreateSnapshot();
+        public BlueprintResearchState GetStateForDebug() => state;
     }
 
     private sealed class FixedClock : IGameClock, IGameCalendar

@@ -6,11 +6,18 @@ using DungeonStory.Narrative.Korean;
 /// <summary>Only observers interpret canonical receipt identities and payloads.</summary>
 public sealed class SpeciesActionFactPreflight : IDungeonSavePreflightValidator, IDungeonCapturedSavePreflightValidator
 {
+    private readonly ICharacterSpeciesCatalog species;
+
+    public SpeciesActionFactPreflight(ICharacterSpeciesCatalog species)
+    {
+        this.species = species ?? throw new ArgumentNullException(nameof(species));
+    }
+
     public void Validate(DungeonGameSaveData save, DungeonGameRestoreReport report) => Validate(
         DungeonSaveSectionPayload.ReadOrNew<CharacterSpeciesRuntimeSaveData>(save, SpeciesRuntimeSaveSection.Id),
         DungeonSaveSectionPayload.ReadOrNew<GameplayOutcomeLedgerSaveData>(save, GameplayOutcomeLedgerSaveSection.Id), report);
 
-    internal static void Validate(CharacterSpeciesRuntimeSaveData source, GameplayOutcomeLedgerSaveData incoming,
+    internal void Validate(CharacterSpeciesRuntimeSaveData source, GameplayOutcomeLedgerSaveData incoming,
         DungeonGameRestoreReport report)
     {
         try
@@ -21,7 +28,9 @@ public sealed class SpeciesActionFactPreflight : IDungeonSavePreflightValidator,
             // The section separately checks authored species. Reuse owner state
             // validation here without taking a second content-state authority.
             CharacterSpeciesStateCodec.BuildRestore(source, 0f, id => source.characters
-                .FirstOrDefault(value => value != null && value.speciesDefinitionId == id.Value)?.lastIncidentId);
+                .FirstOrDefault(value => value != null && value.speciesDefinitionId == id.Value)?.lastIncidentId,
+                id => species.TryGet(id, out CharacterSpeciesSO definition)
+                    && definition.needs?.UsesChargeInsteadOfFood == true);
             if (source.pendingObservations.Count == 0) return;
             var josa = new KoreanJosaFormatter();
             var registry = new GameplayOutcomeRegistry(new IGameplayOutcomeDescriptor[]

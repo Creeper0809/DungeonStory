@@ -8,12 +8,14 @@ public static class CharacterCombatCommandLifecyclePolicy
     public static IReadOnlyList<CharacterCombatCommand> CreateActiveCommandView(
         IEnumerable<CharacterCombatCommand> commands)
     {
-        return (commands ?? Array.Empty<CharacterCombatCommand>())
+        CharacterCombatCommand[] view =
+            (commands ?? Array.Empty<CharacterCombatCommand>())
             .Where(command => command != null
                 && command.state is not CharacterCombatCommandState.Completed
                 and not CharacterCombatCommandState.Cancelled)
             .Select(command => command.Clone())
             .ToArray();
+        return ReadOnlyView.List(view);
     }
 
     public static IReadOnlyList<CharacterCombatCommand> FindCompletedRescues(

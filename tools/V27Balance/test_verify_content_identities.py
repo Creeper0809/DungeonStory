@@ -1,8 +1,11 @@
 import json
 from pathlib import Path
 import subprocess
+import sys
 import tempfile
+import types
 import unittest
+from unittest import mock
 
 import verify_content_identities as verifier
 
@@ -1705,6 +1708,142 @@ class R26IdentityEncodingTests(unittest.TestCase):
         with self.assertRaisesRegex(verifier.VerificationError, "published identity changed"):
             verifier.compare_baselines(load("FacilityEvolutionRecipeSO", "a" * 64),
                                        load("FacilityEvolutionRecipeSO", "b" * 64))
+
+
+class FormulaExecutionEvidenceTests(unittest.TestCase):
+    published_count = 7
+
+    def marker(self, count: int | None = None) -> str:
+        return (
+            "CONTENT_REFERENCE_INTEGRITY=PASS; runtimeSoTypes=12; "
+            f"publishedAssets={self.published_count if count is None else count}; complete\n"
+        )
+
+    def run_formula_evidence(
+        self,
+        effects: dict[str, object],
+        logs: dict[str, str],
+        *,
+        missing_committed_path: str | None = None,
+    ) -> list[str]:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary).resolve()
+            for relative, text in logs.items():
+                path = root / relative
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(text, encoding="utf-8")
+
+            gate = types.ModuleType("verify_change_scope")
+            gate.ROOT = root
+            gate.EVIDENCE = "Artifacts/QA/ImpactCI/verification.json"
+            gate.verify_receipt = mock.Mock()
+            gate.ledger = types.SimpleNamespace(
+                load_json_strict=mock.Mock(return_value={"checks": [effects]})
+            )
+            cat_file_paths: list[str] = []
+
+            def run_git(_: Path, command: list[str], input_bytes=None) -> bytes:
+                if command[:3] == ["git", "cat-file", "-e"]:
+                    path = command[3].split(":", 1)[1]
+                    cat_file_paths.append(path)
+                    if path == missing_committed_path:
+                        raise verifier.VerificationError("committed nested evidence is missing")
+                return b""
+
+            self.gate = gate
+            snapshot = types.SimpleNamespace(root=root, commit="head")
+            with mock.patch.dict(sys.modules, {"verify_change_scope": gate}):
+                with mock.patch.object(verifier, "_resolve_commit", return_value="head"):
+                    with mock.patch.object(verifier, "_run_git", side_effect=run_git):
+                        verifier.verify_formula_execution(snapshot, self.published_count)
+            return cat_file_paths
+
+    def assert_effect_gate_called(self) -> None:
+        self.gate.verify_receipt.assert_called_once_with({"effects"})
+
+    def test_formula_execution_accepts_the_legacy_single_effect_log(self):
+        log = "Artifacts/QA/ImpactCI/r30-effects.log"
+        summary = "Artifacts/QA/ImpactCI/r30-effects-summary.json"
+        cat_paths = self.run_formula_evidence(
+            {"group": "effects", "log": log, "summary": summary},
+            {log: self.marker()},
+        )
+        self.assert_effect_gate_called()
+        self.assertEqual(
+            ["Artifacts/QA/ImpactCI/verification.json", log, summary],
+            cat_paths,
+        )
+
+    def test_formula_execution_accepts_three_effect_parts_with_one_marker_total(self):
+        parts = []
+        logs = {}
+        expected = ["Artifacts/QA/ImpactCI/verification.json"]
+        for name, log_text in (
+            ("effects-definitions", self.marker()),
+            ("effects-recovery", "recovery completed\n"),
+            ("effects-traits", "traits completed\n"),
+        ):
+            log = f"Artifacts/QA/ImpactCI/r30-{name}.log"
+            summary = f"Artifacts/QA/ImpactCI/r30-{name}-summary.json"
+            parts.append({"group": name, "log": log, "summary": summary})
+            logs[log] = log_text
+            expected.extend((log, summary))
+        cat_paths = self.run_formula_evidence(
+            {"group": "effects", "parts": parts}, logs)
+        self.assert_effect_gate_called()
+        self.assertEqual(expected, cat_paths)
+
+    def test_formula_execution_rejects_missing_committed_effect_part_evidence(self):
+        parts = []
+        logs = {}
+        for name in ("effects-definitions", "effects-recovery", "effects-traits"):
+            log = f"Artifacts/QA/ImpactCI/r30-{name}.log"
+            summary = f"Artifacts/QA/ImpactCI/r30-{name}-summary.json"
+            parts.append({"group": name, "log": log, "summary": summary})
+            logs[log] = self.marker() if name == "effects-definitions" else "part completed\n"
+        with self.assertRaisesRegex(verifier.VerificationError, "committed nested evidence is missing"):
+            self.run_formula_evidence(
+                {"group": "effects", "parts": parts},
+                logs,
+                missing_committed_path=parts[1]["summary"],
+            )
+        self.assert_effect_gate_called()
+
+    def test_formula_execution_rejects_missing_duplicate_or_wrong_count_marker(self):
+        cases = ("missing", "duplicate", "wrong-count")
+        for fixture in ("single", "parts"):
+            for name in cases:
+                with self.subTest(fixture=fixture, name=name):
+                    if fixture == "single":
+                        log = "Artifacts/QA/ImpactCI/r30-effects.log"
+                        summary = "Artifacts/QA/ImpactCI/r30-effects-summary.json"
+                        effects = {"group": "effects", "log": log, "summary": summary}
+                        single_logs = {
+                            "missing": "no content marker\n",
+                            "duplicate": self.marker() + self.marker(),
+                            "wrong-count": self.marker(self.published_count + 1),
+                        }
+                        logs = {log: single_logs[name]}
+                    else:
+                        parts = []
+                        logs = {}
+                        for part_name in ("effects-definitions", "effects-recovery", "effects-traits"):
+                            log = f"Artifacts/QA/ImpactCI/r30-{part_name}.log"
+                            summary = f"Artifacts/QA/ImpactCI/r30-{part_name}-summary.json"
+                            parts.append({"group": part_name, "log": log, "summary": summary})
+                            logs[log] = "part completed\n"
+                        if name == "duplicate":
+                            logs[parts[0]["log"]] = self.marker()
+                            logs[parts[1]["log"]] = self.marker()
+                        elif name == "wrong-count":
+                            logs[parts[0]["log"]] = self.marker(self.published_count + 1)
+                        effects = {"group": "effects", "parts": parts}
+                    with self.assertRaisesRegex(
+                        verifier.VerificationError,
+                        "lacks the complete published identity validation",
+                    ):
+                        self.run_formula_evidence(effects, logs)
+                    self.assert_effect_gate_called()
 
 
 if __name__ == "__main__":

@@ -120,6 +120,193 @@ public static partial class ProductionEconomyDebugScenarios
         Debug.Log("V27_ZERO_INPUT_SOURCE_BILL=PASS");
     }
 
+    public static void RunR30LegacyOutputCapacityFocused()
+    {
+        ValidateLegacyOutputCapacityAuthority();
+        Debug.Log("R30 legacy output capacity authority contracts passed.");
+    }
+
+    public static void RunR30GrandProjectBenefitsFocused()
+    {
+        ValidateGrandProjectBenefitsAndSaveRoundTrip();
+        Debug.Log("R30 grand-project metadata and JSON restore contracts passed.");
+    }
+
+    private static void ValidateLegacyOutputCapacityAuthority()
+    {
+        const string itemId = "material:lead-ingot";
+        const string destinationId = "production-output:qa:legacy-capacity";
+        ProductionRecipeSO recipe =
+            ScriptableObject.CreateInstance<ProductionRecipeSO>();
+        ResourceItemDefinitionSO output =
+            ScriptableObject.CreateInstance<ResourceItemDefinitionSO>();
+        BuildingSO building = ScriptableObject.CreateInstance<BuildingSO>();
+        GameObject facilityObject =
+            new("R30 Legacy Output Capacity Facility");
+        try
+        {
+            recipe.Configure(
+                "recipe:qa:r30-legacy-capacity",
+                "R30 legacy output capacity",
+                "Verifies that the facility ability remains the capacity authority.",
+                "qa-legacy-capacity",
+                BuiltInWorkTypeIds.Craft.Value,
+                string.Empty,
+                1f,
+                Array.Empty<ItemAmountDefinition>(),
+                new[]
+                {
+                    new ProductionOutputDefinition(
+                        "output:main",
+                        ProductionOutputRole.Main,
+                        itemId,
+                        1)
+                });
+            recipe.ConfigureWorkshop(
+                "workstation:qa-legacy-capacity",
+                Array.Empty<string>(),
+                ProductionProcessKind.WorkOnly);
+            output.Configure(
+                itemId,
+                "R30 lead ingot",
+                "Legacy output capacity fixture item.",
+                StockCategory.General,
+                ResourceItemKind.Intermediate,
+                ResourceIngredientTag.None,
+                1,
+                1f,
+                100,
+                string.Empty);
+            ResourceEconomyContentCatalog catalog = new(
+                new[] { output },
+                new[] { recipe },
+                Array.Empty<CropDefinitionSO>(),
+                Array.Empty<CraftMaterialDefinitionSO>());
+
+            BuildingAbilityCollection abilities = new();
+            abilities.Add(new BuildingFacilityAbility
+            {
+                settings = CreateCraftFacilityData()
+            });
+            abilities.Add(new BuildingSemanticTagsAbility
+            {
+                tags = new[] { "qa-legacy-capacity" }
+            });
+            abilities.Add(new BuildingProductionWorkstationAbility
+            {
+                workstationTag = "workstation:qa-legacy-capacity",
+                lanePolicy = ProductionWorkstationLanePolicy
+                    .ManualWithDetachedBatchProcessors,
+                manualWorkLaneCount = 1,
+                automaticWorkLaneCount = 0
+            });
+            abilities.Add(new BuildingProductionBufferAbility
+            {
+                defaultBatchCapacity = 4,
+                physicalOutputBufferCycleCapacity = 4,
+                outputCapacities = new List<ProductionItemBufferCapacity>
+                {
+                    new() { itemId = itemId, capacity = 2 }
+                }
+            });
+            building.id = 99102;
+            building.objectName = "R30 legacy output capacity fixture";
+            building.ReplaceAbilities(abilities);
+
+            BuildableObject facility =
+                facilityObject.AddComponent<BuildableObject>();
+            facility.ConstructPersistentIdentity(new GuidPersistentIdGenerator());
+            CharacterAiEditorTestDependencies.Inject(facility);
+            facility.Initialization(building, new Vector2Int(19, 11));
+
+            FakeProductionItemGateway legacyItems = new();
+            ProductionRuntimeFixture legacyRuntime = CreateRuntime(
+                catalog,
+                legacyItems,
+                seed: 3019,
+                buildingWorld: new FixedBuildingWorldQuery(facility),
+                outputHandlers: new IProductionOutputHandler[]
+                {
+                    new BufferedExactOutputTestHandler(legacyItems, itemId)
+                });
+            ProductionOutputPlanningService planning = new(
+                catalog,
+                legacyRuntime.Bridge);
+            ProductionFacilityHandle handle =
+                legacyRuntime.Bridge.CaptureFacility(facility);
+            Require(
+                planning.ResolveCapacity(handle, itemId, 1) == 2
+                && !ProductionPreparedOutputCapabilitySelection
+                    .UsesPreparedOutputMaterializer(recipe, legacyRuntime.Bridge),
+                "Legacy capacity planning ignored the authored facility ability.");
+
+            Require(
+                planning.TryCreateReservation(
+                    recipe,
+                    handle,
+                    destinationId,
+                    new Dictionary<string, int>(StringComparer.Ordinal),
+                    alreadyReserved: false,
+                    out ProductionOutputReservationPlan accepted,
+                    out string acceptedFailure)
+                && string.IsNullOrEmpty(acceptedFailure)
+                && accepted.DestinationId == destinationId
+                && accepted.Reservations.Count == 1
+                && accepted.Reservations[itemId] == 1,
+                "Legacy capacity planning changed a normal reservation.");
+
+            Require(
+                legacyItems.SpawnBufferedOutput(
+                    itemId,
+                    1,
+                    facility.centerPos,
+                    destinationId)
+                && !planning.HasCapacity(
+                    recipe,
+                    handle,
+                    destinationId,
+                    new Dictionary<string, int>(StringComparer.Ordinal)
+                    {
+                        [itemId] = 1
+                    },
+                    alreadyReserved: false,
+                    out string reservedFailure)
+                && reservedFailure == "production-output-full:material:lead-ingot:2:2"
+                && legacyItems.SpawnBufferedOutput(
+                    itemId,
+                    1,
+                    facility.centerPos,
+                    destinationId)
+                && !planning.TryCreateReservation(
+                    recipe,
+                    handle,
+                    destinationId,
+                    new Dictionary<string, int>(StringComparer.Ordinal),
+                    alreadyReserved: false,
+                    out _,
+                    out string fullFailure)
+                && fullFailure == "production-output-full:material:lead-ingot:2:2",
+                "Legacy capacity planning lost buffered or reserved output accounting.");
+
+            ProductionRuntimeFixture preparedRuntime = CreateRuntime(
+                catalog,
+                new FakeProductionItemGateway(),
+                seed: 3020,
+                buildingWorld: new FixedBuildingWorldQuery(facility));
+            Require(
+                ProductionPreparedOutputCapabilitySelection
+                    .UsesPreparedOutputMaterializer(recipe, preparedRuntime.Bridge),
+                "Prepared output capability selection regressed while changing legacy capacity planning.");
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(facilityObject);
+            UnityEngine.Object.DestroyImmediate(building);
+            UnityEngine.Object.DestroyImmediate(output);
+            UnityEngine.Object.DestroyImmediate(recipe);
+        }
+    }
+
     private static void ValidateCanonicalProductionOutputLines()
     {
         (string AssetPath, string OutputLineId)[] migratedPreparedOutputAssets =
@@ -4270,6 +4457,11 @@ public static partial class ProductionEconomyDebugScenarios
             "regional contract sizing escaped its content bounds");
         ValidateRegionalSupplyContractSaveBoundary();
 
+        ValidateGrandProjectBenefitsAndSaveRoundTrip();
+    }
+
+    private static void ValidateGrandProjectBenefitsAndSaveRoundTrip()
+    {
         FakeProductionItemGateway items = new FakeProductionItemGateway();
         GrandProjectApplicationAdapter grandProjectAdapter =
             new GrandProjectApplicationAdapter(
@@ -4297,6 +4489,8 @@ public static partial class ProductionEconomyDebugScenarios
                 {
                     GrandProjectRuntime.DeepMiningNetworkId,
                     GrandProjectRuntime.DefenseDistrictId,
+                    GrandProjectRuntime.IndoorFarmNetworkId,
+                    GrandProjectRuntime.AlchemyPipelineId,
                     GrandProjectRuntime.ExpeditionSupplyBaseId,
                     GrandProjectRuntime.RegionalTradePostId
                 }
@@ -4308,6 +4502,21 @@ public static partial class ProductionEconomyDebugScenarios
             Mathf.Approximately(
                 runtime.GetProductionOutputMultiplier("quarry"),
                 1.25f)
+            && Mathf.Approximately(
+                runtime.GetProductionOutputMultiplier("crop-indoor"),
+                1.2f)
+            && Mathf.Approximately(
+                runtime.GetProductionOutputMultiplier("alchemy"),
+                1.15f)
+            && Mathf.Approximately(
+                runtime.GetProductionOutputMultiplier("apothecary"),
+                1.15f)
+            && Mathf.Approximately(
+                runtime.GetProductionOutputMultiplier("distillery"),
+                1.15f)
+            && Mathf.Approximately(
+                runtime.GetProductionOutputMultiplier("unsupported"),
+                1f)
             && Mathf.Approximately(runtime.ContractRewardMultiplier, 1.25f)
             && Mathf.Approximately(
                 runtime.DefensePreparationMultiplier,
@@ -4354,8 +4563,13 @@ public static partial class ProductionEconomyDebugScenarios
             && restored.IsCompleted(
                 GrandProjectRuntime.DeepMiningNetworkId)
             && restored.IsCompleted(
-                GrandProjectRuntime.RegionalTradePostId),
-            "grand-project save section did not round-trip");
+                GrandProjectRuntime.RegionalTradePostId)
+            && Mathf.Approximately(
+                restored.GetProductionOutputMultiplier("distillery"),
+                1.15f)
+            && Mathf.Approximately(restored.ContractRewardMultiplier, 1.25f)
+            && restored.ExpeditionSupplyCapacityBonus == 12,
+            "grand-project JSON save section did not round-trip metadata effects");
         object grandProjectSectionContract = section;
         Require(
             grandProjectSectionContract is IDungeonSaveSectionPreflight
@@ -4396,6 +4610,17 @@ public static partial class ProductionEconomyDebugScenarios
             restoredSection.SectionVersion,
             beforeInvalid,
             "legacy grand-project payload version was accepted");
+
+        DungeonGameRestoreReport retryReport = new DungeonGameRestoreReport();
+        restoredSection.Restore(
+            json,
+            restoredSection.SectionVersion,
+            retryReport);
+        Require(
+            retryReport.Success
+            && Mathf.Approximately(restored.ContractRewardMultiplier, 1.25f)
+            && restored.ExpeditionSupplyCapacityBonus == 12,
+            "grand-project JSON restore retry did not restore metadata effects");
     }
 
     private static void ValidateGrandProjectPhysicalTransaction()

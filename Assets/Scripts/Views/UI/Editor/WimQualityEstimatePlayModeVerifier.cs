@@ -390,7 +390,7 @@ public static class WimQualityEstimatePlayModeVerifier
                     out var capability, out _) && capability is IProductionDeterministicCraftQualityCapability));
         // Fixture-only checkpoint setup, not evidence of natural research progression.
         if (!string.IsNullOrWhiteSpace(recipe.RequiredResearchId))
-            container.Resolve<ProgressionSceneRuntimeReferences>().BlueprintResearch.State.Projects.RestoreCompleted(
+            container.Resolve<ProgressionSceneRuntimeReferences>().BlueprintResearch.StateForDebug.Projects.RestoreCompleted(
                 new ResearchProjectId(recipe.RequiredResearchId));
         var commands = container.Resolve<IProductionBillOrderCommand>();
         var query = container.Resolve<IProductionBillQuery>();

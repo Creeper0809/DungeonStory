@@ -36,6 +36,7 @@ MonoBehaviour:
   - rid: 1000
   - rid: 1001
   - rid: 1002
+  - rid: 7737212042857939771
   references:
     version: 2
     RefIds:
@@ -57,3 +58,14 @@ MonoBehaviour:
       type: {class: MarketItemFeature, ns: , asm: DungeonStory.Economy}
       data:
         saleRate: 0.59550333
+    - rid: 7737212042857939771
+      type: {class: CombatAmmunitionProfileItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        effects: 128
+        damageMultiplier: 0.65
+        penetrationMultiplier: 1
+        suppressionMultiplier: 1
+        statusPotency: 0.25
+        targetAirborneExposure: 0
+        statusTurns: 2
+        nonlethal: 0

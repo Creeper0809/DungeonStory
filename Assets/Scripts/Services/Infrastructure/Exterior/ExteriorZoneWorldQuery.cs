@@ -30,7 +30,7 @@ public sealed class ExteriorZoneWorldQuery : IExteriorZoneQuery
         get
         {
             RefreshProjection();
-            return zones;
+            return EventPayloadSnapshot.Copy(zones);
         }
     }
 

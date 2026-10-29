@@ -673,7 +673,7 @@ internal static class InfrastructureCommandOutcomeProducerPlayModeScenario
             && !research.State.Projects.IsCompleted(
                 new ResearchProjectId(recipe.RequiredResearchId)))
         {
-            research.State.Projects.RestoreCompleted(
+            research.StateForDebug.Projects.RestoreCompleted(
                 new ResearchProjectId(recipe.RequiredResearchId));
         }
 

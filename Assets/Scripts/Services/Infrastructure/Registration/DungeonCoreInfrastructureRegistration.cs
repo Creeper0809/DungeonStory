@@ -7,13 +7,16 @@ using VContainer.Unity;
 public static class DungeonCoreInfrastructureRegistration
 {
     public static void RegisterDungeonGameContentCatalog(
-        this IContainerBuilder builder)
+        this IContainerBuilder builder,
+        ProductionMassExplanationCapabilityRegistry massExplanations = null)
     {
         if (builder == null)
         {
             throw new ArgumentNullException(nameof(builder));
         }
 
+        builder.RegisterInstance(massExplanations
+            ?? ProductionMassExplanationCapabilityRegistry.CreateDefault());
         builder.Register<ResourceGameContentCatalog>(Lifetime.Singleton)
             .As<IGameContentCatalog>()
             .As<IGameContentDefinitionSource>()

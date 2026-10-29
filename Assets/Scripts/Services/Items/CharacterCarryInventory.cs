@@ -1478,7 +1478,7 @@ public sealed class CharacterCarryInventory : MonoBehaviour, ICombatAmmunitionIn
 
     public void Restore(CharacterCarryInventorySaveData snapshot)
     {
-        carriedItems.Clear();
+        List<CharacterCarriedItemSaveData> restoredItems = new();
         HashSet<string> restoredInstanceIds = new HashSet<string>(StringComparer.Ordinal);
         foreach (CharacterCarriedItemSaveData item in snapshot?.items ?? new List<CharacterCarriedItemSaveData>())
         {
@@ -1497,7 +1497,7 @@ public sealed class CharacterCarryInventory : MonoBehaviour, ICombatAmmunitionIn
                     $"Invalid or duplicate carried item-instance ID '{item.itemInstanceId}'.");
             }
 
-            carriedItems.Add(new CharacterCarriedItemSaveData
+            restoredItems.Add(new CharacterCarriedItemSaveData
             {
                 carriedStackId = item.carriedStackId?.Trim() ?? string.Empty,
                 sourceStackId = item.sourceStackId ?? string.Empty,
@@ -1516,6 +1516,8 @@ public sealed class CharacterCarryInventory : MonoBehaviour, ICombatAmmunitionIn
             });
         }
 
+        carriedItems.Clear();
+        carriedItems.AddRange(restoredItems);
         Changed?.Invoke();
     }
 

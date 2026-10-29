@@ -1,0 +1,9 @@
+{
+  "from": "r248r30",
+  "to": "r249r30",
+  "unchangedUnityInputs": 21765,
+  "changed": [
+    "Assets/Scripts/Services/Character/Editor/V27CharacterPerformanceDebugScenarios.cs"
+  ],
+  "scope": "Only G12 fixture biological contrast Human; staff/door implementation and fixtures are byte-identical. Original source labels retained."
+}

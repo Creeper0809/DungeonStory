@@ -79,6 +79,170 @@ public static class ResearchTreeDebugScenarios
         return failures.Count == 0;
     }
 
+    public static bool RunR30StateBoundaryFocused() =>
+        VerifyR30StateBoundary();
+
+    private static bool VerifyR30StateBoundary()
+    {
+        VerifyR30PublishedQueryBoundary();
+        ResearchProjectSO[] projects = LoadProjects();
+        ResourceResearchProjectCatalog catalog = new ResourceResearchProjectCatalog(projects);
+        ResearchProjectSO sanitation = projects.First(project =>
+            project.ProjectId.Value == "research:survival:sanitation");
+        ResearchProjectSO guard = projects.First(project =>
+            project.ProjectId.Value == "research:defense:watch");
+        ResearchProjectId absent = new ResearchProjectId("research:r30:absent");
+
+        using RuntimeScope scope = new RuntimeScope(catalog, new MutableArchiveQuery());
+        BlueprintResearchSaveSection section = CreateResearchSection(
+            scope.Runtime,
+            catalog,
+            CreateEmptyRestoreWorldCandidates(),
+            EmptyArchiveLifecycle.Instance);
+        string ownerBeforeSnapshotMutation = section.Capture();
+        string shopBeforeSnapshotMutation = JsonUtility.ToJson(
+            scope.ShopUnlockStateForDebug.Capture());
+
+        BlueprintResearchState runtimeSnapshot = scope.Runtime.State;
+        runtimeSnapshot.Projects.GetProgress(sanitation.ProjectId).Add(13f, sanitation);
+        runtimeSnapshot.Projects.RestoreQueueEntry(guard.ProjectId, "snapshot only");
+        runtimeSnapshot.Projects.RestoreCompleted(sanitation.ProjectId);
+        runtimeSnapshot.UnlockBuilding(900001);
+        runtimeSnapshot.UnlockRecipe("recipe:r30:snapshot");
+
+        FacilityShopUnlockState shopSnapshot = scope.Runtime.ShopUnlockState;
+        shopSnapshot.UnlockBasicPurchaseById(900002);
+        shopSnapshot.SetCurrentOfferDay(3);
+        string snapshotOfferKey = FacilityShopUnlockState.DailyOfferKey(
+            3,
+            0,
+            "r30-snapshot",
+            1);
+        shopSnapshot.RecordDailyOfferPurchase(snapshotOfferKey);
+
+        IBlueprintResearchStateService stateService = new BlueprintResearchStateService(
+            new ProgressionSceneRuntimeReferences(null, scope.Runtime, null));
+        BlueprintResearchState serviceSnapshot = stateService.GetState();
+        serviceSnapshot.Projects.GetProgress(sanitation.ProjectId).Add(13f, sanitation);
+        serviceSnapshot.UnlockBuilding(900003);
+        serviceSnapshot.UnlockRecipe("recipe:r30:service-snapshot");
+
+        bool snapshotsLeaveOwnersUntouched = string.Equals(
+                ownerBeforeSnapshotMutation,
+                section.Capture(),
+                StringComparison.Ordinal)
+            && string.Equals(
+                shopBeforeSnapshotMutation,
+                JsonUtility.ToJson(scope.ShopUnlockStateForDebug.Capture()),
+                StringComparison.Ordinal)
+            && !scope.Runtime.State.Projects.ContainsInQueue(guard.ProjectId)
+            && !scope.Runtime.State.Projects.IsCompleted(sanitation.ProjectId)
+            && !scope.Runtime.State.IsBuildingUnlocked(900001)
+            && !scope.Runtime.State.IsBuildingUnlocked(900003)
+            && !scope.Runtime.State.UnlockedRecipeIds.Contains("recipe:r30:snapshot")
+            && !scope.Runtime.State.UnlockedRecipeIds.Contains(
+                "recipe:r30:service-snapshot");
+
+        int progressCountBeforeSnapshotRead = scope.Runtime.State.Projects.ProgressById.Count;
+        ResearchProjectProgressState missingProgress = scope.Runtime.State.Projects
+            .GetProgressSnapshot(absent);
+        bool missingSnapshotDoesNotCreateProgress = missingProgress.ProjectId.Equals(absent)
+            && Mathf.Approximately(missingProgress.Progress, 0f)
+            && scope.Runtime.State.Projects.ProgressById.Count == progressCountBeforeSnapshotRead
+            && !scope.Runtime.State.Projects.ProgressById.ContainsKey(absent.Value);
+
+        FacilityShopUnlockState freshShopQuery = scope.Runtime.ShopUnlockState;
+        bool shopSnapshotIsDetached = !freshShopQuery.IsBasicPurchaseUnlocked(900002)
+            && freshShopQuery.CurrentOfferDay == 1
+            && !freshShopQuery.WasDailyOfferPurchased(snapshotOfferKey);
+
+        ResearchQueueCommandResult queued = scope.Runtime.EnqueueProject(sanitation.ProjectId);
+        scope.Runtime.StateForDebug.Projects.GetProgress(sanitation.ProjectId)
+            .Add(13f, sanitation);
+        ResearchQueueCommandResult removed = scope.Runtime.RemoveProject(sanitation.ProjectId);
+        ResearchQueueCommandResult requeued = scope.Runtime.EnqueueProject(sanitation.ProjectId);
+        bool ownerCommandsUpdateState = queued.Succeeded
+            && removed.Succeeded
+            && requeued.Succeeded
+            && scope.Runtime.State.Projects.ContainsInQueue(sanitation.ProjectId)
+            && Mathf.Approximately(
+                scope.Runtime.State.Projects.GetProgressSnapshot(sanitation.ProjectId).Progress,
+                13f);
+
+        FacilityShopUnlockState shopOwner = scope.ShopUnlockStateForDebug;
+        shopOwner.UnlockBasicPurchaseById(900002);
+        shopOwner.SetCurrentOfferDay(3);
+        shopOwner.RecordDailyOfferPurchase(snapshotOfferKey);
+        FacilityShopUnlockState freshOwnerShopQuery = scope.Runtime.ShopUnlockState;
+        bool debugOwnerUpdateIsVisible = freshOwnerShopQuery.IsBasicPurchaseUnlocked(900002)
+            && freshOwnerShopQuery.CurrentOfferDay == 3
+            && freshOwnerShopQuery.WasDailyOfferPurchased(snapshotOfferKey);
+
+        bool progressPersistence = VerifyProgressPersistence();
+        bool savedRoundTrip = VerifySaveRoundTripAndLegacyRejection();
+        bool rejectedRestore = VerifyDiscardedRestoreLeavesLiveResearchUntouched();
+        bool passed = snapshotsLeaveOwnersUntouched
+            && missingSnapshotDoesNotCreateProgress
+            && shopSnapshotIsDetached
+            && ownerCommandsUpdateState
+            && debugOwnerUpdateIsVisible
+            && progressPersistence && savedRoundTrip && rejectedRestore;
+        if (!passed)
+            throw new InvalidOperationException(
+                $"R30 research boundary: snapshots={snapshotsLeaveOwnersUntouched}; "
+                + $"pureProgress={missingSnapshotDoesNotCreateProgress}; shopCopy={shopSnapshotIsDetached}; "
+                + $"ownerCommands={ownerCommandsUpdateState}; ownerShop={debugOwnerUpdateIsVisible}; "
+                + $"progress={progressPersistence}; saved={savedRoundTrip}; rejectedRestore={rejectedRestore}; "
+                + $"queue={queued.Succeeded}:{queued.Message}/{removed.Succeeded}:{removed.Message}/{requeued.Succeeded}:{requeued.Message}");
+        return true;
+    }
+
+    private static void VerifyR30PublishedQueryBoundary()
+    {
+        var root = new DungeonRuntimeAggregateRootStore();
+        var research = new BlueprintResearchState(root);
+        var shop = new FacilityShopUnlockState(root);
+        const int original = 900051;
+        const int incoming = 900052;
+        research.UnlockBuilding(original);
+        shop.UnlockBasicPurchaseById(original);
+        void Transition(string method) =>
+            (typeof(DungeonRuntimeAggregateRootStore).GetMethod(method,
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
+                ?? throw new InvalidOperationException("Missing root lifecycle command: " + method))
+                .Invoke(root, null);
+        try
+        {
+            Transition("BeginRestoreStaging");
+            research.UnlockBuilding(incoming);
+            shop.UnlockBasicPurchaseById(incoming);
+            if (!research.IsBuildingUnlocked(incoming) || !shop.IsBasicPurchaseUnlocked(incoming)
+                || research.CreateSnapshot().IsBuildingUnlocked(incoming)
+                || shop.CreateSnapshot().IsBasicPurchaseUnlocked(incoming))
+                throw new InvalidOperationException("Public research/shop queries exposed an unpublished restore candidate.");
+            Transition("DiscardRestoreStaging");
+            if (research.IsBuildingUnlocked(incoming) || shop.IsBasicPurchaseUnlocked(incoming)
+                || !research.CreateSnapshot().IsBuildingUnlocked(original)
+                || !shop.CreateSnapshot().IsBasicPurchaseUnlocked(original)
+                || root.PublishedRestoreRevision != 0)
+                throw new InvalidOperationException("Discarded research/shop state changed the published root.");
+
+            Transition("BeginRestoreStaging");
+            research.UnlockBuilding(incoming);
+            shop.UnlockBasicPurchaseById(incoming);
+            Transition("PublishRestoreStaging");
+            if (!research.CreateSnapshot().IsBuildingUnlocked(incoming)
+                || !shop.CreateSnapshot().IsBasicPurchaseUnlocked(incoming)
+                || root.PublishedRestoreRevision != 1)
+                throw new InvalidOperationException("Published research/shop restore stayed hidden from queries.");
+            Debug.Log("R30_PUBLISHED_RESEARCH_SHOP=PASS; staged hidden/discard unchanged/published visible");
+        }
+        finally
+        {
+            if (root.IsRestoreStaging) Transition("DiscardRestoreStaging");
+        }
+    }
+
     private static bool VerifyCatalog()
     {
         ResearchProjectSO[] projects = LoadProjects();
@@ -290,16 +454,21 @@ public static class ResearchTreeDebugScenarios
             candidate.ProjectId.Value == "research:survival:sanitation");
         ResearchQueueCommandResult queued = scope.Runtime.EnqueueProject(project.ProjectId);
         ResearchProjectProgressState progress =
-            scope.Runtime.State.Projects.GetProgress(project.ProjectId);
+            scope.Runtime.StateForDebug.Projects.GetProgress(project.ProjectId);
         progress.Add(13f, project);
         ResearchQueueCommandResult removed = scope.Runtime.RemoveProject(project.ProjectId);
         ResearchQueueCommandResult requeued = scope.Runtime.EnqueueProject(project.ProjectId);
-        return queued.Succeeded
+        bool passed = queued.Succeeded
             && removed.Succeeded
             && requeued.Succeeded
             && Mathf.Approximately(
                 scope.Runtime.State.Projects.GetProgress(project.ProjectId).Progress,
                 13f);
+        if (!passed)
+            Debug.Log($"RESEARCH_PROGRESS_FAILURE queued={queued.Succeeded}:{queued.Message}; "
+                + $"removed={removed.Succeeded}:{removed.Message}; requeued={requeued.Succeeded}:{requeued.Message}; "
+                + $"progress={scope.Runtime.State.Projects.GetProgressSnapshot(project.ProjectId).Progress}");
+        return passed;
     }
 
     private static bool VerifyFacilityCapacitySuspension()
@@ -327,7 +496,7 @@ public static class ResearchTreeDebugScenarios
             out _)
             && active == project;
         ResearchProjectProgressState progress =
-            scope.Runtime.State.Projects.GetProgress(project.ProjectId);
+            scope.Runtime.StateForDebug.Projects.GetProgress(project.ProjectId);
         progress.Add(13f, project);
 
         capacity.Set(ResearchFacilityCapabilityId.Basic, 0);
@@ -356,12 +525,12 @@ public static class ResearchTreeDebugScenarios
             project.ProjectId.Value == "research:arcane:records");
 
         using RuntimeScope source = new RuntimeScope(catalog, archive);
-        source.Runtime.State.Projects.GetProgress(sanitation.ProjectId)
+        source.Runtime.StateForDebug.Projects.GetProgress(sanitation.ProjectId)
             .Restore(17f, sanitation);
-        source.Runtime.State.Projects.RestoreQueueEntry(sanitation.ProjectId, string.Empty);
-        source.Runtime.State.Projects.RestoreQueueEntry(guard.ProjectId, "검증 중단");
-        source.Runtime.State.Projects.RestoreActive(sanitation.ProjectId);
-        source.Runtime.State.Projects.RestoreCompleted(completed.ProjectId);
+        source.Runtime.StateForDebug.Projects.RestoreQueueEntry(sanitation.ProjectId, string.Empty);
+        source.Runtime.StateForDebug.Projects.RestoreQueueEntry(guard.ProjectId, "검증 중단");
+        source.Runtime.StateForDebug.Projects.RestoreActive(sanitation.ProjectId);
+        source.Runtime.StateForDebug.Projects.RestoreCompleted(completed.ProjectId);
 
         BlueprintResearchSaveSection sourceSection = new BlueprintResearchSaveSection(
             new ProgressionSceneRuntimeReferences(null, source.Runtime, null),
@@ -387,7 +556,10 @@ public static class ResearchTreeDebugScenarios
             EmptyPhysicalCandidateQuery.Instance,
             EmptyKnowledgeDestinationRuntime.Instance);
         DungeonGameRestoreReport restoreReport = new DungeonGameRestoreReport();
-        restoredSection.Restore(captured, 6, restoreReport);
+        restoredSection.Restore(
+            captured,
+            restoredSection.SectionVersion,
+            restoreReport);
         bool roundTrip = restoreReport.Success
             && Mathf.Approximately(
                 restored.Runtime.State.Projects.GetProgress(sanitation.ProjectId).Progress,
@@ -417,7 +589,7 @@ public static class ResearchTreeDebugScenarios
         {
             restoredSection.StageRestore(
                 JsonUtility.ToJson(invalid),
-                6,
+                restoredSection.SectionVersion,
                 new DungeonGameRestoreReport());
         }
         catch (InvalidOperationException)
@@ -433,11 +605,17 @@ public static class ResearchTreeDebugScenarios
             && restoredSection is IDungeonSaveSectionPreflight
             && restoredSection is IDungeonStagedSaveSection;
 
-        return roundTrip
+        bool passed = roundTrip
             && rejectedLegacy
             && rejectedInvalid
             && invalidLeftLiveStateUntouched
             && strictContracts;
+        if (!passed)
+            Debug.Log($"RESEARCH_SAVE_FAILURE roundTrip={roundTrip}; legacy={rejectedLegacy}; "
+                + $"invalid={rejectedInvalid}; untouched={invalidLeftLiveStateUntouched}; strict={strictContracts}; "
+                + $"reportSuccess={restoreReport.Success}; active={restored.Runtime.State.Projects.ActiveProjectId.Value}; "
+                + $"progress={restored.Runtime.State.Projects.GetProgressSnapshot(sanitation.ProjectId).Progress}");
+        return passed;
     }
 
     private static bool VerifyDiscardedRestoreLeavesLiveResearchUntouched()
@@ -450,9 +628,9 @@ public static class ResearchTreeDebugScenarios
             candidate.ProjectId.Value == "research:survival:sanitation");
 
         using RuntimeScope source = new RuntimeScope(catalog, archive);
-        source.Runtime.State.Projects.GetProgress(project.ProjectId)
+        source.Runtime.StateForDebug.Projects.GetProgress(project.ProjectId)
             .Restore(31f, project);
-        source.Runtime.State.Projects.RestoreQueueEntry(
+        source.Runtime.StateForDebug.Projects.RestoreQueueEntry(
             project.ProjectId,
             string.Empty);
         string candidatePayload = new BlueprintResearchSaveSection(
@@ -467,7 +645,7 @@ public static class ResearchTreeDebugScenarios
             EmptyKnowledgeDestinationRuntime.Instance).Capture();
 
         using RuntimeScope target = new RuntimeScope(catalog, archive);
-        target.Runtime.State.Projects.GetProgress(project.ProjectId)
+        target.Runtime.StateForDebug.Projects.GetProgress(project.ProjectId)
             .Restore(7f, project);
         FacilityBufferDestinationClaimRegistry targetClaims =
             new FacilityBufferDestinationClaimRegistry();
@@ -527,7 +705,7 @@ public static class ResearchTreeDebugScenarios
         DungeonGameRestoreReport report = new DungeonGameRestoreReport();
         bool restored = registry.RestoreAll(envelopes, report);
 
-        return !restored
+        bool passed = !restored
             && observer.DiscardCount == 1
             && Mathf.Approximately(observer.ObservedProgress, 7f)
             && !observer.ObservedQueued
@@ -536,6 +714,13 @@ public static class ResearchTreeDebugScenarios
                 7f)
             && !target.Runtime.State.Projects.ContainsInQueue(project.ProjectId)
             && target.RootStore.PublishedRestoreRevision == 1;
+        if (!passed)
+            Debug.Log($"RESEARCH_REJECTED_RESTORE_FAILURE restored={restored}; discard={observer.DiscardCount}; "
+                + $"observedProgress={observer.ObservedProgress}; observedQueued={observer.ObservedQueued}; "
+                + $"progress={target.Runtime.State.Projects.GetProgressSnapshot(project.ProjectId).Progress}; "
+                + $"queued={target.Runtime.State.Projects.ContainsInQueue(project.ProjectId)}; "
+                + $"revision={target.RootStore.PublishedRestoreRevision}");
+        return passed;
     }
 
     private static bool VerifyResearchArchiveDestinationClaimRestoreAndRollback()
@@ -789,6 +974,7 @@ public static class ResearchTreeDebugScenarios
     private sealed class RuntimeScope : IDisposable
     {
         private readonly GameObject root;
+        private readonly FixedUnlockStateService shopUnlockStateService = new();
 
         public RuntimeScope(
             IResearchProjectCatalog catalog,
@@ -809,7 +995,7 @@ public static class ResearchTreeDebugScenarios
             RootStore = new DungeonRuntimeAggregateRootStore();
             Runtime = root.AddComponent<BlueprintResearchRuntime>();
             Runtime.Construct(
-                new FixedUnlockStateService(),
+                shopUnlockStateService,
                 new EditorCatalog(),
                 new FacilityCandidateCacheStore(
                     CharacterAiEditorTestDependencies.WorldRegistry, frameWorkBudget: null),
@@ -831,6 +1017,8 @@ public static class ResearchTreeDebugScenarios
 
         public BlueprintResearchRuntime Runtime { get; }
         public DungeonRuntimeAggregateRootStore RootStore { get; }
+        public FacilityShopUnlockState ShopUnlockStateForDebug =>
+            shopUnlockStateService.GetUnlockStateForDebug();
 
         public void Dispose()
         {
@@ -1044,10 +1232,13 @@ public static class ResearchTreeDebugScenarios
         }
     }
 
-    private sealed class FixedUnlockStateService : IFacilityShopUnlockStateService
+    private sealed class FixedUnlockStateService : IFacilityShopUnlockStateService,
+        IFacilityShopUnlockStateAuthority
     {
         private readonly FacilityShopUnlockState state = new FacilityShopUnlockState();
-        public FacilityShopUnlockState GetUnlockState() => state;
+        public FacilityShopUnlockState GetUnlockState() => state.CreateSnapshot();
+        public FacilityShopUnlockState GetOwnedUnlockState() => state;
+        public FacilityShopUnlockState GetUnlockStateForDebug() => state;
     }
 
     private sealed class ResearchScenarioSaveSection :

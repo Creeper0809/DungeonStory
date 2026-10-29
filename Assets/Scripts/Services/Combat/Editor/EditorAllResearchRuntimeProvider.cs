@@ -38,7 +38,7 @@ public sealed class EditorAllResearchRuntimeProvider
         {
             if (project != null)
             {
-                runtime.State.Projects.Complete(project.ProjectId);
+                runtime.StateForDebug.Projects.Complete(project.ProjectId);
             }
         }
     }

@@ -109,6 +109,12 @@ public sealed class MetaProgressionState
         private set => writableState.CompletedRunCount = value;
     }
     public int AvailableCurrency => Mathf.Max(0, LifetimeEarnedCurrency - SpentCurrency);
+    public MetaProgressionState CreateSnapshot()
+    {
+        var snapshot = new MetaProgressionState(Catalog, new DungeonRuntimeAggregateRootStore());
+        snapshot.state = CloneState(state);
+        return snapshot;
+    }
     public IReadOnlyDictionary<string, int> UpgradeLevels => state.UpgradeLevelsView;
     public IReadOnlyCollection<string> PreservedRecipeIds =>
         state.PreservedRecipeIdsView;

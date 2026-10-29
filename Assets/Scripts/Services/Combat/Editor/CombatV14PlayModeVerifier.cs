@@ -50,6 +50,16 @@ public static class CombatV14PlayModeVerifier
 
     public static string StartRuntimeProbe()
     {
+        return StartRuntimeProbe(combatCommandOnly: false);
+    }
+
+    public static string StartCombatCommandProbe()
+    {
+        return StartRuntimeProbe(combatCommandOnly: true);
+    }
+
+    private static string StartRuntimeProbe(bool combatCommandOnly)
+    {
         if (!Application.isPlaying)
         {
             completed = true;
@@ -71,7 +81,8 @@ public static class CombatV14PlayModeVerifier
         completed = false;
         report = "RUNNING: V14 런타임 준비 중";
         GameObject host = new GameObject("Combat V14 PlayMode Verifier");
-        host.AddComponent<Runner>();
+        Runner runner = host.AddComponent<Runner>();
+        runner.CombatCommandOnly = combatCommandOnly;
         return report;
     }
 
@@ -91,6 +102,8 @@ public static class CombatV14PlayModeVerifier
 
     private sealed class Runner : MonoBehaviour
     {
+        public bool CombatCommandOnly { get; set; }
+
         private readonly List<string> checks = new List<string>();
         private readonly List<string> failures = new List<string>();
         private readonly List<string> capturedErrors = new List<string>();
@@ -221,6 +234,15 @@ public static class CombatV14PlayModeVerifier
             yield return WaitForRuntime();
             if (failures.Count > 0)
             {
+                Finish();
+                yield break;
+            }
+
+            if (CombatCommandOnly)
+            {
+                VerifyCombatCommandSequenceOverflow();
+                VerifyInvalidCombatCommandPreflightPreservesLiveCommands();
+                VerifyCombatCommandLateParticipantRollbackAndComplete();
                 Finish();
                 yield break;
             }
@@ -393,6 +415,23 @@ public static class CombatV14PlayModeVerifier
                     combatCommandRuntime.ActiveCommands;
                 string before = JsonUtility.ToJson(
                     combatCommandRuntime.Capture());
+                CharacterCombatCommand exposed = beforeView.Single();
+                CharacterCombatCommand expected = exposed.Clone();
+                exposed.status = "external-query-mutation";
+                exposed.revision = int.MaxValue;
+                IReadOnlyList<CharacterCombatCommand> isolatedView =
+                    combatCommandRuntime.ActiveCommands;
+                Check(
+                    SameCombatCommandView(
+                        new[] { expected },
+                        isolatedView)
+                    && string.Equals(
+                        before,
+                        JsonUtility.ToJson(combatCommandRuntime.Capture()),
+                        StringComparison.Ordinal),
+                    "COMBAT_COMMAND_QUERY_ISOLATION",
+                    $"count={isolatedView.Count}; command={expected.commandId}");
+                beforeView = isolatedView;
 
                 bool issued = combatCommandRuntime.TryIssueForceFireAtCell(
                     rescuer,
@@ -407,7 +446,7 @@ public static class CombatV14PlayModeVerifier
                         && restoreReport.Success
                         && !issued
                         && !string.IsNullOrWhiteSpace(failureReason)
-                        && ReferenceEquals(beforeView, afterView)
+                        && SameCombatCommandView(beforeView, afterView)
                         && string.Equals(before, after, StringComparison.Ordinal)
                         && combatCommandRuntime.Capture().commandSequence
                             == int.MaxValue,
@@ -714,7 +753,7 @@ public static class CombatV14PlayModeVerifier
                 !restored
                     && restoreReport != null
                     && !restoreReport.Success
-                    && ReferenceEquals(beforeView, afterView)
+                    && SameCombatCommandView(beforeView, afterView)
                     && string.Equals(before, after, StringComparison.Ordinal),
                 "COMBAT_COMMAND_PREFLIGHT_ATOMIC",
                 restored
@@ -752,7 +791,7 @@ public static class CombatV14PlayModeVerifier
             int previousRevision = aggregateRootStore.PublishedRestoreRevision;
             LateCombatParticipantFaultProbe lateParticipant = new(
                 expected,
-                () => ReferenceEquals(
+                () => SameCombatCommandView(
                     previousView,
                     combatCommandRuntime.ActiveCommands));
             DungeonSaveSectionRegistry registry = new(
@@ -804,7 +843,7 @@ public static class CombatV14PlayModeVerifier
                 && lateParticipant.CompleteCount == 0
                 && lateParticipant.ObservedExactBeforeFailure
                 && expected.MatchesExact()
-                && ReferenceEquals(
+                && SameCombatCommandView(
                     previousView,
                     combatCommandRuntime.ActiveCommands)
                 && string.Equals(
@@ -1321,7 +1360,7 @@ public static class CombatV14PlayModeVerifier
                 return;
             }
 
-            research.State.Projects.Complete(
+            research.StateForDebug.Projects.Complete(
                 new ResearchProjectId("research:equipment:bowyery"));
 
             IDungeonItemCatalogProvider itemCatalog =
@@ -1932,6 +1971,48 @@ public static class CombatV14PlayModeVerifier
                 failures.Add($"{key}: {detail}");
             }
         }
+
+        private static bool SameCombatCommandView(
+            IReadOnlyList<CharacterCombatCommand> left,
+            IReadOnlyList<CharacterCombatCommand> right)
+        {
+            CharacterCombatCommand[] leftRows =
+                (left ?? Array.Empty<CharacterCombatCommand>())
+                .OrderBy(command => command.commandId, StringComparer.Ordinal)
+                .ToArray();
+            CharacterCombatCommand[] rightRows =
+                (right ?? Array.Empty<CharacterCombatCommand>())
+                .OrderBy(command => command.commandId, StringComparer.Ordinal)
+                .ToArray();
+            return leftRows.Length == rightRows.Length
+                && leftRows.Zip(rightRows, SameCombatCommand).All(equal => equal);
+        }
+
+        private static bool SameCombatCommand(
+            CharacterCombatCommand left,
+            CharacterCombatCommand right) =>
+            left != null
+            && right != null
+            && string.Equals(left.commandId, right.commandId, StringComparison.Ordinal)
+            && string.Equals(left.actorId, right.actorId, StringComparison.Ordinal)
+            && left.type == right.type
+            && left.state == right.state
+            && string.Equals(left.targetId, right.targetId, StringComparison.Ordinal)
+            && left.targetX == right.targetX
+            && left.targetY == right.targetY
+            && left.hasTargetCell == right.hasTargetCell
+            && left.forceFire == right.forceFire
+            && string.Equals(
+                left.weaponInstanceId,
+                right.weaponInstanceId,
+                StringComparison.Ordinal)
+            && left.fireMode == right.fireMode
+            && string.Equals(left.status, right.status, StringComparison.Ordinal)
+            && Mathf.Approximately(
+                left.attackCooldownRemaining,
+                right.attackCooldownRemaining)
+            && Mathf.Approximately(left.reloadRemaining, right.reloadRemaining)
+            && left.revision == right.revision;
 
         private static CharacterActor[] GetActiveStaff()
         {

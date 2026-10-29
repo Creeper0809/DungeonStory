@@ -45,7 +45,11 @@ public class DailyFacilityShopRuntime : MonoBehaviour, IFacilityShopPersistence
             ResolveMetaProgressionReader(),
             ResolveRunVariableReader(),
             buildingCategoryCatalog);
-    public FacilityShopUnlockState UnlockState => unlockState;
+    public FacilityShopUnlockState UnlockState => unlockState.CreateSnapshot();
+    internal FacilityShopUnlockState OwnedUnlockState => unlockState;
+#if UNITY_EDITOR
+    public FacilityShopUnlockState UnlockStateForDebug => unlockState;
+#endif
     public int CurrentOfferDay => StateApplication.CurrentOfferDay;
     public string GetDailyOfferKey(int index)
     {

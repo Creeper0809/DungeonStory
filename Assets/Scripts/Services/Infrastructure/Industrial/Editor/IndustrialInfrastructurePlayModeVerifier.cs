@@ -72,6 +72,11 @@ public static class IndustrialInfrastructurePlayModeVerifier
         CreateRunner(powerFuelOnly: true);
     }
 
+    public static void RunFluidSnapshotOnly()
+    {
+        CreateRunner(powerFuelOnly: false, fluidSnapshotOnly: true);
+    }
+
     public static void RunConveyorOnly() => CreateRunner(false, conveyorOnly: true);
 
     public static void RunConveyorFiltersOnly() => CreateRunner(false, conveyorFiltersOnly: true);
@@ -98,7 +103,8 @@ public static class IndustrialInfrastructurePlayModeVerifier
         bool doorConsumersOnly = false, bool doorConsumersRemainingOnly = false,
         bool committedInvasionWarningOnly = false,
         bool temporarySupplyOnly = false,
-        bool commandOutcomesOnly = false)
+        bool commandOutcomesOnly = false,
+        bool fluidSnapshotOnly = false)
     {
         if (!Application.isPlaying)
         {
@@ -131,6 +137,7 @@ public static class IndustrialInfrastructurePlayModeVerifier
         runner.CommittedInvasionWarningOnly = committedInvasionWarningOnly;
         runner.TemporarySupplyOnly = temporarySupplyOnly;
         runner.CommandOutcomesOnly = commandOutcomesOnly;
+        runner.FluidSnapshotOnly = fluidSnapshotOnly;
     }
 }
 
@@ -149,6 +156,7 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
     public bool CommittedInvasionWarningOnly { get; set; }
     public bool TemporarySupplyOnly { get; set; }
     public bool CommandOutcomesOnly { get; set; }
+    public bool FluidSnapshotOnly { get; set; }
     private const string ConveyorDestinationPrefix = "qa:industrial-output:";
     private const string ConveyorBufferOwnerDomain =
         "qa.infrastructure.conveyor";
@@ -279,6 +287,7 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
     private IEnumerator RunVerification()
     {
             if (PowerFuelOnly
+                || FluidSnapshotOnly
                 || CommittedInvasionWarningOnly
                 || TemporarySupplyOnly
                 || CommandOutcomesOnly)
@@ -434,6 +443,11 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
             }
 
             yield return VerifyPowerAndFluids();
+            if (FluidSnapshotOnly)
+            {
+                report.Add("mode=fluid-snapshot-only");
+                yield break;
+            }
             if (LightingOnly)
                 yield return WimLightingSupplyScenario.Run(scope, FindBuilding("I15"), FindBuilding("E01"), report);
             if (PowerConnectionsOnly)
@@ -1288,6 +1302,41 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
         FluidNetworkSnapshot wasteNetwork = water.Networks.First(
             network => network.Channel == UtilityChannel.Wastewater
                 && network.Wastewater > 0f);
+        string fluidOwnerBefore = JsonUtility.ToJson(fluidPersistence.Capture());
+        string expectedCleanNetworkId = cleanNetwork.NetworkId;
+        float expectedCleanWater = cleanNetwork.CleanWater;
+        cleanNetwork.NetworkId = "external:fluid-network-query";
+        cleanNetwork.CleanWater = -999f;
+        Require(water.TryGetNetwork(
+                cleanTank,
+                out FluidNetworkSnapshot queriedCleanNetwork),
+            "상수 탱크의 유체망 재조회를 찾지 못했습니다.");
+        queriedCleanNetwork.NetworkId = "external:fluid-network-try-get";
+        queriedCleanNetwork.CleanWater = -999f;
+        Require(water.TryGetNetwork(
+                cleanTank,
+                out FluidNetworkSnapshot queriedAgain)
+            && string.Equals(
+                queriedAgain.NetworkId,
+                expectedCleanNetworkId,
+                StringComparison.Ordinal)
+            && Mathf.Approximately(
+                queriedAgain.CleanWater,
+                expectedCleanWater)
+            && water.Networks.Any(network =>
+                string.Equals(
+                    network.NetworkId,
+                    expectedCleanNetworkId,
+                    StringComparison.Ordinal)
+                && Mathf.Approximately(
+                    network.CleanWater,
+                    expectedCleanWater))
+            && string.Equals(
+                fluidOwnerBefore,
+                JsonUtility.ToJson(fluidPersistence.Capture()),
+                StringComparison.Ordinal),
+            "외부 유체망 조회 변경이 후속 조회 또는 소유 상태에 남았습니다.");
+        report.Add("fluidQueryIsolation=networks-and-try-get");
         report.Add(
             $"power={poweredNetwork.ProductionPerSecond:0.##}/"
             + $"{poweredNetwork.DemandPerSecond:0.##}");
