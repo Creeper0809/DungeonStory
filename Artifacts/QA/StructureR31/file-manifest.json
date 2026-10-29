@@ -287,5 +287,6 @@
     }
   ],
   "reportPath": "docs/dev/code-structure-review-main-r31-20261029.md",
-  "reportSha256": "a2fa39298f31ed211d3664e2e4b83f8b68a714e5708172457ea47ac1ef0e36e0"
+  "reportSha256": "5b6489739faa1e651c79b1f70d6bdf2c597719580e4a06742ff2d2fee01ce48e",
+  "reportHashMeaning": "Git-normalized UTF-8 LF bytes; preserved bundle file hashes are raw bytes"
 }
