@@ -192,6 +192,91 @@ public static class RoomEnvironmentDebugScenarios
             && room.IsUsable;
     }
 
+    public static void RunR31EnvironmentCacheContracts()
+    {
+        using ScenarioWorld world = ScenarioWorld.Create();
+        MutableR31Field field = new();
+        RoomEnvironmentEvaluator actual = world.CreateEvaluator(field);
+        R31CountingEvaluator evaluator = new(actual);
+        FacilityCandidateCacheStore facilities = new(
+            CharacterAiEditorTestDependencies.WorldRegistry, frameWorkBudget: null);
+        RoomEnvironmentQuery query = new(new RoomLayoutCache(), evaluator, facilities,
+            worldFilthQuery: null, environmentalField: field);
+        Require(query.TryGetSnapshot(world.MainFixture, out RoomEnvironmentSnapshot first),
+            "R31 room cache did not create its first snapshot.");
+        int gridVersion = world.Grid.version;
+        int facilityVersion = facilities.DynamicStateVersion;
+        Require(query.TryGetSnapshot(world.MainFixture, out RoomEnvironmentSnapshot same)
+            && ReferenceEquals(first, same) && evaluator.Calls == 1,
+            "Stable room inputs did not reuse the current snapshot.");
+
+        field.Change(31f, 42f, 17f);
+        Require(world.Grid.version == gridVersion
+            && facilities.DynamicStateVersion == facilityVersion,
+            "The room cache counterexample changed an unrelated revision.");
+        Require(query.TryGetSnapshot(world.MainFixture, out RoomEnvironmentSnapshot changed)
+            && evaluator.Calls == 2
+            && !ReferenceEquals(first, changed)
+            && Mathf.Approximately(changed.TemperatureC, 31f)
+            && Mathf.Approximately(changed.Ventilation, 42f)
+            && Mathf.Approximately(changed.Lighting, 17f)
+            && Mathf.Approximately(first.TemperatureC, 22f),
+            "Room query retained old physical fields or changed a previously returned snapshot.");
+
+        field.Change(26f, 83f, 61f);
+        evaluator.RejectNext = true;
+        bool rejected = false;
+        try { query.TryGetSnapshot(world.MainFixture, out _); }
+        catch (InvalidOperationException error) when (error.Message == "r31-room-evaluation-rejected")
+        { rejected = true; }
+        Require(rejected, "Room evaluation failure was hidden.");
+        Require(query.TryGetSnapshot(world.MainFixture, out RoomEnvironmentSnapshot retried)
+            && evaluator.Calls == 4
+            && Mathf.Approximately(retried.TemperatureC, 26f)
+            && Mathf.Approximately(retried.Ventilation, 83f),
+            "A failed room evaluation published its key and prevented a fresh retry.");
+    }
+
+    private sealed class R31CountingEvaluator : IRoomEnvironmentEvaluator
+    {
+        private readonly IRoomEnvironmentEvaluator actual;
+        internal R31CountingEvaluator(IRoomEnvironmentEvaluator actual) => this.actual = actual;
+        internal int Calls { get; private set; }
+        internal bool RejectNext { get; set; }
+        public RoomEnvironmentSnapshot Evaluate(Grid grid, RoomInstance room)
+        {
+            Calls++;
+            if (RejectNext)
+            {
+                RejectNext = false;
+                throw new InvalidOperationException("r31-room-evaluation-rejected");
+            }
+            return actual.Evaluate(grid, room);
+        }
+    }
+
+    private sealed class MutableR31Field : IEnvironmentalFieldQuery
+    {
+        private EnvironmentalCellSnapshot current = new(Vector2Int.zero, 22f, 100f, 80f);
+        public int Version { get; private set; }
+        public bool IsInitialized => true;
+        internal void Change(float temperature, float air, float light)
+        {
+            current = new EnvironmentalCellSnapshot(Vector2Int.zero, temperature, air, light);
+            Version++;
+        }
+        public bool TryGetCell(Vector2Int position, out EnvironmentalCellSnapshot snapshot)
+        { snapshot = current; return true; }
+        public bool TryGetAverage(IReadOnlyList<Vector2Int> positions, out EnvironmentalCellSnapshot snapshot)
+        { snapshot = current; return positions != null && positions.Count > 0; }
+        public float GetFoodSpoilageMultiplier(Vector2Int position) =>
+            throw new NotSupportedException("R31 room fixture does not query food spoilage.");
+        public bool IsOrganPreservationSafe(Vector2Int position) =>
+            throw new NotSupportedException("R31 room fixture does not query organ preservation.");
+        public bool TryGetTargetTemperature(Vector2Int position, out float temperature)
+        { temperature = 0f; return false; }
+    }
+
     private static bool VerifyEnvironmentQueryWorkMultiplier()
     {
         using ScenarioWorld world = ScenarioWorld.Create();
@@ -199,7 +284,8 @@ public static class RoomEnvironmentDebugScenarios
         RoomEnvironmentQuery query = new RoomEnvironmentQuery(
             new RoomLayoutCache(),
             world.CreateEvaluator(),
-            facilityCache, worldFilthQuery: null);
+            facilityCache, worldFilthQuery: null,
+            environmentalField: world.EnvironmentalField);
 
         Require(query.TryGetSnapshot(world.MainFixture, out RoomEnvironmentSnapshot baseline),
             "Room environment query did not resolve the main fixture room.");
@@ -275,6 +361,7 @@ public static class RoomEnvironmentDebugScenarios
 
         public Grid Grid { get; }
         public TestRecordProvider Records { get; }
+        public IEnvironmentalFieldQuery EnvironmentalField => NoEnvironmentalFieldQuery.Instance;
         public BuildableObject MainFixture { get; private set; }
         public BuildableObject RightWall { get; private set; }
 
@@ -298,8 +385,12 @@ public static class RoomEnvironmentDebugScenarios
 
         public RoomEnvironmentEvaluator CreateEvaluator()
         {
-            return new RoomEnvironmentEvaluator(new TestSettingsProvider(settings), Records, worldFilthQuery: null, survivalFoodRuntime: null, environmentalField: NoEnvironmentalFieldQuery.Instance);
+            return CreateEvaluator(EnvironmentalField);
         }
+
+        public RoomEnvironmentEvaluator CreateEvaluator(IEnvironmentalFieldQuery field) =>
+            new(new TestSettingsProvider(settings), Records, worldFilthQuery: null,
+                survivalFoodRuntime: null, environmentalField: field);
 
         public RoomInstance GetMainRoom()
         {

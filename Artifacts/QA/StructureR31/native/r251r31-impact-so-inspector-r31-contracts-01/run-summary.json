@@ -1,0 +1,8 @@
+{
+  "exit_code": 1,
+  "seconds": 160,
+  "stop_reason": null,
+  "source_label": "r251r31",
+  "compiler_error_count": 15,
+  "source_drift": []
+}

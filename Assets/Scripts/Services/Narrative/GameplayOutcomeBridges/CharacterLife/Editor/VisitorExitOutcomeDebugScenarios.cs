@@ -571,6 +571,11 @@ public static class VisitorExitOutcomeDebugScenarios
         public WorldCharacterProfile AcquireVisitor(
             CharacterSO characterData,
             IEnumerable<string> unavailableProfileIds = null) => null;
+        public bool TryCancelVisitorAcquisition(string persistentId, out string failureReason)
+        {
+            failureReason = "visitor-exit-fixture-visitor-acquisition-unsupported";
+            return false;
+        }
         public bool TryCreateRecruitCandidate(
             out WorldCharacterProfile profile,
             out CharacterSO sourceData)

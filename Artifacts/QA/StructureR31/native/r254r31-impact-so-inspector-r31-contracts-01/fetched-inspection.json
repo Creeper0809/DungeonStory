@@ -1,0 +1,96 @@
+{
+  "label": "r254r31-impact-so-inspector-r31-contracts-01",
+  "source": {
+    "phase": "repair-project-verified",
+    "label": "r254r31",
+    "file_count": 21772,
+    "removed": [],
+    "drift": []
+  },
+  "busy": false,
+  "status.json": {
+    "phase": "finished",
+    "report": {
+      "exit_code": 0,
+      "seconds": 290,
+      "stop_reason": null,
+      "source_label": "r254r31",
+      "compiler_error_count": 0,
+      "source_drift": []
+    },
+    "updated_at_utc": "2026-10-29T13:46:09.425834+00:00"
+  },
+  "run-summary.json": {
+    "exit_code": 0,
+    "seconds": 290,
+    "stop_reason": null,
+    "source_label": "r254r31",
+    "compiler_error_count": 0,
+    "source_drift": []
+  },
+  "isolated-display.json": {
+    "display": ":90",
+    "privateExecutable": "/home/vulpo/codex-unity-validation-20261021/private-gui/usr/bin/Xvfb",
+    "authenticated": true,
+    "tcpDisabled": true,
+    "windowProbe": true,
+    "terminal": true,
+    "mode": "batchmode with graphics",
+    "persistenceRoot": "/home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Artifacts/QA/r254r31-impact-so-inspector-r31-contracts-01/persistent-data",
+    "pid": 1537278,
+    "arguments": [
+      "/home/vulpo/codex-unity-validation-20261021/private-gui/usr/bin/Xvfb",
+      ":90",
+      "-screen",
+      "0",
+      "1920x1080x24",
+      "-nolisten",
+      "tcp",
+      "-auth",
+      "/home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Artifacts/QA/r254r31-impact-so-inspector-r31-contracts-01/inspector.xauthority",
+      "-noreset"
+    ]
+  },
+  "owned-process-cleanup.json": {
+    "pid": 1537312,
+    "exitCode": 0,
+    "actions": [],
+    "terminal": true
+  },
+  "logBytes": 82689,
+  "diagnostics": [
+    "- Loaded All Assemblies, in  0.839 seconds",
+    "AssetDatabase: script compilation time: 137.388364s",
+    "- Loaded All Assemblies, in  3.697 seconds",
+    "R31_STEP=PASS; name=visitor-acquisition; seconds=23.556",
+    "R31_STEP=PASS; name=population-query-regression; seconds=12.944",
+    "R31_STEP=PASS; name=production-capacity; seconds=0.059",
+    "R31_STEP=PASS; name=research-selection; seconds=0.36",
+    "R31_REPAIR_SELECTION=PASS; boundary=controlled presenter and DTO JSON round trip",
+    "R31_STEP=PASS; name=repair-selection; seconds=0.045",
+    "R31_STEP=PASS; name=haul-cache; seconds=59.853",
+    "R31_STEP=PASS; name=room-cache; seconds=0.055",
+    "R31_CONTRACTS=PASS"
+  ],
+  "memAvailable": [
+    "MemAvailable:    8543076 kB"
+  ],
+  "reports": [
+    "r31-repair-selection.txt",
+    "r31-contracts.txt",
+    "r31-population-query-regression.txt",
+    "r31-haul-cache.txt",
+    "r31-visitor-acquisition.txt",
+    "headless-editor-bootstrap.json",
+    "r31-research-selection.txt",
+    "owned-process-cleanup.json",
+    "status.json",
+    "command.txt",
+    "r31-room-cache.txt",
+    "r31-production-capacity.txt",
+    "run-summary.json",
+    "diagnostics.redacted.txt",
+    "xdpyinfo.txt",
+    "isolated-display.json"
+  ]
+}

@@ -9462,6 +9462,91 @@ public static class CharacterPopulationDebugScenarios
         return errors.Count == 0;
     }
 
+    public static void RunR31VisitorAcquisitionContracts()
+    {
+        string Capture(CharacterPopulationService service) => JsonUtility.ToJson(
+            new DungeonCharacterWorldSaveData { populationProfiles = service.CaptureProfiles() });
+        using PopulationFixture source = new();
+        WorldCharacterProfile acquired = source.Service.AcquireVisitor(source.Customers[0]);
+        Require(acquired != null, "R31 visitor acquisition did not produce a ready profile.");
+        string id = acquired.persistentId;
+        int visitCount = acquired.visitCount;
+        string beforeCopyMutation = Capture(source.Service);
+        acquired.isVisiting = false;
+        acquired.settlementStanding = CharacterSettlementStanding.Resident;
+        acquired.growth.displayName = "r31-detached-result";
+        Require(beforeCopyMutation == Capture(source.Service),
+            "Acquisition result still exposes the population owner row.");
+
+        Require(source.Service.TryCancelVisitorAcquisition(id, out string failure), failure);
+        WorldCharacterProfile canceled = source.Service.Profiles.Single(value => value.persistentId == id);
+        Require(!canceled.isVisiting && !canceled.isStaff
+            && canceled.settlementStanding == CharacterSettlementStanding.PreparedCandidate
+            && canceled.visitCount == visitCount,
+            "Cancel did not restore prepared standing without counting a visit.");
+        string canceledJson = Capture(source.Service);
+        Require(source.Service.GetStanding(id) == CharacterSettlementStanding.PreparedCandidate,
+            "Standing query changed the canceled visitor's meaning.");
+        source.Service.GetSettlementPopulation();
+        Require(source.Service.TryCancelVisitorAcquisition(id, out failure), failure);
+        Require(canceledJson == Capture(source.Service),
+            "Standing queries or repeated cancellation changed population state.");
+
+        using PopulationFixture restored = new();
+        List<WorldCharacterProfile> restoredRows =
+            DungeonSaveJson.Deserialize<DungeonCharacterWorldSaveData>(canceledJson).populationProfiles;
+        restored.Service.RestoreProfiles(restoredRows);
+        Require(canceledJson == Capture(restored.Service),
+            "Canceled population did not round-trip through JSON into a fresh owner.");
+        string[] unavailable = restored.Service.Profiles
+            .Where(value => value.persistentId != id)
+            .Select(value => value.persistentId).ToArray();
+        WorldCharacterProfile retry = restored.Service.AcquireVisitor(
+            restored.Customers[0], unavailable);
+        Require(retry != null && retry.persistentId == id,
+            "The canceled identity was not eligible for acquisition retry.");
+
+        GameObject actorObject = new("R31 Visitor Retry Actor");
+        try
+        {
+            CharacterActor actor = CreatePopulationActor(actorObject, restored.Customers[0], id);
+            retry.level = 99;
+            retry.growth.displayName = "r31-untrusted-binding-input";
+            restored.Service.BindActor(retry, actor);
+            Require(restored.Service.TryGetProfile(actor, out WorldCharacterProfile bound)
+                && bound.isVisiting && bound.persistentId == id
+                && bound.level != 99
+                && bound.growth.displayName != "r31-untrusted-binding-input",
+                "Binding did not resolve the canonical population owner by ID.");
+            string boundJson = Capture(restored.Service);
+            Require(!restored.Service.TryCancelVisitorAcquisition(id, out failure)
+                && failure == "visitor-acquisition-already-bound"
+                && boundJson == Capture(restored.Service),
+                "Cancel accepted an already-bound actor or partially changed it.");
+            restored.Service.ReleaseVisitor(actor);
+            WorldCharacterProfile released = restored.Service.Profiles.Single(value => value.persistentId == id);
+            Require(!released.isVisiting && released.visitCount == visitCount + 1,
+                "A completed visit no longer advances exactly once after an acquisition retry.");
+        }
+        finally { UnityEngine.Object.DestroyImmediate(actorObject); }
+
+        List<WorldCharacterProfile> legacyRows =
+            DungeonSaveJson.Deserialize<DungeonCharacterWorldSaveData>(canceledJson).populationProfiles;
+        legacyRows.Single(value => value.persistentId == id).settlementStanding =
+            CharacterSettlementStanding.Visitor;
+        restored.Service.RestoreProfiles(legacyRows);
+        WorldCharacterProfile legacy = restored.Service.Profiles.Single(value => value.persistentId == id);
+        Require(!legacy.isVisiting
+            && legacy.settlementStanding == CharacterSettlementStanding.PreparedCandidate
+            && legacy.visitCount == visitCount,
+            "Legacy canceled-visitor flags were resurrected or counted as a completed visit.");
+        string legacyNormalized = Capture(restored.Service);
+        Require(!restored.Service.TryCancelVisitorAcquisition("r31-missing-visitor", out failure)
+            && failure == "visitor-acquisition-profile-missing"
+            && legacyNormalized == Capture(restored.Service),
+            "Unknown cancellation did not reject without mutation.");
+    }
+
     private static bool VerifyR30PopulationQueryIsolation()
     {
         using PopulationFixture source = new PopulationFixture();

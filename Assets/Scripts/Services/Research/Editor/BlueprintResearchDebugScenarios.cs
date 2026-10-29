@@ -11,6 +11,98 @@ public static class BlueprintResearchDebugScenarios
     private const int ResearchScenarioAbsoluteDay = 137;
     private const int ResearchScenarioHour = 9;
 
+    public static void RunR31LeapSelectionContracts()
+    {
+        using ResearchScenarioWorld world = new();
+        BlueprintResearchRuntime runtime = world.CreateResearchRuntime();
+        CharacterActor[] candidates = new[]
+        {
+            world.CreateCharacter("Species_Vampire", "Trait_Researcher", "character:r31:research:a"),
+            world.CreateCharacter("Species_Vampire", "Trait_Researcher", "character:r31:research:b")
+        };
+        foreach (CharacterActor actor in candidates)
+            actor.Progression.ApplyPreparedIdentity(actor.Identity.DisplayName,
+                "debug:r31-research", new[] { 302 }, CharacterPotentialGrade.Ordinary,
+                generationSeed: 990101, autoChooseDrafts: false);
+        candidates = candidates.OrderBy(actor => actor.Identity.PersistentId, StringComparer.Ordinal).ToArray();
+        R31StructureRemediationBatch.Require(candidates[0].Identity.PersistentId
+            != candidates[1].Identity.PersistentId, "R31 researchers require distinct owner IDs.");
+        ResearchProjectSO project = runtime.ProjectCatalog.Projects
+            .OrderBy(value => value.ProjectId.Value, StringComparer.Ordinal)
+            .First(value => runtime.GetNodeState(value, out _) == ResearchNodeState.Available);
+        ResearchQueueCommandResult queued = runtime.EnqueueProject(project.ProjectId);
+        R31StructureRemediationBatch.Require(queued.Succeeded, queued.Message);
+
+        CharacterIdentityStateStore store = new();
+        void BindTraits(CharacterIdentityStateStore owner) => runtime.ConstructFounderTraitRuntime(
+            new ExtremeTraitRuntime(owner), new FixedRunSeedProvider(ResearchScenarioAbsoluteDay),
+            CharacterAiEditorTestDependencies.GameClock,
+            new EditorFixedGameCalendar(ResearchScenarioAbsoluteDay, ResearchScenarioHour),
+            new CharacterIdentityEventPublisher(new DungeonStory.Foundation.GameEventBus()));
+        BindTraits(store);
+        GameObject windowObject = new("R31 Research Selection Window");
+        windowObject.SetActive(false);
+        try
+        {
+            ResearchTreeWindow window = windowObject.AddComponent<ResearchTreeWindow>();
+            typeof(ResearchTreeWindow).GetField("runtime", BindingFlags.Instance | BindingFlags.NonPublic)
+                .SetValue(window, runtime);
+            ICharacterWorldQuery worldQuery = R31StructureRemediationBatch.StrictProxy<ICharacterWorldQuery>(
+                (method, args) => method.Name == "get_Characters" ? candidates
+                    : throw new InvalidOperationException("Unexpected R31 researcher query: " + method.Name));
+            typeof(ResearchTreeWindow).GetField("characterWorld", BindingFlags.Instance | BindingFlags.NonPublic)
+                .SetValue(window, worldQuery);
+            MethodInfo resolve = typeof(ResearchTreeWindow).GetMethod(
+                "ResolveForbiddenLeapResearcher", BindingFlags.Instance | BindingFlags.NonPublic);
+            CharacterActor Select() => (CharacterActor)resolve.Invoke(window, null);
+            string initialGrowth = JsonUtility.ToJson(candidates[0].Progression.GrowthState);
+            string initialResearch = Newtonsoft.Json.JsonConvert.SerializeObject(runtime.State);
+            R31StructureRemediationBatch.Require(Select() == candidates[0]
+                && Select() == candidates[0]
+                && store.Capture().Count == 0
+                && initialGrowth == JsonUtility.ToJson(candidates[0].Progression.GrowthState)
+                && initialResearch == Newtonsoft.Json.JsonConvert.SerializeObject(runtime.State),
+                "Research eligibility query initialized or changed an authority state.");
+            R31StructureRemediationBatch.Require(runtime.TryForbiddenResearchLeap(
+                candidates[0], out _, out string failure), failure);
+            R31StructureRemediationBatch.Require(!runtime.State.Projects.IsCompleted(project.ProjectId)
+                && Select() == candidates[1],
+                "UI did not skip the researcher whose project attempt was already committed.");
+            long sequence = runtime.State.OutcomeSequence;
+            R31StructureRemediationBatch.Require(!runtime.TryForbiddenResearchLeap(
+                    candidates[0], out _, out _)
+                && runtime.State.OutcomeSequence == sequence,
+                "The owner duplicate-attempt guard was weakened.");
+
+            CharacterNarrativeWorldSaveData saved = new() { identityStates = store.Capture().ToList() };
+            CharacterNarrativeWorldSaveData restored = DungeonSaveJson.Deserialize<CharacterNarrativeWorldSaveData>(
+                JsonUtility.ToJson(saved));
+            CharacterIdentityStateStore fresh = new();
+            fresh.Restore(restored.identityStates, candidates[0].Progression.ResolveSelectedTraits());
+            BindTraits(fresh);
+            R31StructureRemediationBatch.Require(Select() == candidates[1],
+                "Fresh identity-state JSON restore made the UI select the used researcher again.");
+            R31StructureRemediationBatch.Require(runtime.TryForbiddenResearchLeap(
+                    candidates[1], out _, out failure) && Select() == null,
+                "The second researcher could not commit once or all-used eligibility was wrong: " + failure);
+
+            GameObject unpreparedObject = new("R31 Unprepared Researcher");
+            unpreparedObject.SetActive(false);
+            try
+            {
+                CharacterActor unprepared = unpreparedObject.AddComponent<CharacterActor>();
+                CharacterAiEditorTestDependencies.Inject(unpreparedObject);
+                unprepared.EnsureRuntimeState();
+                string before = JsonUtility.ToJson(unprepared.Progression.GrowthState);
+                R31StructureRemediationBatch.Require(!runtime.CanUseForbiddenResearchLeap(unprepared)
+                    && before == JsonUtility.ToJson(unprepared.Progression.GrowthState),
+                    "Eligibility query initialized an unprepared character.");
+            }
+            finally { Object.DestroyImmediate(unpreparedObject); }
+        }
+        finally { Object.DestroyImmediate(windowObject); }
+    }
+
     [MenuItem("DungeonStory/Debug/Research/Run P1 Blueprint Research Scenarios")]
     public static void RunFromMenu()
     {
@@ -706,7 +798,8 @@ public static class BlueprintResearchDebugScenarios
             return building;
         }
 
-        public CharacterActor CreateCharacter(string speciesAssetName, string traitAssetName)
+        public CharacterActor CreateCharacter(
+            string speciesAssetName, string traitAssetName, string persistentId = null)
         {
             GameObject obj = new GameObject($"Blueprint Research Character {speciesAssetName} {traitAssetName}");
             objects.Add(obj);
@@ -725,6 +818,8 @@ public static class BlueprintResearchDebugScenarios
                 CharacterAiEditorTestDependencies.Inject(obj);
             }
             CharacterAwakeMethod?.Invoke(character, null);
+            if (persistentId != null)
+                character.Identity.SetPersistentId(persistentId);
 
             CharacterSpeciesSO requestedSpecies = AssetDatabase.LoadAssetAtPath<CharacterSpeciesSO>(
                 $"Assets/Resources/SO/Character/Species/{speciesAssetName}.asset");
@@ -743,6 +838,7 @@ public static class BlueprintResearchDebugScenarios
                     $"Assets/Resources/SO/Character/Traits/{traitAssetName}.asset")
             }.Where((trait) => trait != null).ToArray();
             data.defaultWorkPriorities = WorkPriorityProfile.CreateDefault();
+            character.Initialization(data);
             character.Progression.ApplyPreparedIdentity(
                 data.characterName,
                 "debug:blueprint-research",
@@ -750,7 +846,6 @@ public static class BlueprintResearchDebugScenarios
                 CharacterPotentialGrade.Ordinary,
                 generationSeed: 990101,
                 autoChooseDrafts: false);
-            character.Initialization(data);
             character.stats[CharacterCondition.SLEEP] = 100f;
             character.stats[CharacterCondition.MOOD] = 100f;
             return character;

@@ -1,0 +1,6 @@
+{
+  "command": "python -X utf8 -m unittest discover -s tools/V27Balance -p test_*.py",
+  "result": "PASS",
+  "tests": 111,
+  "seconds": 80.993
+}

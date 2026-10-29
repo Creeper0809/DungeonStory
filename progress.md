@@ -1,3 +1,38 @@
+## R31 통합용 증거 마감 - 2026-10-29
+
+현재 ImpactCI 영수증 db07d8f44266967a59f85fb993e8fb53d5a6b135f42abb75878644896509df45는 r254의 같은 source/config5그룹과 effects3part 전체의 현재 입력/정상 종료/콘솔/원문 SHA를 검증해 생성했다. 이전 R30 영수증은 r30-verification.json에 보존했다. StructureR31에 최초3전체FAIL과 현행 표적PASS 원문, 실제29개 Unity 변경의 raw SHA, 항목별 수정/한계를 연결했다. 감사 원본SHA0a0a9368과 기존 QA636개를 보존했고 감사 source링크97개는 원래 main1d28d006에 고정했다. 코드 배치 인덱스는 한 번 재생성했으며 내용/링크/최신성 failure0이다. Git 통합 직전 상태이고 최종 head/main CI는 GitHub 결과를 따른다.
+
+## R31 실행 검증 마감 - 2026-10-29
+
+r254 source de6736651e5202a94fdb39731091a1abab146d98c1df338eb912f3c3340b0919/config34b001122604ea12bc1ab9a80352635f598d2e89c8c1dc789d4fd1c9f6be603d에서 표적290초와 기존 CI core330/character220/world260/crop210/effects-traits200/definitions1020/recovery980초가 모두 whole PASS다. 각 exit0/CS0/stop없음/전체21772입력 drift0과 Unity/display/compiler terminal을 확인했다. 공식 월드2088881바이트/건물138/인물3/원정1/침입1 JSON 왕복, 후속 처리/방어 활성화/침입 rollback retry/warnings0도 PASS다. Python111개/80.993초와 analyzer DSB001~008은 PASS이며 검사 기준과 기존 scenario 본문은 바꾸지 않았다. Source/Unity 창을 닫고 실행 증거 결합과 인덱스 갱신을 진행한다. 이 기록은 Git 통합 직전이며 PR/main CI는 GitHub 결과를 따른다.
+
+## R31 현재 영향 CI 중간 결과 - 2026-10-29
+
+같은 r254 source de673665/config34b00112에서 core330초, character220초, world260초, crop210초가 각각 whole PASS/exit0/CS0/drift0으로 종료했다. core는 생산 완료 응답 유실 전후 JSON 새 owner/중복 방지, 환경 복원과 기술 재시도를 포함한다. 실제 world는 JSON2088881바이트/건물138/인물3/원정1/침입1, knowledge continuation/방어 활성화/침입 rollback retry와 warnings0 PASS다. 매 실행의 owned Unity/display/compiler terminal을 확인했다. effects-traits/definitions/recovery는 진행 또는 대기이며 현재 전체 CI는 아직 미완료다. 동일한 기존 scenario 본문/메모리/포커스/timeout/console-zero 기준을 유지한다.
+
+## R31 현재 소스 표적 검증 - 2026-10-29
+
+r254 source de6736651e5202a94fdb39731091a1abab146d98c1df338eb912f3c3340b0919의 native290초/exit0/CS0/console0/입력21772 drift0을 확인했다. 방문객 생성 취소/소유 원본 분리/실제 저장 처리/새 소유자 복원/재입장/바인딩 거절/구형 입력/방문 횟수, 기존 인구 조회 회귀, 실제 WS03 용량 owner/UI 동일 판정, 사용한 연구자 제외/읽기 불변/JSON 복원/중복 시도 거절, 수리 예약 제외/DTO JSON, 하중과 능력 변경/질량 실패 재시도/운반 DTO 복원, 환경 필드 변경/실패 후 캐시 재계산7개가 모두 PASS다. 통제 native fixture이며 자연 UI 플레이 또는 전체 월드 복원 PASS를 대신하지 않는다. 해당 실제 월드 검증은 기존 영향 CI에서 이어간다. 원문은 외부 structure-remediation-r31/r254r31-impact-so-inspector-r31-contracts-01에 있다. 이전3실행은 각각 전체FAIL로 보존했다.
+
+## R31 구현 및 첫 컴파일 - 2026-10-29
+
+R31-01~06의 생산 코드와 표적 native 검증을 동결했다. Python CI111개/80.993초와 analyzer DSB001~008은 PASS다. CUHA r251은21772입력/변경29개/full SHA drift0으로 전송했다. 첫 Unity는160초/exit1, 검증 코드의 함수 소유 클래스2개와 기존 API 호출3개에서 컴파일 실패했다(반복 출력 포함 CS15). 게임 실행 PASS는 아니다. 실제 owner Unity/display 정상 종료와 해당 compiler terminal, lock free를 확인하고 검증 연결만 교정했다. r252로 현재 소스 컴파일과 실행을 다시 검증한다. 증거는 외부 structure-remediation-r31/r251r31-impact-so-inspector-r31-contracts-01에 보존했다.
+
+r252 CS0/150초/전체FAIL은 상위 임시 scene 생성 거절이었다. 중복 scope를 제거한 r253 CS0/240초/전체FAIL에서 실제 운반 캐시60.568초, 방 캐시0.069초와 기존 인구 조회18.692초는 PASS했다. 나머지는 fixture 초기화/주입/ID와 원시 JsonConvert의 컬렉션 초기값 재사용 경계에서 실패했다. 실제 저장의 JsonUtility 생성 + DungeonSaveJson Replace 읽기와 같은 경로로 비교하고 준비 순서를 교정했다. 미준비 연구 자격 조회는 초기화된 특성 확인 전 health 조회도 하지 않도록 순서를 보완했다. 과거 부분 PASS는 새 source 전체 PASS로 사용하지 않는다. 모든 실패 원문과 종료/해제 증거를 보존했다.
+
+
+## R31 확장 구조 조사 2026-10-29
+
+기존2건에서 멈추지 않고 Runtime2,986개 목록/구문/원본 SHA, 현재 계측과 기본 어셈블리 Runtime2,201개 의존 그래프, asmdef47개 선언 그래프를 작성했다. Views175개 탐색과47파일 관련 경계 대조, 공개 반환 패턴30개 전부 최소 분류, 구독/캐시/static 선별을 통합해 보고서를 수정 대상6건과 보류12건으로 확장했다. 그 외 후보를 전부 안전으로 판정하거나 모든 함수 의미검토 완료로 표현하지 않았다.
+
+검증 결과: main/HEAD1d28d006와 tree 일치, 분기0/0, Runtime SHA drift0, 소스 링크97개/인용54파일/외부 근거10개 유효, 게임 tracked 입력 변경과 untracked 입력 추가0, 예상 밖 tracked 변경0, 문서 중간 점/끝 공백0, git diff --check 통과. 기존 미추적 QA636개를 보존했다. 기록: C:/Users/vulpo/Documents/Codex/2026-10-29/structure-audit-r31/expanded/verification.json. Unity와 실제 저장/복원/재시도는 미실시, source/asset/index와 검사 기준 무변경, commit/push도 하지 않았다.
+
+## R31 초기 추가 구조 조사 2026-10-29
+
+main1d28d006에서 보고서2건과 보류6건을 작성했다. 정적 원본 대조만 수행했으며 게임 소스/에셋/설정/테스트/인덱스 변경과 Unity 실행, 새 Goal, commit/push는 하지 않았다. 기존 QA와 원본 Documents 변경을 보존했다.
+
+초기 근거와 링크/입력 검증: C:/Users/vulpo/Documents/Codex/2026-10-29/structure-audit-r31/initial-two-findings-verification.json. 당시 main/HEAD/tree 일치와 분기0/0, 소스 링크49개/인용 파일27개 유효, 게임 입력 변경0, 미추적 게임 입력0, 예상 밖 tracked 변경0, 신규 중간 점/끝 공백0, git diff --check 통과를 확인했다. 기존 미추적 QA636개를 보존했다. Unity 컴파일과 실제 저장/복원/재시도는 미실시이며 앞으로의 수정 검증과 구별한다.
+
 ## R27 S01~S11 수정과 최종 검증 2026-10-27
 
 게시 ID CI의 최종 실물 대조도 PASS했다. main21b381a66 대비 에셋3544/보호 필드12501개를 확인했고 공식9개는 같은 커밋의 입력과 현재 source/config에 묶인 Unity 증거를 검증했다. 보호 기준을 완화하지 않았으며 수정한 것은 Python 검사기와 해당 반례다. 게임 입력은 r199 그대로다.

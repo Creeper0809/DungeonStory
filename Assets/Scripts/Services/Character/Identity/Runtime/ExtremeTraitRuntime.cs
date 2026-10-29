@@ -50,6 +50,9 @@ public sealed class ExtremeTraitRuntime :
     public void EndLastStand(CharacterActor actor, string encounterId, float elapsedSeconds)
         => lastStand.EndLastStand(actor, encounterId, elapsedSeconds);
 
+    public bool CanUseForbiddenResearchLeap(CharacterActor actor, string projectId)
+        => researchLeap.CanUseForbiddenResearchLeap(actor, projectId);
+
     [GameplayInternalOnly(
         "Research jointly commits the prepared trait attempt, progress and outcome.",
         "BlueprintResearchOutcomeTransaction")]

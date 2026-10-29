@@ -1,0 +1,10 @@
+R31_STEP=FAIL; name=visitor-acquisition; error=System.InvalidOperationException: Canceled population did not round-trip through JSON into a fresh owner.
+R31_STEP=PASS; name=population-query-regression; seconds=18.692
+R31_STEP=FAIL; name=production-capacity; error=System.InvalidOperationException: BuildableObject on ':r31-production-workstation' requires IBuildingFacilityStateChangePort, but it was not injected. Create the object through the DungeonRuntimeLifetimeScope or inject it explicitly in tests.
+R31_STEP=FAIL; name=research-selection; error=System.Collections.Generic.KeyNotFoundException: No authored anatomy profile for species ''.
+R31_STEP=FAIL; name=repair-selection; error=System.ArgumentException: A valid CharacterId is required.
+R31_STEP=PASS; name=haul-cache; seconds=60.568
+R31_STEP=PASS; name=room-cache; seconds=0.069
+InvalidOperationException: Canceled population did not round-trip through JSON into a fresh owner.
+Rethrow as InvalidOperationException: visitor-acquisition
+Rethrow as AggregateException: R31 targeted contracts failed. (visitor-acquisition) (production-capacity) (research-selection) (repair-selection)

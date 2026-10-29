@@ -1,0 +1,5 @@
+result=PASS
+source=de6736651e5202a94fdb39731091a1abab146d98c1df338eb912f3c3340b0919
+steps=7
+consoleIssues=0
+boundary=controlled native; world restore verified separately

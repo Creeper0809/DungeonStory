@@ -251,6 +251,10 @@ public sealed class CharacterSummaryCombatPresenter
         }
 
         CharacterCombatLoadoutProfile profile = equipmentRuntime.GetActiveProfileSnapshot(characterId);
+        IReadOnlyList<CombatEquipmentRepairOrder> repairOrders = maintenanceRuntime.Orders;
+        HashSet<string> orderedEquipmentIds = new HashSet<string>(
+            repairOrders.Select(order => order.equipmentInstanceId),
+            StringComparer.Ordinal);
         IEnumerable<string> candidateIds = (profile?.armorInstanceIds ?? new List<string>())
             .Concat(string.IsNullOrWhiteSpace(profile?.shieldInstanceId)
                 ? Array.Empty<string>()
@@ -258,6 +262,7 @@ public sealed class CharacterSummaryCombatPresenter
         CombatEquipmentInstance candidate = candidateIds
             .Where(id => !string.IsNullOrWhiteSpace(id))
             .Distinct(StringComparer.Ordinal)
+            .Where(id => !orderedEquipmentIds.Contains(id))
             .Select(id => equipmentRuntime.TryGetInstance(id, out CombatEquipmentInstance instance)
                 ? instance
                 : null)

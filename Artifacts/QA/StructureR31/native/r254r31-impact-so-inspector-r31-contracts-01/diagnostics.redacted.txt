@@ -1,0 +1,9 @@
+R31_STEP=PASS; name=visitor-acquisition; seconds=23.556
+R31_STEP=PASS; name=population-query-regression; seconds=12.944
+R31_STEP=PASS; name=production-capacity; seconds=0.059
+R31_STEP=PASS; name=research-selection; seconds=0.36
+R31_REPAIR_SELECTION=PASS; boundary=controlled presenter and DTO JSON round trip
+R31_STEP=PASS; name=repair-selection; seconds=0.045
+R31_STEP=PASS; name=haul-cache; seconds=59.853
+R31_STEP=PASS; name=room-cache; seconds=0.055
+R31_CONTRACTS=PASS

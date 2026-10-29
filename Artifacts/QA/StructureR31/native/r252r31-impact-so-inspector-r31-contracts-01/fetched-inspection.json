@@ -1,0 +1,80 @@
+{
+  "label": "r252r31-impact-so-inspector-r31-contracts-01",
+  "source": {
+    "phase": "repair-project-verified",
+    "label": "r252r31",
+    "file_count": 21772,
+    "removed": [],
+    "drift": []
+  },
+  "busy": false,
+  "status.json": {
+    "phase": "finished",
+    "report": {
+      "exit_code": 1,
+      "seconds": 150,
+      "stop_reason": null,
+      "source_label": "r252r31",
+      "compiler_error_count": 0,
+      "source_drift": []
+    },
+    "updated_at_utc": "2026-10-29T13:28:28.038229+00:00"
+  },
+  "run-summary.json": {
+    "exit_code": 1,
+    "seconds": 150,
+    "stop_reason": null,
+    "source_label": "r252r31",
+    "compiler_error_count": 0,
+    "source_drift": []
+  },
+  "isolated-display.json": {
+    "display": ":90",
+    "privateExecutable": "/home/vulpo/codex-unity-validation-20261021/private-gui/usr/bin/Xvfb",
+    "authenticated": true,
+    "tcpDisabled": true,
+    "windowProbe": true,
+    "terminal": true,
+    "mode": "batchmode with graphics",
+    "persistenceRoot": "/home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Artifacts/QA/r252r31-impact-so-inspector-r31-contracts-01/persistent-data",
+    "pid": 1350885,
+    "arguments": [
+      "/home/vulpo/codex-unity-validation-20261021/private-gui/usr/bin/Xvfb",
+      ":90",
+      "-screen",
+      "0",
+      "1920x1080x24",
+      "-nolisten",
+      "tcp",
+      "-auth",
+      "/home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Artifacts/QA/r252r31-impact-so-inspector-r31-contracts-01/inspector.xauthority",
+      "-noreset"
+    ]
+  },
+  "owned-process-cleanup.json": {
+    "pid": 1350920,
+    "exitCode": 1,
+    "actions": [],
+    "terminal": true
+  },
+  "logBytes": 68310,
+  "diagnostics": [
+    "- Loaded All Assemblies, in  0.846 seconds",
+    "AssetDatabase: script compilation time: 90.167325s",
+    "- Loaded All Assemblies, in  3.669 seconds",
+    "InvalidOperationException: Cannot create a new scene additively with an untitled scene unsaved."
+  ],
+  "memAvailable": [
+    "MemAvailable:    7905212 kB"
+  ],
+  "reports": [
+    "headless-editor-bootstrap.json",
+    "owned-process-cleanup.json",
+    "status.json",
+    "command.txt",
+    "run-summary.json",
+    "diagnostics.redacted.txt",
+    "xdpyinfo.txt",
+    "isolated-display.json"
+  ]
+}

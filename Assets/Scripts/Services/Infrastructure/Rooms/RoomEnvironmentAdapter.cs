@@ -229,6 +229,7 @@ public sealed class RoomEnvironmentQuery :
         public int GridVersion = -1;
         public int FacilityStateVersion = -1;
         public int FilthVersion = -1;
+        public int EnvironmentalFieldVersion = -1;
         public RoomEnvironmentSnapshot Snapshot;
     }
 
@@ -238,6 +239,7 @@ public sealed class RoomEnvironmentQuery :
     private readonly IRoomEnvironmentEvaluator evaluator;
     private readonly IFacilityCandidateCache facilityCandidateCache;
     private readonly IWorldFilthQuery worldFilthQuery;
+    private readonly IEnvironmentalFieldQuery environmentalField;
     private readonly Dictionary<RoomInstance, CachedSnapshot> cacheByRoom =
         new Dictionary<RoomInstance, CachedSnapshot>();
 
@@ -245,7 +247,8 @@ public sealed class RoomEnvironmentQuery :
         IRoomLayoutCache roomLayoutCache,
         IRoomEnvironmentEvaluator evaluator,
         IFacilityCandidateCache facilityCandidateCache,
-        IWorldFilthQuery worldFilthQuery)
+        IWorldFilthQuery worldFilthQuery,
+        IEnvironmentalFieldQuery environmentalField)
     {
         this.roomLayoutCache = roomLayoutCache
             ?? throw new ArgumentNullException(nameof(roomLayoutCache));
@@ -254,6 +257,8 @@ public sealed class RoomEnvironmentQuery :
         this.facilityCandidateCache = facilityCandidateCache
             ?? throw new ArgumentNullException(nameof(facilityCandidateCache));
         this.worldFilthQuery = worldFilthQuery;
+        this.environmentalField = environmentalField
+            ?? throw new ArgumentNullException(nameof(environmentalField));
     }
 
     public bool TryGetSnapshot(BuildableObject facility, out RoomEnvironmentSnapshot snapshot)
@@ -298,18 +303,23 @@ public sealed class RoomEnvironmentQuery :
         int gridVersion = facility.Grid.version;
         int stateVersion = facilityCandidateCache.DynamicStateVersion;
         int filthVersion = worldFilthQuery?.StateVersion ?? 0;
+        int environmentalFieldVersion = environmentalField.Version;
         if (cache.Snapshot == null
             || cache.GridVersion != gridVersion
             || cache.FacilityStateVersion != stateVersion
-            || cache.FilthVersion != filthVersion)
+            || cache.FilthVersion != filthVersion
+            || cache.EnvironmentalFieldVersion != environmentalFieldVersion)
         {
+            RoomEnvironmentSnapshot evaluated;
+            using (EvaluateMarker.Auto())
+            {
+                evaluated = evaluator.Evaluate(facility.Grid, room);
+            }
             cache.GridVersion = gridVersion;
             cache.FacilityStateVersion = stateVersion;
             cache.FilthVersion = filthVersion;
-            using (EvaluateMarker.Auto())
-            {
-                cache.Snapshot = evaluator.Evaluate(facility.Grid, room);
-            }
+            cache.EnvironmentalFieldVersion = environmentalFieldVersion;
+            cache.Snapshot = evaluated;
         }
 
         snapshot = cache.Snapshot;

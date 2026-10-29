@@ -1,0 +1,91 @@
+{
+  "label": "r251r31-impact-so-inspector-r31-contracts-01",
+  "source": {
+    "phase": "repair-project-verified",
+    "label": "r251r31",
+    "file_count": 21772,
+    "removed": [],
+    "drift": []
+  },
+  "busy": false,
+  "status.json": {
+    "phase": "finished",
+    "report": {
+      "exit_code": 1,
+      "seconds": 160,
+      "stop_reason": null,
+      "source_label": "r251r31",
+      "compiler_error_count": 15,
+      "source_drift": []
+    },
+    "updated_at_utc": "2026-10-29T13:23:35.927880+00:00"
+  },
+  "run-summary.json": {
+    "exit_code": 1,
+    "seconds": 160,
+    "stop_reason": null,
+    "source_label": "r251r31",
+    "compiler_error_count": 15,
+    "source_drift": []
+  },
+  "isolated-display.json": {
+    "display": ":90",
+    "privateExecutable": "/home/vulpo/codex-unity-validation-20261021/private-gui/usr/bin/Xvfb",
+    "authenticated": true,
+    "tcpDisabled": true,
+    "windowProbe": true,
+    "terminal": true,
+    "mode": "batchmode with graphics",
+    "persistenceRoot": "/home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Artifacts/QA/r251r31-impact-so-inspector-r31-contracts-01/persistent-data",
+    "pid": 1293651,
+    "arguments": [
+      "/home/vulpo/codex-unity-validation-20261021/private-gui/usr/bin/Xvfb",
+      ":90",
+      "-screen",
+      "0",
+      "1920x1080x24",
+      "-nolisten",
+      "tcp",
+      "-auth",
+      "/home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Artifacts/QA/r251r31-impact-so-inspector-r31-contracts-01/inspector.xauthority",
+      "-noreset"
+    ]
+  },
+  "owned-process-cleanup.json": {
+    "pid": 1293711,
+    "exitCode": 1,
+    "actions": [],
+    "terminal": true
+  },
+  "logBytes": 269822,
+  "diagnostics": [
+    "Assets/Editor/R31StructureRemediationBatch.cs(34,56): error CS0117: 'CharacterProgressionDebugScenarios' does not contain a definition for 'RunR30PopulationQueryFocused'",
+    "Assets/Scripts/Services/Research/Editor/BlueprintResearchDebugScenarios.cs(32,37): error CS7036: There is no argument given that corresponds to the required formal parameter 'blocker' of 'BlueprintResearchRuntime.GetNodeState(ResearchProjectSO, out string)'",
+    "Assets/Scripts/Services/Rooms/Editor/RoomEnvironmentDebugScenarios.cs(260,53): error CS7036: There is no argument given that corresponds to the required formal parameter 'lightLevel' of 'EnvironmentalCellSnapshot.EnvironmentalCellSnapshot(Vector2Int, float, float, float)'",
+    "Assets/Scripts/Services/Rooms/Editor/RoomEnvironmentDebugScenarios.cs(265,27): error CS7036: There is no argument given that corresponds to the required formal parameter 'lightLevel' of 'EnvironmentalCellSnapshot.EnvironmentalCellSnapshot(Vector2Int, float, float, float)'",
+    "Assets/Editor/R31StructureRemediationBatch.cs(32,76): error CS0117: 'CharacterProgressionDebugScenarios' does not contain a definition for 'RunR31VisitorAcquisitionContracts'",
+    "Assets/Editor/R31StructureRemediationBatch.cs(34,56): error CS0117: 'CharacterProgressionDebugScenarios' does not contain a definition for 'RunR30PopulationQueryFocused'",
+    "Assets/Scripts/Services/Research/Editor/BlueprintResearchDebugScenarios.cs(32,37): error CS7036: There is no argument given that corresponds to the required formal parameter 'blocker' of 'BlueprintResearchRuntime.GetNodeState(ResearchProjectSO, out string)'",
+    "Assets/Scripts/Services/Rooms/Editor/RoomEnvironmentDebugScenarios.cs(260,53): error CS7036: There is no argument given that corresponds to the required formal parameter 'lightLevel' of 'EnvironmentalCellSnapshot.EnvironmentalCellSnapshot(Vector2Int, float, float, float)'",
+    "Assets/Scripts/Services/Rooms/Editor/RoomEnvironmentDebugScenarios.cs(265,27): error CS7036: There is no argument given that corresponds to the required formal parameter 'lightLevel' of 'EnvironmentalCellSnapshot.EnvironmentalCellSnapshot(Vector2Int, float, float, float)'",
+    "Assets/Editor/R31StructureRemediationBatch.cs(32,76): error CS0117: 'CharacterProgressionDebugScenarios' does not contain a definition for 'RunR31VisitorAcquisitionContracts'",
+    "Assets/Editor/R31StructureRemediationBatch.cs(34,56): error CS0117: 'CharacterProgressionDebugScenarios' does not contain a definition for 'RunR30PopulationQueryFocused'",
+    "Assets/Scripts/Services/Research/Editor/BlueprintResearchDebugScenarios.cs(32,37): error CS7036: There is no argument given that corresponds to the required formal parameter 'blocker' of 'BlueprintResearchRuntime.GetNodeState(ResearchProjectSO, out string)'",
+    "Assets/Scripts/Services/Rooms/Editor/RoomEnvironmentDebugScenarios.cs(260,53): error CS7036: There is no argument given that corresponds to the required formal parameter 'lightLevel' of 'EnvironmentalCellSnapshot.EnvironmentalCellSnapshot(Vector2Int, float, float, float)'",
+    "Assets/Scripts/Services/Rooms/Editor/RoomEnvironmentDebugScenarios.cs(265,27): error CS7036: There is no argument given that corresponds to the required formal parameter 'lightLevel' of 'EnvironmentalCellSnapshot.EnvironmentalCellSnapshot(Vector2Int, float, float, float)'",
+    "AssetDatabase: script compilation time: 142.501468s"
+  ],
+  "memAvailable": [
+    "MemAvailable:    6038964 kB"
+  ],
+  "reports": [
+    "headless-editor-bootstrap.json",
+    "owned-process-cleanup.json",
+    "status.json",
+    "command.txt",
+    "run-summary.json",
+    "diagnostics.redacted.txt",
+    "xdpyinfo.txt",
+    "isolated-display.json"
+  ]
+}

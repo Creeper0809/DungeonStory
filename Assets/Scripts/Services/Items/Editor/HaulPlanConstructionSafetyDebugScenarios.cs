@@ -1008,6 +1008,117 @@ public static class HaulPlanConstructionSafetyDebugScenarios
         }
     }
 
+    public static void RunR31AvailabilityCacheContracts()
+    {
+        string occupiedJson;
+        string emptyJson;
+        using (ScenarioRuntime scenario = ScenarioRuntime.Create(lightStockWeight: 1f))
+        {
+            Require(scenario.Items.SpawnItemAt(LumberItemId, 4, new Vector2Int(2, 1),
+                    WorldItemStackState.Loose, string.Empty, out int spawned) && spawned == 4,
+                "R31 haul fixture could not create its exact source stock.");
+            Require(scenario.Items.HasAvailableHaulJob(scenario.Actor),
+                "R31 haul fixture did not have a reachable initial plan.");
+            int haulVersion = scenario.Items.HaulJobVersion;
+            int warehouseVersion = scenario.WorldRegistry.WarehouseVersion;
+            int traversalVersion = scenario.Grid.TraversalVersion;
+            long claims = scenario.DestinationClaims.Revision;
+            emptyJson = JsonUtility.ToJson(scenario.Carry.Capture());
+            float unitKg = ExactItemMassGrams(scenario, LumberItemId) / 4000f;
+            int occupiedQuantity = Mathf.CeilToInt(
+                scenario.Carry.GetMaxAllowedWeight(new TestHaulingSettings(1.5f)) / unitKg) + 1;
+            // 운반 DTO만 복원하여 물품 저장소와 지형 revision을 고정한다.
+            scenario.Carry.Restore(new CharacterCarryInventorySaveData { items = new()
+            {
+                new() { itemId = LumberItemId, quantity = occupiedQuantity }
+            }});
+            occupiedJson = JsonUtility.ToJson(scenario.Carry.Capture());
+            Require(!scenario.Items.HasAvailableHaulJob(scenario.Actor),
+                "A previously available plan ignored restored carry weight.");
+            scenario.Carry.Restore(JsonUtility.FromJson<CharacterCarryInventorySaveData>(emptyJson));
+            Require(scenario.Items.HasAvailableHaulJob(scenario.Actor),
+                "Clearing restored carry weight did not restore haul availability.");
+
+            var performanceField = typeof(CharacterStats).GetField("performance",
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+            ICharacterPerformanceQuery original = (ICharacterPerformanceQuery)performanceField.GetValue(scenario.Actor.Stats);
+            R31CarryPerformance performance = new(original);
+            performanceField.SetValue(scenario.Actor.Stats, performance);
+            performance.Unavailable = true;
+            Require(!scenario.Items.HasAvailableHaulJob(scenario.Actor),
+                "A required functional-capacity loss reused a positive haul cache.");
+
+            WorldItemHaulPlanningService planner = (WorldItemHaulPlanningService)scenario.Reachability;
+            bool rejectMass = true;
+            IPhysicalItemMassQuery mass = R31StructureRemediationBatch.StrictProxy<IPhysicalItemMassQuery>(
+                (method, args) =>
+                {
+                    if (method.Name == "get_AuthorityRevision") return scenario.MassQuery.AuthorityRevision + 1;
+                    if (method.Name == "GetStackUnitMass" && rejectMass)
+                    {
+                        rejectMass = false;
+                        throw new InvalidOperationException("r31-haul-mass-rejected");
+                    }
+                    return method.Invoke(scenario.MassQuery, args);
+                });
+            typeof(WorldItemHaulPlanningService).GetField("massQuery",
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
+                .SetValue(planner, mass);
+            performance.Unavailable = false;
+            bool rejected = false;
+            try { scenario.Items.HasAvailableHaulJob(scenario.Actor); }
+            catch (InvalidOperationException error) when (error.Message == "r31-haul-mass-rejected")
+            { rejected = true; }
+            Require(rejected && !rejectMass, "R31 haul calculation failure was not observed.");
+            Require(scenario.Items.HasAvailableHaulJob(scenario.Actor),
+                "Failed haul calculation published a new key with its old false value.");
+            Require(scenario.Items.HaulJobVersion == haulVersion
+                && scenario.WorldRegistry.WarehouseVersion == warehouseVersion
+                && scenario.Grid.TraversalVersion == traversalVersion
+                && scenario.DestinationClaims.Revision == claims,
+                "The haul cache counterexample changed an unrelated key.");
+        }
+        using (ScenarioRuntime fresh = ScenarioRuntime.Create(lightStockWeight: 1f))
+        {
+            Require(fresh.Items.SpawnItemAt(LumberItemId, 4, new Vector2Int(2, 1),
+                    WorldItemStackState.Loose, string.Empty, out int spawned) && spawned == 4,
+                "Fresh haul fixture could not restore its independent source stock.");
+            fresh.Carry.Restore(JsonUtility.FromJson<CharacterCarryInventorySaveData>(occupiedJson));
+            Require(!fresh.Items.HasAvailableHaulJob(fresh.Actor),
+                "Fresh owner ignored restored carry weight.");
+            fresh.Carry.Restore(JsonUtility.FromJson<CharacterCarryInventorySaveData>(emptyJson));
+            Require(fresh.Items.HasAvailableHaulJob(fresh.Actor),
+                "Fresh owner did not recompute after carry JSON restore retry.");
+        }
+    }
+
+    private sealed class R31CarryPerformance : ICharacterPerformanceQuery
+    {
+        private readonly ICharacterPerformanceQuery original;
+        internal R31CarryPerformance(ICharacterPerformanceQuery original) => this.original = original;
+        internal bool Unavailable { get; set; }
+        private CharacterPerformanceSnapshot Apply(string id, Func<CharacterPerformanceSnapshot> calculate) =>
+            Unavailable && id == "performance:survival:haul-capacity"
+                ? new CharacterPerformanceSnapshot
+                {
+                    FormulaId = id, IsApplicable = false, Value = 0f,
+                    Failure = new CharacterPerformanceFailure
+                    {
+                        Code = "RequiredFunctionalCapacityBelowThreshold",
+                        CapacityId = "capacity:physical-power", CurrentValue = 0f, RequiredValue = 0.1f
+                    }
+                }
+                : calculate();
+        public CharacterFunctionalCapacitySnapshot GetFunctionalCapacities(CharacterActor actor) => original.GetFunctionalCapacities(actor);
+        public CharacterPerformanceSnapshot Evaluate(CharacterActor actor, string id, float contextFactor = 1f, GameplayEffectContext effectContext = null) =>
+            Apply(id, () => original.Evaluate(actor, id, contextFactor, effectContext));
+        public CharacterPerformanceSnapshot Evaluate(CharacterActor actor, string id, CharacterPerformanceEvaluationContext context) =>
+            Apply(id, () => original.Evaluate(actor, id, context));
+        public CharacterPerformanceSnapshot EvaluateWork(CharacterActor actor, WorkTypeId id, CharacterPerformanceResultChannel channel, CharacterPerformanceEvaluationContext context) =>
+            original.EvaluateWork(actor, id, channel, context);
+        public IReadOnlyList<CharacterPerformanceSnapshot> EvaluateDomain(CharacterActor actor, CharacterPerformanceFormulaDomain domain) => original.EvaluateDomain(actor, domain);
+    }
+
     private static string VerifyAvailabilityRequiresReachableWarehouse()
     {
         ScenarioRuntime scenario = ScenarioRuntime.Create(lightStockWeight: 1f);

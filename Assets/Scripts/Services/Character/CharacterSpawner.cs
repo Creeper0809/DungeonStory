@@ -326,7 +326,7 @@ public class CharacterSpawner : BuildableObject,IInteractable
 
         if (!TryGetEntryGridPosition(out Vector2Int resolvedEntryGridPosition))
         {
-            worldProfile.isVisiting = false;
+            CancelVisitorAcquisition(worldProfile.persistentId);
             rejection = CharacterSpawnRejection.EntryUnavailable;
             return false;
         }
@@ -338,7 +338,7 @@ public class CharacterSpawner : BuildableObject,IInteractable
         {
             Debug.LogWarning("캐릭터 프리팹에 CharacterActor 컴포넌트가 없습니다.");
             characterPool.Release(spawnedCharacterGameobject);
-            worldProfile.isVisiting = false;
+            CancelVisitorAcquisition(worldProfile.persistentId);
             rejection = CharacterSpawnRejection.PrefabInvalid;
             return false;
         }
@@ -360,6 +360,15 @@ public class CharacterSpawner : BuildableObject,IInteractable
             id,
             respawnTime);
         return true;
+    }
+
+    private void CancelVisitorAcquisition(string persistentId)
+    {
+        if (!characterPopulationService.TryCancelVisitorAcquisition(
+                persistentId, out string failureReason))
+        {
+            throw new InvalidOperationException(failureReason);
+        }
     }
 
     private CharacterSpawnRejection DiagnosePopulationRejection(int characterDataId)
