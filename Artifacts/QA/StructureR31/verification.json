@@ -1,0 +1,260 @@
+{
+  "kind": "r31-source-bound-remediation",
+  "base": "1d28d006107a71c62c405086c05aca3f3f6ebefc",
+  "source": {
+    "digest": "de6736651e5202a94fdb39731091a1abab146d98c1df338eb912f3c3340b0919",
+    "count": 4805,
+    "pathsDigest": "d5db0104ee345c23045818355929d4518a0886c5fe9104abcc8a2f35b817ab2e"
+  },
+  "configurationDigest": "34b001122604ea12bc1ab9a80352635f598d2e89c8c1dc789d4fd1c9f6be603d",
+  "confirmedFixed": [
+    "R31-01",
+    "R31-02",
+    "R31-03",
+    "R31-04",
+    "R31-05",
+    "R31-06"
+  ],
+  "deferredCandidates": 12,
+  "ownedUnityInputChanges": [
+    {
+      "path": "Assets/Editor/R31ProductionSupportDebugScenarios.cs",
+      "sha256": "8834f52fd32586e42117aefc1f417f0eabfde05f1fb1ebb33fc31848f4c44c8d",
+      "bytes": 17537
+    },
+    {
+      "path": "Assets/Editor/R31ProductionSupportDebugScenarios.cs.meta",
+      "sha256": "640da9945849fb10d9e482cb47b884fbb0061351882eea8208555684054ecf08",
+      "bytes": 60
+    },
+    {
+      "path": "Assets/Editor/R31RepairSelectionDebugScenarios.cs",
+      "sha256": "8cf8697e9eb8d0d51df96ac8fd655860580f1a187b6b02e1dcdafa3a0070aed0",
+      "bytes": 8948
+    },
+    {
+      "path": "Assets/Editor/R31RepairSelectionDebugScenarios.cs.meta",
+      "sha256": "26d9eebbe1c10fc725e6580be546a845bfd1325eaf26913706563d3e3caede12",
+      "bytes": 60
+    },
+    {
+      "path": "Assets/Editor/R31StructureRemediationBatch.cs",
+      "sha256": "06c0cb429ebcd352f518f7f1fbb30ac279d596c6a6c9c262a88b388e28337a18",
+      "bytes": 4881
+    },
+    {
+      "path": "Assets/Editor/R31StructureRemediationBatch.cs.meta",
+      "sha256": "e551f1c88a601e315169dd120641259a60ee62fd31acf908ed94e270f8e799b0",
+      "bytes": 62
+    },
+    {
+      "path": "Assets/Scripts/Models/Characters/CharacterPopulationDomain.cs",
+      "sha256": "0dd24588028a7e9ab2a51f06e90067daea119bc18b1ea52f8279576ad54f28f3",
+      "bytes": 16706
+    },
+    {
+      "path": "Assets/Scripts/Models/Production/Core/ProductionBillModels.cs",
+      "sha256": "476604c88187179dd73394973403864c1ec73503b74b430fff79726f12315017",
+      "bytes": 67458
+    },
+    {
+      "path": "Assets/Scripts/Services/Character/AI/Editor/CharacterProgressionDebugScenarios.cs",
+      "sha256": "669283dff869d53c76e0d510ce8ea5c79ff487451733e5d66ec579a972a8668b",
+      "bytes": 528106
+    },
+    {
+      "path": "Assets/Scripts/Services/Character/CharacterSpawner.cs",
+      "sha256": "d54e9daf9ffdf18958ea44a714cd2d47d21a40984fd29fb07c052149021fea17",
+      "bytes": 32410
+    },
+    {
+      "path": "Assets/Scripts/Services/Character/Core/CharacterPopulationService.cs",
+      "sha256": "63e70bf976f9f1bfaea310956708a3f876a1677bc7e0189fc4a5c61e49f1a13c",
+      "bytes": 45281
+    },
+    {
+      "path": "Assets/Scripts/Services/Character/Core/CharacterPopulationServiceFacade.cs",
+      "sha256": "dd9f8d782a55cfc794b69c7de63bc7f70d6bf31ec10d8d0d1e42e4e073c1d32c",
+      "bytes": 11942
+    },
+    {
+      "path": "Assets/Scripts/Services/Character/Core/CharacterProgression.cs",
+      "sha256": "bbcf8c1cae4e7c14a6813dc6a3f44ec61aca62fb20bea7597b89ef3d7aa23457",
+      "bytes": 79235
+    },
+    {
+      "path": "Assets/Scripts/Services/Character/Core/CharacterProgressionProfileProjector.cs",
+      "sha256": "dadca0dbd9fe2e8cdab27ffba122bb06140d9a5742fe7add318511601e905795",
+      "bytes": 12268
+    },
+    {
+      "path": "Assets/Scripts/Services/Character/Editor/ReproductionProcessTransitionDebugScenarios.cs",
+      "sha256": "b7b78225c601636229a2beb39dca32ab4213f55b436674309885e34e16c1f643",
+      "bytes": 163878
+    },
+    {
+      "path": "Assets/Scripts/Services/Character/Identity/Runtime/ExtremeTraitRuleAccess.cs",
+      "sha256": "90768afa2fb8eb00c8a99e0ad729e5cfc8e0b4fce3ac99ea7681be1726d5e99d",
+      "bytes": 5006
+    },
+    {
+      "path": "Assets/Scripts/Services/Character/Identity/Runtime/ExtremeTraitRuntime.cs",
+      "sha256": "046baa3903d9b7cff713a20f082a3fea6dccca2d480f182831116b90bc2a84fc",
+      "bytes": 12718
+    },
+    {
+      "path": "Assets/Scripts/Services/Character/Identity/Runtime/ForbiddenResearchLeapTraitRuntime.cs",
+      "sha256": "d63318bb0a5fa1c0329dd8ac7878a347c034919d541a2271b621cb228db76b9c",
+      "bytes": 4151
+    },
+    {
+      "path": "Assets/Scripts/Services/Economy/ProductionCycleUtilityService.cs",
+      "sha256": "5b315f0e0055c9303cb458b977532ee777ec18e3e77d1edf1fc3c9eddfd37cc9",
+      "bytes": 23062
+    },
+    {
+      "path": "Assets/Scripts/Services/Infrastructure/BlueprintResearchRuntime.cs",
+      "sha256": "b2e67c0bbdb3f9f58c6abec09cb47caad4f984e234f3ad6963d3d77c6527cbfa",
+      "bytes": 46456
+    },
+    {
+      "path": "Assets/Scripts/Services/Infrastructure/Rooms/RoomEnvironmentAdapter.cs",
+      "sha256": "3479640572a7569189abf5b67ebc8503bd6b9779d20b8b907ec2f320726ef20c",
+      "bytes": 31739
+    },
+    {
+      "path": "Assets/Scripts/Services/Items/Editor/HaulPlanConstructionSafetyDebugScenarios.cs",
+      "sha256": "cf4a87b8162e97e3700f913aa33426d55656ccb4a845ee83f77038ebf8dfdb0c",
+      "bytes": 122577
+    },
+    {
+      "path": "Assets/Scripts/Services/Items/WorldItemHaulPlanningService.cs",
+      "sha256": "7945f6d827e3b141b001c4a88c6142e3a02cc38befc9fe550a513967a8488b94",
+      "bytes": 74626
+    },
+    {
+      "path": "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/CharacterLife/Editor/VisitorExitOutcomeDebugScenarios.cs",
+      "sha256": "88671408643e63b08efe0dea7e493c93fcff4fd157c28b1e5148730878b33a0f",
+      "bytes": 40756
+    },
+    {
+      "path": "Assets/Scripts/Services/Research/Editor/BlueprintResearchDebugScenarios.cs",
+      "sha256": "21f39fb12dd73c6d53eee863a50c9641f198c13388ff2395f4a7311f060e0ae5",
+      "bytes": 44497
+    },
+    {
+      "path": "Assets/Scripts/Services/Rooms/Editor/RoomEnvironmentDebugScenarios.cs",
+      "sha256": "27222721802248313b3884c6ba691610b85fb1202ea58508c59f255209f21a81",
+      "bytes": 21958
+    },
+    {
+      "path": "Assets/Scripts/Views/Buildings/UI/ProductionBuildingPanelPresenter.cs",
+      "sha256": "2eba8b7fe1916513579cc34019b68f61db7b11623c38dec8789d4a3e3697dc8b",
+      "bytes": 37480
+    },
+    {
+      "path": "Assets/Scripts/Views/UI/CharacterSummaryCombatPresenter.cs",
+      "sha256": "777cc48f11ff96ba24de4d166677dff0223842b6c8b9a49bb06e6ba91801f48e",
+      "bytes": 27865
+    },
+    {
+      "path": "Assets/Scripts/Views/UI/ResearchTreeWindow.cs",
+      "sha256": "5b3eec86c3e431b39d20691b5d74a947d486245d4c29bf63e6017663ac6ae6ff",
+      "bytes": 36406
+    }
+  ],
+  "impactRuns": [
+    {
+      "group": "core",
+      "label": "r254r31-impact-so-inspector-r31-ci-core-01",
+      "summary": {
+        "exit_code": 0,
+        "seconds": 330,
+        "stop_reason": null,
+        "source_label": "r254r31",
+        "compiler_error_count": 0,
+        "source_drift": []
+      }
+    },
+    {
+      "group": "character",
+      "label": "r254r31-impact-so-inspector-r31-ci-character-01",
+      "summary": {
+        "exit_code": 0,
+        "seconds": 220,
+        "stop_reason": null,
+        "source_label": "r254r31",
+        "compiler_error_count": 0,
+        "source_drift": []
+      }
+    },
+    {
+      "group": "world",
+      "label": "r254r31-impact-so-inspector-r31-ci-world-01",
+      "summary": {
+        "exit_code": 0,
+        "seconds": 260,
+        "stop_reason": null,
+        "source_label": "r254r31",
+        "compiler_error_count": 0,
+        "source_drift": []
+      }
+    },
+    {
+      "group": "crop",
+      "label": "r254r31-impact-so-inspector-r31-ci-crop-01",
+      "summary": {
+        "exit_code": 0,
+        "seconds": 210,
+        "stop_reason": null,
+        "source_label": "r254r31",
+        "compiler_error_count": 0,
+        "source_drift": []
+      }
+    },
+    {
+      "group": "effects-traits",
+      "label": "r254r31-impact-so-inspector-r31-ci-effects-traits-01",
+      "summary": {
+        "exit_code": 0,
+        "seconds": 200,
+        "stop_reason": null,
+        "source_label": "r254r31",
+        "compiler_error_count": 0,
+        "source_drift": []
+      }
+    },
+    {
+      "group": "effects-definitions",
+      "label": "r254r31-impact-so-inspector-r31-ci-effects-definitions-01",
+      "summary": {
+        "exit_code": 0,
+        "seconds": 1020,
+        "stop_reason": null,
+        "source_label": "r254r31",
+        "compiler_error_count": 0,
+        "source_drift": []
+      }
+    },
+    {
+      "group": "effects-recovery",
+      "label": "r254r31-impact-so-inspector-r31-ci-effects-recovery-01",
+      "summary": {
+        "exit_code": 0,
+        "seconds": 980,
+        "stop_reason": null,
+        "source_label": "r254r31",
+        "compiler_error_count": 0,
+        "source_drift": []
+      }
+    }
+  ],
+  "impactReceipt": "Artifacts/QA/ImpactCI/verification.json",
+  "impactReceiptSha256": "db07d8f44266967a59f85fb993e8fb53d5a6b135f42abb75878644896509df45",
+  "targetedHistory": "targeted-runs.json",
+  "auditOriginalSha256": "0a0a9368f42737b31b1f1fc9b54a468f3d1cbeadf03b1e0f773a20e8ced7ba20",
+  "runtimeBoundaries": "Controlled targeted native plus actual official-world Play save/restore; not a natural UI or visual acceptance claim",
+  "integration": "This source verification precedes commit/push/PR/main; GitHub is the final integration authority",
+  "ownedUnityInputHashMeaning": "Raw staged CUHA bytes; portable Git/newline identity is source/configurationDigest",
+  "indexVerification": "index-rebuild.log; content, links and freshness failure0"
+}

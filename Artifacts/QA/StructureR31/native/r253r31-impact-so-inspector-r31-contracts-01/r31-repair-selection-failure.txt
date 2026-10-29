@@ -1,0 +1,6 @@
+System.ArgumentException: A valid CharacterId is required.
+Parameter name: value
+  at CharacterIdentity.SetPersistentId (CharacterId value) [0x00037] in /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Assets/Scripts/Services/Character/Core/CharacterIdentity.cs:127 
+  at CharacterIdentity.SetPersistentId (System.String value) [0x00000] in /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Assets/Scripts/Services/Character/Core/CharacterIdentity.cs:113 
+  at R31RepairSelectionDebugScenarios.RunContracts () [0x00037] in /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Assets/Editor/R31RepairSelectionDebugScenarios.cs:25 
+  at R31StructureRemediationBatch.RunContracts () [0x0019a] in /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Assets/Editor/R31StructureRemediationBatch.cs:49 

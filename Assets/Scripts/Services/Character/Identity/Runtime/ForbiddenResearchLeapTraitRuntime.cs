@@ -15,6 +15,21 @@ internal sealed class ForbiddenResearchLeapTraitRuntime
 
     [GameplayInternalOnly("Only the extreme-trait facade dispatches this capability command/query.",
         "ExtremeTraitRuntime")]
+    internal bool CanUseForbiddenResearchLeap(CharacterActor actor, string projectId)
+    {
+        if (actor == null || string.IsNullOrWhiteSpace(projectId)) return false;
+        ForbiddenResearchLeapRule rule = ResolveRule<ForbiddenResearchLeapRule>(
+            actor, 302, ForbiddenLeapRuleId, out CharacterTraitSO trait, initializedOnly: true);
+        if (rule == null || actor.IsDead) return false;
+        string project = Required(projectId, nameof(projectId));
+        ForbiddenResearchLeapRuntimeState state = Read<ForbiddenResearchLeapRuntimeState>(states,
+            actor, trait, ForbiddenLeapRuleId);
+        return state.usedProjectIds == null
+            || !state.usedProjectIds.Contains(project, StringComparer.Ordinal);
+    }
+
+    [GameplayInternalOnly("Only the extreme-trait facade dispatches this capability command/query.",
+        "ExtremeTraitRuntime")]
     internal bool TryPrepareForbiddenResearchLeap(
         CharacterActor actor,
         string projectId,

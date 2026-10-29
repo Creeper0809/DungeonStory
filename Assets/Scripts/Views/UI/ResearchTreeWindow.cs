@@ -825,9 +825,7 @@ public sealed class ResearchTreeWindow :
 
     private CharacterActor ResolveForbiddenLeapResearcher() =>
         (characterWorld?.Characters ?? Array.Empty<CharacterActor>())
-        .Where(actor => actor != null && !actor.IsDead)
-        .Where(actor => actor.Progression?.ResolveSelectedTraits()
-            .Any(trait => trait != null && trait.id == 302) == true)
+        .Where(actor => runtime != null && runtime.CanUseForbiddenResearchLeap(actor))
         .OrderBy(
             actor => actor.Identity?.PersistentId ?? string.Empty,
             StringComparer.Ordinal)

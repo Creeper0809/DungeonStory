@@ -1,0 +1,3 @@
+result=PASS
+source=de6736651e5202a94fdb39731091a1abab146d98c1df338eb912f3c3340b0919
+boundary=controlled native runtime contracts

@@ -632,10 +632,12 @@ public sealed class ProductionBuildingPanelPresenter :
 
         string nodeId = IndustrialInfrastructureIdentity.GetNodeId(support);
         ProductionBillSnapshot[] active = billQuery.GetBills(link.Workstation)
-            .Where(bill => string.Equals(
-                bill.OccupiedSupportNodeId,
-                nodeId,
-                StringComparison.Ordinal))
+            .Where(bill => ProductionBatchStageRules.OccupiesSupportCapacity(
+                    bill.BatchStage)
+                && string.Equals(
+                    bill.OccupiedSupportNodeId,
+                    nodeId,
+                    StringComparison.Ordinal))
             .ToArray();
         if (active.Length == 0)
         {
@@ -825,7 +827,9 @@ public sealed class ProductionBuildingPanelPresenter :
                 string nodeId =
                     IndustrialInfrastructureIdentity.GetNodeId(link.Support);
                 int occupied = billQuery.GetBills(building).Count(bill =>
-                    string.Equals(
+                    ProductionBatchStageRules.OccupiesSupportCapacity(
+                        bill.BatchStage)
+                    && string.Equals(
                         bill.OccupiedSupportNodeId,
                         nodeId,
                         StringComparison.Ordinal));

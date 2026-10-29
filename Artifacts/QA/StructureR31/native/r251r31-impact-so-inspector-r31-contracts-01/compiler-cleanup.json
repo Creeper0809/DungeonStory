@@ -1,0 +1,33 @@
+{
+  "processes": [
+    {
+      "pid": 1296184,
+      "ppid": 1,
+      "processGroup": 1293711,
+      "session": 1293711,
+      "supervisor": 1292415,
+      "unityPid": 1293711,
+      "state": "S",
+      "rss": 4479377408,
+      "started": 1793280059.8,
+      "startTicks": 1401936980,
+      "cwd": "/home/vulpo/codex-unity-validation-20261021/editor/6000.3.8f1/Editor/Data/DotNetSdkRoslyn",
+      "exe": "/home/vulpo/codex-unity-validation-20261021/editor/6000.3.8f1/Editor/Data/NetCoreRuntime/dotnet",
+      "command": "dotnet exec /home/vulpo/codex-unity-validation-20261021/editor/6000.3.8f1/Editor/Data/DotNetSdkRoslyn/VBCSCompiler.dll -pipename:wUmpjxzoNpgDcNZGzJsYTMmqlswuByPYmNlTS73kp2c ",
+      "owned": true,
+      "run": "r251r31-impact-so-inspector-r31-contracts-01"
+    }
+  ],
+  "cleanupRequested": true,
+  "actions": [
+    {
+      "pid": 1296184,
+      "signal": "SIGTERM",
+      "terminal": true,
+      "run": "r251r31-impact-so-inspector-r31-contracts-01"
+    }
+  ],
+  "memory": [
+    "MemAvailable:    8437680 kB"
+  ]
+}

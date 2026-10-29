@@ -1,0 +1,291 @@
+{
+  "files": [
+    {
+      "path": "analyzer.json",
+      "sha256": "1b758e5f76853a17884e99bcc6ded35973e650db2f2dda2300226f611a50a8bd",
+      "bytes": 223
+    },
+    {
+      "path": "audit-original.md",
+      "sha256": "0a0a9368f42737b31b1f1fc9b54a468f3d1cbeadf03b1e0f773a20e8ced7ba20",
+      "bytes": 46309
+    },
+    {
+      "path": "character-compiler-cleanup.json",
+      "sha256": "36c11ab908e886bec0d36fff11368e1776120fa82ff69f95ff469a833965e7e5",
+      "bytes": 126
+    },
+    {
+      "path": "core-compiler-cleanup.json",
+      "sha256": "0d36444d467826431d10ef27f6aa3523fd00d092ec25ea59d1b2bf6522bac33e",
+      "bytes": 126
+    },
+    {
+      "path": "crop-compiler-cleanup.json",
+      "sha256": "32d8f7f8ece6bfea95f58712b08401e42968f6e86bd38dd89548e7214895ba5f",
+      "bytes": 126
+    },
+    {
+      "path": "effects-definitions-compiler-cleanup.json",
+      "sha256": "9f7e6a7481ff686135dae98b485737a69fe0f397863abd2e92955e714837a5e8",
+      "bytes": 126
+    },
+    {
+      "path": "effects-recovery-compiler-cleanup.json",
+      "sha256": "6c7d0e001df2977b91472bdaa71abd903cad8fd294cb0ee18f58a4ff63b93cdb",
+      "bytes": 126
+    },
+    {
+      "path": "effects-traits-compiler-cleanup.json",
+      "sha256": "45478fe01bad1f8d3597582d3a0cb9cf1ecf0bdb2ae9b0a14f356fffe9cd124d",
+      "bytes": 126
+    },
+    {
+      "path": "index-rebuild.log",
+      "sha256": "f6ce3ecf7806c09a2a310bd8c004e8b93862f9b77b07902fdd57a3641ce10025",
+      "bytes": 6659
+    },
+    {
+      "path": "item-closure.md",
+      "sha256": "4234336829b388904cc049a51b8d31ca5faebd6cd293e94021c408bc8bc494ff",
+      "bytes": 3857
+    },
+    {
+      "path": "native/r251r31-impact-so-inspector-r31-contracts-01/compiler-cleanup.json",
+      "sha256": "329b6c0c62936b9f17e97f69bd2021e88a90fa5cad7ee1b9b7ee3a018a62976b",
+      "bytes": 1067
+    },
+    {
+      "path": "native/r251r31-impact-so-inspector-r31-contracts-01/diagnostics.redacted.txt",
+      "sha256": "1bc3686d9a029017e14940085b24eca633bdaa8c733d811f5b3927abb04030b4",
+      "bytes": 3447
+    },
+    {
+      "path": "native/r251r31-impact-so-inspector-r31-contracts-01/fetched-inspection.json",
+      "sha256": "f686aa883440f42476a95b1955051156fbfd95707f8a9f4e578697f1d2449f2d",
+      "bytes": 5535
+    },
+    {
+      "path": "native/r251r31-impact-so-inspector-r31-contracts-01/isolated-display.json",
+      "sha256": "46ff2ae64bd10bd1740ec715ceae354b20aacabc7ef188f3ca0c5d497ff6252f",
+      "bytes": 794
+    },
+    {
+      "path": "native/r251r31-impact-so-inspector-r31-contracts-01/owned-process-cleanup.json",
+      "sha256": "7c0e7d364695f7c4edbf4dd84673d6ca0d0ac9ad264025302641b6149b22b831",
+      "bytes": 74
+    },
+    {
+      "path": "native/r251r31-impact-so-inspector-r31-contracts-01/run-summary.json",
+      "sha256": "c8c502963ae424f78ee9007b9a1142b7c8103cf18388fcf711ec548d93f454f8",
+      "bytes": 142
+    },
+    {
+      "path": "native/r251r31-impact-so-inspector-r31-contracts-01/unity.redacted.log",
+      "sha256": "2d910ddb836df111ad22d5ba046c40fd08eb6b816348f5a235cb4a893ef053ec",
+      "bytes": 268069
+    },
+    {
+      "path": "native/r252r31-impact-so-inspector-r31-contracts-01/compiler-cleanup.json",
+      "sha256": "e850cf9e87af5d9191fe20930c263c577bc44d069e4bc756635ef22bed87bfd4",
+      "bytes": 1068
+    },
+    {
+      "path": "native/r252r31-impact-so-inspector-r31-contracts-01/diagnostics.redacted.txt",
+      "sha256": "79ddf90d8403dfc98b5a351a020776e743d0bb41fa6e8ea1ee13d8ecce895845",
+      "bytes": 96
+    },
+    {
+      "path": "native/r252r31-impact-so-inspector-r31-contracts-01/fetched-inspection.json",
+      "sha256": "0d62c59d756108b35c908c5e1d41188f1451d7b13d349eb20e1b4d7539761f96",
+      "bytes": 2353
+    },
+    {
+      "path": "native/r252r31-impact-so-inspector-r31-contracts-01/isolated-display.json",
+      "sha256": "321224307fd1bf084eddaad4dd6ad880423a09c6fc7fec8c183239a015a2532c",
+      "bytes": 794
+    },
+    {
+      "path": "native/r252r31-impact-so-inspector-r31-contracts-01/owned-process-cleanup.json",
+      "sha256": "b27abc9ad1efbb75d54699392f9dade994e15d14487f21e6af59734a9fcc101d",
+      "bytes": 74
+    },
+    {
+      "path": "native/r252r31-impact-so-inspector-r31-contracts-01/run-summary.json",
+      "sha256": "156ec7ef8ad26aa9d91a016308094e9aba0f818d28977e1ba7a760c0f5e32700",
+      "bytes": 141
+    },
+    {
+      "path": "native/r252r31-impact-so-inspector-r31-contracts-01/unity.redacted.log",
+      "sha256": "4a2526ce5ab64e63b14d503677b2d65f01878d4226e93651a255e4d05805a1ff",
+      "bytes": 64881
+    },
+    {
+      "path": "native/r253r31-impact-so-inspector-r31-contracts-01/compiler-cleanup.json",
+      "sha256": "a818d089e40f777e70601f5436cc6e1aca1acc1d18e6e2c782011ee9a0f7c253",
+      "bytes": 1068
+    },
+    {
+      "path": "native/r253r31-impact-so-inspector-r31-contracts-01/diagnostics.redacted.txt",
+      "sha256": "f3a8c349b16d9c4a7db19d76fe4f89be9dd66695bc34e2bd75c05b172592713e",
+      "bytes": 1145
+    },
+    {
+      "path": "native/r253r31-impact-so-inspector-r31-contracts-01/fetched-inspection.json",
+      "sha256": "7a0c7926aac1c11212888f538cac68e671d14f451b6b19bb19a02503290c1eed",
+      "bytes": 3744
+    },
+    {
+      "path": "native/r253r31-impact-so-inspector-r31-contracts-01/isolated-display.json",
+      "sha256": "58d47556e0ae32ab9e924f1492ec78e6a7b030f1d8c7de027d9255829d448b2c",
+      "bytes": 794
+    },
+    {
+      "path": "native/r253r31-impact-so-inspector-r31-contracts-01/owned-process-cleanup.json",
+      "sha256": "51425299482845856e207a53044a969defff358ed2bf14569f6919a303778771",
+      "bytes": 74
+    },
+    {
+      "path": "native/r253r31-impact-so-inspector-r31-contracts-01/r31-haul-cache.txt",
+      "sha256": "5670718249b5af8fea29972ea1c83f93c34754a0d01b7cac8daf8c3aabdac827",
+      "bytes": 129
+    },
+    {
+      "path": "native/r253r31-impact-so-inspector-r31-contracts-01/r31-population-query-regression.txt",
+      "sha256": "5670718249b5af8fea29972ea1c83f93c34754a0d01b7cac8daf8c3aabdac827",
+      "bytes": 129
+    },
+    {
+      "path": "native/r253r31-impact-so-inspector-r31-contracts-01/r31-production-capacity-failure.txt",
+      "sha256": "c1d95f531fb1d6f293c7faa3dd2ccdfead019095d892628b658859cc5b0b76fb",
+      "bytes": 1814
+    },
+    {
+      "path": "native/r253r31-impact-so-inspector-r31-contracts-01/r31-repair-selection-failure.txt",
+      "sha256": "9d86c5768e38376f64aa17b28b653d1035f9aaf66c76d62b4daf06e0862ff83e",
+      "bytes": 866
+    },
+    {
+      "path": "native/r253r31-impact-so-inspector-r31-contracts-01/r31-research-selection-failure.txt",
+      "sha256": "4e1789d6389a6a4cf2c99af01173c534cfda5ce10e7581861906c88798f14c3b",
+      "bytes": 3393
+    },
+    {
+      "path": "native/r253r31-impact-so-inspector-r31-contracts-01/r31-room-cache.txt",
+      "sha256": "5670718249b5af8fea29972ea1c83f93c34754a0d01b7cac8daf8c3aabdac827",
+      "bytes": 129
+    },
+    {
+      "path": "native/r253r31-impact-so-inspector-r31-contracts-01/r31-visitor-acquisition-failure.txt",
+      "sha256": "800db3144c9d53b54091c2cf2de8a5aeced2df8a156af602cb8842ae4fb3e5fc",
+      "bytes": 533
+    },
+    {
+      "path": "native/r253r31-impact-so-inspector-r31-contracts-01/run-summary.json",
+      "sha256": "a500fa3b6e06a195099b913c4820f96bc1ffe13d86bea14baa8924ae1f08dd48",
+      "bytes": 141
+    },
+    {
+      "path": "native/r253r31-impact-so-inspector-r31-contracts-01/unity.redacted.log",
+      "sha256": "76b7d095bd26d721dce4da16b70805115cd258b67f303689142bce2727d1a0d6",
+      "bytes": 81166
+    },
+    {
+      "path": "native/r254r31-impact-so-inspector-r31-contracts-01/compiler-cleanup.json",
+      "sha256": "2705b15613b753ce43a495cdca163f4f8d8f801296291eb2a879437bf6f78568",
+      "bytes": 1068
+    },
+    {
+      "path": "native/r254r31-impact-so-inspector-r31-contracts-01/diagnostics.redacted.txt",
+      "sha256": "1f90c374ce599a4555b235e8196b2fb2f2dab61f07e161ee1156ab02d550fdd2",
+      "bytes": 473
+    },
+    {
+      "path": "native/r254r31-impact-so-inspector-r31-contracts-01/fetched-inspection.json",
+      "sha256": "4c2dd8f7ea50381f4ddcf26986f5286f5d8649ebc1ff55a908413b8d8f63730e",
+      "bytes": 3059
+    },
+    {
+      "path": "native/r254r31-impact-so-inspector-r31-contracts-01/isolated-display.json",
+      "sha256": "94ff7f20ae285ed98639d4449e8e370a85f9d867ab2df026eeecb39d49a697ff",
+      "bytes": 794
+    },
+    {
+      "path": "native/r254r31-impact-so-inspector-r31-contracts-01/owned-process-cleanup.json",
+      "sha256": "03ed9379d0a89d7c661ec195b93f5ada0b86128193ab93c01a76a69c86f6b227",
+      "bytes": 74
+    },
+    {
+      "path": "native/r254r31-impact-so-inspector-r31-contracts-01/r31-contracts.txt",
+      "sha256": "c9f025352c24297db1562747cf99999518149ab50df0470cf536074cefb7f8a7",
+      "bytes": 170
+    },
+    {
+      "path": "native/r254r31-impact-so-inspector-r31-contracts-01/r31-haul-cache.txt",
+      "sha256": "7937c9df03daa9defad59f1371b5b48f4765758cf3b7e355604b78dc0366f0f8",
+      "bytes": 129
+    },
+    {
+      "path": "native/r254r31-impact-so-inspector-r31-contracts-01/r31-population-query-regression.txt",
+      "sha256": "7937c9df03daa9defad59f1371b5b48f4765758cf3b7e355604b78dc0366f0f8",
+      "bytes": 129
+    },
+    {
+      "path": "native/r254r31-impact-so-inspector-r31-contracts-01/r31-production-capacity.txt",
+      "sha256": "7937c9df03daa9defad59f1371b5b48f4765758cf3b7e355604b78dc0366f0f8",
+      "bytes": 129
+    },
+    {
+      "path": "native/r254r31-impact-so-inspector-r31-contracts-01/r31-repair-selection.txt",
+      "sha256": "7937c9df03daa9defad59f1371b5b48f4765758cf3b7e355604b78dc0366f0f8",
+      "bytes": 129
+    },
+    {
+      "path": "native/r254r31-impact-so-inspector-r31-contracts-01/r31-research-selection.txt",
+      "sha256": "7937c9df03daa9defad59f1371b5b48f4765758cf3b7e355604b78dc0366f0f8",
+      "bytes": 129
+    },
+    {
+      "path": "native/r254r31-impact-so-inspector-r31-contracts-01/r31-room-cache.txt",
+      "sha256": "7937c9df03daa9defad59f1371b5b48f4765758cf3b7e355604b78dc0366f0f8",
+      "bytes": 129
+    },
+    {
+      "path": "native/r254r31-impact-so-inspector-r31-contracts-01/r31-visitor-acquisition.txt",
+      "sha256": "7937c9df03daa9defad59f1371b5b48f4765758cf3b7e355604b78dc0366f0f8",
+      "bytes": 129
+    },
+    {
+      "path": "native/r254r31-impact-so-inspector-r31-contracts-01/run-summary.json",
+      "sha256": "7e00a044982bf057a3030daba68f841cf52c7b5f0f7d33294aea23d0e37b1051",
+      "bytes": 141
+    },
+    {
+      "path": "native/r254r31-impact-so-inspector-r31-contracts-01/unity.redacted.log",
+      "sha256": "ddbce6880df359a3a2383b795d2f8405fb9e6eaf9f1a6ee866c74f1aa3f1da8f",
+      "bytes": 79260
+    },
+    {
+      "path": "python-ci.json",
+      "sha256": "c5600fd8788a848eb842bbb67a3ad9c1b70170a63afa2e47ffaf291aa296dcde",
+      "bytes": 149
+    },
+    {
+      "path": "targeted-runs.json",
+      "sha256": "e5b98791b88a3176d58860a016b992c10b07660aafbc6a54b310f7b915493d88",
+      "bytes": 10609
+    },
+    {
+      "path": "verification.json",
+      "sha256": "b928f41af8a5d5cb41a632c34d767f326229240de484f6a554305d4eff6e5b59",
+      "bytes": 9646
+    },
+    {
+      "path": "world-compiler-cleanup.json",
+      "sha256": "c94fb3204ce9c6f06b90c678ed5c7551a7d287a46ec09519c797373384436acf",
+      "bytes": 126
+    }
+  ],
+  "reportPath": "docs/dev/code-structure-review-main-r31-20261029.md",
+  "reportSha256": "a2fa39298f31ed211d3664e2e4b83f8b68a714e5708172457ea47ac1ef0e36e0"
+}

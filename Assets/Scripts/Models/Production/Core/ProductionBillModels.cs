@@ -32,6 +32,12 @@ public enum ProductionBatchStage
     Finishing = 3
 }
 
+public static class ProductionBatchStageRules
+{
+    public static bool OccupiesSupportCapacity(ProductionBatchStage stage) =>
+        stage == ProductionBatchStage.Processing;
+}
+
 public enum ProductionPreparedOutputPhase
 {
     Unresolved = 0,

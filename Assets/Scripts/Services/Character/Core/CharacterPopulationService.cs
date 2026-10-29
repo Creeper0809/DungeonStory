@@ -132,11 +132,51 @@ public sealed class CharacterPopulationApplicationAdapter : IDisposable
             unavailableProfileIds);
         if (returning != null)
         {
-            EnsurePreparedPool();
-            return returning;
+            try
+            {
+                EnsurePreparedPool();
+                return returning.Clone();
+            }
+            catch
+            {
+                ApplyStanding(returning, CharacterSettlementStanding.PreparedCandidate);
+                throw;
+            }
         }
 
         return null;
+    }
+
+    public bool TryCancelVisitorAcquisition(string persistentId, out string failureReason)
+    {
+        failureReason = string.Empty;
+        if (string.IsNullOrWhiteSpace(persistentId)
+            || !population.TryGet(persistentId, out WorldCharacterProfile profile))
+        {
+            failureReason = "visitor-acquisition-profile-missing";
+            return false;
+        }
+        if (actors.Any(pair => pair.Key != null && ReferenceEquals(pair.Value, profile)))
+        {
+            failureReason = "visitor-acquisition-already-bound";
+            return false;
+        }
+        if (!profile.isVisiting
+            && profile.settlementStanding == CharacterSettlementStanding.PreparedCandidate)
+        {
+            return true;
+        }
+        if (!profile.isAlive || profile.isStaff
+            || !profile.isVisiting
+            || profile.settlementStanding != CharacterSettlementStanding.Visitor)
+        {
+            failureReason = "visitor-acquisition-state-conflict";
+            return false;
+        }
+
+        // 생성 취소는 완료 방문이 아니므로 방문 횟수를 올리지 않는다.
+        ApplyStanding(profile, CharacterSettlementStanding.PreparedCandidate);
+        return true;
     }
 
     public bool TryCreateRecruitCandidate(
@@ -158,6 +198,7 @@ public sealed class CharacterPopulationApplicationAdapter : IDisposable
         // Offense rewards are explicit player-facing candidates, so their
         // identity and skill preparation takes priority over pool replenishment.
         BeginPreparation(profile);
+        profile = profile.Clone();
         return true;
     }
 
@@ -168,6 +209,11 @@ public sealed class CharacterPopulationApplicationAdapter : IDisposable
             return;
         }
 
+        if (!population.TryGet(profile.persistentId, out WorldCharacterProfile owned))
+        {
+            throw new InvalidOperationException("character-population-bind-profile-missing");
+        }
+        profile = owned;
         NormalizeStanding(profile);
         actor.EnsureRuntimeState();
         if (!string.Equals(
@@ -1092,9 +1138,13 @@ public sealed class CharacterPopulationApplicationAdapter : IDisposable
     private static CharacterSettlementStanding GetStanding(
         WorldCharacterProfile profile)
     {
-        NormalizeStanding(profile);
-        return profile?.settlementStanding
-            ?? CharacterSettlementStanding.Unknown;
+        return profile == null
+            ? CharacterSettlementStanding.Unknown
+            : CharacterSettlementStandingRules.NormalizeLegacy(
+                profile.settlementStanding,
+                profile.isStaff,
+                profile.isVisiting,
+                profile.isOwner);
     }
 
     private static void NormalizeStanding(WorldCharacterProfile profile)

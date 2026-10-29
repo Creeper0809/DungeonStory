@@ -479,6 +479,18 @@ public sealed class CharacterProgression : MonoBehaviour, ICharacterTraitInferen
             OwnedGrowth);
     }
 
+    internal bool TryGetInitializedTraitDefinition(int traitId, out CharacterTraitSO trait)
+    {
+        trait = null;
+        RequireTraitStateAvailable();
+        if (acquisitionRollbackPending)
+            throw new InvalidOperationException("skill-acquisition-evidence-rollback-pending");
+        if (growthState?.initialized != true)
+            return false;
+        return RequireProfileProjector().TryGetSelectedTraitDefinition(
+            actor, growthState, traitId, out trait);
+    }
+
     private bool traitReactionRollbackPending;
     private bool memoryErasureRollbackPending;
 

@@ -2,23 +2,23 @@
   "schema": "impact-ci-v1",
   "scope": "targeted-contracts-not-full-balance-certification",
   "source": {
-    "digest": "8c4103838649f1acca5a6f6b3f997e739043221261e42f0cc7758760c2b42cf5",
-    "count": 4802,
-    "pathsDigest": "4586d293364c62ee65c8430511006d33772536b5f3d0ca1f26109451e3d4241b"
+    "digest": "de6736651e5202a94fdb39731091a1abab146d98c1df338eb912f3c3340b0919",
+    "count": 4805,
+    "pathsDigest": "d5db0104ee345c23045818355929d4518a0886c5fe9104abcc8a2f35b817ab2e"
   },
-  "configurationDigest": "dc5e9dae2ffbb85dc1de06974deafb019faf91a4affbd7df6c88c376a6664e6f",
+  "configurationDigest": "34b001122604ea12bc1ab9a80352635f598d2e89c8c1dc789d4fd1c9f6be603d",
   "platform": "CUHA Linux private Xvfb; isolated display; input desktop untouched",
-  "sourceManifest": "Four CUHA Linux private-Xvfb fetched inspections and the three-part effects inspection are source-label matched to r250r30 and guarded by current source/config PASS markers.",
+  "sourceManifest": "Four CUHA Linux private-Xvfb fetched inspections and the three-part effects inspection are source-label matched to r254r31 and guarded by current source/config PASS markers.",
   "redaction": "Input unity.redacted.log bytes are retained without rewriting.",
   "sourceRunLabels": {
-    "core": "r250r30-impact-so-inspector-r30-ci-core-01",
-    "character": "r250r30-impact-so-inspector-r30-ci-character-01",
-    "crop": "r250r30-impact-so-inspector-r30-ci-crop-01",
-    "world": "r250r30-impact-so-inspector-r30-ci-world-01",
+    "core": "r254r31-impact-so-inspector-r31-ci-core-01",
+    "character": "r254r31-impact-so-inspector-r31-ci-character-01",
+    "crop": "r254r31-impact-so-inspector-r31-ci-crop-01",
+    "world": "r254r31-impact-so-inspector-r31-ci-world-01",
     "effects": [
-      "r250r30-impact-so-inspector-r30-ci-effects-definitions-01",
-      "r250r30-impact-so-inspector-r30-ci-effects-recovery-01",
-      "r250r30-impact-so-inspector-r30-ci-effects-traits-01"
+      "r254r31-impact-so-inspector-r31-ci-effects-definitions-01",
+      "r254r31-impact-so-inspector-r31-ci-effects-recovery-01",
+      "r254r31-impact-so-inspector-r31-ci-effects-traits-01"
     ]
   },
   "effectsParts": [
@@ -30,38 +30,38 @@
     {
       "group": "core",
       "method": "V27CiEvidenceBatch.RunImpactCoreContracts",
-      "sourceRunLabel": "r250r30-impact-so-inspector-r30-ci-core-01",
-      "log": "Artifacts/QA/ImpactCI/r30-core.log",
-      "logSha256": "f55cde1f22c431f86c270f3490dcc4c83d812980f12cb9a1ff0b4eb06f95befb",
-      "summary": "Artifacts/QA/ImpactCI/r30-core-summary.json",
-      "summarySha256": "f10cb7e068f719feaa04d5650f79d17758675227d3952c0f5bacbcb42e3d6bd7"
+      "sourceRunLabel": "r254r31-impact-so-inspector-r31-ci-core-01",
+      "log": "Artifacts/QA/ImpactCI/r31-core.log",
+      "logSha256": "766241b75a9b70b9ba53781dcddc4711fb560c68ad1234d5c972797b4ecefcf3",
+      "summary": "Artifacts/QA/ImpactCI/r31-core-summary.json",
+      "summarySha256": "6569ec1b769c85e0849caf0a3844d637a5f65ba917c85dbff14cb53a459bbc33"
     },
     {
       "group": "character",
       "method": "V27CiEvidenceBatch.RunImpactCharacterContracts",
-      "sourceRunLabel": "r250r30-impact-so-inspector-r30-ci-character-01",
-      "log": "Artifacts/QA/ImpactCI/r30-character.log",
-      "logSha256": "cc82e18bd32841298a99147e0b0beef2533b0f35e3dcb93b602b63bd5770a2b9",
-      "summary": "Artifacts/QA/ImpactCI/r30-character-summary.json",
-      "summarySha256": "0692acd13f3af8d4fd9b55fb3d710d8ca65fb9056ec9f27b3ab4c257692bd1da"
+      "sourceRunLabel": "r254r31-impact-so-inspector-r31-ci-character-01",
+      "log": "Artifacts/QA/ImpactCI/r31-character.log",
+      "logSha256": "f28fdbb3596163a886bdd983785532bce0f94987aabab8e0083c3640021f58d7",
+      "summary": "Artifacts/QA/ImpactCI/r31-character-summary.json",
+      "summarySha256": "770e77667b76c551e027d6d63834ddc40a09ae0c298c78b1c4be2b50a8446105"
     },
     {
       "group": "crop",
       "method": "V27CiEvidenceBatch.RunImpactCrops",
-      "sourceRunLabel": "r250r30-impact-so-inspector-r30-ci-crop-01",
-      "log": "Artifacts/QA/ImpactCI/r30-crop.log",
-      "logSha256": "fe1d4d87f79bf6d620b91a0a3e29dd63c8571489c33692764cf10a246dc5d7fb",
-      "summary": "Artifacts/QA/ImpactCI/r30-crop-summary.json",
-      "summarySha256": "0e657244d3155735ab54ba5b10e474e451f5181e2f3ed35580d3690064811bf6"
+      "sourceRunLabel": "r254r31-impact-so-inspector-r31-ci-crop-01",
+      "log": "Artifacts/QA/ImpactCI/r31-crop.log",
+      "logSha256": "cb9b313d2196aebcb50b380cc8f7d529dde052be4d7bd42829eaf2a157a7a059",
+      "summary": "Artifacts/QA/ImpactCI/r31-crop-summary.json",
+      "summarySha256": "dffe6445c32b9aeec6aec97a5b6909e4a481827abff77f6da817c77fc5e031f6"
     },
     {
       "group": "world",
       "method": "V27CiEvidenceBatch.RunImpactWorldRestore",
-      "sourceRunLabel": "r250r30-impact-so-inspector-r30-ci-world-01",
-      "log": "Artifacts/QA/ImpactCI/r30-world.log",
-      "logSha256": "e9d907290908c12f81695b81bfcd0715b30878b04a1c792e47566f1783a24932",
-      "summary": "Artifacts/QA/ImpactCI/r30-world-summary.json",
-      "summarySha256": "b03c32bbf0e784330370a92ff4b6c36d00b467cdceb0c9047bd3b6e3c04e3c72"
+      "sourceRunLabel": "r254r31-impact-so-inspector-r31-ci-world-01",
+      "log": "Artifacts/QA/ImpactCI/r31-world.log",
+      "logSha256": "71308d8a5c866ac50ca7fa948045b46262357ae4674cc6e258cfd460835fc7fe",
+      "summary": "Artifacts/QA/ImpactCI/r31-world-summary.json",
+      "summarySha256": "43619a86f791cd59c32dd0ea078e5cf3c336ed2dc231405002921c81c30c260f"
     },
     {
       "group": "effects",
@@ -70,29 +70,29 @@
         {
           "group": "effects-definitions",
           "method": "V27CiEvidenceBatch.RunImpactEffectDefinitionContracts",
-          "sourceRunLabel": "r250r30-impact-so-inspector-r30-ci-effects-definitions-01",
-          "log": "Artifacts/QA/ImpactCI/r30-effects-definitions.log",
-          "logSha256": "509adc656ad0b0686071e192888a615b21849f6fc95dd109479817e5a1b91439",
-          "summary": "Artifacts/QA/ImpactCI/r30-effects-definitions-summary.json",
-          "summarySha256": "f4210e3a36ac85b324d4b671cf835e51c52b84127632c4a59ee88f2622f1c8be"
+          "sourceRunLabel": "r254r31-impact-so-inspector-r31-ci-effects-definitions-01",
+          "log": "Artifacts/QA/ImpactCI/r31-effects-definitions.log",
+          "logSha256": "20b8b582e78e66045ca08dc4ca3ac74bcc3aef27c040161be346bea23d18230b",
+          "summary": "Artifacts/QA/ImpactCI/r31-effects-definitions-summary.json",
+          "summarySha256": "829624ab1f10b308d93bf0fba3afc404b4b650d318c1c2ec4f3c134210883e32"
         },
         {
           "group": "effects-recovery",
           "method": "V27CiEvidenceBatch.RunImpactEffectRecoveryContracts",
-          "sourceRunLabel": "r250r30-impact-so-inspector-r30-ci-effects-recovery-01",
-          "log": "Artifacts/QA/ImpactCI/r30-effects-recovery.log",
-          "logSha256": "d48b7816ff48ce126a88543e60b5a7b1e429813b7c1d743dd8fe35b0821ddf13",
-          "summary": "Artifacts/QA/ImpactCI/r30-effects-recovery-summary.json",
-          "summarySha256": "9aa25853139c8dd758060248659ff374abab6e680345c115cf442c772aae2f72"
+          "sourceRunLabel": "r254r31-impact-so-inspector-r31-ci-effects-recovery-01",
+          "log": "Artifacts/QA/ImpactCI/r31-effects-recovery.log",
+          "logSha256": "8ef758d27ec20fc5ae86768456e79209ce966eb14c8eb3231be2a3ab15ffeea6",
+          "summary": "Artifacts/QA/ImpactCI/r31-effects-recovery-summary.json",
+          "summarySha256": "fe9700f0bd0dd0b5e929c748d64e61eb55dc77b866aae1a01dc9673285b50c76"
         },
         {
           "group": "effects-traits",
           "method": "V27CiEvidenceBatch.RunImpactAcquiredTraitContracts",
-          "sourceRunLabel": "r250r30-impact-so-inspector-r30-ci-effects-traits-01",
-          "log": "Artifacts/QA/ImpactCI/r30-effects-traits.log",
-          "logSha256": "f3b21273a9a4b4621c670041b779f23f57c1ad6a647f775e256ee678e778bf3c",
-          "summary": "Artifacts/QA/ImpactCI/r30-effects-traits-summary.json",
-          "summarySha256": "3e60dd1249a0b0779ee50a21531940181d7adf0f3764a45bc66550698a338ae0"
+          "sourceRunLabel": "r254r31-impact-so-inspector-r31-ci-effects-traits-01",
+          "log": "Artifacts/QA/ImpactCI/r31-effects-traits.log",
+          "logSha256": "f3773d5b1d615252b0aec5737a4ab58a5dedc88614457cfb3b6a65da57bb2b77",
+          "summary": "Artifacts/QA/ImpactCI/r31-effects-traits-summary.json",
+          "summarySha256": "ecd035a2cffbfa1e25c75d1553af77a5297bb28f876b6f64933927df6357a3e8"
         }
       ]
     }

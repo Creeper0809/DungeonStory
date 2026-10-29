@@ -580,7 +580,8 @@ public sealed class ProductionCycleUtilityService :
             string nodeId = IndustrialInfrastructureIdentity.GetNodeId(link.Support);
             int occupied = (allBills ?? Array.Empty<ProductionBillRecord>())
                 .Count(other => other != record
-                    && other.batchStage == ProductionBatchStage.Processing
+                    && ProductionBatchStageRules.OccupiesSupportCapacity(
+                        other.batchStage)
                     && string.Equals(
                         other.occupiedSupportNodeId,
                         nodeId,

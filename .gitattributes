@@ -41,6 +41,7 @@ Artifacts/QA/StructureR28/*.txt -text
 Artifacts/QA/StructureR28/*.log -text
 Artifacts/QA/StructureR29/* -text
 Artifacts/QA/StructureR30/** -text
+Artifacts/QA/StructureR31/** -text
 Artifacts/QA/v27-facility-buffer-owner-manifest.txt text eol=lf
 Artifacts/QA/v27-balance-economy-256-seed.txt text eol=crlf
 Artifacts/QA/v27-balance-vertical-slice-full-loop-playmode.txt text eol=crlf

@@ -168,6 +168,13 @@ namespace DungeonStory.Characters
                         profile.SettlementStanding,
                         profile.IsStaff,
                         profile.IsVisiting);
+                // 구형 생성 취소는 플래그만 내렸다. Actor가 없는 이 입력은
+                // 방문 중으로 되살리지 않고 준비 후보로 정규화한다.
+                if (profile.SettlementStanding == CharacterSettlementStanding.Visitor
+                    && !profile.IsVisiting && !profile.IsStaff)
+                {
+                    profile.SettlementStanding = CharacterSettlementStanding.PreparedCandidate;
+                }
                 profile.IsStaff =
                     CharacterSettlementStandingRules.IsSettlementResident(
                         profile.SettlementStanding);

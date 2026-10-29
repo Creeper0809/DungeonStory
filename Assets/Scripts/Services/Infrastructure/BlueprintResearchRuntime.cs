@@ -276,6 +276,20 @@ public class BlueprintResearchRuntime : MonoBehaviour, IFacilityShopFulfillmentQ
         }
     }
 
+    // Checks the current active project without resolving or advancing the queue.
+    public bool CanUseForbiddenResearchLeap(CharacterActor researcher)
+    {
+        if (projectCoordinator == null || extremeTraits == null || runSeedProvider == null
+            || gameClock == null || gameplayOutcomes == null)
+            return false;
+
+        ResearchProjectId activeProjectId = state.Projects.ActiveProjectId;
+        return activeProjectId.IsValid
+            && projectCatalog.TryGet(activeProjectId, out ResearchProjectSO project)
+            && project != null
+            && extremeTraits.CanUseForbiddenResearchLeap(researcher, project.ProjectId.Value);
+    }
+
     public bool TryForbiddenResearchLeap(
         CharacterActor researcher,
         out ExtremeRiskResolution resolution,

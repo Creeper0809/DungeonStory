@@ -1,0 +1,6 @@
+{
+  "result": "PASS",
+  "rules": "DSB001-DSB008",
+  "sourceHash": "cc8011fa35b8484383439e7609b219547b9716d85b383c557dee4ce091a39d63",
+  "binaryHash": "585c016c623fabf22ac5fef5cd0b86803813c5da286360fadc21e77494c73212"
+}

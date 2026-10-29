@@ -48,6 +48,27 @@ public sealed class CharacterProgressionProfileProjector
         }
     }
 
+    internal bool TryGetSelectedTraitDefinition(
+        CharacterActor actor,
+        CharacterGrowthState state,
+        int traitId,
+        out CharacterTraitSO trait)
+    {
+        trait = null;
+        if (state?.initialized != true || state.traitIds == null)
+            return false;
+        RequireTraitSelectionAuthority(actor, state);
+        if (!state.traitIds.Contains(traitId))
+            return false;
+        if (RetiredFounderTraitIds.Contains(traitId)
+            || !traitCatalog.TryGetValue(traitId, out trait)
+            || trait == null)
+            throw new InvalidOperationException(
+                $"MissingFounderTraitId: character '{ResolveCharacterDiagnosticId(actor)}' "
+                + $"references unavailable trait definition {traitId}.");
+        return true;
+    }
+
     public IReadOnlyList<CharacterTraitSO> ResolveSelectedTraits(
         CharacterActor actor,
         CharacterGrowthState growthState)

@@ -1,5 +1,30 @@
 # DungeonStory Current Task Plan
 
+## 현재 Goal - R31 수정과 검증 및 main 통합
+
+Status: source_verified / 기준 main1d28d006, branch codex/fix-structure-r31. R31-01~06을 기존 저장 표현과 상태 소유권을 유지해 수정하고 필요한 실행/저장/복원/재시도, commit/push, PR/CI/main 통합을 완료한다. H01~12는 구체 결함 근거가 추가될 때만 포함한다. 원본 Documents 사용자/R80 작업과 기존 QA636개를 보존한다.
+
+1. 완료: 메인은 방문객 생성 예약 취소와 바인딩 경계, 운반/방 캐시 입력과 실패 게시 순서를 수정한다. DTO 필드/버전과 완료 방문 횟수 계약을 유지한다.
+2. 완료: 독립적인 연구/수리 UI와 생산 배치 점유 규칙은 지정 파일 담당자에게 배정한다. 공용 조립과 최종 통합, 어려운 검증은 메인이 소유한다.
+3. 완료: r254 현재 source의 표적7개 native 계약과 core/character/world/crop/effects-traits/definitions/recovery7개 native가 모두 whole PASS다. 공식 월드 저장 복원과 기존 중복 방지/복구/재시도, console-zero/메모리/포커스/정상 종료 기준을 유지했다.
+4. 완료: source/config에 실행 원문을 결합하고 관련 생성 인덱스를 배치 마감에 한 번 갱신했다. 내용/링크/최신성 검사는 failure0이다. 보고서에 수정 결과와 통제 fixture의 한계를 연결했다. 과거3실행은 전체FAIL로 보존한다.
+5. Git 통합: 소유 변경만 commit/push하고 PR 생성/attach, head CI, main 병합과 병합 후 CI를 확인한다. 이 source 검증 기록 이후의 최종 Git 상태는 실제 GitHub 결과를 따른다.
+
+작업 창: SOURCE_EDIT CLOSED, UNITY_VERIFY CLOSED. r254 전체21772입력 drift0,8개 native 정상 종료와 owned Unity/display/compiler terminal, CUHA Unity0/operation.lock free를 확인했다. 원본 Documents의 사용자/R80 작업과 기존 QA636개, 로컬 앱/포커스를 보존했다.
+
+## 현재 작업 - main 추가 구조 조사 R31
+
+Status: completed / 최신 main1d28d006, branch codex/audit-structure-r31. 기존 추가2건에서 게임 Runtime 전체 목록과 위험 경계 조사로 확장해 수정 대상6건과 보류12건을 기록했다. source/input/link 검증을 완료했다. SDK와 원본 Documents 변경은 제외했고 게임 수정/Unity 실행/새 Goal/게시는 하지 않았다.
+
+1. 완료: R30 후속 호출부, 방문객 생성 취소, 생산 지원 표시, 경제 복원 후보, 상점 조회, UI 결과와 수명을 현재 main에서 재검토했다.
+2. 완료: 실제 상태 불일치2건을 소유자와 호출부, 저장 경로, 최소 수정 방향과 표적 검증으로 기록했다. 게시 후 외부 변경이 확인되지 않은 복원 후보 등6건은 보류했다.
+3. 완료: docs/dev/code-structure-review-main-r31-20261029.md에 근거를 모았다. 최종 문서/입력 검증 증거는 C:/Users/vulpo/Documents/Codex/2026-10-29/structure-audit-r31/verification.json에 둔다.
+4. 완료: Runtime2,986개 원본과 SHA를 목록화하고 현재 계측, asmdef47개, 기본 어셈블리 Runtime2,201개 의존 그래프를 외부에 생성했다. Bee 입력의 누락 범위를 구분하고 현행 파일시스템 입력으로 보완했다. 생성 인덱스와 에셋 보고서는 무변경이다.
+5. 완료: 메인은 취소/복원 구조와 public clear/throw79개 중 후행 throw14개를 직접 대조했다. 담당자는 Views175개 탐색/47파일 경계 대조, 반환 후보30개 전부 최소 분류, 이벤트/캐시/static 선별 근거를 반환했다.
+6. 완료: 총 수정 대상6건, 보류12건과 제외 근거를 같은 보고서에 통합했다. 크기/참조 수와 내부 소유 포트 협력은 자동 결함으로 세지 않았다. 모든 함수의 의미검토 또는 실행 PASS 주장은 하지 않는다.
+7. 완료: source 링크97개/인용54파일/외부 근거10개가 유효하고 Runtime2,986개 SHA drift0이다. main/HEAD/tree 일치와 분기0/0, 게임 입력 변경/추가0, 예상 밖 tracked 변경0, 기존 미추적 QA636개 보존, 문서 끝 공백/중간 점0을 확인했다. 결과는 외부 expanded/verification.json에 기록했다.
+
+
 ## 현재 Goal - R30 전체 수정과 실행 검증 및 main 통합
 
 Status: source_verified / 기준 main842eb205, branch codex/fix-structure-r30. 보고서30항목과 MP01/MP02의 수정 및 필요한 실행 검증을 마쳤다. CP01~06은 실제 계약 근거로 유지했다. 이 기록은 Git 통합 직전이며 PR/main의 최종 상태와 CI 결과는 GitHub 기록을 따른다.

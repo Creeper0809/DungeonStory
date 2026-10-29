@@ -58,7 +58,7 @@ Assets/Scripts/Views/UI/CharacterDetailedStatsTextFormatter.cs,views,Views,Views
 Assets/Scripts/Views/UI/CharacterMedicalStatusLocalizer.cs,views,Views,Views,runtime,,2,ICharacterMedicalStatusLocalizer; CharacterMedicalStatusLocalizer,class; interface,player-observation,,
 Assets/Scripts/Views/UI/CharacterSummaryAiPresenter.cs,views,Views,Views,runtime,,1,CharacterSummaryAiPresenter,class,ai-decision; player-observation,,
 Assets/Scripts/Views/UI/CharacterSummaryCaptivityPresenter.cs,views,Views,Views,runtime,,1,CharacterSummaryCaptivityPresenter,class,player-observation,,
-Assets/Scripts/Views/UI/CharacterSummaryCombatPresenter.cs,views,Views,Views,runtime,,1,CharacterSummaryCombatPresenter,class,player-observation,,
+Assets/Scripts/Views/UI/CharacterSummaryCombatPresenter.cs,views,Views,Views,runtime,,1,CharacterSummaryCombatPresenter,class,player-observation,hash-membership,
 Assets/Scripts/Views/UI/CharacterSummaryCombatTextFormatter.cs,views,Views,Views,runtime,,1,CharacterSummaryCombatTextFormatter,class,player-observation,,
 Assets/Scripts/Views/UI/CharacterSummaryGrowthPresenter.cs,views,Views,Views,runtime,,1,CharacterSummaryGrowthPresenter,class,player-observation,,
 Assets/Scripts/Views/UI/CharacterSummaryHealthPresenter.cs,views,Views,Views,runtime,,1,CharacterSummaryHealthPresenter,class,player-observation,,

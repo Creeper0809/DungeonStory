@@ -117,6 +117,7 @@ public interface ICharacterPopulationService
     WorldCharacterProfile AcquireVisitor(
         CharacterSO characterData,
         IEnumerable<string> unavailableProfileIds = null);
+    bool TryCancelVisitorAcquisition(string persistentId, out string failureReason);
     bool TryCreateRecruitCandidate(
         out WorldCharacterProfile profile,
         out CharacterSO sourceData);
@@ -174,6 +175,9 @@ public sealed class CharacterPopulationService :
         CharacterSO characterData,
         IEnumerable<string> unavailableProfileIds = null) =>
         adapter.AcquireVisitor(characterData, unavailableProfileIds);
+
+    public bool TryCancelVisitorAcquisition(string persistentId, out string failureReason) =>
+        adapter.TryCancelVisitorAcquisition(persistentId, out failureReason);
 
     public bool TryCreateRecruitCandidate(
         out WorldCharacterProfile profile,

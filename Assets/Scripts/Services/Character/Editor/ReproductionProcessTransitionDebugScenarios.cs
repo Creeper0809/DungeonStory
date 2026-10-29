@@ -1979,6 +1979,11 @@ public static class ReproductionProcessTransitionDebugScenarios
             CharacterSO characterData,
             IEnumerable<string> unavailableProfileIds = null) =>
             throw new NotSupportedException();
+        public bool TryCancelVisitorAcquisition(string persistentId, out string failureReason)
+        {
+            failureReason = "birth-population-fixture-visitor-acquisition-unsupported";
+            return false;
+        }
         public bool TryCreateRecruitCandidate(
             out WorldCharacterProfile profile,
             out CharacterSO sourceData)

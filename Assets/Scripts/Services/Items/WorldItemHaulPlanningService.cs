@@ -93,6 +93,9 @@ public sealed class WorldItemHaulPlanningService :
     private int cachedAvailabilityWarehouseVersion = -1;
     private int cachedAvailabilityTraversalVersion = -1;
     private long cachedAvailabilityDestinationClaimRevision = -1;
+    private long cachedAvailabilityMassRevision = -1;
+    private float cachedAvailabilityCurrentWeight;
+    private float cachedAvailabilityMaxWeight;
     private bool cachedAvailability;
 
     public bool HasPendingPriorityWork => repository.PrioritizedHaulStackIds
@@ -164,24 +167,39 @@ public sealed class WorldItemHaulPlanningService :
         int traversalVersion = grid.TraversalVersion;
         long destinationClaimRevision = destinationClaims.Revision;
         Vector2Int actorPosition = actor.GetNowXY();
+        CharacterCarryInventory inventory = CharacterCarryInventory.Ensure(actor);
+        if (inventory == null)
+        {
+            return false;
+        }
+        float currentWeight = inventory.GetCurrentWeight(catalogProvider);
+        float maxWeight = inventory.GetMaxAllowedWeight(haulingSettingsProvider);
+        long massRevision = massQuery.AuthorityRevision;
         if (ReferenceEquals(cachedAvailabilityActor, actor)
             && cachedAvailabilityActorPosition == actorPosition
             && cachedAvailabilityHaulVersion == haulVersion
             && cachedAvailabilityWarehouseVersion == warehouseVersion
             && cachedAvailabilityTraversalVersion == traversalVersion
+            && cachedAvailabilityMassRevision == massRevision
+            && cachedAvailabilityCurrentWeight == currentWeight
+            && cachedAvailabilityMaxWeight == maxWeight
             && cachedAvailabilityDestinationClaimRevision
                 == destinationClaimRevision)
         {
             return cachedAvailability;
         }
 
+        bool available = HasAvailablePlanCore(actor, grid, reachable, inventory);
         cachedAvailabilityActor = actor;
         cachedAvailabilityActorPosition = actorPosition;
         cachedAvailabilityHaulVersion = haulVersion;
         cachedAvailabilityWarehouseVersion = warehouseVersion;
         cachedAvailabilityTraversalVersion = traversalVersion;
         cachedAvailabilityDestinationClaimRevision = destinationClaimRevision;
-        cachedAvailability = HasAvailablePlanCore(actor, grid, reachable);
+        cachedAvailabilityMassRevision = massRevision;
+        cachedAvailabilityCurrentWeight = currentWeight;
+        cachedAvailabilityMaxWeight = maxWeight;
+        cachedAvailability = available;
         return cachedAvailability;
     }
 
@@ -939,14 +957,9 @@ public sealed class WorldItemHaulPlanningService :
     private bool HasAvailablePlanCore(
         CharacterActor actor,
         Grid grid,
-        GridPathSearchResult reachable)
+        GridPathSearchResult reachable,
+        CharacterCarryInventory inventory)
     {
-        CharacterCarryInventory inventory = CharacterCarryInventory.Ensure(actor);
-        if (inventory == null)
-        {
-            return false;
-        }
-
         string actorId = characterIdRegistry.GetOrAssignPersistentId(actor);
         IReadOnlyList<WorldItemStackRecord> stacks = GetHaulableStacks();
         for (int index = 0; index < stacks.Count; index++)
