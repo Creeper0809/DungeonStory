@@ -5,15 +5,9 @@ WeatherFrontDefinitionSO,content-type,,type-reference; save-restore-reference,se
 WeatherFrontDefinitionSO,content-type,,type-reference; save-restore-reference,services:items,content-loading,structural-type-consumer,Assets/Scripts/Services/Items/ContentReferenceCatalog.cs
 WeatherFrontDefinitionSO,content-type,,type-reference,services:run,content-loading,structural-type-consumer,Assets/Scripts/Services/Run/V20StoryContentCatalog.cs
 WeatherFrontDefinitionSO,stable-id,weather:clear,stable-id-literal,models:coresession,runtime,exact-literal-consumer,Assets/Scripts/Models/CoreSession/ClimateDomain.cs
-WeatherFrontDefinitionSO,stable-id,weather:clear,stable-id-literal,services:survival,runtime,exact-literal-consumer,Assets/Scripts/Services/Survival/SurvivalFoodRuntime.cs
 WeatherFrontDefinitionSO,stable-id,weather:clear,stable-id-literal,views,player-observation,exact-literal-consumer,Assets/Scripts/Views/UI/UIManager.cs
-WeatherFrontDefinitionSO,stable-id,weather:cold-snap,stable-id-literal,services:survival,runtime,exact-literal-consumer,Assets/Scripts/Services/Survival/SurvivalFoodRuntime.cs
 WeatherFrontDefinitionSO,stable-id,weather:cold-snap,stable-id-literal,views,player-observation,exact-literal-consumer,Assets/Scripts/Views/UI/UIManager.cs
-WeatherFrontDefinitionSO,stable-id,weather:fog,stable-id-literal,services:survival,runtime,exact-literal-consumer,Assets/Scripts/Services/Survival/SurvivalFoodRuntime.cs
 WeatherFrontDefinitionSO,stable-id,weather:fog,stable-id-literal,views,player-observation,exact-literal-consumer,Assets/Scripts/Views/UI/UIManager.cs
-WeatherFrontDefinitionSO,stable-id,weather:heatwave,stable-id-literal,services:survival,runtime,exact-literal-consumer,Assets/Scripts/Services/Survival/SurvivalFoodRuntime.cs
 WeatherFrontDefinitionSO,stable-id,weather:heatwave,stable-id-literal,views,player-observation,exact-literal-consumer,Assets/Scripts/Views/UI/UIManager.cs
-WeatherFrontDefinitionSO,stable-id,weather:rain,stable-id-literal,services:survival,runtime,exact-literal-consumer,Assets/Scripts/Services/Survival/SurvivalFoodRuntime.cs
 WeatherFrontDefinitionSO,stable-id,weather:rain,stable-id-literal,views,player-observation,exact-literal-consumer,Assets/Scripts/Views/UI/UIManager.cs
-WeatherFrontDefinitionSO,stable-id,weather:storm,stable-id-literal,services:survival,runtime,exact-literal-consumer,Assets/Scripts/Services/Survival/SurvivalFoodRuntime.cs
 WeatherFrontDefinitionSO,stable-id,weather:storm,stable-id-literal,views,player-observation,exact-literal-consumer,Assets/Scripts/Views/UI/UIManager.cs

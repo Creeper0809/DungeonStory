@@ -89,7 +89,7 @@ public static class BlueprintResearchConstructionApplicationAdapter
 {
     public static void Construct(
         this BlueprintResearchRuntime runtime,
-        IFacilityShopUnlockStateService shopUnlockStateService,
+        IFacilityShopUnlockStateAuthority shopUnlockStateService,
         IFacilityShopCatalog facilityShopCatalog,
         IFacilityCandidateCache facilityCandidateCache,
         IWorkforceReplanService workforceReplanService,

@@ -1,0 +1,8 @@
+{
+  "exit_code": -9,
+  "seconds": 1831,
+  "stop_reason": "resource-or-time-limit",
+  "source_label": "r249r30",
+  "compiler_error_count": 0,
+  "source_drift": []
+}

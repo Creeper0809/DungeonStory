@@ -53,6 +53,108 @@ pwsh 인덱스 rebuild와 내용 검증 및 최종 read-only freshness의 실패
 
 # DungeonStory Current Progress
 
+## R30 수정 시작 2026-10-29
+
+실행 검증 마감: 현행 r250 native7개가 모두 정상 종료했다. effects-traits300초/definitions1020초/recovery1000초/core330초/character220초/crop210초/world260초, CS0/console0/전체21766입력 drift0이다. 실제 월드는 JSON2084345바이트, 건물138/인물3/원정1/침입1, knowledge continuation/방어 활성화/침입 rollback retry/경고0을 확인했다. 소유 Unity/display/compiler 종료와 operation lock 해제를 확인했다. source8c4103838649f1acca5a6f6b3f997e739043221261e42f0cc7758760c2b42cf5, configdc5e9dae2ffbb85dc1de06974deafb019faf91a4affbd7df6c88c376a6664e6f이다.
+
+최종 Python111개42.642초 PASS다. 게시 식별자 검사도 모든 part의 증거가 같은 commit에 존재하고 published identity marker가 전체에서 정확히1개인지 검사하도록 연결했다. 실패/누락/중복/잘못된 count 반례를 유지했다. Artifacts/QA/ImpactCI/verification.json SHA9f65246527b76bf5503d982a3a8336ec695c94d3a53d9d039d18d0e5ae49e13b와 StructureR30의109파일/과거18실행을 봉인했다. source binding과 공개 ID 승격 원문, 항목30/추가2/조건부6 판단을 연결했다. 과거 전체 FAIL은 그대로이며, 역사 실행 cleanup은 원래 종료코드와 일치함을 확인했다. 새 증거 폴더는 Git의 EOL 변환을 끄고 원문 bytes를 보존한다. 이 기록은 Git 통합 직전이며 최종 PR/main CI는 GitHub 결과를 따른다.
+
+
+r250의 effects-traits300초와 effects-definitions1020초는 각각 whole PASS, CS0/console0/drift0/정상 cleanup이다. 첫 컴파일87.868153초와 현재 source8c410383/configdc5e9dae의 정확한 완료 표식을 확인했다. 다음 effects-recovery와 core/character/crop/world는 진행 또는 대기다. 서로 다른 source의 과거 결과와 합쳐 현재 전체 PASS로 선언하지 않는다.
+
+
+r249 effects02도1831초/exit-9로 중단됐으며 CS0/drift0과 owned Unity/display terminal을 확인했다. 외부 timing의 참조970초와 나머지 복구/등록 효과의 CPU 계산을 근거로 실행 단위를 분할했다. 기존8개 scenario 호출은 순서/횟수/본문을 유지하고 세 part 모두의 정상 종료/현재 source/config/console-zero/SHA를 검사한다. 누락/중복/오래된 입력/실패/native 중단/콘솔 오류 반례를 포함한 Python107개59.162초 PASS, 인덱스 내용/freshness 실패0이다. r250 byte 전송15844바이트와 전체21766입력 SHA를 확인했고 변경은 Editor CI 생산자1파일이다. source8c410383/configdc5e9dae로7개 native 실행을 시작했다. 외부 binding 확인에서 config를 비소스로 잘못 가정한 assert는 실제 전체 Unity 입력 정의에 맞춰 정정했으며 fingerprint/gate를 바꾸지 않았다.
+
+
+최종 r249 core330초/character220초/crop210초/world260초는 whole PASS, CS0/console0/drift0이다. 실제 world는 건물138/인물3/원정1/침입1의 JSON2087299바이트 복원과 knowledge continuation/방어 활성화/침입 rollback retry/경고0을 통과했다. effects01은1831초/resource-or-time-limit/exit-9이며 부분 marker를 전체 PASS로 사용하지 않는다. 현재 같은 source/같은 timeout과 메모리/콘솔/포커스 기준의 effects02에서 구간별 시각과 CPU/가용 메모리를 외부 관측한다. 기존 네 PASS는 반복하지 않는다.
+
+
+r248 staff200초와 door120초는 whole PASS, CS0/console0/drift0이다. staff6/6은 재주입/실제 선택/업무/제압/각 stale callback 직후 불변과 실패 알림0->2를, door는 실제 pointer 붙여넣기 실패 안내/권한 불변/재생성 toggle 및1600x900/900x1600 경계를 포함한다. batch PNG와 모델 추론은 NOT_RUN이다. G12 80초는 새 충전 종족의 실제 생성/실효 프로필을 통과한 뒤 생물 대조군 Adventurer의 문화 등록에서 실패했다. 실제 asset은 전투용 Intruder_Breakthrough만 해당 종족을 사용하고 현행 기본문화는 Human을 가리킨다. fixture 대조군을 현재 지원되는 Human으로만 교체했으며 문화 guard와4+3회/정확한 child/복원 단언은 유지한다. r249 준비/전송은 전체21766입력/한 Editor변경/52197byte SHA2ab89a10.../drift0이며 현재 G12 실행 중이다. 이 단계 PASS 뒤 현재 source-bound CI5를 실행한다.
+
+r247 전송은 SSH binary stdin과 SFTP에서 약19초 후 connection reset으로 실패했다. source mutation 전이었고 서버는 r246/Unity0을 유지했다. 실패 부분 파일을 보존하고 8KiB ASCII chunk81개를 각각 확인한 뒤 전체660731byte SHAd0bae4f7...를 대조해 같은 frozen payload를 반영했다. 전송21.478초,21766 입력/4변경/source drift0이다. r247 Unity 실행은 없다. 정적 추적으로 G12의 실효 프로필 projector도 같은 새 종족 카탈로그가 필요함을 확인해 actor와 같은 실제 factory를 주입했고 stale UI의 각 callback 직후 불변 검사도 추가했다. r248은 Editor2개만 바뀌며 원래 전체 입력 hash/backup/lock 기준을 유지했다. 준비 후 ASCII chunk 방식으로91034byte SHA2f994831... 및21766/2변경/drift0 반영을 확인했다. 현재 r248 staff/door/G12와 조건부 CI5 실행 중이며 아직 완료가 아니다.
+
+r246 게시 후보 생성은160초/CS0/drift0/exit0으로 PASS다. Unity 생성 JSON SHA5d367a35...를 원본 에셋/meta와 대조했고 기존3544개/12510필드 값 변경0, 새 SO6개/신규 identity18필드(정의12+등록6)만 확인했다. 후보 원문 바이트 그대로 baseline에 복사했으며 수기 JSON 생성은 없다. Windows CRLF와 Git LF만 다른 원본은 canonical byte 대조와 전 필드 대조로 보존했다. SOURCE_EDIT에서 staff의 상충된 준비 조건을 실제 제압/작업null 상태로 교정하고 모든 불변/선택/알림2건 단언을 유지했다. stale actor는 프레임 전에 준비한다. door는 클릭 전 버튼 유효성을 기록하고 rebuild 후 실제 toggle을 다시 찾는다. G12는 새 종족을 fixture-only catalog에 등록한 실제 profile factory로 초기화한다. 생산 파일/상태/저장 schema 변경0이며 Editor3개와 게시 baseline만 수정했다. r247 pin260, 전원 FROZEN/동기화 중이다.
+
+r246 독립 native 배치를 마쳤다. fluid110초/commands100초/exterior100초/transport120초/fourth120초는 각각 whole PASS, CS0/console0/drift0이다. transport는 실제 추적/운반/수용 완료와 부모 결과4개 중복0, R02 UI 및 귀환 선택의 가까운 만원 우리 건너뛰기/모두 부적격/명령 직전 재검사/원본복원을 포함한다. fourth는 특수 장기/방어/탄약 authoring4개 전체 PASS다. staff240초는5/6 UI PASS이나 실제 제압이 작업 우선 명령을 지우는 계약과 상충한 fixture 준비 조건1개가 실패했다. door120초는 실제 pointer/정확한 실패 문구/권한 불변을 관측했으나 rebuild 뒤 파괴된 버튼 reference 검사/재사용으로 전체 FAIL이다. G12 80초는 기존 Golem 집중 검사를 통과했으나 새 시험 종족을 actor factory 카탈로그에 등록하지 않아 전체 FAIL이다. 세 수정은 외부 next-edit-r247.json/apply_r247.py에만 준비했고 source는 FROZEN이다. 새 SO6개 게시 ID 보호를 위한 native 후보 생성 중이며 baseline은 아직 변경하지 않았다.
+
+r245 staff는 compile88.954162초/CS0/190초/exit1/drift0이다. 정상 시작 신원과 반란 준비, 콘솔0 및 batch 캡처 NOT_RUN까지 도달했지만 직원 모드 이하6행이 모두 실패했다. 이름은 현재 코드와 같았다. DI 재주입이 managementSurface를 버리면서 레이아웃의 기존 버튼이 이전 surface.panelMode를 변경하고 새 surface는 기본 모드를 읽는 실물 경로를 확인했다. 모드 상태를 실제 StaffWorkPriorityPanel 한 곳으로 옮기고 기존 명령/조회 port로 읽고 쓰게 했다. 재연결 때 구 surface 소유 카드 정리와 다음 UI 갱신도 유지한다. 새 클래스/저장 필드는 없다. native fixture는 실제 패널을 재주입한 뒤 기존 버튼으로 선택/업무/제압/실패 알림을 그대로 단언하고 workforce/button 관측을 남긴다. owned compiler301834 terminal 뒤 수정했다. r246 FROZEN/동기화, native 수용은 아직 아니다.
+
+r244 staff는 compile90.508254초/CS0/320초/exit1/drift0으로 bounded window에서 중단됐다. 생성 예외는 없어졌지만 기존 P1/P2 screenshot coroutine가 batch Editor에서 실행되지 않는 WaitForEndOfFrame을 기다렸다. Unity6000.3 공식 문서의 제한과 현재 no-report/no-PNG를 대조했다. P1/P2와 door Editor fixture2곳에서 기존 CaptureReady를 재사용하고 batch PNG만 NOT_RUN으로 명시한다. 모든 UI 명령/상태/알림/배치 경계 단언은 그대로이며 비batch 화면 캡처도 유지한다. 소유 compiler220940 SIGTERM/terminal 및 Unity0/lock free 뒤 SOURCE_EDIT를 열어 두 fixture만 수정했고 r245 동결/동기화 중이다.
+
+r243 staff는 compile92.598517초/CS0/180초/exit1/drift0이다. 활성 QA 캐릭터 초기화 중 성장 owner가 서사 근거 없는 초안 생성을 거절했고, 다음 Start 재초기화에서 콘솔 예외가 드러났다. guard와 캐릭터 생성 계약을 완화하지 않는다. fixture를 비활성 composition -> 정식 정의/ID 초기화 -> 실제 준비된 시작 신원과 서사 이력 설치 -> 게시/활성화 순서로 맞췄다. trait authority와 의미 있는 시작 이력은 기존 명령이 생성하며 QA가 가짜 성공이나 모델 응답을 만들지 않는다. 소유 compiler133019 SIGTERM/terminal, Unity0/lock free를 확인한 뒤 Editor fixture1개만 수정했다. r244 동결/동기화 중이며 staff actual PASS와 나머지 Play는 아직 남았다. 최종 Python103개(33.333초)와 DSB001~008 analyzer 검증은 PASS다.
+
+r242 실제 pause Play는 compile90.543651초/CS0/210초/exit0/drift0으로 whole PASS다. late-consumer1회, 정상 자동 Update1회, 중첩/역순/수동/애니메이션 정지와 teardown console-zero를 확인했다. 자체 compiler4019264를 소유 증명해 SIGTERM/terminal 하고 staff로 이어갔다. staff는 compile2.304459초/CS0/90초/drift0이지만 기존 빈 QA 종족/프로필 캐릭터 때문에 해부 profile 빈값과 특성 authority0에서 실제 tick이 실패했다. 원본 인간 정의를 복제해 실제 root 생성 factory로 초기화하도록 고쳤고, 안정 ID를 초기화 전에 배정하여 성장 상태의 기준 ID를 유지한다. 별도 Identity 프로필 덮어쓰기는 제거했다. 기존 실패 알림2건과 작업/제압 불변 단언은 유지한다. r243 변경은 P1/P2 Editor fixture1개뿐이며 전원 동결했다.
+
+r241 ammo-authoring-01은 compile81.684287초/CS0/140초/exit0/drift0으로 whole PASS다. core8 생성/복구/no-op0.327초와 research13 0.134초, wrapper 양쪽의 값/배열/alias/타입/끊긴 참조 반례를 통과했다. 독립 raw 그래프 대조도 reference5/5, 변경0이다. 이어진 실제 pause Play120초는 compile2.518085초/CS0/drift0이지만 next Escape에서 FAIL이었다. frame56 자동 Update가 popup1개만 닫고 연구 정지를 유지한 뒤 fixture가 같은 frame에 Update를 재호출해 연구까지 닫았음을 진단으로 확인했다. 정상 경로는 자동 Update만, 늦은 소비 순서 시험은 manager를 일시 비활성화하고 수동1회만 실행하도록 고쳤고 기존 단언은 유지했다. 보고서의 필수 R02 경계를 누락하지 않도록 실제 운반으로 찬 우리와 소유한 정의 사본의 capacity1, 실제 UI 버튼/귀환 선택/전부 부적격/실제 명령 재확인을 기존 transport fixture에 추가했다. 선택 명령은 명시적 거절 포트로 관측하며 자연 포획 terminal은 기존 pipeline만 만든다. r242의 변경은 Editor fixture2개뿐이며 전원 동결했다.
+
+r240 fourth-01은 compile135.737307초/CS0/260초/exit1/drift0이다. natural-grafts50.979초는 실제 추출/물리 설치/중복/상태별 투영/부담 처리/JSON preflight/새 owner 복원/unknown 거절과 repair retry를 통과했다. defense-preparation18.251초는 실제 Trigger,6->5,성장 합성,조기 거절 무변경,중립 조회의 새 owner JSON deadline 및 경계 재발동을 통과했다. 두 authoring은 실패다. 실제 raw를 독립 대조해 reference5개 모두 값/타입/배열/alias가 동일하고 allocation 표만 달랐음을 확인했다(authoring-graph-proof-v2.json). 최초 외부 비교는 MonoBehaviour envelope를 놓쳐 무효였고 원본 실패 보고를 보존했다. C# 정규화도 같은 EditorJson host envelope를 처리하도록 보완하고 양쪽 형태의 positive/negative 반례를 추가했다. 통과한 장기/방어 게임 코드는 유지하며 새 entry에서 authoring2개만 실행한다. 대공사 설명은 실제 재정비 속도20%로 명확히 했고 수치/비용/저장은 유지한다. r240 terminal/owned compiler3479201 정리 뒤 r241로 동결한다.
+
+r239 fourth-01은 compile137.043850초/CS0/230초/exit1/drift0이다. 연구 authoring0.102초만 PASS다. 첫 graft의 실제 추출/물리 설치/중복 및 상태별 투영은 진행했지만 수술 preflight가 자연 이식의 두 번째 부담 효과 미완료를 거절했다. 실제 ApplySurgicalBurdenEffectHandler를 통제 anatomy owner에 실행하고 완료 사실/부담 JSON을 기록하도록 보완했다. 방어는 조기 거절과 fresh JSON deadline까지 통과한 뒤 두 번째 발동이 초기 탄약1회분 소진으로 막혔다. 시험용 clone에 실제2회분을 준비하고 생산의 소비/재장전 기준은 유지했다. core 진단의 잘못된 env 이름으로 raw가 기록되지 않았음을 로그로 확인했다. 기존 lossy rid=0 비교를 참조 그래프 보존 정규화로 고쳤고 값/배열 순서/공유 참조/타입 변경 및 끊긴 참조 반례를 추가했다. 새 raw 진단은 실제 A05_REPORT_PATH 아래 create-only로 기록한다. Unity/display/lock terminal 뒤 owned compiler3254324만 정리했다. r240로 동결하며 새 native는 미실행이다.
+
+r238 fourth-01은 compile121.495451초에 Editor fixture의 target-typed new 한 곳에서 기존9인자 생성자가 남아 컴파일 실패했다. 로그3행은 같은 CS1729 위치1개이며 실행 표적은 미실행이다. terminal/lockfree 확인과 owned compiler3176150 SIGTERM 뒤 해당 호출도 명시 neutral 조회로 연결했다. 실제 DefenseFacilityRuntime 심볼 사용처 전체에서 target-typed 생성까지 대조했다. graft donor lookup은 기존 대소문자 호환을 유지하도록 OrdinalIgnoreCase다. r239로 동결하며 기존 실패 증거를 보존한다.
+
+r237 fourth-01은 compile150.410617초/CS0/240초/exit1/drift0이다. research ammo authoring0.06초만 개별 PASS다. graft는 기능 mask에 머리 같은 부모 컨테이너가 포함되어 organ:head 생성으로 실패했고 typed node kind와 실제 제외 반례로 수정했다. defense는 새 대기 판정이 blockedReason을 바꿔 early-retry JSON 무변경 단언에 실패했다. 중복 타이머를 되살리지 않고 runtime deadline 조회로 먼저 거절하도록 고쳤다. core ammo는 authored 값 일치 후 managed-reference 비교가 달라 전체 전후 값을 진단한다. Unity/display/lock terminal 회수 후 compiler3035851만 소유 증명하여 SIGTERM/terminal 했다. r238로 동결하며 이전 실패는 보존한다.
+
+r236 third-pending는 compile148.547848초/CS0/210초/drift0/exit1이며 research-shop10.489초와 core-authoring0.101초만 개별 PASS다. 연구 탄약 비교 차이는 RefIds allocation row 순서였고 값은 동일했다. profile 인스턴스 재사용으로 원인을 수정했다. 실제 pause Play120초와 staff Play90초는 각각 연속 Escape 경계 및 격리 persistence snapshot 준비에서 FAIL로 보존했다. terminal Unity/display/lock/compilers0 확인 후 검증 입력/격리 준비를 보완했다. 새 사용자 위임 설계로 장기3종과 방어 준비1.2의 실제 소비를 구현하고 추출/물리 설치/중복/JSON 및 실제 방어 Trigger 표적을 추가했다. 에셋 영향은 사전 설명했으며 기존 카탈로그2445개 순서/비정의 값은 보존하고6개 정의만 추가했다. r237로 동결하며 신규 구현 native PASS는 아직 아니다.
+
+r235 third-pending-01은 compile93.758234초/CS0/160초/exit1/drift0이다. core ammo authoring8개 fresh/복구/no-op은 PASS0.05초다. 연구는 snapshot/pure progress/shop copy/owner commands/normal JSON 모두 true지만 discard observer가 incoming17/queued true를 읽었고 최종 progress7/queue false/revision1로 돌아와 기존 단언대로 FAIL했다. root published snapshot API를 통해 공개 연구/상점 조회만 게시된 root를 복사하게 고쳤으며 내부 staging/writer 순서는 유지했다. 실제 discard 기대7 및 새 staged/discard/publish 표적을 유지한다. research ammo13은 첫 blasting-charge의 profile과 정적 필드가 일치하지만 no-op 비교 FAIL이라 canonical before/after create-only 진단을 추가했다. Unity/display/lock terminal 및 owned compiler2067492 SIGTERM/terminal 뒤 편집하고 pin228로 동결했다. 사용자가 장기와 방어 효과를 재미 우선으로 설계하도록 답변하여 설계 질문 대기는 해소됐다. 필요한 기존 소비 경로 조사 결과는 광량 작업/명중 불리, 피로 rate, 둔기 피해와 방어시설 cooldown이며 구현은 다음 창이다.
+
+r234 third-repairs-01은 compile85.298237초/CS0/320초/exit1/drift0이다. generation11.857초는 순수 조회/완료/JSON/거절/재시도/legacy reconcile/physical ACK를, battle157.694초는 중첩 사본/owner 명령/중복 거절/JSON 복원/invalid 복원/무기 payload를 개별 console-zero/PASS했다. 연구는 예외가 아닌 bool false여서 아직 FAIL이며 하위 조건과 관측값을 진단하도록 보완했다. Unity/display/lock terminal 회수 및 owned compiler1710877 SIGTERM/terminal 뒤 편집했다. 새 profile이 만든 authoring 회귀2곳도 수정했다. core8/research13 metadata21/21, asset bytes21/21 무변경 및 Roslyn syntax2파일 오류0을 확인했고 native는 별도 대기다. 공개 진입은 두 builder의 RunR30AmmunitionAuthoringFocused이며 임시 SO만 사용한다. UI 검증의 비대상 서사 추론은 기존 격리 capture gate로 보류하고 모델 응답을 제공하지 않는다. 전원 동결, pin227, r235의 연구/authoring2개 표적 준비다.
+
+r233 third-remaining-01은 compile84.508432초/CS0/480초/exit1/drift0이다. living14.197초, regional80.811초, grand-project11.541초, supply0.019초, ammo127.518초, counters11.419초, manual0.528초, crop34.652초, carry0.003초, seed6.819초가 개별 console-zero/PASS다. 전체는 research helper의 version6 대 current8, generation fixture의 유효 production ability 누락, battle fixture의 원래 중복 거절을 성공으로 기대한 오류3개로 FAIL했다. terminal Unity/display/lock와 owned compiler1513485 SIGTERM/terminal 확인 뒤 이 준비/기대만 고쳤다. 기존 legacy3 거절, malformed payload, 실패 무변경과 중복 명령 거절은 유지하고 battle 재시도는 실제 거절 사유 및 state/event/retained snapshot 불변을 함께 단언한다. CI 새 기록 분류는 기존 제목/본문 보존과 고유 ID 증명을 요구하며 원장 및 기존 기록 변경 strict 인증과 영향5개는 유지한다. 관련 Python103/42.422초 PASS. source-batch-03-r234에225개 재동결하고 실패3개만 재검증하며 전체 실패를 PASS로 바꾸지 않는다.
+
+r232 third-remaining-01은 compile153.855253초/CS0/전체220초/exit1/drift0이며 living fixture의 IKinshipQuery.GetGeneration 미구현으로 FAIL했다. terminal Unity/display/lock 회수 후 owned compiler1400849를 동일 group/session/startTicks/exe/cwd로 확인해 SIGTERM/terminal 처리했다. main EDIT_READY에서 fixture의 세대1 조회만 명시 지원하고 미지 호출 거절과 원 단언은 유지했다. runner는 독립 표적 실패를 수집해 끝에서 AggregateException으로 전체 FAIL 처리한다. 어떤 실패도 PASS 파일을 쓰지 않으며 실제 콘솔 오류도 마지막 전체 gate에서 거절한다. 재동결/pin225, r233 재실행 준비다. 같은 게임 소스에서 Python100/35.542초와 analyzer DSB001~008 재빌드 비교는 PASS이며 native PASS와 구분한다.
+
+r231 third-01은 compile90.019244초/CS0/전체170초/exit1/drift0이다. runtime-profile9.115초, alerts0.065초, all-stacks5.686초는 단계별 console-zero/PASS이며 전체 PASS는 아니다. living-membership fixture가 초기화 전 prepared identity를 적용하여 종족 빈값으로 실패했다. Unity/display/lock terminal 회수 후 소유 compiler960755를 동일 PID/group/session/startTicks/exe/cwd로 확인해 SIGTERM/terminal 처리했다. main EDIT_READY에서 living 준비 순서를 고치고 실제 수동 능력 Active/원정/InBattle 경계와 UI 정지/직원 stale callback/문 피드백 및 좁은 cache Play 진입을 추가했다. R11은 제거할 actor와 기존 제압 표적을 분리해 자연 표적 소멸을 명령 실패로 오판하지 않는다. 모든 작성자 동결 후 source-batch-03-r232에 고정하며 아직 새 native PASS는 없다.
+
+r230 third-01은 compile120.797975초/전체140초/exit1/drift0이며 Editor의 target-typed 생성2곳에 itemCatalog가 누락되어 CS6(각3회)이다. 게임 runtime의 앞선 완료 authority 오류는 해소됐으나 native 테스트는 미시작이다. terminal 회수 후 owned compiler864292만 동일 Unity861771 group/session/startTicks/exe/cwd로 확인해 SIGTERM/terminal 처리했다. main EDIT_READY에서 CharacterSkillActivationOutcome fixture와 CombatSystem의 expression-bodied factory2곳에 명시 catalog를 주입했으며 단언과 production 코드는 바꾸지 않았다. 변수 초기화와 expression-bodied 생성 경계를 별도 검색했다. 즉시 재동결해 r231에서 재검증한다.
+
+r230r30은 전체21750입력 SHA 일치, r229 대비9개 delta, 삭제0/drift0 동기화를 마쳤다. r230 third-01 ThirdContracts를 supervisor860701로 실행했으며 main UNITY_VERIFY OPEN이다. 모든 작성자는 동결 상태이며 현재 컴파일과 실행 결과는 아직 미확정이다.
+
+r229 third-01은 compile70.093066초/CS0이 아니며 독립 오류1곳이3회 기록된 CS3, 전체90초/exit1/drift0이다. 전투 완료 기술은 원본 세션 command context가 필요하므로 일반 조회 사본으로 대체할 수 없다. terminal Unity/display/lock 회수 후 owned compiler709049만 PID/group/session/startTicks/exe/cwd로 확인해 SIGTERM/terminal 처리했다. main EDIT_READY에서 명시 completion authority를 같은 runtime에 등록하고 기존 완료 세션과 발동 순서를 owner 협력자에 보존했다. 일반 조회는 사본으로 유지하고 Editor fixture도 같은 authority를 사용한다. 이 창에서 MP01/MP02 국소 수정과 실패 무변경/JSON 복원/수리 뒤 재시도 표적 검사를 추가했다. native 실행은 재검증 전이다.
+
+r229r30 동기화는 전체21750입력 SHA 일치, r228 대비113개 전달, 삭제0/drift0으로 완료했다. main UNITY_VERIFY OPEN이며 소스/에셋 편집 금지다. r229r30-impact-so-inspector-r30-third-01 ThirdContracts를 단일 private display/operation.lock, 시작 RAM 약9.8GiB와 기존 메모리 보호로 실행했다. supervisor PID704975이며 실행 결과는 미확정이다. r228 compiler는 이미 종료되어 정리한 프로세스0이다.
+
+r228 Remaining6은 compile87.133203초/CS0/160초/drift0이며 farm-delay가 console-zero/PASS(9.541초)였다. 전체는 runtime-profile setup이 종족 초기화 전에 ApplyPreparedIdentity를 호출해 anatomy species 빈값으로 FAIL했다. terminal Unity/display/lock 증거 회수 후 main EDIT_READY로 편집 창을 열었고 정상 초기화 순서 및 finally 정리로 fixture를 수정했다. 앞선 전체 실패를 PASS로 바꾸지 않는다.
+
+세 번째 편집 묶음은 연구/상점 owner 경계, 전투 조회와 중첩 사본, 시설 후보 생성 명령, 대공사 metadata와 보급7->19, 탄약 정의/주입 resolver 및 전술 의미 판정을 포함한다. native 실행 결과는 아직 없다. 탄약23개와 방연 장비2개 영향은 편집 전에 사용자에게 알렸다. 기존 에셋 필드와 GUID, 질량, 생산 수량 및 저장 필드는 보존했고 원본과 변경 SHA/복구 가능한 bytes를 외부 증거에 남겼다. 장기 특수효과와 방어 준비 배율의 미정 소비 산식은 사용자 답변 대기이며 임의로 배정하지 않았다.
+
+r227 Remaining6은compile88.704초/CS0/150초/drift0, 농사만료후전체속도1기대에서FAIL했다. 복원시2일및범위단언은통과했다. 같은EvaluateDaily에서계절지연이추가될수있으므로기존농사지연만제거한동일날짜/시드대조군을정식명령으로준비해동일22일일일평가를수행한다. farm잔여0과대조군속도일치로원래지연만료를검증하고실패시실제날짜/모든delay/두속도를출력한다. duration2/seed43043/만료일22와게임수식은그대로다. terminal회수후해당fixture만수정/재동결, r228로Remaining6재검증한다.
+
+r226은compile91.703241초/CS0/전체540초/drift0이다. 첫12개표적이각각console-zero/PASS했고VisitorExit9경계는347.071초,공연선택/중복/취소재시도도PASS했다. 전체는farm복원remaining2단언에서FAIL이다. 원인은fixture가작업지연발생일20만넘기고조회/저장권위인lastEvaluationAbsoluteDay는0으로둔setup오류다. 기준일20을준비하도록고치고2일/복원/만료단언은유지한다. source와계약이같은앞12개는r226부분증거로보존하고r227은아직미완료인농사부터6개만실행한다. R226전체를PASS로바꾸지않으며full21750manifest연속성을별도대조한다. terminal회수후메인EDIT_READY/수정/재동결했다.
+
+r226은r225대비단골fixture1파일만변경, 전체21750입력SHA/drift0으로동기화후SecondContracts를시작했다. 현재UNITY_VERIFY이며소스동결유지. r225 compiler는정리시이미자연종료해추가종료0, 서버시작RAM약9.9GiB다. 외부sync도구는동일root의resolve결과만재사용하도록최적화했고파일별path검증/전체해시2회와root불변검사를유지한다. 게임입력/검사기준변경은없다.
+
+r225 SecondContracts FAIL: compile89.017792초/CS0/전체160초/drift0. 단계별console-zero에서derived/usage/basic context/six context/legacy capacity/mass registry6개가PASS했다. 새단골fixture는활성화를고의거절하여기존delivery-pending Error를내므로검사소재를ACK유실/재전달로명확히바꾸었다. activation Error로그나production동작은바꾸지않았다. ACK정확히1회유실/활성화전호출0/두번재시도뒤활성화1회와pending0단언을추가했다. 기존사본격리/완료JSON새owner복원단언은유지한다. terminal회수후메인EDIT_READY수정/동결, r226재검증예정이다.
+
+r224 SecondContracts는현재compile87.755180초/CS0, 실제검사에진입했으나VisitorExit fixture가 CharacterActor의필수Memory component를중복추가하여콘솔오류를냈다. 명시prefix3검사PASS는부분증거이며전체는510초/exit-9로중단했다. PID3631890의project/executeMethod/startTicks/group/session검증후SIGTERM요청을남겼으나동기실행이계속되어grace후같은PID만SIGKILL했다. source21750 drift0 및terminalUnity/display/lock회수했다. 필수component존재를확인하는setup으로수정하고각표적단계에시작/소요시간/console-zero/PASS를기록하도록기존runner를보완했다. 검사는삭제/완화하지않았고r225에서재검증한다.
+
+r223 SecondContracts FAIL: compile70.904756초/전체90초/exit1/drift0, fixture 독립오류6곳이3회씩기록되어 CS18이다. 메타 tracker의 존재하지않는 메서드명을 RecordRecipes로, 인구 특성 marker를 기존 List<int> 계약으로, 원정 Object를 UnityEngine.Object로 수정했다. 테스트는미시작이며 기존 단언/production guard/DTO는바꾸지않았다. terminal 회수 후 메인 EDIT_READY 수정 및 재동결, r224에서 재검증한다. r222 orphan compiler PID3501533은 종료된 Unity3499342의 group/session/startTicks/exe/cwd로확인해 해당소유 process만SIGTERM/terminal확인, 원본앱은보존했다.
+
+r222 SecondContracts FAIL: 실제compile95.208744초, 미구현 interface1곳이3회기록되어 CS3, 전체110초/exit1/drift0, 테스트 미시작이다. RecordingBirthPopulationService fixture의 누락된 명시 복원 rebind 메서드를 실제로 지원하지 않는다는 예외로 보완했다. terminal Unity/display/lock 증거를 회수한 뒤 메인 EDIT_READY에서 이 한 곳만 수정하고 다시 동결한다.
+
+r222r30 동기화 완료: 전체21750입력 SHA 일치, r221 대비변경62개/추가삭제0/drift0, 기존서버backup/receipt보존. private display와 메모리 및 단일 operation 보호를 유지한 r222r30-impact-so-inspector-r30-second-01 SecondContracts를 실행했다. 메인 UNITY_VERIFY OPEN, 소스 편집 금지이며 실행 결과는 미확정이다.
+
+두 번째 배치 READY/FROZEN: 현재 변경/신규 Unity 입력 118개 SHA를 source-batch-02.json에 고정했다. diff 공백 오류0, 모든 source 작성자 동결, 메인 SOURCE_EDIT CLOSED다. CUHA Unity0/operation.lock free/여유 RAM 약9.9GiB 확인 후 r222r30 동기화와 SecondContracts를 시작한다. 결과는 아직 미확정이다.
+
+두 번째 SOURCE_EDIT: 단골/메타 조회 사본, 원정 값 projection, 인구 조회 사본과 방문 종료 원본 authority 및 명시 복원 rebind, 남은 캐시7경계를 수정했다. 공연 자동선택/예측/명령의 정책과 건강 기준을 공유하고 중복 배정도 거절한다. 참조3종 가중 목록과 방 점수/metric/진화 압력은 명시 container metadata를 사용하며 문맥 누락은 오류다. 질량 정책은 composition 등록 instance를 root/economy 검증과 실행에 주입한다. legacy 생산 용량의 품목별 최소값을 제거했다. 현재 native 미실행이며 에셋/DTO/저장 버전은 무변경이다.
+
+편집 중 fixture4개의 CRLF가 두 번 인코딩되어 diff 공백 오류가 발생했고 해당 이중 CR만 정정했다. 원본 로그/외부 오류 기록은 보존했다. source helper의 신규 파일/추정 경로와 PowerShell glob 오류는 실제 파일 목록으로 교정한다. 큰 diff 출력은 파일에 남기고 요약만 읽는다.
+
+Goal ACTIVE, codex/fix-structure-r30. 원격 main/HEAD842eb205를 확인하고 지정 worktree의 Unity/런처/컴파일0에서 SOURCE_EDIT를 열었다. 원본 Documents의 별도 R80 실행은 보존했다. 현재 source 변경은 포획 시작 거절/중복 보존, 수용 가능 우리 공유 조회와 귀환 대기 이유, 화면별 일시정지 요청, 수동 능력의 던전 수명 경계, 제작 조건/문 피드백/직원 선택/원정 문구와 공유 캐시4경계다. 날씨 정의 해석, 농사 지연, 충전과 방어 정책은 독립 담당자가 마감 중이다.
+
+실행/컴파일은 아직 하지 않았다. R30StructureRemediationBatch.RunFirstContracts에 실제 Unity 타입의 통제 일시정지/저장/복원/rollback/복구 안전과 포획 시작 거절 검사를 추가했다. CUHA는 operation.lock free/Unity0/여유 RAM 약9.7GiB를 확인했고 기존 런처의 메모리/프로세스/격리/소스 불변 규칙을 유지하는 R30 wrapper를 준비했다. 근거: C:/Users/vulpo/Documents/Codex/2026-10-29/structure-remediation-r30. 작성자가 모두 동결되기 전에는 동기화/Unity를 시작하지 않는다.
+
+첫 batch READY/FROZEN: 소유58개 Unity 변경/신규 입력과 기존 R29 main 차이를 포함해 CUHA r219r30 전체21750개를 SHA 대조,79개 delta 전달,추가 삭제0/drift0으로 동기화했다. 기존 r218r28과 서버 backup/receipt는 보존했다. r219r30-impact-so-inspector-r30-first-01에서 기존 보호된 private display/메모리/단일 operation.lock 경로로 현재 컴파일과 FirstContracts를 시작했다. 아직 실행 결과는 미확정이며 소스 편집 금지다.
+
+r219r30 first-01 FAIL: 실제 C# compile99.734678초, 독립 오류3곳이 로그에3회씩 기록되어 compiler_error_count9, source drift0, 실행 테스트 미시작이다. SpeciesRuntime의 새 charge capability 인수가 husbandry fixture2곳과 species 결과 preflight1곳에 누락됐다. terminal Unity/private display/lock free와 로그를 회수한 뒤 메인 EDIT_READY에서 수정한다. preflight에는 같은 등록 종족 catalog를 주입하고 fixture에는 명시적 Golem fixture capability를 전달하며 검사를 완화하지 않는다. 새 r220r30에서 재검증한다.
+
+r220r30 first-01 FAIL: 현재 root C# 오류는 사라졌으나 Editor fixture의 Require 이름1곳 오류로 전체 compile 실패했다(121.275723초, 로그 중복 포함 CS3, drift0). Unity/display/lock terminal 회수 후 메인 EDIT_READY에서 기존 pickup fixture 시작 거절 단언을 명시적 InvalidOperationException으로 수정했다. native 테스트는 아직 미실행이며 새 r221r30에서 재검증한다.
+
+r221r30 first-01 PASS: 실제 current compile86.153353초/전체190초/exit0/CS0/source21750 drift0. FirstContracts의 consoleErrors0과 source digest 불변, nested/reverse/duplicate/manual pause와 JSON/restore/rollback/recovery/title, 통제 adapter 시작 거절, loadout 중첩 격리/정식 명령/거절/fresh-owner JSON 복원, 방어 네 반환/복원, 날씨6종/다른ID/복원/거절, WorkerPolicy 표시를 확인했다. 실제 UI 클릭/자연 운반/전체 월드 저장은 이번 entry 범위가 아니다. Unity/display terminal과 lock free를 회수한 뒤 메인 SOURCE_EDIT를 다시 연다.
+
+서버 메모리 원인: r219/r220이 남긴 VBCSCompiler는 각 소유 Unity PID와 동일한 process group/session, 시작 시각, exe/cwd/startTicks로 확인했다. r219 compiler는 정리 전 자연 종료했고 r220 PID2616752만 SIGTERM으로 종료해 terminal을 확인했다. 여유 RAM이 약8.8GiB로 회복되어 기존6GiB 시작 기준을 유지한 채 r221을 실행했다. 사용자/다른 실행 프로세스는 종료하지 않았다. compiler-process-inspection.json/cleanup.json에 보존했다.
+
 ## R25 후속 표적 점검
 
 기존 미소비/비활성54필드의 문자열 키 후보와 게임 소유 reflection/저장 경계를 추가 확인했다. 신규 확정 항목0으로 게임 보완21/runtime2를 유지한다. content member 조회와 코드 상수의 reflection, DTO shape 검증을 새 SO foreign lookup으로 오인하지 않았으며 legacy metadata의 동적 미사용 보증도 하지 않았다. 새 Unity/게임 수정은 없고 증거는 game-only-followup.json이다.
@@ -7121,3 +7223,26 @@ R29 보고 완료: docs/dev/code-structure-review-main-r29-20261028.md에 수정
 Git 보완: git add가 기본 무시 규칙의 contracts.log 때문에 exit1을 반환했으나 외부 PowerShell 묶음이 후속 commit까지 실행해 로컬0335431e1에 해당 로그만 누락됐다. 아직 push하지 않았고 원본과 소스는 보존됐다. 누락 파일은 정확한 경로만 강제 포함하고 전체33개 증거 및89개 변경 경로를 다시 검증한다. 공개 로그는 player-connection 네트워크 식별 줄만 가리고 원문 SHA/외부 native 원본을 별도 기록했다. 원문 CRLF 보존 파일의 Git 공백 경고와 테스트 C# EOF 빈 줄1개는 선택형 서식 결과이며 검사/실행 PASS로 바꾸지 않는다. 검증한 C# 바이트는 그대로 유지한다. 이후 단계는 종료 코드를 확인한 뒤 순서대로 실행한다.
 
 R29 GitHub 통합 완료: 0335431e1 및 로그 보완96331ce43의 소유89파일과 committed 증거33개 SHA 일치를 검증했다. 게시 콘텐츠3544개/필드12501개 호환성과 현재 source/config의 필수 영향 CI5 바인딩을 로컬 및 GitHub에서 통과했다. 원격 branch head96331ce43 일치, PR26 생성/attach, PR CI40666471317 success 후 검증 head를 지정해 main a36a611f1a1865f893728011e795a7d25c2f5810에 병합했다. GitHub 연결 도구의 병합 인자 binding 오류는 변경 없이 반환돼 GitHub CLI의 match-head-commit 경로로 실행했으며 병합 후 push CI40667128217도 success다. 병합 tree와 검증 branch tree는 동일하다. 원본 Documents의 R80와 무관한 QA를 보존했다. 현재 마감은 task_plan/progress/R29보고서 문서3개뿐이며 Unity 입력/네이티브 증거는 그대로 유지한다.
+
+
+## R30 조사 시작
+
+원격 main fetch 후842eb205a 및 main...HEAD0/0, 조사 worktree tracked dirty0을 확인했다. codex/audit-structure-r30에서 문서만 작성한다. 원본 Documents/R80 변경과 무관한 QA는 보존한다. 근거 폴더는 C:/Users/vulpo/Documents/Codex/2026-10-28/structure-audit-r30이다.
+
+R30 정적 목록 수집: 기존 Roslyn baseline 무변경 Verify PASS(Runtime2985/type9783), current Bee-rsp semantic graph2200파일/18750edge/21순환묶음/참조427개 누락0. source/asset/config/tool20753개 SHA를 외부에 고정했다. 지식베이스 freshness fresh, 최초 광범위 query0건이므로 부재 근거로 사용하지 않고 심볼/원본 탐색을 수행했다. 외부 스크립트 첫 시작은 PowerShell 실행 정책으로 거절돼 해당 분석 파일만 명시 실행 정책으로 다시 실행했다. Unity를 실행한 결과가 아니다.
+
+R30 감사 완료: docs/dev/code-structure-review-main-r30-20261028.md에 필수9묶음과 원본 호출/저장/에셋, 최소 수정/표적 검증, 비수정 후보와 정적 한계를 기록했다. 선언 asmdef47개/게임 참조183개/순환0을 현재 파일로 확인했다. 외부 audit-verification.json은 2026-10-28T14:21:35Z 기준 입력20753개 변경/누락/추가/삭제0, Assets/Packages/ProjectSettings/tools/Tools diff0, 원본 링크74개 오류0, 중간점0, origin/main/HEAD/원격 main842eb205a 동일과 divergence0/0을 확인했다. 보고서 SHA256은 98b9ebdf4908401ff5e8d84c0728f43a7279045b18547c34e3a0654506fb0808이다. 소유 문서4개만 변경했으며 Unity 실행, 소스/에셋/생성 인덱스 수정, commit/push는 수행하지 않았다.
+
+
+## R30 확대 보고서 마감 2026-10-29
+
+- docs/dev/code-structure-review-main-r30-20261028.md에 R30-01~27과 잠재/보류/반증, 전체 Runtime2985파일 및 후보 위치를 통합했다. SDK 자체 개선 항목은 제외했다.
+- 확대 문서 검증: 번호27개 누락0, 원본 위치 링크10151개/고유9592곳 오류0, 전체 파일 행 누락0, 중간점0. 입력20753개 변경/누락/추가/삭제0, game source/asset/config/tool diff0. remote main/HEAD842eb205와 divergence0/0을 확인했다.
+- 증거: C:/Users/vulpo/Documents/Codex/2026-10-28/structure-audit-r30/expanded-audit-verification.json. 입력 SHA 재검사 시각은 별도 expanded-input-seal.json에 보존했다. 최종 보고서 SHA256=92414cb7ade4a4f92231b1b4dd7a81c85a2fc4511f871627b9259ff55547f9f2.
+- 이번 검증은 문서/링크/입력 불변 검사다. Unity 컴파일/실제 플레이/저장 복원/재시도와 commit/push를 새로 수행한 것으로 보고하지 않는다.
+
+## R30 추가 검사 마감 2026-10-29
+
+- 같은 보고서를 R30-01~30으로 갱신했다. 새3묶음, 기존 R30-25 추가4경계와 getter143개 판정, UI/값/내용 후속 근거를 합쳤다. 이전27개 보고서와 검증은 외부 r30-27-report.md/r30-27-verification.json/r30-27-input-seal.json에 보존했다.
+- deeper-audit-verification.json: 원본 링크10850개/고유10205위치 오류0, 본문30번호/Runtime2985행/getter143행 누락0, 금지 문자0. 입력20753개 변경/누락/추가/삭제0, 게임 source/asset/config/tool diff0, remote main/HEAD842eb205와 divergence0/0 확인. 새 Unity 실행과 게시 없음.
+- 외부 증거: C:/Users/vulpo/Documents/Codex/2026-10-28/structure-audit-r30. 보고서 SHA256=244632907484231f7f36e7f36ed76961be7904865ecb55e5c99feeaeadc2b898. 원문/관계의 정적 확인과 실행 미검증을 구별했다.

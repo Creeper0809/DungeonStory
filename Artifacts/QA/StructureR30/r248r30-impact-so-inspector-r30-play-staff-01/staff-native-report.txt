@@ -1,0 +1,33 @@
+gameplaySceneActive=True; sceneCount=1
+activeScene=Assets/Scenes/GameplayScene.unity; tabManager=True
+persistenceSnapshot=skipped; isolatedVerification=true
+startupModal=False->False; newGamePointer=False
+ownerSelected=True; timeScale=1
+preparedStaff=True; rebellion=True; outcome=LocalRebellion
+preparedSynthesis=True; materials=2; materialAction=-1; recipeAction=0; reason=validated formal room fixture
+preparedDefense=True; visibleTargets=2
+mode=staff-only
+staffWorkforce=owner:Leon|character:staff:1:02:Miru|character:p1p2-ui:995001:P1 UI Guard|character:p1p2-ui:995003:P1 UI Rebel|character:p1p2-ui:995005:P1 UI Stale Staff|character:staff:1:01:Roma
+staffButtons=P1Action_StaffSelect_1:<b>Miru</b>
+근무 중 / 기분 75 / 현재 작업 대기/선택|P1Action_StaffModePriorities:우선순위/직원 관리|P1Action_StaffModeManagement:우선순위/직원 관리|P1Action_StaffSelect_2:<b>P1 UI Guard</b>
+근무 중 / 기분 100 / 현재 작업 대기/선택|P1Action_StaffSelect_5:<b>Roma</b>
+근무 중 / 기분 75 / 현재 작업 대기/선택|P1Action_StaffSelect_4:<b>P1 UI Stale Staff</b>
+근무 중 / 기분 100 / 현재 작업 대기/선택|P1Action_StaffDutyToggle:<b>Leon / 근무 중</b>
+기분 75 / 수면 100 / 현재 작업 대기/휴식 명령|P1Action_StaffSelect_3:<b>P1 UI Rebel</b>
+근무 중 / 기분 0 / 현재 작업 대기/선택|P1Action_StaffProfile:<b>Leon</b>
+역할 Owner · 유형 NPC
+대량 방문/저소비/청소/오염 관리
+특성: 깔끔함
+현재 능력은 9종 숙련 XP에서 계산됩니다. 상세 숙련 탭에서 작업 속도·품질·사고 위험 효과를 확인하세요./프로필 확인|P1Action_StaffSelect_0:<b>Leon</b>
+근무 중 / 기분 75 / 현재 작업 대기/선택됨
+P1-12 STAFF_DUTY_REST PASS=True; modeClicked=True; selected=True; dutyClicked=True; offDuty=False->True
+P1-08 STAFF_DISCONTENT_REBELLION PASS=True; selected=True; stateVisible=True; refreshShortcut=False; stage=LocalRebellion; rebellion=True; isolateClicked=True; isolated=True
+P1-09 OWNER_PRIORITY_SUPPRESS PASS=True; resumedDuty=True; guardSelected=True; reachable=145; fixture=경비 초소; priorityClicked=True; workTarget=ExteriorZone_ReceptionPoint_17_0; suppressClicked=True; suppressTarget=P1 UI Rebel
+R30-11 STALE_STAFF_COMMAND_REJECTION PASS=True; callbacksReady=True; staleRefresh=True; staleSelected=True; priorityButton=True; suppressButton=True; baselineWork=<none>; baselineSuppress=P1 UI Rebel; selectedGuard=True; priorityUnchanged=True; suppressUnchanged=True; notices=0->2
+P1-13 CHARACTER_PROFILE PASS=True; clicked=True; name=P1 UI Guard; species=Human; traits=0
+P1-14 AI_LLM_PERSONA_MOOD PASS=True; personaState=True; moodState=True; publicRequestShortcut=False; generatedPersona=False
+captureVisuals[Temp/p1-ui-staff.png]=Image:__Scene/UI/UI/직원 관리Tab 1663x520 rgba=435D64FF sprite=none | Image:__Scene/UI/UI/직원 관리Tab/Body/PriorityScrollView 1615x314 rgba=34484EFF sprite=none
+tabCapture=NOT_RUN; batchMode=true; requested=Temp/p1-ui-staff.png
+RESULT rowsPassed=6/6; rowsFailed=0
+capturedErrors=0; errors=<none>
+capturedWarnings=0; warnings=<none>

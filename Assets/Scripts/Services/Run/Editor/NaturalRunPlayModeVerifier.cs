@@ -1161,13 +1161,13 @@ public sealed class NaturalRunVerificationRunner : MonoBehaviour
         }
 
         int safety = 0;
-        OffenseBattleSession lastObservedSession = battleRuntime.Session;
+        OffenseBattleSnapshot lastObservedSession = battleRuntime.Session;
         while (battleRuntime.HasActiveBattle
             && safety++ < 240
             && !stageStats.Failed)
         {
             battleRuntime.AdvanceToPlayerDecision();
-            OffenseBattleSession session = battleRuntime.Session;
+            OffenseBattleSnapshot session = battleRuntime.Session;
             if (session != null)
             {
                 lastObservedSession = session;
@@ -1212,7 +1212,7 @@ public sealed class NaturalRunVerificationRunner : MonoBehaviour
             yield return null;
         }
 
-        OffenseBattleSession completedSession = battleRuntime.Session ?? lastObservedSession;
+        OffenseBattleSnapshot completedSession = battleRuntime.Session ?? lastObservedSession;
         bool victory = completedSession == null || completedSession.Outcome == OffenseBattleOutcome.Victory;
         Check(!battleRuntime.HasActiveBattle
                 && safety < 240
@@ -1234,7 +1234,7 @@ public sealed class NaturalRunVerificationRunner : MonoBehaviour
 
     private static bool TryIssueDirectPlayCommand(
         IOffenseBattleRuntime battleRuntime,
-        OffenseBattleSession session,
+        OffenseBattleSnapshot session,
         OffenseBattleCombatant actor,
         out bool usedAbility,
         out string detail)
@@ -1312,7 +1312,7 @@ public sealed class NaturalRunVerificationRunner : MonoBehaviour
 
     private static bool TryIssueDirectPlaySupportCommand(
         IOffenseBattleRuntime battleRuntime,
-        OffenseBattleSession session,
+        OffenseBattleSnapshot session,
         OffenseBattleCombatant actor,
         out string detail)
     {
@@ -1352,7 +1352,7 @@ public sealed class NaturalRunVerificationRunner : MonoBehaviour
     }
 
     private static IEnumerable<OffenseBattleCombatant> SelectDirectPlayAllyTargets(
-        OffenseBattleSession session,
+        OffenseBattleSnapshot session,
         OffenseBattleCombatant actor,
         CharacterCombatAbilityDefinition ability)
     {
@@ -1376,7 +1376,7 @@ public sealed class NaturalRunVerificationRunner : MonoBehaviour
     }
 
     private static float EstimateDirectPlaySupportValue(
-        OffenseBattleSession session,
+        OffenseBattleSnapshot session,
         OffenseBattleCombatant target,
         CharacterCombatAbilityDefinition ability)
     {
@@ -1677,7 +1677,7 @@ public sealed class NaturalRunVerificationRunner : MonoBehaviour
     }
 
     private static OffenseBattleCombatant SelectDirectPlayTarget(
-        OffenseBattleSession session,
+        OffenseBattleSnapshot session,
         OffenseFormationMask allowedPositions)
     {
         if (session == null)
@@ -2045,7 +2045,7 @@ public sealed class NaturalRunVerificationRunner : MonoBehaviour
             + $"join={(canJoin ? "yes" : reason)}]";
     }
 
-    private static string DescribeBattleTeam(OffenseBattleSession session, OffenseBattleTeam team)
+    private static string DescribeBattleTeam(OffenseBattleSnapshot session, OffenseBattleTeam team)
     {
         if (session == null)
         {

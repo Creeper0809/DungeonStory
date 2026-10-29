@@ -149,6 +149,15 @@ public class BlueprintResearchState : IBuildingUnlockStateView
         localState = new BlueprintResearchAggregateState();
     }
 
+    public BlueprintResearchState CreateSnapshot()
+    {
+        BlueprintResearchAggregateState snapshot = aggregateRootStore == null
+            ? Current.DeepClone()
+            : aggregateRootStore.CreatePublishedSnapshot(
+                () => new BlueprintResearchAggregateState(), value => value.DeepClone());
+        return new BlueprintResearchState { localState = snapshot };
+    }
+
     internal BlueprintResearchState(
         DungeonRuntimeAggregateRootStore aggregateRootStore)
     {

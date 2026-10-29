@@ -1,0 +1,1046 @@
+[
+  {
+    "path": "Assets/Editor/ContentReferenceDrawer.cs",
+    "sha256": "e2e405633161a2e4edff3bc6099372f6538fa98d59f98fc88b0073d8cfa7c26f"
+  },
+  {
+    "path": "Assets/Editor/ContentReferenceSelectionDebugScenarios.cs",
+    "sha256": "9d606a4623b955846a44ce28f5a60045e12e72f2e89a983ee7522002248daf7d"
+  },
+  {
+    "path": "Assets/Editor/R19ContentSelectionDebugScenarios.cs",
+    "sha256": "d9b901f18a058853c55115b21d82c15162fbdc4a13fe9080d28f7a3fdd807a23"
+  },
+  {
+    "path": "Assets/Editor/R30PlayBoundaryBatch.cs",
+    "sha256": "75bdecdd23839e2fd63e03ce5dfa8cbe260ca38909ec9673d2b36810a8ddead9"
+  },
+  {
+    "path": "Assets/Editor/R30PlayBoundaryBatch.cs.meta",
+    "sha256": "80f7918b3004ba6a0aba8d34ae4c7f6c435f6370dec9d88824cc5fcce9088a71"
+  },
+  {
+    "path": "Assets/Editor/R30StructureRemediationBatch.cs",
+    "sha256": "14468f4b55ccb97402d021cab89cbc999a413f2dfc013b4b842704eb49b0dcd6"
+  },
+  {
+    "path": "Assets/Editor/R30StructureRemediationBatch.cs.meta",
+    "sha256": "96fa4c10cb898fe658066bab9478420886cbceb19438b64da1e7c2ba7b2ee95e"
+  },
+  {
+    "path": "Assets/Resources/SO/Combat/Equipment/A13_BlastCoat.asset",
+    "sha256": "a62e30a7595ea0f8b2cf0acae42ebf4f20da3672767babffc3923bc4e6fe0f24"
+  },
+  {
+    "path": "Assets/Resources/SO/Combat/Equipment/A14_SmokeHood.asset",
+    "sha256": "e1ae639234150eaacb9067b46c2aca680904962fdda58c32a8493a70dfd1251c"
+  },
+  {
+    "path": "Assets/Resources/SO/Content/GameDomainContentCatalog.asset",
+    "sha256": "24afda711666a6070afc573f68d64318c572700a5290d3b3821f089c6148be50"
+  },
+  {
+    "path": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I126_\uc18c\uc774_\ud654\uc0b4.asset",
+    "sha256": "b24f25e44822166ebdc5ae8b3f7ce553b0617652d88a640db2d6cabba78e190f"
+  },
+  {
+    "path": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I127_\uc18c\uc774_\ubcfc\ud2b8.asset",
+    "sha256": "d6bd0b980fbf90180082d29e25bcbd5dfc778222ec5bd1a58a79338ab3e96b68"
+  },
+  {
+    "path": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I128_\uc5f0\ub9c9_\ud0c4\uc57d.asset",
+    "sha256": "84642cfbb27eb495ef4d8e8b202bdfaa6637b5b7b3f06b55330bc78e09600055"
+  },
+  {
+    "path": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I129_\ucca0\uac11_\ud0c4\uc57d.asset",
+    "sha256": "e4ef3ad16ef44814ae47ed538fc730b44cf5a8624eb08ddfb3a2e4aa9c8f482b"
+  },
+  {
+    "path": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I130_\uc0b0\ud0c4_\ud0c4\uc57d.asset",
+    "sha256": "3451487e2433749f205299b49c21171879a4477ee175bf6d2f39f4695c984488"
+  },
+  {
+    "path": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I131_\uc2e0\ud638\ud0c4.asset",
+    "sha256": "56d93d837c6b8aff63ad0e25fa8503c9fd0ca5f81a5d278714052ee58f989f8e"
+  },
+  {
+    "path": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I132_\ud751\uac15_\ubcfc\ud2b8.asset",
+    "sha256": "7c8a583dde61de1181b47c263eabbc64cc5c92818d02268f642690e823463e82"
+  },
+  {
+    "path": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I133_\ub8ec_\ud0c4\uc57d\ud1b5.asset",
+    "sha256": "cc9d0e60bda27ab13c9aec153b027e3ed046ffb8a02b526662c5cf103a6339e6"
+  },
+  {
+    "path": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I134_\uc9c4\uc815_\ub2e4\ud2b8.asset",
+    "sha256": "0b3d43a215776f3a553973c17d1610174b7887c8303559281a1a8b0aeb18a5aa"
+  },
+  {
+    "path": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I135_\ub9c8\ub098_\ucc28\ub2e8_\ubcfc\ud2b8.asset",
+    "sha256": "6dfdd8d7db7bdaf3f69249d93b944d33e4a53fade2a25c28cf694daddfbc55ef"
+  },
+  {
+    "path": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I20_\ubc1c\ud30c_\uc7a5\uc57d.asset",
+    "sha256": "f3a12cb32e5d91f3e4f461c4a3464123803d719b53758afd0b6877bace2653a9"
+  },
+  {
+    "path": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I21_\ud568\uc815_\uc0b0\ud0c4\ud1b5.asset",
+    "sha256": "1b8ad97b27ad9bb72c66f5b11364157a96aac7436fc557e4b578650c73b33031"
+  },
+  {
+    "path": "Assets/Resources/SO/Economy/Items/ResearchOverhaul/V3I23_\uc885\uc774_\ud0c4\uc57d\ud1b5.asset",
+    "sha256": "6881b2ef98a024adc2eac7b66b611d017a91e60720b5489ff4c276f4e8d95cb5"
+  },
+  {
+    "path": "Assets/Resources/SO/Economy/Items/ammo_arrow_bone.asset",
+    "sha256": "d2d5b7487c0f8d2720b301662093668b6a4fee5ed9de3074fc0c2bcf41fc50a7"
+  },
+  {
+    "path": "Assets/Resources/SO/Economy/Items/ammo_arrow_iron.asset",
+    "sha256": "c300154e2b560b6a8741bd5ed3eb24f62c0e8a3ed3d3f920251422dcb0439d5e"
+  },
+  {
+    "path": "Assets/Resources/SO/Economy/Items/ammo_arrow_rune.asset",
+    "sha256": "a994cd2f3847fef9b678592387a278bb0aad7e6a3ac3178426b3d3fcf3721810"
+  },
+  {
+    "path": "Assets/Resources/SO/Economy/Items/ammo_arrow_steel.asset",
+    "sha256": "dc83c3979c083e0ba9324aeb115976affa4f26811b4afe7c3df23b1fd638b507"
+  },
+  {
+    "path": "Assets/Resources/SO/Economy/Items/ammo_bolt_bone.asset",
+    "sha256": "16eae0cf559e90c39be94483ca36ce4c7c248cbf4ffad9502b635c76d1a7bb17"
+  },
+  {
+    "path": "Assets/Resources/SO/Economy/Items/ammo_bolt_iron.asset",
+    "sha256": "ba87ad185adfb43ea275f99db8e2ef82e6db29e3922c83fbe4a85afb5368f27f"
+  },
+  {
+    "path": "Assets/Resources/SO/Economy/Items/ammo_bolt_rune.asset",
+    "sha256": "61797984c0c26a091b7a723e88f88a08cb34c76e49fa85a72a6ee5f70a467ee1"
+  },
+  {
+    "path": "Assets/Resources/SO/Economy/Items/ammo_bolt_steel.asset",
+    "sha256": "1fbef113d352f7468e5d537d16b9d308947d7a7da854234008f170fdc8783799"
+  },
+  {
+    "path": "Assets/Resources/SO/Items/Definitions/ammo_arrow.asset",
+    "sha256": "397f5095fc7c1fcfbbcd74a4690f6ce4b76ef4cb616725832de0c8a87f125c67"
+  },
+  {
+    "path": "Assets/Resources/SO/Items/Definitions/ammo_bolt.asset",
+    "sha256": "f699ad9240163f9ed3aaa4d06a75fe6fe762733f871ce9dfdd9ec3d5db077bf4"
+  },
+  {
+    "path": "Assets/Resources/SO/Medical/graft_moss-boar-toughness.asset",
+    "sha256": "94a69c6355e6e2d8ecd3446a27fd80131449b9a1ee1c2bff6ab4fab0bad2f33d"
+  },
+  {
+    "path": "Assets/Resources/SO/Medical/graft_moss-boar-toughness.asset.meta",
+    "sha256": "3c024b6cf7c90adee832c81bd358d741a0f9ffb0dde31934013c53e53180d6d2"
+  },
+  {
+    "path": "Assets/Resources/SO/Medical/graft_rune-deer-night-sight.asset",
+    "sha256": "8b2c9ce04b79c72a8a96576d7241965c4f52e8fa24b8a9686dcc6987602ab9c3"
+  },
+  {
+    "path": "Assets/Resources/SO/Medical/graft_rune-deer-night-sight.asset.meta",
+    "sha256": "37f7c624a20e20ef390eefd96d7ba7a0562ef47a48ba6852eb5798245897a459"
+  },
+  {
+    "path": "Assets/Resources/SO/Medical/graft_shadow-wolf-endurance.asset",
+    "sha256": "98e4fdd9718820f9a7b07feaf2bc13d6f48f3c6f7aef5ce54d57d0b56b909a7e"
+  },
+  {
+    "path": "Assets/Resources/SO/Medical/graft_shadow-wolf-endurance.asset.meta",
+    "sha256": "7b4d43fe35c53735460cac1d7ebf0125ba7e965a918453a002b16ceb54f2e70a"
+  },
+  {
+    "path": "Assets/Resources/SO/V26/Effects/Definitions/effect_graft_moss-boar-toughness_multiply.asset",
+    "sha256": "abf6f01f4148937f72e59f8aeccbd08460fd9113e9311db963fe562c4b2fd2ae"
+  },
+  {
+    "path": "Assets/Resources/SO/V26/Effects/Definitions/effect_graft_moss-boar-toughness_multiply.asset.meta",
+    "sha256": "84439bb590cf1df3eed345f3998861f1e013b586958fec508b78af714134e9c3"
+  },
+  {
+    "path": "Assets/Resources/SO/V26/Effects/Definitions/effect_graft_rune-deer-night-sight_multiply.asset",
+    "sha256": "ed36020fd3009bb75980a4ad54a9b3a755894fd5fc565336c79b5680d373176f"
+  },
+  {
+    "path": "Assets/Resources/SO/V26/Effects/Definitions/effect_graft_rune-deer-night-sight_multiply.asset.meta",
+    "sha256": "d2345ecac9783ea297973c0a13b131fabb31af9a459e16ec169d99c98c1e1bd0"
+  },
+  {
+    "path": "Assets/Resources/SO/V26/Effects/Definitions/effect_graft_shadow-wolf-endurance_multiply.asset",
+    "sha256": "1e3ebd9dc6e443d8555eed7c564c155a568c5b341a35a13cce92b0ed01b2d54c"
+  },
+  {
+    "path": "Assets/Resources/SO/V26/Effects/Definitions/effect_graft_shadow-wolf-endurance_multiply.asset.meta",
+    "sha256": "55fbba9a09d82177b04c3923b09d85005109cf1f3ddcd51f4ab4cff88f0d8a08"
+  },
+  {
+    "path": "Assets/Scripts/Content/CharacterAmbitionDefinitionSO.cs",
+    "sha256": "5118ee65a0803c8edd1b3cf735ae8c98d6ea2ca75d7f0d6b98369786ae6c36bd"
+  },
+  {
+    "path": "Assets/Scripts/Content/CharacterBackgroundDefinitionSO.cs",
+    "sha256": "99fdb3032fe9aa0240cc12044ccc63f208533290480472476b1b31e1b196ccf0"
+  },
+  {
+    "path": "Assets/Scripts/Content/SpeciesCultureDefinitionSO.cs",
+    "sha256": "052116ea540e6f80ba010a59e4fa1fda8210368c0653d717bcae3c4d730879f1"
+  },
+  {
+    "path": "Assets/Scripts/Editor/FullGameManualQaRuntimeProbe.cs",
+    "sha256": "b7667a88a728dcb657e1bd187681900a127c103b8542a8100e9f8a0d7d45e6c0"
+  },
+  {
+    "path": "Assets/Scripts/Models/Captivity/Core/CaptivityPerformerRuntime.cs",
+    "sha256": "a395a6159c056c267a36857c4b6f9459dd6b3d10cdbdd9906982c409a0c36d60"
+  },
+  {
+    "path": "Assets/Scripts/Models/Combat/Core/CharacterCombatAbilityModels.cs",
+    "sha256": "b362666c160ee16c236ab4b7f0d70385ff1586766698efde046c5c1c160d9b66"
+  },
+  {
+    "path": "Assets/Scripts/Models/Combat/Core/CharacterCombatCommandRuntime.Lifecycle.cs",
+    "sha256": "adf0694dde6bd7c3a942258626a1075ea56d9488aeee01d1b4eb6f79e8ee6584"
+  },
+  {
+    "path": "Assets/Scripts/Models/Combat/Core/CombatWeaponPrimitives.cs",
+    "sha256": "48a1e029b3a7c0d880db963ba65caafa2cf0846be0ae7809b1110794a8deee5f"
+  },
+  {
+    "path": "Assets/Scripts/Models/CoreSession/CoreSessionContracts.cs",
+    "sha256": "5d87c6e2f04380581fa99fd47719ae2fd98a9a9fc4fc7ede6dbdf343522a2dde"
+  },
+  {
+    "path": "Assets/Scripts/Models/Defense/Core/DefenseDomain.cs",
+    "sha256": "3329b1a9d93797854780b1794d0576819a469b74530ecff8818e8af886752217"
+  },
+  {
+    "path": "Assets/Scripts/Models/Economy/Content/GrandProjectRuntime.cs",
+    "sha256": "c96b8e426a6a90511c142c70971468293ab6f67ac227893670449cc8b6565cf4"
+  },
+  {
+    "path": "Assets/Scripts/Models/Economy/Content/ItemDefinitionSO.cs",
+    "sha256": "a8ced09ce5a30b36ec1fb1499896c93e9129ac93d24b06e231ae5df482ed9b60"
+  },
+  {
+    "path": "Assets/Scripts/Models/Economy/Content/ProductionOutputPlanningService.cs",
+    "sha256": "19c8b9fffc0b8c4d6050018e9395535686454e1c0f2539f9ea49fec1277036bd"
+  },
+  {
+    "path": "Assets/Scripts/Models/Economy/Content/RegionalSupplyContractRuntime.cs",
+    "sha256": "1f187329562d9a018fae9b775514e2608f574a9c95561fc84819f9634e968b67"
+  },
+  {
+    "path": "Assets/Scripts/Models/Economy/Content/ResourceEconomyPlanningModels.cs",
+    "sha256": "c32cc8a6310165c51c94fde0b752a95aa25c8e3022cae4433b5600c6d5cb6d8b"
+  },
+  {
+    "path": "Assets/Scripts/Models/Economy/Core/CropPlotModels.cs",
+    "sha256": "eedffd6a4fed375ad7bd22bfc532484756a24dd6560090a6fe4db45a2f55fcbd"
+  },
+  {
+    "path": "Assets/Scripts/Models/Evolution/Facility/FacilityEvolutionTerms.cs",
+    "sha256": "3c9c29b98062b3958be3100a2aca525ac08ebfd77e772890f326c262d1aef164"
+  },
+  {
+    "path": "Assets/Scripts/Models/FacilityShop/Core/FacilityShopDomain.cs",
+    "sha256": "48937ca7c8bd80fb4fcce896bca99cc4b8e527203f205649d3be44e4fbe67135"
+  },
+  {
+    "path": "Assets/Scripts/Models/Invasion/Core/DefenseResponsePolicyRuntime.cs",
+    "sha256": "9fc1028aac030ab468d6c613143bf69c5292071efd1ef433aa60932a2c2df406"
+  },
+  {
+    "path": "Assets/Scripts/Models/Meta/Core/MetaProgressionModel.cs",
+    "sha256": "43ee25d74fc4b1417d98f4897957937be0a9f9a34105652eb5038fafe2bd0b87"
+  },
+  {
+    "path": "Assets/Scripts/Models/Meta/Core/MetaRunProgressTracker.cs",
+    "sha256": "d2cdce7f7fa77eb7afcba5a184de8e46845a41ce888b120c96ce4e2be897324b"
+  },
+  {
+    "path": "Assets/Scripts/Models/Offense/Core/OffenseBattleContracts.cs",
+    "sha256": "f61c65f75c8020a9e2325998dcc577e196aeab001ecfe0944683dadcf9279ccd"
+  },
+  {
+    "path": "Assets/Scripts/Models/Research/Core/ResearchQueueSystem.cs",
+    "sha256": "3bf2aa4be256e3d444e393f632a90b3d59c9d40443458b7f583ad7cf52194a22"
+  },
+  {
+    "path": "Assets/Scripts/Services/Captivity/CaptivityModels.cs",
+    "sha256": "31cbc1d8cbcf354e5be805ba6b5d5fad478b59ddb834a622b0c29fae6d60c490"
+  },
+  {
+    "path": "Assets/Scripts/Services/Captivity/CaptivityRuntime.cs",
+    "sha256": "0679411caa9d3c5a75d1d0dc4f0ba427021b7ded0046f3922d499b39ba2f2e7d"
+  },
+  {
+    "path": "Assets/Scripts/Services/Captivity/CircusRuntime.cs",
+    "sha256": "d20e4f1e44bb4d017dd73cee80a8f3c76fa37d411ed672dad7d139675a60881d"
+  },
+  {
+    "path": "Assets/Scripts/Services/Captivity/CircusRuntimeContracts.cs",
+    "sha256": "6fc99a29ad13f734c38730d056c804a87c42eb679e771442d61f68f0d3e6c3c0"
+  },
+  {
+    "path": "Assets/Scripts/Services/Captivity/Editor/CaptivityCareLaborInputOwnerDebugScenarios.cs",
+    "sha256": "3c03a47dc43fe1216852e42e74f8e3582b2aeb2aa485991b3b9f26d3bfd1cc43"
+  },
+  {
+    "path": "Assets/Scripts/Services/Captivity/Editor/CaptivityCircusDebugScenarios.cs",
+    "sha256": "fcfb829a8e8adc1534d6b05c930601f36684476dffc32cd5229b710fc9624657"
+  },
+  {
+    "path": "Assets/Scripts/Services/Captivity/Editor/CaptivityWildlifeLifecyclePlayModeVerifier.cs",
+    "sha256": "41cc90c1c4ba4e60d430060c004d81f337332db123d3b82b29002402e2f3e4ff"
+  },
+  {
+    "path": "Assets/Scripts/Services/Captivity/Editor/WimCaptivityBodyDamageDebugScenarios.cs",
+    "sha256": "29af99cf37897eabb3f4da21499ab89ebec0a2a77de78829ee8d64bfe8879258"
+  },
+  {
+    "path": "Assets/Scripts/Services/Captivity/WildlifeCaptureRuntime.cs",
+    "sha256": "0177f94ce5627360f8bf2af9ba3b9385d66add330512addc394db86cf881943c"
+  },
+  {
+    "path": "Assets/Scripts/Services/Character/AI/Editor/CharacterAiEditorTestDependencies.cs",
+    "sha256": "d16ccd617cb620cc250f0e6ac8aa80a8b763f8f63c0de1b081a686da402d4214"
+  },
+  {
+    "path": "Assets/Scripts/Services/Character/AI/Editor/CharacterAiEmergentChaosPlayModeVerifier.cs",
+    "sha256": "98130f43e7c8717cf44fce6597925897d1c00c77e21248a35b6b2b88f1c39a79"
+  },
+  {
+    "path": "Assets/Scripts/Services/Character/AI/Editor/CharacterModelDebugScenarios.cs",
+    "sha256": "fc223249b1a63f274625c0c8cd083f4dcbf7aef98369d7556ea9b5e288ad48a9"
+  },
+  {
+    "path": "Assets/Scripts/Services/Character/AI/Editor/CharacterProgressionDebugScenarios.cs",
+    "sha256": "93c264c68c33dfb3e09102d58bdc9c31dfd56ebc71df69937e7a9be24a89299b"
+  },
+  {
+    "path": "Assets/Scripts/Services/Character/AI/Editor/CharacterSkillActivationOutcomeDebugScenarios.cs",
+    "sha256": "3fd5d3e6a5aedcb96793ca6235ca6326f3c3a291d5cd3984ac9aa7b77b3a316d"
+  },
+  {
+    "path": "Assets/Scripts/Services/Character/Core/CharacterManualSkillRuntime.cs",
+    "sha256": "e13d6d1349c2aeba4095feceb4e66d9a8d2611c050d3b4b988a9251893917675"
+  },
+  {
+    "path": "Assets/Scripts/Services/Character/Core/CharacterPopulationService.cs",
+    "sha256": "a06ad66d3b4b38a723505a9aa971e98e041fc6021e9b36816d7aa0d527846a47"
+  },
+  {
+    "path": "Assets/Scripts/Services/Character/Core/CharacterPopulationServiceFacade.cs",
+    "sha256": "14c3dd082d5e911b5cf6e9139ac7e07ee9a54eced62bfa915ce52bf8925ee0f5"
+  },
+  {
+    "path": "Assets/Scripts/Services/Character/Core/CharacterSkillActivationOutcomeTransaction.cs",
+    "sha256": "79cdd970c7a162df35f90fe9151479c78b6fef7444d5fee14880ae2c44a4786f"
+  },
+  {
+    "path": "Assets/Scripts/Services/Character/Core/CharacterVisitorExitOutcomeRuntime.cs",
+    "sha256": "3daaa47b4ef4e72c73ebeb8297734d9e353725deb304bac861de4a49504eed4e"
+  },
+  {
+    "path": "Assets/Scripts/Services/Character/Editor/G12GolemUpkeepPlayModeVerifier.cs",
+    "sha256": "a9bfb990035a7422ce2af944d88a669a309797fee962f866c04f52a62a5f3d0f"
+  },
+  {
+    "path": "Assets/Scripts/Services/Character/Editor/ReproductionProcessTransitionDebugScenarios.cs",
+    "sha256": "1e5873cde6be82b3936344c7cb6e60f94065bc8d4b829a8c2ca9f3f1a741d074"
+  },
+  {
+    "path": "Assets/Scripts/Services/Character/Editor/V27CharacterPerformanceDebugScenarios.cs",
+    "sha256": "927933269e7084612f237fc624ffcab8da56c8770194e353d5ea04b4fa66f834"
+  },
+  {
+    "path": "Assets/Scripts/Services/Character/SO/CharacterModelData.cs",
+    "sha256": "c7376a616270734035b5df38c26d101a1c19aed16450d9c392b0d298aa2e8445"
+  },
+  {
+    "path": "Assets/Scripts/Services/Character/SpeciesRuntime.cs",
+    "sha256": "48273a64645f8622c0c9615dad194c0df2354cbffe19d86d9cb939548198f184"
+  },
+  {
+    "path": "Assets/Scripts/Services/Character/Work/Editor/EmergencyLaborDebugScenarios.cs",
+    "sha256": "50e9d7a305479531617836e23623963b58e4e30479ae0d7ea3d0728773b1a72a"
+  },
+  {
+    "path": "Assets/Scripts/Services/Character/Work/SettlementAlertContracts.cs",
+    "sha256": "cd1b5da830ecc6866090ad5388ad3ea7421ed2db2cfa3905374df88b6541d9bd"
+  },
+  {
+    "path": "Assets/Scripts/Services/Codex/Editor/CodexDebugScenarios.cs",
+    "sha256": "bb00bf2dadbcb1bb4b379a200624f7f2bd710238a7d3aeba188d9ef8ce544129"
+  },
+  {
+    "path": "Assets/Scripts/Services/Combat/CharacterCombatCommandRuntime.cs",
+    "sha256": "a543c0a5b3f50dafcb385da34c43a12fafd6cc8abedccf5855f83491789be2c3"
+  },
+  {
+    "path": "Assets/Scripts/Services/Combat/CombatEquipmentLoadoutRuntime.cs",
+    "sha256": "c478621355dbb43534ccf29a7bf9c500bac4cfc4b8b2a78e6409a4a7668af059"
+  },
+  {
+    "path": "Assets/Scripts/Services/Combat/CombatEquipmentRuntime.cs",
+    "sha256": "a4ceca0ba63d40315fbe0e0bd5e584cd889b30a073b91be6cad18ab878bc79f1"
+  },
+  {
+    "path": "Assets/Scripts/Services/Combat/CombatResolutionService.cs",
+    "sha256": "76782a953ce4a39a11f2e515a317c8b87cfb07fbbf9adcbb5eb9a497658897ce"
+  },
+  {
+    "path": "Assets/Scripts/Services/Combat/Editor/CombatSystemDebugScenarios.cs",
+    "sha256": "ff318af020c6bf04160e9d7b5636db14e22016b0f40a7c0df4424a70261007b7"
+  },
+  {
+    "path": "Assets/Scripts/Services/Combat/Editor/CombatV14PlayModeVerifier.cs",
+    "sha256": "4af5539587b7a1882aa0ddb41bada2a78106130619dc2274fa201a85d5a288e6"
+  },
+  {
+    "path": "Assets/Scripts/Services/Combat/Editor/D02SharedCombatTransactionDebugScenarios.cs",
+    "sha256": "6d4fb790a1d03b09176ba72bd7a7d43cf0637756abc6fe46d21634fbf9031614"
+  },
+  {
+    "path": "Assets/Scripts/Services/Combat/Editor/EditorAllResearchRuntimeProvider.cs",
+    "sha256": "45167f0bd30a5e6c6957087e506936a1f61dcef7b27221274153aea12b3c0dbe"
+  },
+  {
+    "path": "Assets/Scripts/Services/Debugging/DungeonDebugCommandProviders.cs",
+    "sha256": "dd7f8bd674dc9418263ed4a797f7a2ee54826de3847301c76c29e43947010cbe"
+  },
+  {
+    "path": "Assets/Scripts/Services/Defense/DefenseFacilityRuntime.cs",
+    "sha256": "fd234d747e5079165ad09cd728253ede6befd0aab1d02c351829270570b988bf"
+  },
+  {
+    "path": "Assets/Scripts/Services/Defense/DefenseFacilitySystem.cs",
+    "sha256": "f0bb2dffe89c7869a757ea1519c00290deb053b1552979df668f34ee31d5fec0"
+  },
+  {
+    "path": "Assets/Scripts/Services/Defense/Editor/D06DefenseFacilityEffectOutcomeDebugScenarios.cs",
+    "sha256": "408056e965c3edd3ec9a11f6eb294b52934191f4d76468e4cb817d2d495d5bc4"
+  },
+  {
+    "path": "Assets/Scripts/Services/Defense/Editor/DefenseActivationObserverDebugScenarios.cs",
+    "sha256": "c1f2636eed7a106206ca6d14824737f01939aae89af348dbcef29769639e2b62"
+  },
+  {
+    "path": "Assets/Scripts/Services/Defense/Editor/DefenseFacilityServiceOutcomeDebugScenarios.cs",
+    "sha256": "38a3eb175dedda5e962af3268c6dfe01dcf72148f2a02acc4f87b701edff0af0"
+  },
+  {
+    "path": "Assets/Scripts/Services/Economy/CropEcologyRuntime.cs",
+    "sha256": "91eeae31276e6b877e3358f56e089298ee39152272e69bfcccafd18f8b5ce8e0"
+  },
+  {
+    "path": "Assets/Scripts/Services/Economy/CropPlotRuntime.cs",
+    "sha256": "a6a3588e3997a7e07b57fc973fd0635660c35b1142aa7c3df7c4293e4fcbb6c8"
+  },
+  {
+    "path": "Assets/Scripts/Services/Economy/CropPlotSnapshotProjector.cs",
+    "sha256": "6b561103f3c53f4fa62b309c087d8cf8c0981d19c77e80f12f2084ab3605acb4"
+  },
+  {
+    "path": "Assets/Scripts/Services/Economy/Editor/CropPlotDebugScenarios.cs",
+    "sha256": "96b10664968af9df5ffd2925534a46981d0b633e12b4429abc17dd6bb99f8d6a"
+  },
+  {
+    "path": "Assets/Scripts/Services/Economy/Editor/ProductionEconomyDebugScenarios.cs",
+    "sha256": "e4ec003d49942f9053f7b6fb8013ee4a1ef00a77ad8dcdaaa5edfca1f92dee5d"
+  },
+  {
+    "path": "Assets/Scripts/Services/Economy/Editor/ProductionMassExplanationCapabilityDebugScenarios.cs",
+    "sha256": "2ed0877be572b87c8b87665f798bdb4439190743c60102ad8488c4c701f79d2e"
+  },
+  {
+    "path": "Assets/Scripts/Services/Economy/Editor/ProductionPreparedOutputFullPersistenceDebugScenarios.cs",
+    "sha256": "d6407affd9989a8144b9eddba767ecc90ceaa979bcb7e5c4319a0ac0c1ec4cf5"
+  },
+  {
+    "path": "Assets/Scripts/Services/Economy/Editor/RegionalSupplyContractTransferOutboxDebugScenarios.cs",
+    "sha256": "44ca2d86379a4a7ecbb2fd56575c6344ecf228652197b94f7b7ffc6c11415984"
+  },
+  {
+    "path": "Assets/Scripts/Services/Economy/Editor/ResourceEconomyAssetBuilder.cs",
+    "sha256": "7932c2d72892d5c09ff218905c12c583ac18818dd99f07653141d6a194711b4e"
+  },
+  {
+    "path": "Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs",
+    "sha256": "9ba7de3989fe0cddcf01ed993d46b90d1e069de461f1cb10e548c675ded754bb"
+  },
+  {
+    "path": "Assets/Scripts/Services/Economy/Editor/Wim016IrrigationContractDebugScenarios.cs",
+    "sha256": "b35f9252010927c76f879ae17421e356d17edbd123c92bb378737006ae49aea3"
+  },
+  {
+    "path": "Assets/Scripts/Services/Economy/Editor/WorldResourceDebugScenarios.cs",
+    "sha256": "a649a23d897c1b57b85e8c2a9a78241877eceff37813982c8b1eec004470d0d1"
+  },
+  {
+    "path": "Assets/Scripts/Services/Economy/Husbandry/AnimalHusbandrySaveSection.cs",
+    "sha256": "15406ec6683f9ca14caa622ae72d7e069277cd983aaef92ef7bcc1439a258043"
+  },
+  {
+    "path": "Assets/Scripts/Services/Economy/ResourceEconomyContentCatalog.cs",
+    "sha256": "9d18d49af3e6811303b1c60ddc524379e353b483d769fd77cf609090896929b1"
+  },
+  {
+    "path": "Assets/Scripts/Services/Effects/Runtime/CharacterDerivedStatsSnapshot.cs",
+    "sha256": "62550eb37419f6cc495a2b63e04034fc6c1c2fe060ba9cd3221a0d544b285c4f"
+  },
+  {
+    "path": "Assets/Scripts/Services/Evolution/Editor/InstanceEvolutionDebugScenarios.cs",
+    "sha256": "f413f148d542cb3f6ed5beb236d0d06ed2f7766f36c7c1c851546fb522fd256d"
+  },
+  {
+    "path": "Assets/Scripts/Services/FacilityEvolution/Editor/FacilityEvolutionDebugScenarios.cs",
+    "sha256": "83410c2209303fc4c0cb88628a5548639f29b1fd15a193d90fc6693cca21da4f"
+  },
+  {
+    "path": "Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionActivationProjection.cs",
+    "sha256": "14cf19de824a55f525cc7aeb09239a06d1cc0012cc52cf77a32d0e07fb86fc00"
+  },
+  {
+    "path": "Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionRecipeSO.cs",
+    "sha256": "73b9db3ea17e71585952fe717d64f40d7ade1aff88ed435373e85c5f398c6fbd"
+  },
+  {
+    "path": "Assets/Scripts/Services/FacilityEvolution/FacilityInstanceEvolutionRuntime.cs",
+    "sha256": "649ceff8205179c96d048668000c5e01204b8f346384b657190dff85013a2588"
+  },
+  {
+    "path": "Assets/Scripts/Services/FacilityShop/DailyFacilityShopRuntime.cs",
+    "sha256": "8c668331ccc2256018e4ba993ba7cd726e21d138261aba90299e6520f6308a48"
+  },
+  {
+    "path": "Assets/Scripts/Services/Foundation/ContentReferenceAttribute.cs",
+    "sha256": "f70adfa905fe1412e3edd8faac3831c3adda05c8e3841abf5f6d9ad0ac651bbd"
+  },
+  {
+    "path": "Assets/Scripts/Services/Foundation/GameplayEffectContracts.cs",
+    "sha256": "f6a7cca02de6a5fccf1f4181ad9868160e0eb49451db63a8b5aaf70d4d92c4d4"
+  },
+  {
+    "path": "Assets/Scripts/Services/Foundation/Save/DungeonSaveSections.cs",
+    "sha256": "bd21fb3bb51112e09ece6a3841b79b83b8f7da41fc69aee0780d1c557cda6e98"
+  },
+  {
+    "path": "Assets/Scripts/Services/Infrastructure/BlueprintResearchApplicationAdapter.cs",
+    "sha256": "7600446e0addb4917d3b0d072e351adf4557ba3329915bdb01a2724519213ce2"
+  },
+  {
+    "path": "Assets/Scripts/Services/Infrastructure/BlueprintResearchContracts.cs",
+    "sha256": "f0a2749e1ce95a489c5fe2ff0fe163a126ca789914a48965216bd0e445dd2436"
+  },
+  {
+    "path": "Assets/Scripts/Services/Infrastructure/BlueprintResearchRuntime.cs",
+    "sha256": "50ba31607f418fb6f31bc2d2ad721e6c9e7874ba1388e4447a58794cfe6fc8d3"
+  },
+  {
+    "path": "Assets/Scripts/Services/Infrastructure/BlueprintResearchRuntimeProvider.cs",
+    "sha256": "ad2392e51339318594505fe77353696c505c8b0939888d13fa8fffc58103c5c3"
+  },
+  {
+    "path": "Assets/Scripts/Services/Infrastructure/BlueprintResearchSaveSection.cs",
+    "sha256": "a9ba1fd0b05220bc7998b407a73354a7da76b441017ab2a3fa88cba0861b0a37"
+  },
+  {
+    "path": "Assets/Scripts/Services/Infrastructure/CharacterWorldSaveService.cs",
+    "sha256": "50264d6f998c1169e5df561bdccb315f6feef0d49f42628a58c47f64051a14be"
+  },
+  {
+    "path": "Assets/Scripts/Services/Infrastructure/Core/Captivity/AbilityCaptiveEscortAdapter.cs",
+    "sha256": "3d6dc0c1b200d0d8bffce653bb5759ce8404231994090661ae818db701712403"
+  },
+  {
+    "path": "Assets/Scripts/Services/Infrastructure/Core/Captivity/AbilityWildlifeCaptureTransportAdapter.cs",
+    "sha256": "6cdc31dfb71bb50ad1f7d9446bf1720d183e452a082f992576c8a2e169d28f9a"
+  },
+  {
+    "path": "Assets/Scripts/Services/Infrastructure/Core/FluidNetworkProjection.cs",
+    "sha256": "b3b0fbc8702dadcdb22132b458b06f50f032a4af45cc55631befba47a0a793cd"
+  },
+  {
+    "path": "Assets/Scripts/Services/Infrastructure/Core/MetaProgressionRuntime.cs",
+    "sha256": "ad5fb18f6bfabc0b5d5ec9ce82ed4860809bc7cc040e0a36b43ffbda41797517"
+  },
+  {
+    "path": "Assets/Scripts/Services/Infrastructure/DungeonTitleLifetimeScope.cs",
+    "sha256": "f2f5b61f3b8fbef3b35bfc595f35220a17fc450e53b1c538e98ac3d31f03d14d"
+  },
+  {
+    "path": "Assets/Scripts/Services/Infrastructure/Editor/DungeonGameSaveDebugScenarios.cs",
+    "sha256": "b735492d12808b8a216132340755ec1dc660a9bcd8d886727c970cde09332206"
+  },
+  {
+    "path": "Assets/Scripts/Services/Infrastructure/Editor/DungeonLiveNarrativeCampaignRunner.cs",
+    "sha256": "b7123da9dabda446c26fafeb22d95b142e2760d02ce975d5cc33f4ea41ea67a7"
+  },
+  {
+    "path": "Assets/Scripts/Services/Infrastructure/Editor/DungeonRestoreOutcomeDebugScenarios.cs",
+    "sha256": "206ee2554d5455157954d4011c968ec7cb4e3312551b9b43e51efb448dd79207"
+  },
+  {
+    "path": "Assets/Scripts/Services/Infrastructure/Editor/DungeonSavePayloadIntegrityDebugScenarios.cs",
+    "sha256": "2cb60ef34934f67c004d11dca8ab645b7233f5e2b64b8bebdd9ddbc7e70ae5b9"
+  },
+  {
+    "path": "Assets/Scripts/Services/Infrastructure/Editor/DungeonSpaceExpansionOutcomeDebugScenarios.cs",
+    "sha256": "b4279e0a5aee4277b16913e32380203b39e59eb43dba45dc583710944bbb5b24"
+  },
+  {
+    "path": "Assets/Scripts/Services/Infrastructure/Editor/DungeonSpaceExpansionPlayModeVerifier.cs",
+    "sha256": "45bd9a4a7350048f72de45c9a633e34e9f6583ff9cdb471caf8e6b16cbbf435a"
+  },
+  {
+    "path": "Assets/Scripts/Services/Infrastructure/Environment/CharacterEnvironmentRuntime.cs",
+    "sha256": "07b142f47cd91341d438868416b70d44d0691d95ef524794cffb4039fa247a92"
+  },
+  {
+    "path": "Assets/Scripts/Services/Infrastructure/Exterior/Editor/ExteriorActivityDebugScenarios.cs",
+    "sha256": "b906044e4d8d7e15eb7925004d6c67622d6ce155bf82cf4fd3d4669ad1639aa0"
+  },
+  {
+    "path": "Assets/Scripts/Services/Infrastructure/Exterior/ExteriorZoneWorldQuery.cs",
+    "sha256": "51b95922c3b70e20e590d680638e22a1d40f09db129476aefd361dead39635f5"
+  },
+  {
+    "path": "Assets/Scripts/Services/Infrastructure/FacilityShopRuntimeProvider.cs",
+    "sha256": "b1d7f25c6ed53affbe56e9586930ef4754afb092acc3dc084948ef8b6c98b95a"
+  },
+  {
+    "path": "Assets/Scripts/Services/Infrastructure/GameRuntimeServices.cs",
+    "sha256": "2d1413c159bd8862593a6e24de88cb32f8f9353f4b9ed455c4674ec1839e32c9"
+  },
+  {
+    "path": "Assets/Scripts/Services/Infrastructure/GameSessionRuntimeServices.cs",
+    "sha256": "8414a8aa1d9ad649eb98f2773d4c884c1260bb6ab512b90b078020ad3820978f"
+  },
+  {
+    "path": "Assets/Scripts/Services/Infrastructure/Industrial/Editor/IndustrialInfrastructurePlayModeVerifier.cs",
+    "sha256": "5bc49d87fbf543b1bae434cdeb7e069e294558a4662902912790da4c4f7142b2"
+  },
+  {
+    "path": "Assets/Scripts/Services/Infrastructure/Industrial/Editor/InfrastructureCommandOutcomeProducerPlayModeScenario.cs",
+    "sha256": "62ed765f38af9f389ad125db58ea1c81a3bb341545134ba4dfec7511a37ab776"
+  },
+  {
+    "path": "Assets/Scripts/Services/Infrastructure/Industrial/Editor/WimDoorConsumerScenario.cs",
+    "sha256": "7e1895cb74307cb9f2541ac87599be66490d1bf6fac0060496b734a2984da916"
+  },
+  {
+    "path": "Assets/Scripts/Services/Infrastructure/Industrial/FluidNetworkProjectionAdapter.cs",
+    "sha256": "0bff94db2c12fd78eec244201957764ad34f1e0296fd6e11d9706ff256369a21"
+  },
+  {
+    "path": "Assets/Scripts/Services/Infrastructure/Industrial/FluidNetworkRuntime.cs",
+    "sha256": "1439cf48e921eed4ce8ba6e9e6621ca754ca95404e7001754539a0f34a13694d"
+  },
+  {
+    "path": "Assets/Scripts/Services/Infrastructure/Registration/DungeonCharacterRegistration.cs",
+    "sha256": "25177fa2416d350c412531db0136696555e6024127190010e21463dcfec85bd5"
+  },
+  {
+    "path": "Assets/Scripts/Services/Infrastructure/Registration/DungeonCombatRegistration.cs",
+    "sha256": "c3ee1227f81a6cb7b0e1f36d96e73e0fbe3bece12a9e4f39bee451136726367a"
+  },
+  {
+    "path": "Assets/Scripts/Services/Infrastructure/Registration/DungeonCoreInfrastructureRegistration.cs",
+    "sha256": "478279076339074a1f73c3bc27cb755863d0c309f862dc4d2019dcfffc487c3f"
+  },
+  {
+    "path": "Assets/Scripts/Services/Infrastructure/Registration/DungeonProgressionOffenseRegistration.cs",
+    "sha256": "d3690afa7a0b4fc39c0eb1344002321f8bf00a186e0f9b379810ebb55fcf0fb3"
+  },
+  {
+    "path": "Assets/Scripts/Services/Infrastructure/Registration/DungeonWorldSimulationRegistration.cs",
+    "sha256": "1ccd6155ba8825d324ea9416736239e93460c7f3c75c1cc7baf46e262a835f85"
+  },
+  {
+    "path": "Assets/Scripts/Services/Infrastructure/ResearchCraftingSummaryService.cs",
+    "sha256": "d271ddd5b32ae0df0cb6a7aa2a297dbdb3fb49abfb1483188ab1dadb08ec73d8"
+  },
+  {
+    "path": "Assets/Scripts/Services/Invasion/Editor/DefenseEngagementDebugScenarios.cs",
+    "sha256": "b5d5819cb336433ac9ff35d42640ce876381f9b9769bb65185caf64acfd32952"
+  },
+  {
+    "path": "Assets/Scripts/Services/Items/CharacterCarryInventory.cs",
+    "sha256": "ab27966d3260cb06ea1e43a48e2bfe234b136b8d8e5d3d55196730e0aed541a0"
+  },
+  {
+    "path": "Assets/Scripts/Services/Items/ContentReferenceCatalog.cs",
+    "sha256": "9fbc26c877e741373da82d3be896bf85b28e3311acf0c3509f4629c352729d9f"
+  },
+  {
+    "path": "Assets/Scripts/Services/Items/Diagnostics/EditorItemCatalogFactory.cs",
+    "sha256": "2a53a2ff269e9f7d69d618e09660963bfb31571468488834a1b5b084f9ab71da"
+  },
+  {
+    "path": "Assets/Scripts/Services/Items/Editor/PhysicalItemLogisticsPlayModeVerifier.cs",
+    "sha256": "e5affe1db7db71950fcc1980215be599b624ab90ee38ea223698a80e185f9bb5"
+  },
+  {
+    "path": "Assets/Scripts/Services/Items/Editor/PhysicalStockQueryV18DebugScenarios.cs",
+    "sha256": "ae3877c102149a008452217ba147079c5f18f362f12145f21ca2c418f83804db"
+  },
+  {
+    "path": "Assets/Scripts/Services/Items/Editor/Wim023InstalledConsumerLiveWitness.cs",
+    "sha256": "fe7f0449cc0dfd9147e024c7fa65fef319944a036b20f011983471aa5bd19258"
+  },
+  {
+    "path": "Assets/Scripts/Services/Items/Editor/Wim023PartProductionLiveWitness.cs",
+    "sha256": "aa211714175b5366e2d6b952d27cef1b244feddfb4f87c71bfafaf5ab8d0e827"
+  },
+  {
+    "path": "Assets/Scripts/Services/Items/GameContentCatalog.cs",
+    "sha256": "834b0e8b013253f270faae673d3a336b0488303c8169ec1bb8c8f0d7c5a4bf46"
+  },
+  {
+    "path": "Assets/Scripts/Services/Items/WorldItemQueryService.cs",
+    "sha256": "ede39b8dc70ad633cefc06c39b347aad12dce3248c1874234fc0afcae90db7a2"
+  },
+  {
+    "path": "Assets/Scripts/Services/Items/WorldItemSnapshots.cs",
+    "sha256": "c69ac0368860460a80f121d49b08da91b2964daa80940e0413904b5e47434123"
+  },
+  {
+    "path": "Assets/Scripts/Services/Medical/Editor/OrganPreservationRestoreJoinFixture.cs",
+    "sha256": "e87f464e429a8b23697e313f1b3184b0f4a11e4d20934b89d3f4bd7d31f3b3c5"
+  },
+  {
+    "path": "Assets/Scripts/Services/Medical/Editor/SurgeryDebugScenarios.cs",
+    "sha256": "d90fc1356b350275523f2881396f001d28b651eb14e99625c2fdfefb26f376e8"
+  },
+  {
+    "path": "Assets/Scripts/Services/Medical/Editor/SurgeryPlayModeVerifier.cs",
+    "sha256": "21e24f3aef97a1e5a5f45adcd83bc78d5b77c4c8a60fd4bf13cdf51909856df8"
+  },
+  {
+    "path": "Assets/Scripts/Services/Medical/Editor/WimTransfusionTargetedHemostasisDebugScenarios.cs",
+    "sha256": "d78d4e5cf99ce543e5241926ce3facace6e9f150f92e167c55f58a7d95764c91"
+  },
+  {
+    "path": "Assets/Scripts/Services/Medical/SurgeryRestoreCoordinator.cs",
+    "sha256": "927d145c22354eefcbcb439dcc3c2905e96458cfe265dd25ef33663b9c4ce81f"
+  },
+  {
+    "path": "Assets/Scripts/Services/Medical/SurgicalGraftEffectDefinitionSO.cs",
+    "sha256": "c44c3d43fdd7df2e44c1f4fb6fbe2bae55bce8426563542217af02053971fca5"
+  },
+  {
+    "path": "Assets/Scripts/Services/Medical/SurgicalGraftEffectDefinitionSO.cs.meta",
+    "sha256": "27b3eda5eebe7eabb8170c4550f635c75cbfe35a7003fae9a049e1e28096046f"
+  },
+  {
+    "path": "Assets/Scripts/Services/Medical/SurgicalPartRuntime.cs",
+    "sha256": "dd1e1f3f53b57d3c6353b4d2e18b16586ce87d75907bb3881cc78696db64c95a"
+  },
+  {
+    "path": "Assets/Scripts/Services/Meta/Editor/MetaProgressionDebugScenarios.cs",
+    "sha256": "fe2399de1f375ee5b3163d118fa5e423a42ae937dd80f7e1ff08aa39d3795da9"
+  },
+  {
+    "path": "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/CharacterLife/Editor/VisitorExitOutcomeDebugScenarios.cs",
+    "sha256": "61076e1ff213ea119fec9922b584f78f12548b0aea0176bcfc4b102879ad3565"
+  },
+  {
+    "path": "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/Environment/Editor/CropQueryCacheBoundaryDebugScenarios.cs",
+    "sha256": "b56ead576c1b6f74cdcce9f4d22341978ea7907ecbd3def3367eaafc8fcccc00"
+  },
+  {
+    "path": "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/Environment/Editor/EnvironmentCropProductionEntryDebugScenarios.cs",
+    "sha256": "fd025494c13ba0306f5ce122e673a22fbe1a851570c2b425809ddbe4ecd32c93"
+  },
+  {
+    "path": "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/Environment/SpeciesActionFactPreflight.cs",
+    "sha256": "0ea8313bf1d8db271407de789bfecd8751bc197bc3c9aa3d7c1d4bd18357bff1"
+  },
+  {
+    "path": "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/Editor/FacilityWishlistProcurementCausalProductionEntryDebugScenarios.cs",
+    "sha256": "dd7708be73b5b48fc766292657975d671a7feda6fe4fc6f638410a1db40a4c24"
+  },
+  {
+    "path": "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/Editor/MigratedProducerCombatDefenseEntryE2EDebugScenarios.cs",
+    "sha256": "73e78c2ddbd815c504675d936fcb489facbebef1a21a24b0c7b05e5bf99ef3ab"
+  },
+  {
+    "path": "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/Editor/MigratedProducerEconomyEntryExtendedE2EDebugScenarios.cs",
+    "sha256": "1f5cecfd31998dba17341f12d8f4052e8bb5119393f90ae9e260db494ce33134"
+  },
+  {
+    "path": "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/Editor/MigratedProducerEconomyServiceEntryE2EDebugScenarios.cs",
+    "sha256": "4c0f495ee572a9a9a419363330c8ad16b09b29adefa7b05f54d9ff9c211ce0a3"
+  },
+  {
+    "path": "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/Editor/MigratedProducerRunOffenseEntryE2EDebugScenarios.cs",
+    "sha256": "5d8de46e968471e5adbd4097bce899cfaf1a63a14c9b8fea89375a651711e468"
+  },
+  {
+    "path": "Assets/Scripts/Services/Offense/Editor/CombatOutcomeBalanceCalibrationScenario.cs",
+    "sha256": "d644f5bf878156f03dd5a559a4065eb0158b71739cf66b54de4a6635e93ed5d9"
+  },
+  {
+    "path": "Assets/Scripts/Services/Offense/Editor/OffenseJourneyDebugScenarios.cs",
+    "sha256": "3c8bf46723b998eef4b5f54580bac22b74ba65af82d9dd36062549f15f8b6db7"
+  },
+  {
+    "path": "Assets/Scripts/Services/Offense/Editor/OffenseJourneyPlayModeFacade.cs",
+    "sha256": "87d689ed0093eaca488e3c551160b6b8de3c93976c138203822d40b31a516d98"
+  },
+  {
+    "path": "Assets/Scripts/Services/Offense/Editor/OffenseNodeResolutionCausalProductionEntryDebugScenarios.cs",
+    "sha256": "0f1af5ace3dfacaca60280f984407c4e74e30d7e14daeb2dda5ac3ffb8befa4e"
+  },
+  {
+    "path": "Assets/Scripts/Services/Offense/Editor/OffenseRewardDebugScenarios.cs",
+    "sha256": "d2fe98e874173fb6473b23acad99f220f0b8696418d4d761ba70f66cb45fc128"
+  },
+  {
+    "path": "Assets/Scripts/Services/Offense/Editor/OffenseStrategicDebugScenarios.cs",
+    "sha256": "121e4e64b8de91f9a1d5d81494d958ef7d4acbf39b1f20f164c3c03d5657dd45"
+  },
+  {
+    "path": "Assets/Scripts/Services/Offense/Editor/OffenseTacticalJourneyPlayModeVerifier.cs",
+    "sha256": "58161c579770557139255a72c2a7341a995bf267e3a03ab19f6b9cf43910a71d"
+  },
+  {
+    "path": "Assets/Scripts/Services/Offense/OffenseApplication.cs",
+    "sha256": "c63adf46f9996aba20849620c5d4ed4dba453d8d2728c3eb4d4bfb8e4e3872cb"
+  },
+  {
+    "path": "Assets/Scripts/Services/Offense/OffenseBattlePanel.cs",
+    "sha256": "cebca581645105f7150bf625a2cdc55c695dcf1406425a93eaef0e9efe4acf43"
+  },
+  {
+    "path": "Assets/Scripts/Services/Offense/OffenseBattleRuntime.cs",
+    "sha256": "1e7d90c9628a198a7aa4b8d7eaa7f55e378f1a6ab25a655acef1b0627a377272"
+  },
+  {
+    "path": "Assets/Scripts/Services/Offense/OffenseExpeditionRuntime.cs",
+    "sha256": "50c63b7514a829ffb461b2aff2fe080a1237c0fb22a8ad1033d7acf0bd6bf78e"
+  },
+  {
+    "path": "Assets/Scripts/Services/Offense/OffensePreparationService.cs",
+    "sha256": "11449abbde91a8f216637ee19bae6d7af41e52967a045aa2e49da23f0d3822ae"
+  },
+  {
+    "path": "Assets/Scripts/Services/Offense/OffenseReturnArrivalRuntime.cs",
+    "sha256": "172740fe4de6bc9f6558d0a40fd0ff67d325205b5655dddafe0e2154262db7a8"
+  },
+  {
+    "path": "Assets/Scripts/Services/Offense/OffenseRewardContextResolver.cs",
+    "sha256": "49d8ba0f4a9872ee5218fa7413d58f82d8bf3ffec9517c5708caad1d55561ddb"
+  },
+  {
+    "path": "Assets/Scripts/Services/Offense/OffenseRewardSystem.cs",
+    "sha256": "98f442fa08c1f75261047aead341efdf3c432d2e9c00adb87ca16f09e9f7a8e0"
+  },
+  {
+    "path": "Assets/Scripts/Services/Offense/OffenseStrategicExpeditionServices.cs",
+    "sha256": "d465951a31d45be902fd783bb6f3da5c4a63d59a340eabb510030885e0a48899"
+  },
+  {
+    "path": "Assets/Scripts/Services/Offense/OffenseWorldMapRuntime.cs",
+    "sha256": "8d5172629d7587447e2f4c44c3e7cd79c07e1504b71b9ef26f3887a506fc5481"
+  },
+  {
+    "path": "Assets/Scripts/Services/Offense/Strategic/OffenseCommandResolutionAdapter.cs",
+    "sha256": "7a0e5afb1f707ade25204651e5320ce65e4f59eb00d349b036b0e72fcd615300"
+  },
+  {
+    "path": "Assets/Scripts/Services/Offense/Strategic/OffenseStrategicBattleSetupFactory.cs",
+    "sha256": "1ade428ff89a46da00df1e290aea4e94bd74acd8c928d1600c9adabc743b839c"
+  },
+  {
+    "path": "Assets/Scripts/Services/Offense/Strategic/OffenseWorldMapPanelStrategicEncounter.cs",
+    "sha256": "4bf6dc2e5fda34929553bb5e322ec1d5a89508b803baea9467a24c0ce6e0beeb"
+  },
+  {
+    "path": "Assets/Scripts/Services/Recruitment/Editor/RegularCustomerDebugScenarios.cs",
+    "sha256": "09d47e2fa0c22783222203219e6fb90d98e32e4c160e2fea9d51d5dbbfcd78be"
+  },
+  {
+    "path": "Assets/Scripts/Services/Recruitment/RegularCustomerRuntime.cs",
+    "sha256": "af04f02d54e127456b890e2b59ee0ab875b67bea8b106cdf165c9f7817b9d75e"
+  },
+  {
+    "path": "Assets/Scripts/Services/Recruitment/RegularCustomerSaveSection.cs",
+    "sha256": "542bcef085930b97e356597d657135a764f673d483ebb16cb6db0ba44c57884b"
+  },
+  {
+    "path": "Assets/Scripts/Services/Recruitment/RegularCustomerSystem.cs",
+    "sha256": "8dd214446c07ecc46ffa7c7965de15e3772eb4b15f7c726d8d9f17efeb7f8e91"
+  },
+  {
+    "path": "Assets/Scripts/Services/Research/Editor/BlueprintResearchDebugScenarios.cs",
+    "sha256": "5368a82b139a293776f0eef1f7a3cf20a08662c1fe1ea8347a10f22546196f36"
+  },
+  {
+    "path": "Assets/Scripts/Services/Research/Editor/ResearchOverhaulContentAssetBuilder.cs",
+    "sha256": "4fc9d46175606fe2415fdf68fa3024df589bbfae718851256864cd7b83370e87"
+  },
+  {
+    "path": "Assets/Scripts/Services/Research/Editor/ResearchTreeDebugScenarios.cs",
+    "sha256": "58081115a8232cc2e666999dbb8eb8f79f672422dce12137bb58a5996660d64e"
+  },
+  {
+    "path": "Assets/Scripts/Services/Run/Editor/FirstRunObjectivePlayModeVerifier.cs",
+    "sha256": "394faff8e4d00de9f4c7fa4c4fa4946e1145e606769d96dec7b356cc2309dda4"
+  },
+  {
+    "path": "Assets/Scripts/Services/Run/Editor/NaturalRunPlayModeVerifier.cs",
+    "sha256": "e725e2424a95782e2edff94d289393688ffabe731d612cc55f725e391fa04fd4"
+  },
+  {
+    "path": "Assets/Scripts/Services/Run/Editor/R19ProgressionDebugScenarios.cs",
+    "sha256": "6439033da2c56cebe7deddbff2276017c1d64666408a39d281e9f43b3b4c7157"
+  },
+  {
+    "path": "Assets/Scripts/Services/Run/Editor/V20CampaignDebugScenarios.cs",
+    "sha256": "fa51dabce821e0ff265748227390387ccc7b416d3efff9a956d57c604db429ec"
+  },
+  {
+    "path": "Assets/Scripts/Services/Run/V20CampaignEffectRuntime.cs",
+    "sha256": "5c223be916df008638bfc74314a04a5695171c38677e86c7d08132f0070d136b"
+  },
+  {
+    "path": "Assets/Scripts/Services/Run/V20MilestoneWorldSnapshotProjector.cs",
+    "sha256": "ee9a3bcceea8370a74b3ff63cd0d7e8f8664b413ab5f093a121124e147c7cfea"
+  },
+  {
+    "path": "Assets/Scripts/Services/Survival/Editor/SurvivalDebugScenarios.cs",
+    "sha256": "34755dd5af0d3bd09ae895c0170266035721ab88e19ebe0f61e41a730d637b16"
+  },
+  {
+    "path": "Assets/Scripts/Services/Survival/SurvivalFoodRuntime.cs",
+    "sha256": "d90d9e72322799aead33e07cc28d31471026eeb86b611a9d2c800fdce0a3f37e"
+  },
+  {
+    "path": "Assets/Scripts/Services/Survival/SurvivalFoodStockRuntime.cs",
+    "sha256": "4486e187fd059a5814c79e4b9ca8bc74afdf39d68ecdb980d22ff936bb2eef3d"
+  },
+  {
+    "path": "Assets/Scripts/Services/Synthesis/Editor/FacilitySynthesisCausalProductionEntryDebugScenarios.cs",
+    "sha256": "d73e580318dbc469a19fc572dcb974c791d8c62508c16e5ca1ecf2f4660052ed"
+  },
+  {
+    "path": "Assets/Scripts/Services/Synthesis/Editor/FacilitySynthesisDebugScenarios.cs",
+    "sha256": "7176166e967460f99e998ff4dee0e0a7dbb1a95be9b7849c9e3a9fc8bbcd226f"
+  },
+  {
+    "path": "Assets/Scripts/Views/Buildings/UI/ApparelBuildingPanelPresenter.cs",
+    "sha256": "655f1ee794ab10a7743fa20afb80d086438630790bf58e80e6a96c3a74b0166a"
+  },
+  {
+    "path": "Assets/Scripts/Views/Buildings/UI/CircusBuildingPanelPresenter.cs",
+    "sha256": "171f6e544932185267e7ba0de913fc9001cc91a5e3763c314e4422426668d4e6"
+  },
+  {
+    "path": "Assets/Scripts/Views/Buildings/UI/DoorAccessPanelPresenter.cs",
+    "sha256": "15fff85c30e872e5ab687d9fd97b4da8b9c3c3cf7e6e1678575887119301b6e9"
+  },
+  {
+    "path": "Assets/Scripts/Views/Buildings/UI/Editor/DoorAccessPlayModeVerifier.cs",
+    "sha256": "1237d2edad3494c5b5895b104cbade76e55e4e330862f2870cfc968464e2031c"
+  },
+  {
+    "path": "Assets/Scripts/Views/Buildings/UI/Editor/ProductionBuildingPlayModeVerifier.cs",
+    "sha256": "6e23278122867defe4fe941357a51a7dadb796e89c32949dc5b39434eacca86e"
+  },
+  {
+    "path": "Assets/Scripts/Views/Buildings/UI/EquipmentCraftingPanelPresenter.cs",
+    "sha256": "10f849c89f7d5cb2c009f225f3fc910d7da5a995f4807bbad3697aeb6ce9a29b"
+  },
+  {
+    "path": "Assets/Scripts/Views/Buildings/UI/ProductionBuildingPanelPresenter.cs",
+    "sha256": "f84c91404dfef319e6eaf9ea2add2b01fe518a17d57a08fa9b7519e237de9eb3"
+  },
+  {
+    "path": "Assets/Scripts/Views/Buildings/UI/UIBuildingInfo.cs",
+    "sha256": "81cdf4960e4681a37d3734df94f9ab0b5deb899e26fdcc31ce16cf5432f775ad"
+  },
+  {
+    "path": "Assets/Scripts/Views/Character/UI/StaffManagementSurfacePanel.cs",
+    "sha256": "309b18f653ed681007cff9e60284721ecd09d9b3f9bd60974751e42c8c652240"
+  },
+  {
+    "path": "Assets/Scripts/Views/Character/UI/StaffWorkPriorityPanel.cs",
+    "sha256": "ad84855d352a73f796465924d191990285e2507e32b5996824b0cf2dc9521452"
+  },
+  {
+    "path": "Assets/Scripts/Views/UI/Core/GameplayUiPresentationText.cs",
+    "sha256": "b6f1c58c3a8f173f9cb8a7294ee435abf2b0e330cf89b9d847e430c9cf54ae90"
+  },
+  {
+    "path": "Assets/Scripts/Views/UI/Core/IDungeonSettingsUi.cs",
+    "sha256": "fcd4e1f233fb71e11852ee96328e97f62e3bd7984d31eb8c293ca35f801ce06a"
+  },
+  {
+    "path": "Assets/Scripts/Views/UI/Core/ResearchTreePauseScope.cs",
+    "sha256": "1b824ff8292bf3bafe9c50ba07169de63869619d0d1474d3c7ae53ce0dcf867c"
+  },
+  {
+    "path": "Assets/Scripts/Views/UI/Core/StaffManagementSurfacePorts.cs",
+    "sha256": "a24338c707bea16edc198899987270f35f102af468dc92021189bcdc5eb69d0d"
+  },
+  {
+    "path": "Assets/Scripts/Views/UI/DungeonSettingsUi.cs",
+    "sha256": "c977c45012609decef13c47bd5bc5390612346dd7914674fdc7c2c0a43489a7d"
+  },
+  {
+    "path": "Assets/Scripts/Views/UI/Editor/DungeonProductShellPlayModeVerifier.cs",
+    "sha256": "08440828ab997e52efc36466656c684f9efb20f16ff47adec513a9c2af705e98"
+  },
+  {
+    "path": "Assets/Scripts/Views/UI/Editor/EquipmentExpeditionUiMatrixPlayModeVerifier.cs",
+    "sha256": "e9f7b981bc62f52280d794c62788f54aa1ab1b338626e51575815ea751a58ed6"
+  },
+  {
+    "path": "Assets/Scripts/Views/UI/Editor/P0FeatureSurfacePlayModeVerifier.cs",
+    "sha256": "c215716677f1f3c9a75832aba818edfa7d3c42b5b5a673763486ab0f15a28882"
+  },
+  {
+    "path": "Assets/Scripts/Views/UI/Editor/P1P2FeatureSurfacePlayModeVerifier.cs",
+    "sha256": "360ac2891888d8f5d618e7d1ee4bbef6fcb29b18836f75676e7c005c5d18d481"
+  },
+  {
+    "path": "Assets/Scripts/Views/UI/Editor/ResearchTreePlayModeVerifier.cs",
+    "sha256": "92ad984163a4dbd90e52eb02ba505d5c6822cc746be6ef7ee36f802d2a99bcb6"
+  },
+  {
+    "path": "Assets/Scripts/Views/UI/Editor/WimCraftQualityEstimateDebugScenarios.cs",
+    "sha256": "160363a067097089255466a35d4c8b8bf953b2a23130dd28da1f7426d6ddb0f0"
+  },
+  {
+    "path": "Assets/Scripts/Views/UI/Editor/WimQualityEstimatePlayModeVerifier.cs",
+    "sha256": "9a39fd9e7a3aacaee8904cc272e82f7dfbecb1d375bea00ef9a3b6a4ec35a451"
+  },
+  {
+    "path": "Assets/Scripts/Views/UI/ResearchTreePresentationRules.cs",
+    "sha256": "e7d718a8c7a6a3c0b6c8adbe6631435a1c452b7613d539d92cc8fdd88e86e683"
+  },
+  {
+    "path": "Assets/Scripts/Views/UI/ResearchTreeWindow.cs",
+    "sha256": "f0d82cf508b8b6d04ceedeec274780b78940dcb9be54399ea9b47a423d9998c1"
+  },
+  {
+    "path": "Assets/Scripts/Views/UI/UIManager.cs",
+    "sha256": "0f124babbd1874d5e10ad0dfa0434f1c36bc16f925ef55c7c396d73bd779803d"
+  },
+  {
+    "path": "Assets/Scripts/Views/Wildlife/WildlifeInfoPanel.cs",
+    "sha256": "9ee00710cbeb578e7a598bf22eeefb23435f16b8530a6d6f8494cf3e112409f7"
+  },
+  {
+    "path": "ProjectSettings/PublishedContentIdentities.json",
+    "sha256": "5d367a3562d0545d17508c52e3697a3ca14b107efb3bbaffe8005c0766d8db25"
+  }
+]

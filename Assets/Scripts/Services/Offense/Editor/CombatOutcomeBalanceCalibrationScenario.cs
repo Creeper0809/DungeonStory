@@ -2905,7 +2905,8 @@ public static class CombatOutcomeBalanceCalibrationScenario
             environmentalField: NoEnvironmentalFieldQuery.Instance,
             characters: null,
             environmentExposure:
-                NoOpCharacterEnvironmentExposureCommand.Instance);
+                NoOpCharacterEnvironmentExposureCommand.Instance,
+            itemCatalog: EditorItemCatalogFactory.CreateDefinitions());
 
     private sealed class EncounterOutcome
     {

@@ -373,7 +373,7 @@ public sealed class DungeonSpaceExpansionPlayModeVerificationRunner : MonoBehavi
             }
 
             CompletePrerequisites(research, prerequisite);
-            research.State.Projects.RestoreCompleted(prerequisite.ProjectId);
+            research.StateForDebug.Projects.RestoreCompleted(prerequisite.ProjectId);
         }
     }
 
@@ -422,11 +422,14 @@ public sealed class DungeonSpaceExpansionPlayModeVerificationRunner : MonoBehavi
         }
     }
 
-    private sealed class FixedUnlockStateService : IFacilityShopUnlockStateService
+    private sealed class FixedUnlockStateService : IFacilityShopUnlockStateService,
+        IFacilityShopUnlockStateAuthority
     {
         private readonly FacilityShopUnlockState state = new FacilityShopUnlockState();
 
-        public FacilityShopUnlockState GetUnlockState() => state;
+        public FacilityShopUnlockState GetUnlockState() => state.CreateSnapshot();
+        public FacilityShopUnlockState GetOwnedUnlockState() => state;
+        public FacilityShopUnlockState GetUnlockStateForDebug() => state;
     }
 
     private sealed class EmptyShopCatalog : IFacilityShopCatalog

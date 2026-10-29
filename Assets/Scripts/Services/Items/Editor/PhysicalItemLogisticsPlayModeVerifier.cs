@@ -4869,7 +4869,7 @@ public sealed partial class PhysicalItemLogisticsPlayModeVerificationRunner
             AssetDatabase.LoadAssetAtPath<BuildingSO>(
                 "Assets/Resources/SO/Building/ResearchOverhaul/RF90_종자_선별대.asset");
         BuildingSO warehouseAsset = FindWarehouseAsset();
-        progression.BlueprintResearch.State.Projects.RestoreCompleted(
+        progression.BlueprintResearch.StateForDebug.Projects.RestoreCompleted(
             new ResearchProjectId("research:agriculture:field"));
 
         IReadOnlyList<Vector2Int> positions = FindReachableCells(

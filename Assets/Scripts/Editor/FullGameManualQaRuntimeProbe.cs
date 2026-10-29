@@ -2729,7 +2729,7 @@ public static class FullGameManualQaRuntimeProbe
         int commands = 0;
         while (battle != null && battle.HasActiveBattle && commands++ < maximumCommands)
         {
-            OffenseBattleSession session = battle.Session;
+            OffenseBattleSnapshot session = battle.Session;
             if (session?.CurrentActor?.Team != OffenseBattleTeam.Allies)
             {
                 battle.AdvanceToPlayerDecision();

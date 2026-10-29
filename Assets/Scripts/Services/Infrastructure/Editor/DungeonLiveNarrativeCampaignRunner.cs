@@ -7794,11 +7794,11 @@ public sealed class DungeonLiveNarrativeCampaignRunner
         DungeonOffenseAggregateSaveData baseline = DungeonSaveSectionPayload.ReadOrNew<DungeonOffenseAggregateSaveData>(
             saves.FromJson(world), OffenseAggregateSaveSection.Id);
         OffenseBattlePersistenceState source = baseline.expedition.activeBattle;
-        OffenseBattleSession live = scope.Container.Resolve<IOffenseBattleRuntime>().Session;
+        OffenseBattleSnapshot live = scope.Container.Resolve<IOffenseBattleRuntime>().Session;
         ICombatResolutionService resolution = scope.Container.Resolve<ICombatResolutionService>();
         ICombatEquipmentRuntime equipment = scope.Container.Resolve<ICombatEquipmentRuntime>();
         const string reserveId = "qa:round-schedule:reserve";
-        OffenseBattleCombatant[] Configure(OffenseBattleSession session) => session.Combatants.Select(value =>
+        OffenseBattleCombatant[] Configure(IEnumerable<OffenseBattleCombatant> combatants) => combatants.Select(value =>
             new OffenseBattleCombatant(value.PersistentId, value.DisplayName, value.SpeciesTag, value.Team,
                 value.Stats, value.CurrentHealth, value.Abilities, value.PortraitDataId, value.Formation,
                 value.ParticipatesInInitiative)).ToArray();
@@ -7810,7 +7810,7 @@ public sealed class DungeonLiveNarrativeCampaignRunner
                 reserve.AddStatus(new OffenseBattleStatus("qa:sedation", OffenseBattleStatusType.Sedated,
                     1f, 3, reserveId));
             return new OffenseBattleSession(source.battleId, source.expeditionId, source.targetId,
-                source.targetTitle, source.difficulty, Configure(live).Append(reserve), resolution, equipment);
+                source.targetTitle, source.difficulty, Configure(live.Combatants).Append(reserve), resolution, equipment);
         }
         OffenseBattleSession CheckAndRestore(OffenseBattleSession session, string label)
         {
@@ -7824,7 +7824,11 @@ public sealed class DungeonLiveNarrativeCampaignRunner
                 .Payload.expedition.activeBattle;
             Require(JsonUtility.ToJson(validated) == JsonUtility.ToJson(snapshot),
                 "Round schedule preflight rewrote its input: " + label);
-            OffenseBattleSession restored = OffenseBattleSession.Restore(validated, Configure(session), resolution, equipment);
+            OffenseBattleSession restored = OffenseBattleSession.Restore(
+                validated,
+                Configure(session.Combatants),
+                resolution,
+                equipment);
             Require(JsonUtility.ToJson(restored.CapturePersistentState()) == JsonUtility.ToJson(session.CapturePersistentState())
                     && restored.Combatants.All(value => value.IsDowned == session.FindCombatant(value.PersistentId).IsDowned
                         && value.IsDead == session.FindCombatant(value.PersistentId).IsDead),
@@ -7879,7 +7883,8 @@ public sealed class DungeonLiveNarrativeCampaignRunner
             if (!battle.HasActiveBattle) return false;
             battle.AdvanceToPlayerDecision();
             if (!battle.HasActiveBattle) return false;
-            OffenseBattleCombatant acting = battle.Session.CurrentActor;
+            OffenseBattleSnapshot session = battle.Session;
+            OffenseBattleCombatant acting = session.CurrentActor;
             Require(acting != null && acting.Team == OffenseBattleTeam.Allies, "Normal battle did not offer a player turn.");
             if (acting.PersistentId == owner.Identity.PersistentId && acting.GetCooldown(skillId) == 0)
             {
@@ -7890,7 +7895,7 @@ public sealed class DungeonLiveNarrativeCampaignRunner
                 // A support skill must have a real injured legal recipient.
                 // When nobody is injured, normal player/enemy turns may create
                 // that condition; never seed damage or bypass target rules.
-                if (FindSkillBattleHealthTarget(battle.Session, ability) != null) return true;
+                if (FindSkillBattleHealthTarget(session, ability) != null) return true;
             }
             IssueSkillPreparationTurn(battle, commands);
         }
@@ -7899,7 +7904,7 @@ public sealed class DungeonLiveNarrativeCampaignRunner
 
     private static void IssueSkillPreparationTurn(IOffenseBattleRuntime battle, ICollection<string> commands)
     {
-        OffenseBattleSession session = battle.Session;
+        OffenseBattleSnapshot session = battle.Session;
         OffenseBattleCombatant actor = session.CurrentActor;
         Require(actor != null && actor.Team == OffenseBattleTeam.Allies, "Preparation requires an actual public player turn.");
         Require(battle.TryGetActor(actor.PersistentId, out CharacterActor actingOwner),
@@ -7930,7 +7935,9 @@ public sealed class DungeonLiveNarrativeCampaignRunner
         else
         {
             bool hasForwardEnemy = enemies.Any(value => value.Formation != OffenseFormationSlot.Rear);
-            OffenseBattleCombatant target = enemies.FirstOrDefault(value => session.PreviewBasicAttack(actor, value).Valid
+            OffenseBattleCombatant target = enemies.FirstOrDefault(value => battle.PreviewBasicAttack(
+                    actor.PersistentId,
+                    value.PersistentId).Valid
                 && (actor.Weapon?.IsRanged == true || !hasForwardEnemy || value.Formation != OffenseFormationSlot.Rear));
             if (target != null)
             {
@@ -8128,7 +8135,9 @@ public sealed class DungeonLiveNarrativeCampaignRunner
 
     private SkillBattleCommandWitness ExecuteSkillBattleCommand(IOffenseBattleRuntime battle, string skillId)
     {
-        OffenseBattleSession session = battle.Session;
+        OffenseBattleSession session = (battle as OffenseBattleRuntime)?.OwnedSession
+            ?? throw new InvalidOperationException(
+                "Skill battle command witness requires the concrete runtime owned session.");
         CharacterCombatAbilityDefinition ability = session.CurrentActor.Abilities.Single(value => value.Id == skillId);
         OffenseBattleCombatant target = FindSkillBattleHealthTarget(session, ability);
         Require(target != null, "Normal battle has no legal recipient for the selected health effect.");
@@ -8218,10 +8227,19 @@ public sealed class DungeonLiveNarrativeCampaignRunner
 
     private static OffenseBattleCombatant FindSkillBattleHealthTarget(OffenseBattleSession session,
         CharacterCombatAbilityDefinition ability)
+        => FindSkillBattleHealthTarget(session?.Combatants, session?.CurrentActor, ability);
+
+    private static OffenseBattleCombatant FindSkillBattleHealthTarget(OffenseBattleSnapshot session,
+        CharacterCombatAbilityDefinition ability)
+        => FindSkillBattleHealthTarget(session?.Combatants, session?.CurrentActor, ability);
+
+    private static OffenseBattleCombatant FindSkillBattleHealthTarget(
+        IReadOnlyList<OffenseBattleCombatant> combatants,
+        OffenseBattleCombatant actor,
+        CharacterCombatAbilityDefinition ability)
     {
         bool heal = SkillBattleHealthEffectKind(ability) == "heal";
-        OffenseBattleCombatant actor = session.CurrentActor;
-        return session.Combatants.Where(value => !value.IsDead
+        return (combatants ?? Array.Empty<OffenseBattleCombatant>()).Where(value => !value.IsDead
                 && (ability.TargetPositions & OffenseFormationUtility.ToMask(value.Formation)) != 0
                 && (ability.TargetRule == OffenseBattleTargetRule.Self ? ReferenceEquals(actor, value)
                     : ability.TargetRule == OffenseBattleTargetRule.Ally ? value.Team == actor.Team

@@ -4,7 +4,7 @@ using System.Linq;
 
 public sealed class OffenseCampaignSnapshot
 {
-    public static readonly OffenseCampaignSnapshot Unavailable = new OffenseCampaignSnapshot();
+    public static OffenseCampaignSnapshot Unavailable => new OffenseCampaignSnapshot();
 
     public bool IsAvailable { get; set; }
     public int ReconLevel { get; set; }
@@ -20,10 +20,43 @@ public sealed class OffenseCampaignSnapshot
     public int RecoveredLootValue { get; set; }
     public IReadOnlyList<OffenseTargetSnapshot> VisibleTargets { get; set; }
         = Array.Empty<OffenseTargetSnapshot>();
-    public IReadOnlyList<OffenseExpeditionRun> ActiveExpeditions { get; set; }
-        = Array.Empty<OffenseExpeditionRun>();
+    public IReadOnlyList<OffenseExpeditionSnapshot> ActiveExpeditions { get; set; }
+        = Array.Empty<OffenseExpeditionSnapshot>();
     public IReadOnlyList<OffenseExpeditionResult> ResultHistory { get; set; }
         = Array.Empty<OffenseExpeditionResult>();
+}
+
+public sealed class OffenseExpeditionSnapshot
+{
+    internal OffenseExpeditionSnapshot(OffenseExpeditionRun expedition)
+    {
+        if (expedition == null)
+        {
+            throw new ArgumentNullException(nameof(expedition));
+        }
+
+        ExpeditionId = expedition.ExpeditionId;
+        TargetId = expedition.Target?.id ?? string.Empty;
+        TargetTitle = expedition.Target?.title ?? string.Empty;
+        Phase = expedition.Phase;
+        CurrentNodeId = expedition.CurrentNodeId;
+        RemainingSeconds = expedition.RemainingSeconds;
+        Light = expedition.Light;
+        MemberCount = expedition.MemberActors.Count;
+        FieldFunds = expedition.FieldFunds;
+        UsesWorldTravel = expedition.UsesWorldTravel;
+    }
+
+    public string ExpeditionId { get; }
+    public string TargetId { get; }
+    public string TargetTitle { get; }
+    public OffenseExpeditionPhase Phase { get; }
+    public string CurrentNodeId { get; }
+    public float RemainingSeconds { get; }
+    public float Light { get; }
+    public int MemberCount { get; }
+    public int FieldFunds { get; }
+    public bool UsesWorldTravel { get; }
 }
 
 public interface IOffenseQuery
@@ -107,9 +140,22 @@ public sealed class OffenseApplication : IOffenseQuery, IOffenseApplication
             MoneyEarned = reward?.State.MoneyEarned ?? 0,
             RecoveredLootValue = reward?.State.RecoveredLootValue ?? 0,
             VisibleTargets = campaign.VisibleTargets.ToArray(),
-            ActiveExpeditions = expedition.ActiveExpeditions.ToArray(),
+            ActiveExpeditions = ProjectActiveExpeditions(expedition.ActiveExpeditions),
             ResultHistory = expedition.ResultHistory.ToArray()
         };
+    }
+
+    internal static IReadOnlyList<OffenseExpeditionSnapshot> ProjectActiveExpeditions(
+        IReadOnlyList<OffenseExpeditionRun> expeditions)
+    {
+        if (expeditions == null)
+        {
+            throw new ArgumentNullException(nameof(expeditions));
+        }
+
+        return Array.AsReadOnly(expeditions
+            .Select(value => new OffenseExpeditionSnapshot(value))
+            .ToArray());
     }
 
     public bool TryGetTargetDefinition(

@@ -34,6 +34,7 @@ public sealed class ResearchTreeWindow :
     private IResearchQueueCommandService queueCommands;
     private ICharacterWorldQuery characterWorld;
     private BlueprintResearchRuntime runtime;
+    private BlueprintResearchState displayState;
     private ResearchTreePresentationRules presentationRules;
     private ResearchTreeViewFactory viewFactory;
     private ResearchTreeViewportController viewportController;
@@ -149,12 +150,6 @@ public sealed class ResearchTreeWindow :
 
     private void Update()
     {
-        if (Input.GetKeyDown(KeyCode.Escape))
-        {
-            GetComponent<UITab>()?.CloseTab();
-            return;
-        }
-
         Vector2 screenSize = new Vector2(Screen.width, Screen.height);
         if (screenSize != lastScreenSize)
         {
@@ -171,6 +166,7 @@ public sealed class ResearchTreeWindow :
 
     public void Refresh()
     {
+        displayState = runtime?.State;
         EnsureLayout();
         graphLayout = layoutService.Build(projectCatalog.Projects);
         viewportController.SetLayout(graphLayout);
@@ -565,7 +561,7 @@ public sealed class ResearchTreeWindow :
         SetRect(name.rectTransform, new Vector2(0f, 0.26f), new Vector2(1f, 0.72f), 12f, 0f, -10f, 0f);
 
         float ratio = runtime != null
-            ? runtime.State.Projects.GetProgress(project.ProjectId).GetRatio(project)
+            ? displayState.Projects.GetProgressSnapshot(project.ProjectId).GetRatio(project)
             : 0f;
         RectTransform progressBack = CreateRect("Progress", node);
         SetRect(progressBack, new Vector2(0f, 0f), new Vector2(1f, 0.12f), 10f, 8f, -10f, -2f);
@@ -587,6 +583,7 @@ public sealed class ResearchTreeWindow :
 
     private void RefreshNodeVisualsAndConnections()
     {
+        displayState = runtime?.State;
         if (runtime == null)
         {
             return;
@@ -613,8 +610,8 @@ public sealed class ResearchTreeWindow :
             visual.Background.color = WithAlpha(nodeColor, matches ? 1f : 0.28f);
             visual.StateText.text = ResearchTreePresentationRules.FormatNodeState(state);
             visual.StateText.color = ResearchTreePresentationRules.GetStateTextColor(state);
-            float ratio = runtime.State.Projects
-                .GetProgress(project.ProjectId)
+            float ratio = displayState.Projects
+                .GetProgressSnapshot(project.ProjectId)
                 .GetRatio(project);
             visual.ProgressFill.anchorMax = new Vector2(ratio, 1f);
             visual.SelectionOutline.enabled = selectedProject == project;
@@ -659,11 +656,11 @@ public sealed class ResearchTreeWindow :
 
         ResearchNodeState state = runtime.GetNodeState(selectedProject, out string blocker);
         ResearchProjectProgressState progress =
-            runtime.State.Projects.GetProgress(selectedProject.ProjectId);
+            displayState.Projects.GetProgressSnapshot(selectedProject.ProjectId);
         string prerequisites = selectedProject.Prerequisites.Count == 0
             ? "없음"
             : string.Join(", ", selectedProject.Prerequisites.Select(project =>
-                runtime.State.Projects.IsCompleted(project.ProjectId)
+                displayState.Projects.IsCompleted(project.ProjectId)
                     ? $"{project.DisplayName} (완료)"
                     : project.DisplayName));
         if (selectedProject.PrerequisiteLinks.Count > 0)
@@ -712,7 +709,7 @@ public sealed class ResearchTreeWindow :
             (string.IsNullOrWhiteSpace(blocker) ? string.Empty : $"\n\n<color=#D2A449><b>중단 사유</b>  {blocker}</color>");
         detailScrollView?.RefreshLayout();
 
-        bool queued = runtime.State.Projects.ContainsInQueue(selectedProject.ProjectId);
+        bool queued = displayState.Projects.ContainsInQueue(selectedProject.ProjectId);
         projectActionLabel.text = queued ? "연구 큐에서 제거" : "연구 예약";
         projectActionButton.interactable = state != ResearchNodeState.Completed
             && (queued || state is ResearchNodeState.Available
@@ -757,7 +754,7 @@ public sealed class ResearchTreeWindow :
         queueObjects.Add(heading.gameObject);
 
         float y = -36f;
-        IReadOnlyList<ResearchQueueEntry> queue = runtime.State.Projects.Queue;
+        IReadOnlyList<ResearchQueueEntry> queue = displayState.Projects.Queue;
         for (int index = 0; index < queue.Count; index++)
         {
             ResearchQueueEntry entry = queue[index];
@@ -773,11 +770,11 @@ public sealed class ResearchTreeWindow :
             row.anchoredPosition = new Vector2(0f, y);
             row.sizeDelta = new Vector2(0f, 54f);
             CreateImage(row.gameObject,
-                runtime.State.Projects.ActiveProjectId.Equals(entry.ProjectId)
+                displayState.Projects.ActiveProjectId.Equals(entry.ProjectId)
                     ? DungeonUiTheme.AccentPressed
                     : DungeonUiTheme.SurfaceRaised);
 
-            string prefix = runtime.State.Projects.ActiveProjectId.Equals(entry.ProjectId)
+            string prefix = displayState.Projects.ActiveProjectId.Equals(entry.ProjectId)
                 ? "진행"
                 : $"{index + 1}";
             string suffix = entry.IsSuspended ? $"\n{entry.SuspendedReason}" : string.Empty;
@@ -819,7 +816,7 @@ public sealed class ResearchTreeWindow :
         }
 
         ResearchQueueCommandResult result =
-            runtime.State.Projects.ContainsInQueue(selectedProject.ProjectId)
+            displayState.Projects.ContainsInQueue(selectedProject.ProjectId)
                 ? queueCommands.Remove(selectedProject.ProjectId)
                 : queueCommands.Enqueue(selectedProject.ProjectId);
         ShowFeedback(result.Message, result.Succeeded);

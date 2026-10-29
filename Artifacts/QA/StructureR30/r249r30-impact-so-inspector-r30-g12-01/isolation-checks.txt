@@ -1,0 +1,1 @@
+PASS: exact root, seven invalid configurations, player snapshot capture/restore refusal.

@@ -168,6 +168,7 @@ public static class ResearchOverhaulContentAssetBuilder
             int outputAmount,
             bool sharedIntermediate,
             bool craftable,
+            CombatAmmunitionProfile? ammunitionProfile,
             params InputSpec[] inputs)
         {
             ResearchId = researchId;
@@ -179,6 +180,7 @@ public static class ResearchOverhaulContentAssetBuilder
             OutputAmount = outputAmount;
             SharedIntermediate = sharedIntermediate;
             Craftable = craftable;
+            AmmunitionProfile = ammunitionProfile;
             Inputs = inputs ?? Array.Empty<InputSpec>();
         }
 
@@ -191,18 +193,127 @@ public static class ResearchOverhaulContentAssetBuilder
         public int OutputAmount { get; }
         public bool SharedIntermediate { get; }
         public bool Craftable { get; }
+        public CombatAmmunitionProfile? AmmunitionProfile { get; }
         public InputSpec[] Inputs { get; }
     }
 
     public static void EnsureAssets()
     {
+        ItemSpec[] itemSpecs = ItemSpecs();
+        ValidateAmmunitionProfiles(itemSpecs);
         EnsureFolder(FacilityRoot);
         EnsureFolder(ItemRoot);
         EnsureFolder(RecipeRoot);
         BuildFacilities();
-        BuildItemsAndRecipes();
+        BuildItemsAndRecipes(itemSpecs);
         GameContentCatalogAssetBuilder.ReindexItemDefinitions();
         V23RecipeProcessClassAuthoring.NormalizeRecipeWorkUnder(RecipeRoot);
+    }
+
+    public static void RunR30AmmunitionAuthoringFocused()
+    {
+        ItemSpec[] specs = ItemSpecs();
+        ValidateAmmunitionProfiles(specs);
+        var ammunitionSpecs = specs
+            .Select((spec, index) => new { Spec = spec, Index = index })
+            .Where(entry => entry.Spec.Kind == ResourceItemKind.Ammunition)
+            .ToArray();
+        if (ammunitionSpecs.Length != 13)
+        {
+            throw new InvalidOperationException(
+                $"Expected 13 research ammunition specs, found {ammunitionSpecs.Length}.");
+        }
+
+        foreach (var entry in ammunitionSpecs)
+        {
+            string itemPath = ItemPath(entry.Index, entry.Spec);
+            ResourceItemDefinitionSO asset = AssetDatabase
+                .LoadAssetAtPath<ResourceItemDefinitionSO>(itemPath);
+            if (asset == null)
+            {
+                throw new InvalidOperationException(
+                    "Research ammunition asset could not be loaded: " + itemPath);
+            }
+
+            string beforeJson = EditorJsonUtility.ToJson(asset, false);
+            bool wasDirty = EditorUtility.IsDirty(asset);
+            if (!MatchesAmmunitionProfile(
+                    asset,
+                    entry.Spec.AmmunitionProfile))
+            {
+                throw new InvalidOperationException(
+                    "Research ammunition asset does not match its authoring spec: "
+                    + entry.Spec.ItemId);
+            }
+            if (WouldChange(
+                    asset,
+                    candidate => ConfigureItem(
+                        candidate,
+                        entry.Spec,
+                        entry.Index,
+                        asset)))
+            {
+                throw new InvalidOperationException(
+                    "Research ammunition authoring is not idempotent: "
+                    + entry.Spec.ItemId);
+            }
+            if (!string.Equals(
+                    beforeJson,
+                    EditorJsonUtility.ToJson(asset, false),
+                    StringComparison.Ordinal)
+                || wasDirty != EditorUtility.IsDirty(asset))
+            {
+                throw new InvalidOperationException(
+                    "Research ammunition focused verification mutated the source asset: "
+                    + entry.Spec.ItemId);
+            }
+        }
+
+        var probeSpec = ammunitionSpecs[0];
+        ResourceItemDefinitionSO probe =
+            ScriptableObject.CreateInstance<ResourceItemDefinitionSO>();
+        try
+        {
+            ConfigureItem(probe, probeSpec.Spec, probeSpec.Index, null);
+            if (!MatchesAmmunitionProfile(
+                    probe,
+                    probeSpec.Spec.AmmunitionProfile))
+            {
+                throw new InvalidOperationException(
+                    "Fresh research ammunition authoring did not match its spec.");
+            }
+
+            probe.RemoveFeature<CombatAmmunitionProfileItemFeature>();
+            if (!WouldChange(
+                    probe,
+                    candidate => ConfigureItem(
+                        candidate,
+                        probeSpec.Spec,
+                        probeSpec.Index,
+                        null)))
+            {
+                throw new InvalidOperationException(
+                    "Missing research ammunition profile was not detected.");
+            }
+            ConfigureItem(probe, probeSpec.Spec, probeSpec.Index, null);
+            if (WouldChange(
+                    probe,
+                    candidate => ConfigureItem(
+                        candidate,
+                        probeSpec.Spec,
+                        probeSpec.Index,
+                        null)))
+            {
+                throw new InvalidOperationException(
+                    "Repaired research ammunition authoring is not idempotent.");
+            }
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(probe);
+        }
+
+        Debug.Log("R30 research ammunition authoring focused verification passed.");
     }
 
     public static IReadOnlyDictionary<string, int[]> GetFacilityUnlockIds() =>
@@ -925,9 +1036,8 @@ public static class ResearchOverhaulContentAssetBuilder
         };
     }
 
-    private static void BuildItemsAndRecipes()
+    private static void BuildItemsAndRecipes(ItemSpec[] specs)
     {
-        ItemSpec[] specs = ItemSpecs();
         HashSet<string> itemPaths = specs
             .Select((spec, index) => ItemPath(index, spec))
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
@@ -947,89 +1057,11 @@ public static class ResearchOverhaulContentAssetBuilder
                 AssetDatabase.LoadAssetAtPath<ResourceItemDefinitionSO>(itemPath);
             ResourceItemDefinitionSO asset =
                 GetOrCreate<ResourceItemDefinitionSO>(itemPath);
-            void ConfigureItem(ResourceItemDefinitionSO item)
+            if (WouldChange(
+                    asset,
+                    item => ConfigureItem(item, spec, index, existingItem)))
             {
-            item.id = 8901 + index;
-            item.Configure(
-                spec.ItemId,
-                spec.Name,
-                $"분기형 생산망의 {spec.Name}.",
-                spec.ItemId == "resource:clean-water"
-                    ? StockCategory.Water
-                    : CategoryFor(spec.Kind),
-                spec.Kind,
-                spec.Tags,
-                existingItem != null
-                    ? existingItem.UnitPrice
-                    : ResolveGeneratedUnitPrice(spec),
-                ResolveAuthoredUnitWeight(spec, existingItem),
-                ResolveAuthoredMaximumStack(spec),
-                spec.ResearchId);
-            if (spec.ItemId == PhysicalItemIds.EquipmentModule
-                || spec.ItemId == EquipmentProgressionItemIds.LineageSeal)
-            {
-                item.ConfigureMarketSaleRate(0f);
-            }
-            item.ConfigureFacilitySupply(0f, false, spec.SharedIntermediate);
-            if (spec.ItemId == "medical:sterile-bandage")
-            {
-                item.ConfigureMedicine(true, 0.85f, 10f, 0f, 8f);
-            }
-            if (spec.ItemId == "medical:regenerative-medium")
-            {
-                item.ConfigureMedicine(true, 0.7f, 6f, 0f, 4f);
-            }
-            if (spec.ItemId.StartsWith("sample:antigen:", StringComparison.Ordinal))
-            {
-                item.ConfigurePathogenSample(
-                    "disease:" + spec.ItemId.Substring("sample:antigen:".Length));
-            }
-            if (spec.ItemId.StartsWith("medicine:vaccine:", StringComparison.Ordinal))
-            {
-                item.ConfigureMedicine(false, 0.1f, 0f, 0f, 0f);
-                item.ConfigureVaccine(
-                    "disease:" + spec.ItemId.Substring("medicine:vaccine:".Length),
-                    1);
-            }
-            if (spec.ItemId == "medical:whole-body-regeneration-medium")
-            {
-                item.ConfigureMedicalProcedureSupply("procedure:whole-body-regeneration");
-            }
-            if (spec.ItemId == "component:temporal-stasis-seal")
-            {
-                item.ConfigureMedicalProcedureSupply("procedure:temporal-stasis");
-            }
-            if (spec.ItemId == "supply:pest-lure")
-            {
-                item.ConfigureCropTreatment(
-                    CropTreatmentKind.PestLure,
-                    quantityPerApplication: 1,
-                    requiredWork: 3f,
-                    effectAmount: 15f,
-                    cooldownDays: 1);
-            }
-            if (spec.ItemId == "supply:botanical-pesticide")
-            {
-                item.ConfigureCropTreatment(
-                    CropTreatmentKind.BotanicalPesticide,
-                    quantityPerApplication: 1,
-                    requiredWork: 5f,
-                    effectAmount: 35f,
-                    cooldownDays: 2);
-            }
-            if (spec.ItemId == "supply:fungicide")
-            {
-                item.ConfigureCropTreatment(
-                    CropTreatmentKind.Fungicide,
-                    quantityPerApplication: 1,
-                    requiredWork: 5f,
-                    effectAmount: 25f,
-                    cooldownDays: 1);
-            }
-            }
-            if (WouldChange(asset, ConfigureItem))
-            {
-                ConfigureItem(asset);
+                ConfigureItem(asset, spec, index, existingItem);
                 EditorUtility.SetDirty(asset);
             }
 
@@ -1117,6 +1149,159 @@ public static class ResearchOverhaulContentAssetBuilder
         }
 
         ValidateInoculatedLogTopology();
+    }
+
+    private static void ConfigureItem(
+        ResourceItemDefinitionSO item,
+        ItemSpec spec,
+        int index,
+        ResourceItemDefinitionSO existingItem)
+    {
+        item.id = 8901 + index;
+        item.Configure(
+            spec.ItemId,
+            spec.Name,
+            $"분기형 생산망의 {spec.Name}.",
+            spec.ItemId == "resource:clean-water"
+                ? StockCategory.Water
+                : CategoryFor(spec.Kind),
+            spec.Kind,
+            spec.Tags,
+            existingItem != null
+                ? existingItem.UnitPrice
+                : ResolveGeneratedUnitPrice(spec),
+            ResolveAuthoredUnitWeight(spec, existingItem),
+            ResolveAuthoredMaximumStack(spec),
+            spec.ResearchId);
+        if (spec.ItemId == PhysicalItemIds.EquipmentModule
+            || spec.ItemId == EquipmentProgressionItemIds.LineageSeal)
+        {
+            item.ConfigureMarketSaleRate(0f);
+        }
+        item.ConfigureFacilitySupply(0f, false, spec.SharedIntermediate);
+        if (spec.ItemId == "medical:sterile-bandage")
+        {
+            item.ConfigureMedicine(true, 0.85f, 10f, 0f, 8f);
+        }
+        if (spec.ItemId == "medical:regenerative-medium")
+        {
+            item.ConfigureMedicine(true, 0.7f, 6f, 0f, 4f);
+        }
+        if (spec.ItemId.StartsWith("sample:antigen:", StringComparison.Ordinal))
+        {
+            item.ConfigurePathogenSample(
+                "disease:" + spec.ItemId.Substring("sample:antigen:".Length));
+        }
+        if (spec.ItemId.StartsWith("medicine:vaccine:", StringComparison.Ordinal))
+        {
+            item.ConfigureMedicine(false, 0.1f, 0f, 0f, 0f);
+            item.ConfigureVaccine(
+                "disease:" + spec.ItemId.Substring("medicine:vaccine:".Length),
+                1);
+        }
+        if (spec.ItemId == "medical:whole-body-regeneration-medium")
+        {
+            item.ConfigureMedicalProcedureSupply(
+                "procedure:whole-body-regeneration");
+        }
+        if (spec.ItemId == "component:temporal-stasis-seal")
+        {
+            item.ConfigureMedicalProcedureSupply("procedure:temporal-stasis");
+        }
+        if (spec.ItemId == "supply:pest-lure")
+        {
+            item.ConfigureCropTreatment(
+                CropTreatmentKind.PestLure,
+                quantityPerApplication: 1,
+                requiredWork: 3f,
+                effectAmount: 15f,
+                cooldownDays: 1);
+        }
+        if (spec.ItemId == "supply:botanical-pesticide")
+        {
+            item.ConfigureCropTreatment(
+                CropTreatmentKind.BotanicalPesticide,
+                quantityPerApplication: 1,
+                requiredWork: 5f,
+                effectAmount: 35f,
+                cooldownDays: 2);
+        }
+        if (spec.ItemId == "supply:fungicide")
+        {
+            item.ConfigureCropTreatment(
+                CropTreatmentKind.Fungicide,
+                quantityPerApplication: 1,
+                requiredWork: 5f,
+                effectAmount: 25f,
+                cooldownDays: 1);
+        }
+        ConfigureAmmunitionProfile(item, spec.AmmunitionProfile);
+    }
+
+    private static void ValidateAmmunitionProfiles(
+        IEnumerable<ItemSpec> specs)
+    {
+        foreach (ItemSpec spec in specs)
+        {
+            bool isAmmunition = spec.Kind == ResourceItemKind.Ammunition;
+            if (isAmmunition != spec.AmmunitionProfile.HasValue)
+            {
+                throw new InvalidOperationException(
+                    $"Item spec {spec.ItemId} must author a combat ammunition profile exactly when it is ammunition.");
+            }
+        }
+    }
+
+    private static void ConfigureAmmunitionProfile(
+        ResourceItemDefinitionSO item,
+        CombatAmmunitionProfile? profile)
+    {
+        if (!profile.HasValue)
+        {
+            item.RemoveFeature<CombatAmmunitionProfileItemFeature>();
+            return;
+        }
+
+        CombatAmmunitionProfileItemFeature feature =
+            item.GetFeatureOrDefault<CombatAmmunitionProfileItemFeature>()
+            ?? new CombatAmmunitionProfileItemFeature();
+        feature.Configure(profile.Value);
+        item.SetFeature(feature);
+    }
+
+    private static bool MatchesAmmunitionProfile(
+        ResourceItemDefinitionSO item,
+        CombatAmmunitionProfile? expected)
+    {
+        bool hasProfile = item.TryGetFeature(
+            out CombatAmmunitionProfileItemFeature feature);
+        if (hasProfile != expected.HasValue)
+        {
+            return false;
+        }
+        if (!hasProfile)
+        {
+            return true;
+        }
+
+        CombatAmmunitionProfile actual = feature.CreateSnapshot();
+        CombatAmmunitionProfile desired = expected.Value;
+        return actual.Effects == desired.Effects
+            && Mathf.Approximately(
+                actual.DamageMultiplier,
+                desired.DamageMultiplier)
+            && Mathf.Approximately(
+                actual.PenetrationMultiplier,
+                desired.PenetrationMultiplier)
+            && Mathf.Approximately(
+                actual.SuppressionMultiplier,
+                desired.SuppressionMultiplier)
+            && Mathf.Approximately(actual.StatusPotency, desired.StatusPotency)
+            && Mathf.Approximately(
+                actual.TargetAirborneExposure,
+                desired.TargetAirborneExposure)
+            && actual.StatusTurns == desired.StatusTurns
+            && actual.Nonlethal == desired.Nonlethal;
     }
 
     private static void ValidateInoculatedLogTopology()
@@ -1298,10 +1483,10 @@ public static class ResearchOverhaulContentAssetBuilder
         S("research:industry:powered-tools", "component:engineering-drawing", "공학 도면", ResourceItemKind.Intermediate, ResourceIngredientTag.Plant, "workstation:v3:prototype", 2, true, true, A("material:paper", 2), A("material:charcoal", 1)),
         S("research:mining:deep", "component:lead-counterweight", "납 균형추", ResourceItemKind.Intermediate, ResourceIngredientTag.Mineral, "workstation:v3:windlass", 1, true, true, A("material:lead-ingot", 2)),
         S("research:mining:mana", "component:mana-shield-plate", "마나 차폐판", ResourceItemKind.Intermediate, ResourceIngredientTag.Mineral | ResourceIngredientTag.Arcane, "workstation:v3:material-test", 1, true, true, A("material:lead-ingot", 1), A("resource:rune-dust", 1)),
-        S("research:mining:deep", "ammo:blasting-charge", "발파 장약", ResourceItemKind.Ammunition, ResourceIngredientTag.Mineral, "workstation:v3:defense-ammo", 2, false, true, A("material:black-powder", 2), A("material:paper", 1), A("material:rope", 1)),
-        S("research:equipment:standard-ammunition", "ammo:trap-canister", "함정 산탄통", ResourceItemKind.Ammunition, ResourceIngredientTag.Mineral, "workstation:v3:defense-ammo", 2, false, true, A("material:lead-shot", 6), A("material:black-powder", 1), A("material:paper", 1)),
+        SA("research:mining:deep", "ammo:blasting-charge", "발파 장약", ResourceIngredientTag.Mineral, "workstation:v3:defense-ammo", 2, Ammo(CombatSpecialEffectFlags.None, 1f, 1f, 1f, 0f, 0, false, 0f), A("material:black-powder", 2), A("material:paper", 1), A("material:rope", 1)),
+        SA("research:equipment:standard-ammunition", "ammo:trap-canister", "함정 산탄통", ResourceIngredientTag.Mineral, "workstation:v3:defense-ammo", 2, Ammo(CombatSpecialEffectFlags.None, 1f, 1f, 1f, 0f, 0, false, 0f), A("material:lead-shot", 6), A("material:black-powder", 1), A("material:paper", 1)),
         S("research:medical:surgery", "medical:sterile-bandage", "무균 붕대", ResourceItemKind.Medicine, ResourceIngredientTag.Fiber, "workstation:v3:restoration", 2, false, true, A("textile:sterile-cloth", 1), A("medicine:antiseptic", 1)),
-        S("research:equipment:standard-ammunition", "ammo:paper-cartridge", "종이 탄약통", ResourceItemKind.Ammunition, ResourceIngredientTag.Mineral, "workstation:v3:ammo-press", 12, false, true, A("material:lead-shot", 6), A("material:black-powder", 1), A("material:paper", 1)),
+        SA("research:equipment:standard-ammunition", "ammo:paper-cartridge", "종이 탄약통", ResourceIngredientTag.Mineral, "workstation:v3:ammo-press", 12, Ammo(CombatSpecialEffectFlags.None, 1f, 1f, 1f, 0f, 0, false, 0f), A("material:lead-shot", 6), A("material:black-powder", 1), A("material:paper", 1)),
         S("research:industry:automatic-bills", "component:stock-sensor-panel", "재고 감지반", ResourceItemKind.FinishedGood, ResourceIngredientTag.Mineral, "workstation:v3:metrology", 1, false, true, A("component:machine-parts", 1), A("component:precision-parts", 1)),
         S("research:industry:breakers", "tool:maintenance-kit", "정비 키트", ResourceItemKind.FinishedGood, ResourceIngredientTag.Mineral, "workstation:v3:maintenance", 1, false, true, A("component:machine-parts", 1), A("material:cloth", 1)),
         S("research:industry:powered-tools", "tool:powered-tool-head", "동력 공구날", ResourceItemKind.FinishedGood, ResourceIngredientTag.Mineral, "workstation:v3:powered-tools", 1, false, true, A("component:machine-parts", 1), A("material:steel-ingot", 1)),
@@ -1411,16 +1596,16 @@ public static class ResearchOverhaulContentAssetBuilder
         S("research:medical:trauma-medicine", "medical:trauma-care-kit", "트라우마 치료 꾸러미", ResourceItemKind.Medicine, ResourceIngredientTag.None, "workstation:v19:counseling", 1, false, true, A("medicine:advanced", 1), A("material:paper", 1)),
 
         // Ten physical ammunition definitions. The mixed defense box below is an installation supply, not an eleventh ammunition kind.
-        S("research:equipment:black-powder", "ammo:incendiary-arrow", "소이 화살", ResourceItemKind.Ammunition, ResourceIngredientTag.Mineral, "workstation:v3:defense-ammo", 6, false, true, A("ammo:arrow-steel", 6), A("material:granulated-powder", 1)),
-        S("research:equipment:black-powder", "ammo:incendiary-bolt", "소이 볼트", ResourceItemKind.Ammunition, ResourceIngredientTag.Mineral, "workstation:v3:defense-ammo", 6, false, true, A("ammo:bolt-steel", 6), A("material:granulated-powder", 1)),
-        S("research:equipment:pressure-barrels", "ammo:smoke-cartridge", "연막 탄약", ResourceItemKind.Ammunition, ResourceIngredientTag.Mineral, "workstation:v3:ammo-press", 6, false, true, A("material:granulated-powder", 1), A("material:cartridge-paper", 1)),
-        S("research:equipment:pressure-barrels", "ammo:armor-piercing-cartridge", "철갑 탄약", ResourceItemKind.Ammunition, ResourceIngredientTag.Mineral, "workstation:v3:ammo-press", 6, false, true, A("material:lead-shot", 4), A("material:granulated-powder", 1), A("material:cartridge-paper", 1)),
-        S("research:equipment:standard-ammunition", "ammo:scatter-cartridge", "산탄 탄약", ResourceItemKind.Ammunition, ResourceIngredientTag.Mineral, "workstation:v3:ammo-press", 6, false, true, A("material:lead-shot", 6), A("material:granulated-powder", 1), A("material:cartridge-paper", 1)),
-        S("research:defense:alliance-signals", "ammo:signal-flare", "신호탄", ResourceItemKind.Ammunition, ResourceIngredientTag.Mineral, "workstation:v3:signals", 4, false, true, A("material:granulated-powder", 1), A("material:cartridge-paper", 1), A("resource:rune-dust", 1)),
-        S("research:industry:dark-foundry", "ammo:blacksteel-bolt", "흑강 볼트", ResourceItemKind.Ammunition, ResourceIngredientTag.Mineral, "workstation:v21:blacksteel-annex", 6, false, true, A("material:blacksteel-ingot", 1), A("material:laminated-lumber", 1)),
-        S("research:equipment:rune-module-tuning", "ammo:rune-cartridge", "룬 탄약통", ResourceItemKind.Ammunition, ResourceIngredientTag.Arcane, "workstation:v3:rune-conductor", 6, false, true, A("material:mana-alloy", 1), A("material:granulated-powder", 1), A("material:cartridge-paper", 1)),
-        S("research:pharmacology:anesthesia", "ammo:tranquilizer-dart", "진정 다트", ResourceItemKind.Ammunition, ResourceIngredientTag.None, "workstation:v3:ammo-press", 6, false, true, A("medicine:standard", 1), A("material:paper", 1)),
-        S("research:defense:rune-identification", "ammo:mana-disruptor-bolt", "마나 차단 볼트", ResourceItemKind.Ammunition, ResourceIngredientTag.Arcane, "workstation:v3:defense-ammo", 6, false, true, A("ammo:bolt-steel", 6), A("material:mana-alloy", 1)),
+        SA("research:equipment:black-powder", "ammo:incendiary-arrow", "소이 화살", ResourceIngredientTag.Mineral, "workstation:v3:defense-ammo", 6, Ammo(CombatSpecialEffectFlags.Burning, 1.05f, 1f, 1f, 2.5f, 3, false, 0f), A("ammo:arrow-steel", 6), A("material:granulated-powder", 1)),
+        SA("research:equipment:black-powder", "ammo:incendiary-bolt", "소이 볼트", ResourceIngredientTag.Mineral, "workstation:v3:defense-ammo", 6, Ammo(CombatSpecialEffectFlags.Burning, 1.08f, 1.1f, 1f, 3f, 3, false, 0f), A("ammo:bolt-steel", 6), A("material:granulated-powder", 1)),
+        SA("research:equipment:pressure-barrels", "ammo:smoke-cartridge", "연막 탄약", ResourceIngredientTag.Mineral, "workstation:v3:ammo-press", 6, Ammo(CombatSpecialEffectFlags.SmokeScreen, 0.2f, 1f, 1.8f, 20f, 2, false, 20f), A("material:granulated-powder", 1), A("material:cartridge-paper", 1)),
+        SA("research:equipment:pressure-barrels", "ammo:armor-piercing-cartridge", "철갑 탄약", ResourceIngredientTag.Mineral, "workstation:v3:ammo-press", 6, Ammo(CombatSpecialEffectFlags.None, 0.9f, 1.65f, 1f, 0f, 0, false, 0f), A("material:lead-shot", 4), A("material:granulated-powder", 1), A("material:cartridge-paper", 1)),
+        SA("research:equipment:standard-ammunition", "ammo:scatter-cartridge", "산탄 탄약", ResourceIngredientTag.Mineral, "workstation:v3:ammo-press", 6, Ammo(CombatSpecialEffectFlags.Scatter, 1f, 1f, 1.5f, 0f, 0, false, 0f), A("material:lead-shot", 6), A("material:granulated-powder", 1), A("material:cartridge-paper", 1)),
+        SA("research:defense:alliance-signals", "ammo:signal-flare", "신호탄", ResourceIngredientTag.Mineral, "workstation:v3:signals", 4, Ammo(CombatSpecialEffectFlags.SignalSupport, 0.35f, 1f, 1f, 0.12f, 2, false, 0f), A("material:granulated-powder", 1), A("material:cartridge-paper", 1), A("resource:rune-dust", 1)),
+        SA("research:industry:dark-foundry", "ammo:blacksteel-bolt", "흑강 볼트", ResourceIngredientTag.Mineral, "workstation:v21:blacksteel-annex", 6, Ammo(CombatSpecialEffectFlags.ConstructPiercing, 1f, 1.4f, 1f, 0f, 0, false, 0f), A("material:blacksteel-ingot", 1), A("material:laminated-lumber", 1)),
+        SA("research:equipment:rune-module-tuning", "ammo:rune-cartridge", "룬 탄약통", ResourceIngredientTag.Arcane, "workstation:v3:rune-conductor", 6, Ammo(CombatSpecialEffectFlags.RuneDamage, 1.2f, 1.15f, 1f, 0f, 0, false, 0f), A("material:mana-alloy", 1), A("material:granulated-powder", 1), A("material:cartridge-paper", 1)),
+        SA("research:pharmacology:anesthesia", "ammo:tranquilizer-dart", "진정 다트", ResourceIngredientTag.None, "workstation:v3:ammo-press", 6, Ammo(CombatSpecialEffectFlags.Tranquilized, 0.25f, 1f, 2.25f, 0.35f, 3, true, 0f), A("medicine:standard", 1), A("material:paper", 1)),
+        SA("research:defense:rune-identification", "ammo:mana-disruptor-bolt", "마나 차단 볼트", ResourceIngredientTag.Arcane, "workstation:v3:defense-ammo", 6, Ammo(CombatSpecialEffectFlags.ManaBlocked, 0.65f, 1f, 1f, 0.25f, 2, false, 0f), A("ammo:bolt-steel", 6), A("material:mana-alloy", 1)),
         S("research:industry:line-balancing", "supply:defense-mixed-ammo-box", "방어시설용 혼합 탄약 상자", ResourceItemKind.FinishedGood, ResourceIngredientTag.Mineral, "workstation:v3:defense-ammo", 1, false, true, A("material:lead-shot", 8), A("material:granulated-powder", 2), A("material:cartridge-paper", 2)),
 
         S("research:equipment:lineage-binding", EquipmentProgressionItemIds.LineageSeal, "계보 인장", ResourceItemKind.FinishedGood, ResourceIngredientTag.Arcane, string.Empty, 1, false, false),
@@ -1504,7 +1689,49 @@ public static class ResearchOverhaulContentAssetBuilder
             output,
             shared,
             craftable,
+            null,
             inputs);
+
+    private static ItemSpec SA(
+        string researchId,
+        string itemId,
+        string name,
+        ResourceIngredientTag tags,
+        string workstationTag,
+        int output,
+        CombatAmmunitionProfile ammunitionProfile,
+        params InputSpec[] inputs) =>
+        new ItemSpec(
+            researchId,
+            itemId,
+            name,
+            ResourceItemKind.Ammunition,
+            tags,
+            workstationTag,
+            output,
+            false,
+            true,
+            ammunitionProfile,
+            inputs);
+
+    private static CombatAmmunitionProfile Ammo(
+        CombatSpecialEffectFlags effects,
+        float damageMultiplier,
+        float penetrationMultiplier,
+        float suppressionMultiplier,
+        float statusPotency,
+        int statusTurns,
+        bool nonlethal,
+        float targetAirborneExposure) =>
+        new CombatAmmunitionProfile(
+            effects,
+            damageMultiplier,
+            penetrationMultiplier,
+            suppressionMultiplier,
+            statusPotency,
+            statusTurns,
+            nonlethal,
+            targetAirborneExposure);
 
     private static StockCategory CategoryFor(ResourceItemKind kind) => kind switch
     {
@@ -1644,11 +1871,7 @@ public static class ResearchOverhaulContentAssetBuilder
     }
 
     private static string CanonicalizeSemanticJson(string json) =>
-        System.Text.RegularExpressions.Regex.Replace(
-            json ?? string.Empty,
-            "\\\"rid\\\"\\s*:\\s*-?[0-9]+",
-            "\\\"rid\\\":0",
-            System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+        ResourceEconomyAssetBuilder.CanonicalizeManagedReferenceJson(json);
 
     private static bool WouldChange<T>(T asset, Action<T> configure)
         where T : ScriptableObject

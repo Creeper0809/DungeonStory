@@ -45,6 +45,7 @@ ItemHaulingSettingsSO,1,전역 시스템 규칙·밸런스 설정: 개별 콘텐
 OffenseCampaignCatalogSO,1,카탈로그·등록 인프라: 개별 콘텐츠가 아니라 다른 자산의 집합 권위
 RoomEnvironmentSettingsSO,1,전역 시스템 규칙·밸런스 설정: 개별 콘텐츠 항목이 아닌 시스템 권위
 StatChange,1,AI 의사결정 구성: 콘텐츠 정의가 아니라 행동·고려점 실행 그래프
+SurgicalGraftEffectDefinitionSO,3,미분류 MonoBehaviour 자산: 콘텐츠 포함 여부 수동 검토
 SurvivalBalanceSettingsSO,1,전역 시스템 규칙·밸런스 설정: 개별 콘텐츠 항목이 아닌 시스템 권위
 TmpKoreanFontSettingsSO,1,전역 시스템 규칙·밸런스 설정: 개별 콘텐츠 항목이 아닌 시스템 권위
 UnityEditor.AddressableAssets.AddressableAssetSettingsDefaultObject,1,기술·현지화·Addressables·표현 설정: 플레이 규칙 콘텐츠에서 제외

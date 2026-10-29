@@ -110,9 +110,8 @@ public readonly struct SettlementAlertSnapshot
         DowngradeStableSinceAbsoluteHour = downgradeStableSinceAbsoluteHour;
         AmberIncidentCount = amberIncidentCount;
         RedIncidentCount = redIncidentCount;
-        ActiveIncidentIds = activeIncidentIds ?? Array.Empty<string>();
-        SuspendedWork = suspendedWork
-            ?? Array.Empty<SettlementSuspendedWorkSnapshot>();
+        ActiveIncidentIds = CopyReadOnly(activeIncidentIds);
+        SuspendedWork = CopyReadOnly(suspendedWork);
         ReserveCoverageBand = reserveCoverageBand;
         ReserveCoverage = reserveCoverage;
         CoverageStableSinceAbsoluteHour = coverageStableSinceAbsoluteHour;
@@ -130,6 +129,22 @@ public readonly struct SettlementAlertSnapshot
     public EmergencyReserveCoverageBand ReserveCoverageBand { get; }
     public float ReserveCoverage { get; }
     public long CoverageStableSinceAbsoluteHour { get; }
+
+    private static IReadOnlyList<T> CopyReadOnly<T>(IReadOnlyList<T> source)
+    {
+        if (source == null || source.Count == 0)
+        {
+            return Array.Empty<T>();
+        }
+
+        T[] copy = new T[source.Count];
+        for (int index = 0; index < source.Count; index++)
+        {
+            copy[index] = source[index];
+        }
+
+        return Array.AsReadOnly(copy);
+    }
 }
 
 public readonly struct SettlementCommittedAlertChangedEvent

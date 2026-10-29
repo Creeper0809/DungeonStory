@@ -65,8 +65,8 @@ public sealed class DungeonSettingsUiController :
     private Toggle reducedMotionToggle;
     private Toggle developerModeToggle;
     private DungeonSettingsHotkeyBehaviour hotkeyBehaviour;
-    private bool pauseCaptured;
-    private bool wasPaused;
+    private IDisposable pauseRequest;
+    private int lastDismissFrame = -1;
     private int activePage;
 
     public DungeonSettingsUiController(
@@ -88,6 +88,7 @@ public sealed class DungeonSettingsUiController :
     }
 
     public bool IsVisible => modalRoot != null && modalRoot.activeInHierarchy;
+    public bool BlocksDismissInput => IsVisible || lastDismissFrame == Time.frameCount;
 
     public void Start()
     {
@@ -122,7 +123,6 @@ public sealed class DungeonSettingsUiController :
         }
 
         CapturePause();
-        SetPaused(true);
         RefreshControls();
         ShowPage(activePage);
         modalRoot.SetActive(true);
@@ -140,6 +140,12 @@ public sealed class DungeonSettingsUiController :
 
         hotkeyBehaviour.enabled = false;
         PlayClosePresentation();
+    }
+
+    private void CloseFromInput()
+    {
+        lastDismissFrame = Time.frameCount;
+        Close();
     }
 
     private void PlayOpenPresentation()
@@ -246,7 +252,7 @@ public sealed class DungeonSettingsUiController :
         overlay.sortingOrder = SettingsSortingOrder;
 
         hotkeyBehaviour = runtimeRoot.GetComponent<DungeonSettingsHotkeyBehaviour>();
-        hotkeyBehaviour.Initialize(Close);
+        hotkeyBehaviour.Initialize(CloseFromInput);
         hotkeyBehaviour.enabled = false;
 
         modalRoot = new GameObject(
@@ -798,29 +804,19 @@ public sealed class DungeonSettingsUiController :
 
     private void CapturePause()
     {
-        if (pauseCaptured)
+        if (pauseRequest != null)
         {
             return;
         }
 
-        wasPaused = gameSpeedController.IsPaused;
-        pauseCaptured = true;
-    }
-
-    private void SetPaused(bool paused)
-    {
-        gameSpeedController.SetPaused(paused);
+        pauseRequest = gameSpeedController.AcquirePause();
     }
 
     private void RestorePause()
     {
-        if (!pauseCaptured)
-        {
-            return;
-        }
-
-        gameSpeedController.SetPaused(wasPaused);
-        pauseCaptured = false;
+        IDisposable request = pauseRequest;
+        pauseRequest = null;
+        request?.Dispose();
     }
 
     private void BuildResolutionList()

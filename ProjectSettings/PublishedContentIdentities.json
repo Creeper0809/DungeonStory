@@ -25370,6 +25370,21 @@
             ]
         },
         {
+            "guid": "6d3f8cd0aada4c2792a165ca6e370a0b",
+            "scriptGuid": "99c7a92f563b43a191cd66345dfc7836",
+            "typeName": "SurgicalGraftEffectDefinitionSO",
+            "fields": [
+                {
+                    "path": "graftId",
+                    "value": "graft:shadow-wolf-endurance"
+                },
+                {
+                    "path": "numericId",
+                    "value": "353384416"
+                }
+            ]
+        },
+        {
             "guid": "6d595685b50a26549812e8433819b18c",
             "scriptGuid": "4cb4b1f490bee1344a1002cabb362d7a",
             "typeName": "GenericItemDefinitionSO",
@@ -27172,6 +27187,21 @@
                 {
                     "path": "projectId",
                     "value": "research:environment:rune-insulation"
+                }
+            ]
+        },
+        {
+            "guid": "74cd4ffde48f4e5cb2ab2184acc239f8",
+            "scriptGuid": "99c7a92f563b43a191cd66345dfc7836",
+            "typeName": "SurgicalGraftEffectDefinitionSO",
+            "fields": [
+                {
+                    "path": "graftId",
+                    "value": "graft:rune-deer-night-sight"
+                },
+                {
+                    "path": "numericId",
+                    "value": "16023043"
                 }
             ]
         },
@@ -32104,6 +32134,21 @@
                 {
                     "path": "id",
                     "value": "93001"
+                }
+            ]
+        },
+        {
+            "guid": "86ddc40876dd41bfb774d58502fe38ab",
+            "scriptGuid": "cb023a38f7c844b4a9a1d995b88bc1ad",
+            "typeName": "GameplayEffectDefinitionSO",
+            "fields": [
+                {
+                    "path": "effectId",
+                    "value": "effect:graft:moss-boar-toughness:multiply"
+                },
+                {
+                    "path": "numericId",
+                    "value": "103308940"
                 }
             ]
         },
@@ -39061,6 +39106,21 @@
                 {
                     "path": "recipeId",
                     "value": "recipe:material:granulated-powder"
+                }
+            ]
+        },
+        {
+            "guid": "a3103546ccc942e19fe2afdd7add71b1",
+            "scriptGuid": "cb023a38f7c844b4a9a1d995b88bc1ad",
+            "typeName": "GameplayEffectDefinitionSO",
+            "fields": [
+                {
+                    "path": "effectId",
+                    "value": "effect:graft:shadow-wolf-endurance:multiply"
+                },
+                {
+                    "path": "numericId",
+                    "value": "1309036145"
                 }
             ]
         },
@@ -51568,6 +51628,21 @@
             ]
         },
         {
+            "guid": "c9042bb7429a4224851bbde4e3674775",
+            "scriptGuid": "99c7a92f563b43a191cd66345dfc7836",
+            "typeName": "SurgicalGraftEffectDefinitionSO",
+            "fields": [
+                {
+                    "path": "graftId",
+                    "value": "graft:moss-boar-toughness"
+                },
+                {
+                    "path": "numericId",
+                    "value": "1298834623"
+                }
+            ]
+        },
+        {
             "guid": "c90641820a76b204cacc6420cc276138",
             "scriptGuid": "f75000297946ffe4481d69575fdbfd0a",
             "typeName": "ProductionRecipeSO",
@@ -56093,6 +56168,10 @@
                     "value": "6d383f53ddcc9ef44b366c6a7808c1bb"
                 },
                 {
+                    "path": "@registration:definitions:6d3f8cd0aada4c2792a165ca6e370a0b",
+                    "value": "6d3f8cd0aada4c2792a165ca6e370a0b"
+                },
+                {
                     "path": "@registration:definitions:6d64db3c645f5a141a5f8157ffe6d98a",
                     "value": "6d64db3c645f5a141a5f8157ffe6d98a"
                 },
@@ -56351,6 +56430,10 @@
                 {
                     "path": "@registration:definitions:74bca340e2753f1489135a84adf7a24d",
                     "value": "74bca340e2753f1489135a84adf7a24d"
+                },
+                {
+                    "path": "@registration:definitions:74cd4ffde48f4e5cb2ab2184acc239f8",
+                    "value": "74cd4ffde48f4e5cb2ab2184acc239f8"
                 },
                 {
                     "path": "@registration:definitions:74d0a8623c0e4b0cbfea5d72ca734d90",
@@ -57107,6 +57190,10 @@
                 {
                     "path": "@registration:definitions:86d74111b4cb2ae42b7568bee11f73c9",
                     "value": "86d74111b4cb2ae42b7568bee11f73c9"
+                },
+                {
+                    "path": "@registration:definitions:86ddc40876dd41bfb774d58502fe38ab",
+                    "value": "86ddc40876dd41bfb774d58502fe38ab"
                 },
                 {
                     "path": "@registration:definitions:8738886ff7b663646976ab00e31cb051",
@@ -58287,6 +58374,10 @@
                 {
                     "path": "@registration:definitions:a306dbf2f0f291745adda68796dd606e",
                     "value": "a306dbf2f0f291745adda68796dd606e"
+                },
+                {
+                    "path": "@registration:definitions:a3103546ccc942e19fe2afdd7add71b1",
+                    "value": "a3103546ccc942e19fe2afdd7add71b1"
                 },
                 {
                     "path": "@registration:definitions:a32d4cb13214da742ace7b3bb69839c4",
@@ -59605,6 +59696,10 @@
                     "value": "c8f55415dcbedaa478c0115e259996a4"
                 },
                 {
+                    "path": "@registration:definitions:c9042bb7429a4224851bbde4e3674775",
+                    "value": "c9042bb7429a4224851bbde4e3674775"
+                },
+                {
                     "path": "@registration:definitions:c90641820a76b204cacc6420cc276138",
                     "value": "c90641820a76b204cacc6420cc276138"
                 },
@@ -59663,6 +59758,10 @@
                 {
                     "path": "@registration:definitions:cac6d20af84f4d842bcdfa988c7752ce",
                     "value": "cac6d20af84f4d842bcdfa988c7752ce"
+                },
+                {
+                    "path": "@registration:definitions:caf5965f66ad40e9829cc0a4c7c1fd0c",
+                    "value": "caf5965f66ad40e9829cc0a4c7c1fd0c"
                 },
                 {
                     "path": "@registration:definitions:cb054c5f46d7e2149a8ca82c0c1380cb",
@@ -61805,6 +61904,21 @@
                 {
                     "path": "speciesId",
                     "value": "carrion_drake"
+                }
+            ]
+        },
+        {
+            "guid": "caf5965f66ad40e9829cc0a4c7c1fd0c",
+            "scriptGuid": "cb023a38f7c844b4a9a1d995b88bc1ad",
+            "typeName": "GameplayEffectDefinitionSO",
+            "fields": [
+                {
+                    "path": "effectId",
+                    "value": "effect:graft:rune-deer-night-sight:multiply"
+                },
+                {
+                    "path": "numericId",
+                    "value": "1378799996"
                 }
             ]
         },

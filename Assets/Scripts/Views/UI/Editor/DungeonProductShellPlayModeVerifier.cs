@@ -547,10 +547,13 @@ public sealed class DungeonProductShellVerificationRunner : MonoBehaviour
                 () => FindSceneComponent<Button>("Button_공격 확정") != null,
                 2f);
             yield return Click(FindSceneComponent<Button>("Button_공격 확정"));
+            OffenseBattleSnapshot afterAttack = battle.Session;
+            OffenseBattleCombatant enemyAfterAttack = afterAttack?
+                .FindCombatant(enemy?.PersistentId);
             Check(enemy != null
-                    && battle.Session.LastProcessedCommandId > attackCommandBefore,
+                    && afterAttack?.LastProcessedCommandId > attackCommandBefore,
                 "BATTLE_ATTACK_TARGET_POINTER",
-                $"enemy={enemy?.PersistentId}; hp={enemyHealthBefore:0.##}->{enemy?.CurrentHealth:0.##}; command={attackCommandBefore}->{battle.Session?.LastProcessedCommandId}");
+                $"enemy={enemy?.PersistentId}; hp={enemyHealthBefore:0.##}->{enemyAfterAttack?.CurrentHealth:0.##}; command={attackCommandBefore}->{afterAttack?.LastProcessedCommandId}");
             yield return Capture(DungeonProductShellPlayModeVerifier.BattleChangedCapturePath, "BATTLE_CHANGED_CAPTURE");
 
             yield return Click(FindSceneComponent<Button>("Button_던전 보기"));

@@ -29,9 +29,15 @@ public sealed class MetaProgressionRuntime : MonoBehaviour,
         current => new MetaRunLifecycleAggregateState { Ended = current?.Ended ?? false,
             LatestResult = current?.LatestResult, PendingCompletion = current?.PendingCompletion });
 
-    public MetaProgressionState State => state ?? throw Missing(nameof(IMetaUpgradeDefinitionCatalog));
+    private MetaProgressionState OwnedState => state ?? throw Missing(nameof(IMetaUpgradeDefinitionCatalog));
     public RunResultSnapshot LatestResult => Lifecycle.LatestResult;
-    public MetaRunProgressTracker RunProgress => runProgress ?? throw Missing(nameof(MetaRunProgressTracker));
+    private MetaRunProgressTracker OwnedRunProgress => runProgress ?? throw Missing(nameof(MetaRunProgressTracker));
+    public MetaProgressionState State => OwnedState.CreateSnapshot();
+    public MetaRunProgressTracker RunProgress => OwnedRunProgress.CreateSnapshot();
+#if UNITY_EDITOR
+    public void AddCurrencyForDebug(int amount) => OwnedState.AddCurrency(amount);
+    public void SetUpgradeLevelForDebug(string id, int level) => OwnedState.SetUpgradeLevelForDebug(id, level);
+#endif
     public bool HasEnded => Lifecycle.Ended;
     public MetaRunCompletionSnapshot PendingCompletion => Lifecycle.PendingCompletion;
 
@@ -62,9 +68,9 @@ public sealed class MetaProgressionRuntime : MonoBehaviour,
     }
 
     public void SetShowRunResultPanel(bool value) => showRunResultPanel = value;
-    public void StartNewRun() { RunProgress.StartNewRun(gameClock.Time); aggregateRootStore.Replace(new MetaRunLifecycleAggregateState()); }
+    public void StartNewRun() { OwnedRunProgress.StartNewRun(gameClock.Time); aggregateRootStore.Replace(new MetaRunLifecycleAggregateState()); }
     public void RestoreRunState(bool ended, RunResultSnapshot result) => aggregateRootStore.Replace(new MetaRunLifecycleAggregateState { Ended = ended, LatestResult = result });
-    public MetaProgressionRestoreCandidate PrepareRestore(DungeonMetaProgressionSaveData data) => MetaProgressionRestoreBuilder.Build(data, State.Catalog, gameClock.Time);
+    public MetaProgressionRestoreCandidate PrepareRestore(DungeonMetaProgressionSaveData data) => MetaProgressionRestoreBuilder.Build(data, OwnedState.Catalog, gameClock.Time);
     public void Restore(MetaProgressionRestoreCandidate candidate)
     {
         MetaProgressionRestoreCandidate required = candidate ?? throw new ArgumentNullException(nameof(candidate));
@@ -73,10 +79,10 @@ public sealed class MetaProgressionRuntime : MonoBehaviour,
 
     public bool TryPurchaseUpgrade(string id, out string message)
     {
-        MetaUpgradeDefinition definition = State.Catalog.Get(id);
+        MetaUpgradeDefinition definition = OwnedState.Catalog.Get(id);
         if (definition == null)
         {
-            return State.TryPurchaseUpgrade(id, out message);
+            return OwnedState.TryPurchaseUpgrade(id, out message);
         }
 
         if (domainFacts == null)
@@ -87,8 +93,8 @@ public sealed class MetaProgressionRuntime : MonoBehaviour,
         }
 
         string upgradeId = definition.id;
-        int previousLevel = State.GetUpgradeLevel(upgradeId);
-        int absoluteDay = Math.Max(1, RunProgress.CurrentDay);
+        int previousLevel = OwnedState.GetUpgradeLevel(upgradeId);
+        int absoluteDay = Math.Max(1, OwnedRunProgress.CurrentDay);
         var proposedFact = new MetaUpgradePurchaseDomainFact(
             upgradeId,
             definition.title,
@@ -112,7 +118,7 @@ public sealed class MetaProgressionRuntime : MonoBehaviour,
         bool success;
         try
         {
-            success = State.TryPurchaseUpgrade(upgradeId, out message);
+            success = OwnedState.TryPurchaseUpgrade(upgradeId, out message);
         }
         catch
         {
@@ -135,7 +141,7 @@ public sealed class MetaProgressionRuntime : MonoBehaviour,
                     upgradeId,
                     definition.title,
                     previousLevel,
-                    State.GetUpgradeLevel(upgradeId),
+                    OwnedState.GetUpgradeLevel(upgradeId),
                     definition.cost,
                     absoluteDay));
         }
@@ -159,29 +165,29 @@ public sealed class MetaProgressionRuntime : MonoBehaviour,
         return true;
     }
 
-    public int GetStartingFacilityCandidateBonus() => MetaProgressionEffects.GetIntegerBonus(State, MetaUpgradeEffectIds.StartingFacilityCandidates);
-    public int GetStartingOwnerTraitCandidateBonus() => MetaProgressionEffects.GetIntegerBonus(State, MetaUpgradeEffectIds.StartingOwnerTraitCandidates);
-    public float GetOwnerMaxHealthMultiplier() => MetaProgressionEffects.GetMultiplier(State, MetaUpgradeEffectIds.OwnerMaxHealth);
-    public float GetInvasionWarningThresholdMultiplier() => MetaProgressionEffects.GetMultiplier(State, MetaUpgradeEffectIds.InvasionWarningThreshold);
-    public float GetCommerceStockCostMultiplier(bool eligibleCategory) => eligibleCategory ? MetaProgressionEffects.GetMultiplier(State, MetaUpgradeEffectIds.CommerceStockCost) : 1f;
-    public float GetFortressFacilityCostMultiplier(bool defenseFacility) => defenseFacility ? MetaProgressionEffects.GetMultiplier(State, MetaUpgradeEffectIds.FortressDefenseFacilityCost) : 1f;
-    public float GetArcaneResearchWorkMultiplier() => MetaProgressionEffects.GetMultiplier(State, MetaUpgradeEffectIds.ArcaneResearchWork);
-    public bool IsRecipePreserved(string id) => !string.IsNullOrWhiteSpace(id) && State.PreservedRecipeIds.Contains(id);
+    public int GetStartingFacilityCandidateBonus() => MetaProgressionEffects.GetIntegerBonus(OwnedState, MetaUpgradeEffectIds.StartingFacilityCandidates);
+    public int GetStartingOwnerTraitCandidateBonus() => MetaProgressionEffects.GetIntegerBonus(OwnedState, MetaUpgradeEffectIds.StartingOwnerTraitCandidates);
+    public float GetOwnerMaxHealthMultiplier() => MetaProgressionEffects.GetMultiplier(OwnedState, MetaUpgradeEffectIds.OwnerMaxHealth);
+    public float GetInvasionWarningThresholdMultiplier() => MetaProgressionEffects.GetMultiplier(OwnedState, MetaUpgradeEffectIds.InvasionWarningThreshold);
+    public float GetCommerceStockCostMultiplier(bool eligibleCategory) => eligibleCategory ? MetaProgressionEffects.GetMultiplier(OwnedState, MetaUpgradeEffectIds.CommerceStockCost) : 1f;
+    public float GetFortressFacilityCostMultiplier(bool defenseFacility) => defenseFacility ? MetaProgressionEffects.GetMultiplier(OwnedState, MetaUpgradeEffectIds.FortressDefenseFacilityCost) : 1f;
+    public float GetArcaneResearchWorkMultiplier() => MetaProgressionEffects.GetMultiplier(OwnedState, MetaUpgradeEffectIds.ArcaneResearchWork);
+    public bool IsRecipePreserved(string id) => !string.IsNullOrWhiteSpace(id) && OwnedState.PreservedRecipeIds.Contains(id);
     public IReadOnlyCollection<int> GetExpandedBasicPurchaseBuildingIds(IEnumerable<MetaFacilityCandidateSnapshot> candidates)
     {
-        int count = MetaProgressionEffects.GetIntegerBonus(State, MetaUpgradeEffectIds.BasicPurchaseEntries);
+        int count = MetaProgressionEffects.GetIntegerBonus(OwnedState, MetaUpgradeEffectIds.BasicPurchaseEntries);
         return count <= 0 ? Array.Empty<int>() : (candidates ?? Array.Empty<MetaFacilityCandidateSnapshot>())
             .Where(item => item.Eligible).OrderBy(item => item.DefinitionId).Take(count).Select(item => item.DefinitionId).ToArray();
     }
 
-    public void RecordOffenseSuccess() => RunProgress.RecordOffenseSuccess();
-    public void RecordOperatingDayStarted(int day) { if (day <= 1 && HasEnded) StartNewRun(); RunProgress.RecordOperatingDayStarted(day); }
-    public void RecordOperatingDayReport(int day) => RunProgress.RecordOperatingDayReport(day);
-    public void RecordThreat(InvasionThreatStage stage, float threat) => RunProgress.RecordThreat(stage, threat);
-    public void RecordInvasionResolved(bool defended) => RunProgress.RecordInvasionResolved(defended);
-    public void RecordFacilityDiscovery(int id) => RunProgress.RecordFacilityDiscovery(id);
-    public void RecordResearchRecipes(IEnumerable<string> ids) => RunProgress.RecordRecipes(ids);
-    public void RecordSynthesis(string recipeId, int resultBuildingId) => RunProgress.RecordSynthesis(recipeId, resultBuildingId);
+    public void RecordOffenseSuccess() => OwnedRunProgress.RecordOffenseSuccess();
+    public void RecordOperatingDayStarted(int day) { if (day <= 1 && HasEnded) StartNewRun(); OwnedRunProgress.RecordOperatingDayStarted(day); }
+    public void RecordOperatingDayReport(int day) => OwnedRunProgress.RecordOperatingDayReport(day);
+    public void RecordThreat(InvasionThreatStage stage, float threat) => OwnedRunProgress.RecordThreat(stage, threat);
+    public void RecordInvasionResolved(bool defended) => OwnedRunProgress.RecordInvasionResolved(defended);
+    public void RecordFacilityDiscovery(int id) => OwnedRunProgress.RecordFacilityDiscovery(id);
+    public void RecordResearchRecipes(IEnumerable<string> ids) => OwnedRunProgress.RecordRecipes(ids);
+    public void RecordSynthesis(string recipeId, int resultBuildingId) => OwnedRunProgress.RecordSynthesis(recipeId, resultBuildingId);
 
     public IRunCompletionPreparedState Prepare(OwnerRunCompletionFactData fact)
     {
@@ -190,15 +196,15 @@ public sealed class MetaProgressionRuntime : MonoBehaviour,
             throw new InvalidOperationException("meta-completion-already-prepared-or-ended");
         fact.Validate();
         var result = BuildResult(fact.displayName, fact.reason, fact.outcome);
-        var snapshot = new MetaRunCompletionSnapshot(fact, checked(State.CompletedRunCount + 1),
-            result, RunProgress.UnlockedRecipeIds,
-            MetaProgressionEffects.GetIntegerBonus(State, MetaUpgradeEffectIds.PreservedRecipeSlots));
+        var snapshot = new MetaRunCompletionSnapshot(fact, checked(OwnedState.CompletedRunCount + 1),
+            result, OwnedRunProgress.UnlockedRecipeIds,
+            MetaProgressionEffects.GetIntegerBonus(OwnedState, MetaUpgradeEffectIds.PreservedRecipeSlots));
         return new PreparedCompletion(this, snapshot);
     }
 
     private RunResultSnapshot BuildResult(string ownerName, string reason, DungeonRunOutcome outcome)
     {
-        var result = runResultBuilder.Build(RunProgress.CreateResultContext(
+        var result = runResultBuilder.Build(OwnedRunProgress.CreateResultContext(
             ownerName, reason, applicationPort.CaptureRunEnvironment(), outcome));
         return result.WithLegacyCurrency(MetaProgressionCalculator.CalculateLegacyCurrency(result));
     }
@@ -213,7 +219,7 @@ public sealed class MetaProgressionRuntime : MonoBehaviour,
         public void Publish()
         {
             if (cancelled || published || owner.HasEnded || owner.PendingCompletion != null
-                || snapshot.RunSequence != checked(owner.State.CompletedRunCount + 1))
+                || snapshot.RunSequence != checked(owner.OwnedState.CompletedRunCount + 1))
                 throw new InvalidOperationException("meta-completion-preparation-stale");
             owner.WritableLifecycle.PendingCompletion = snapshot;
             published = true;
@@ -236,14 +242,14 @@ public sealed class MetaProgressionRuntime : MonoBehaviour,
         if (HasEnded && LatestResult != null) return LatestResult;
         MetaRunCompletionSnapshot pending = PendingCompletion;
         if (pending != null && (!pending.Matches(ownerName, reason, outcome)
-            || pending.RunSequence != checked(State.CompletedRunCount + 1)))
+            || pending.RunSequence != checked(OwnedState.CompletedRunCount + 1)))
             throw new InvalidOperationException("meta-completion-settlement-conflict");
         RunResultSnapshot result = pending?.Result ?? BuildResult(ownerName, reason, outcome);
 
         if (domainFacts == null)
             throw Missing(nameof(IDomainFactPublisher));
-        int runSequence = checked(State.CompletedRunCount + 1);
-        int absoluteDay = pending?.Fact.absoluteDay ?? Math.Max(1, RunProgress.CurrentDay);
+        int runSequence = checked(OwnedState.CompletedRunCount + 1);
+        int absoluteDay = pending?.Fact.absoluteDay ?? Math.Max(1, OwnedRunProgress.CurrentDay);
         var proposedFact = new MetaRunResultDomainFact(
             runSequence,
             absoluteDay,
@@ -267,13 +273,13 @@ public sealed class MetaProgressionRuntime : MonoBehaviour,
         try
         {
             WritableLifecycle.Ended = true;
-            State.AddCurrency(result.legacyCurrency);
-            State.RecordRunCompleted();
+            OwnedState.AddCurrency(result.legacyCurrency);
+            OwnedState.RecordRunCompleted();
             int slots = pending?.PreservedRecipeSlots ?? MetaProgressionEffects.GetIntegerBonus(
-                State,
+                OwnedState,
                 MetaUpgradeEffectIds.PreservedRecipeSlots);
-            State.PreserveRecipes(
-                (pending != null ? pending.RecipeCandidates : RunProgress.UnlockedRecipeIds).OrderBy(
+            OwnedState.PreserveRecipes(
+                (pending != null ? pending.RecipeCandidates : OwnedRunProgress.UnlockedRecipeIds).OrderBy(
                     id => id,
                     StringComparer.Ordinal),
                 slots);
@@ -372,17 +378,17 @@ public sealed class MetaProgressionRuntime : MonoBehaviour,
     }
 
     private PurchaseRollbackSnapshot CapturePurchaseSnapshot() => new(
-        State.LifetimeEarnedCurrency,
-        State.SpentCurrency,
-        State.UpgradeLevels.ToArray(),
-        State.PreservedRecipeIds.ToArray(),
-        State.CompletedRunCount);
+        OwnedState.LifetimeEarnedCurrency,
+        OwnedState.SpentCurrency,
+        OwnedState.UpgradeLevels.ToArray(),
+        OwnedState.PreservedRecipeIds.ToArray(),
+        OwnedState.CompletedRunCount);
 
     private void RestorePurchaseSnapshot(PurchaseRollbackSnapshot snapshot)
     {
         if (snapshot == null)
             throw new ArgumentNullException(nameof(snapshot));
-        State.Restore(
+        OwnedState.Restore(
             snapshot.LifetimeEarnedCurrency,
             snapshot.SpentCurrency,
             snapshot.UpgradeLevels,

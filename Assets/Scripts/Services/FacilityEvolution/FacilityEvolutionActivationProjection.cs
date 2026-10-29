@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using VContainer.Unity;
 
 /// <summary>
-/// Reconciles room-conditional facility evolution outside read/query paths.
+/// Reconciles generation and room-conditional facility evolution outside queries.
 /// Modifier consumers can therefore remain pure while room and facility-state
 /// changes still refresh the committed activation snapshot before later work.
 /// </summary>

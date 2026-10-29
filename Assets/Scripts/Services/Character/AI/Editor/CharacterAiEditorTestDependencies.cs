@@ -689,6 +689,8 @@ internal static class CharacterAiEditorTestDependencies
 
     private sealed class EditorExitAdmissionCaptivityRuntime : ICaptivityRuntime
     {
+        public bool CanAssignPerformer(string captiveId, out string failureReason) =>
+            throw Unsupported();
         private readonly HashSet<string> captiveIds = new(StringComparer.Ordinal);
 
         public IReadOnlyList<CaptiveState> Captives => throw Unsupported();
@@ -1968,15 +1970,19 @@ internal static class CharacterAiEditorTestDependencies
     }
 
     private sealed class FixedFacilityShopUnlockStateService :
-        IFacilityShopUnlockStateService
+        IFacilityShopUnlockStateService,
+        IFacilityShopUnlockStateAuthority
     {
         private readonly FacilityShopUnlockState state =
             new FacilityShopUnlockState();
 
         public FacilityShopUnlockState GetUnlockState()
         {
-            return state;
+            return state.CreateSnapshot();
         }
+
+        public FacilityShopUnlockState GetOwnedUnlockState() => state;
+        public FacilityShopUnlockState GetUnlockStateForDebug() => state;
     }
 
     private sealed class NeutralRunVariableReader : IRunVariableRuntimeReader

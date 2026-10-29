@@ -1,0 +1,827 @@
+{
+  "schema": "r30-item-closure-v1",
+  "base": "842eb205ab624d64e00761ad0426013aff7ca876",
+  "currentIntegrationBinding": {
+    "source": [
+      "8c4103838649f1acca5a6f6b3f997e739043221261e42f0cc7758760c2b42cf5",
+      4802,
+      "4586d293364c62ee65c8430511006d33772536b5f3d0ca1f26109451e3d4241b"
+    ],
+    "configurationDigest": "dc5e9dae2ffbb85dc1de06974deafb019faf91a4affbd7df6c88c376a6664e6f"
+  },
+  "items": [
+    {
+      "id": "R30-01",
+      "title": "포획 시작 실패와 성공 반환이 분리됨",
+      "status": "fixed_with_scoped_verification",
+      "implementation": [
+        "포획 시작 거절 전파와 예약/행동 소유권 롤백"
+      ],
+      "evidence": [
+        {
+          "run": "r221r30-impact-so-inspector-r30-first-01",
+          "sourceLabel": "r221r30",
+          "marker": "R30_CAPTURE_START_REJECTION=PASS",
+          "originalWholeExit": 0,
+          "originalStopReason": null,
+          "evidenceFile": "unity.redacted.log",
+          "evidenceSha256": "9e5ea163f3b334c35c456a0a20138f278e6b17a5b768070e0322862e165e85f6",
+          "currentSourceRun": false
+        },
+        {
+          "run": "r246r30-impact-so-inspector-r30-transport-01",
+          "sourceLabel": "r246r30",
+          "marker": "RESULT=PASS; failures=0",
+          "originalWholeExit": 0,
+          "originalStopReason": null,
+          "evidenceFile": "capture.txt",
+          "evidenceSha256": "9c45bfa27b18b2766a91770f9d07b643bfaf6a240be1d74b09b77e8d747a8ddb",
+          "currentSourceRun": false
+        }
+      ]
+    },
+    {
+      "id": "R30-02",
+      "title": "우리 선택이 실제 수용 조건을 공유하지 않음",
+      "status": "fixed_with_scoped_verification",
+      "implementation": [
+        "실제 수용/안전 발판 적격 후 거리 선택을 UI와 귀환에서 공유"
+      ],
+      "evidence": [
+        {
+          "run": "r246r30-impact-so-inspector-r30-transport-01",
+          "sourceLabel": "r246r30",
+          "marker": "RESULT=PASS; failures=0",
+          "originalWholeExit": 0,
+          "originalStopReason": null,
+          "evidenceFile": "capture.txt",
+          "evidenceSha256": "9c45bfa27b18b2766a91770f9d07b643bfaf6a240be1d74b09b77e8d747a8ddb",
+          "currentSourceRun": false
+        }
+      ]
+    },
+    {
+      "id": "R30-03",
+      "title": "공연 후보, 예측과 실행의 참가자 기준이 다름",
+      "status": "fixed_with_scoped_verification",
+      "implementation": [
+        "공연 대상 적격 판정 공유와 획득한 행동만 취소"
+      ],
+      "evidence": [
+        {
+          "run": "r226r30-impact-so-inspector-r30-second-01",
+          "sourceLabel": "r226r30",
+          "marker": "R30_STEP=PASS; name=circus;",
+          "originalWholeExit": 1,
+          "originalStopReason": null,
+          "evidenceFile": "unity.redacted.log",
+          "evidenceSha256": "cdf1d5acbe43ad1508c0fd55ce2fbfe47e994ae4dc3f340d0bb81841a37a28ad",
+          "currentSourceRun": false
+        }
+      ]
+    },
+    {
+      "id": "R30-04",
+      "title": "탄약 정의와 전투 프로필의 권위가 분리됨",
+      "status": "fixed_with_scoped_verification",
+      "implementation": [
+        "탄약23개 authored profile과 동일 catalog 소비, 두 builder 생성/복구/no-op"
+      ],
+      "evidence": [
+        {
+          "run": "r246r30-impact-so-inspector-r30-fourth-final-01",
+          "sourceLabel": "r246r30",
+          "marker": "R30_STEP=PASS; name=core-ammo-authoring;",
+          "originalWholeExit": 0,
+          "originalStopReason": null,
+          "evidenceFile": "unity.redacted.log",
+          "evidenceSha256": "6cfc0f0379cfd2fc53e201529c80d32f76d7b56cc344167985721c3e78b546ce",
+          "currentSourceRun": false
+        },
+        {
+          "run": "r246r30-impact-so-inspector-r30-fourth-final-01",
+          "sourceLabel": "r246r30",
+          "marker": "R30_STEP=PASS; name=research-ammo-authoring;",
+          "originalWholeExit": 0,
+          "originalStopReason": null,
+          "evidenceFile": "unity.redacted.log",
+          "evidenceSha256": "6cfc0f0379cfd2fc53e201529c80d32f76d7b56cc344167985721c3e78b546ce",
+          "currentSourceRun": false
+        },
+        {
+          "run": "r233r30-impact-so-inspector-r30-third-remaining-01",
+          "sourceLabel": "r233r30",
+          "marker": "R30_STEP=PASS; name=ammo-profiles;",
+          "originalWholeExit": 1,
+          "originalStopReason": null,
+          "evidenceFile": "unity.redacted.log",
+          "evidenceSha256": "2c25575ebe8fffc2b0b69b2a0f87a5edcafaddbacf17aeaf0e75b6adc00ece97",
+          "currentSourceRun": false
+        }
+      ]
+    },
+    {
+      "id": "R30-05",
+      "title": "세 제작 화면의 정책 설명이 실제 판정과 다름",
+      "status": "fixed_with_scoped_verification",
+      "implementation": [
+        "세 제작 UI의 경험 조건과 실제 판정 일치"
+      ],
+      "evidence": [
+        {
+          "run": "r221r30-impact-so-inspector-r30-first-01",
+          "sourceLabel": "r221r30",
+          "marker": "R30_FIRST_CONTRACTS=PASS",
+          "originalWholeExit": 0,
+          "originalStopReason": null,
+          "evidenceFile": "unity.redacted.log",
+          "evidenceSha256": "9e5ea163f3b334c35c456a0a20138f278e6b17a5b768070e0322862e165e85f6",
+          "currentSourceRun": false
+        }
+      ]
+    },
+    {
+      "id": "R30-06",
+      "title": "원정 조회가 명령 가능한 실제 진행 객체를 노출함",
+      "status": "fixed_with_scoped_verification",
+      "implementation": [
+        "원정 scalar snapshot과 소유자 명령 분리"
+      ],
+      "evidence": [
+        {
+          "run": "r226r30-impact-so-inspector-r30-second-01",
+          "sourceLabel": "r226r30",
+          "marker": "R30_STEP=PASS; name=expedition;",
+          "originalWholeExit": 1,
+          "originalStopReason": null,
+          "evidenceFile": "unity.redacted.log",
+          "evidenceSha256": "cdf1d5acbe43ad1508c0fd55ce2fbfe47e994ae4dc3f340d0bb81841a37a28ad",
+          "currentSourceRun": false
+        }
+      ]
+    },
+    {
+      "id": "R30-07",
+      "title": "인구 조회와 방문 종료 기록의 쓰기 권위가 섞임",
+      "status": "fixed_with_scoped_verification",
+      "implementation": [
+        "인구 사본 반환과 방문 종료/재바인드 소유 명령"
+      ],
+      "evidence": [
+        {
+          "run": "r226r30-impact-so-inspector-r30-second-01",
+          "sourceLabel": "r226r30",
+          "marker": "R30_STEP=PASS; name=population;",
+          "originalWholeExit": 1,
+          "originalStopReason": null,
+          "evidenceFile": "unity.redacted.log",
+          "evidenceSha256": "cdf1d5acbe43ad1508c0fd55ce2fbfe47e994ae4dc3f340d0bb81841a37a28ad",
+          "currentSourceRun": false
+        },
+        {
+          "run": "r226r30-impact-so-inspector-r30-second-01",
+          "sourceLabel": "r226r30",
+          "marker": "R30_STEP=PASS; name=visitor-exit;",
+          "originalWholeExit": 1,
+          "originalStopReason": null,
+          "evidenceFile": "unity.redacted.log",
+          "evidenceSha256": "cdf1d5acbe43ad1508c0fd55ce2fbfe47e994ae4dc3f340d0bb81841a37a28ad",
+          "currentSourceRun": false
+        }
+      ]
+    },
+    {
+      "id": "R30-08",
+      "title": "유체망 조회의 가변 snapshot이 공용 캐시 원본임",
+      "status": "fixed_with_scoped_verification",
+      "implementation": [
+        "유체망 snapshot 중첩 사본 반환"
+      ],
+      "evidence": [
+        {
+          "run": "r246r30-impact-so-inspector-r30-play-fluid-01",
+          "sourceLabel": "r246r30",
+          "marker": "result=PASS",
+          "originalWholeExit": 0,
+          "originalStopReason": null,
+          "evidenceFile": "r30-fluid-play.txt",
+          "evidenceSha256": "c83a204e6948de3279d9ac564ed318f0c0d566a9f78277b68f63084d5e86da16",
+          "currentSourceRun": false
+        }
+      ]
+    },
+    {
+      "id": "R30-09",
+      "title": "유효한 날씨 SO를 생존 소비자가 거부함",
+      "status": "fixed_with_scoped_verification",
+      "implementation": [
+        "날씨 Kind 메타데이터 소비"
+      ],
+      "evidence": [
+        {
+          "run": "r221r30-impact-so-inspector-r30-first-01",
+          "sourceLabel": "r221r30",
+          "marker": "R30_FIRST_CONTRACTS=PASS",
+          "originalWholeExit": 0,
+          "originalStopReason": null,
+          "evidenceFile": "unity.redacted.log",
+          "evidenceSha256": "9e5ea163f3b334c35c456a0a20138f278e6b17a5b768070e0322862e165e85f6",
+          "currentSourceRun": false
+        }
+      ]
+    },
+    {
+      "id": "R30-10",
+      "title": "[P1] 연구창과 옵션창이 각자의 일시정지 스냅샷을 복원해 상태가 뒤집힘",
+      "status": "fixed_with_scoped_verification",
+      "implementation": [
+        "화면별 정지 lease와 같은 프레임 입력 소비"
+      ],
+      "evidence": [
+        {
+          "run": "r242r30-impact-so-inspector-r30-play-pause-01",
+          "sourceLabel": "r242r30",
+          "marker": "result=PASS",
+          "originalWholeExit": 0,
+          "originalStopReason": null,
+          "evidenceFile": "r30-pause-play.txt",
+          "evidenceSha256": "99a25c89d2927f0fadfea7e029c698addddfc0d19508c9ffd802d9e4aff055c5",
+          "currentSourceRun": false
+        }
+      ]
+    },
+    {
+      "id": "R30-11",
+      "title": "[P1] 직원 선택 실패를 무시해 이전에 선택한 직원에게 작업을 전달함",
+      "status": "fixed_with_scoped_verification",
+      "implementation": [
+        "선택 거절 시 명령 중단과 재주입 모드 상태 단일 소유"
+      ],
+      "evidence": [
+        {
+          "run": "r248r30-impact-so-inspector-r30-play-staff-01",
+          "sourceLabel": "r248r30",
+          "marker": "result=PASS",
+          "originalWholeExit": 0,
+          "originalStopReason": null,
+          "evidenceFile": "r30-staff-play.txt",
+          "evidenceSha256": "5bb97a7a82bc957637af39a53d5e7e03da6a36388c24860978403fc7473dddcf",
+          "currentSourceRun": false
+        }
+      ]
+    },
+    {
+      "id": "R30-12",
+      "title": "[P2] 직원 관리의 수동 능력이 원정의 교전 중 금지 규칙을 우회함",
+      "status": "fixed_with_scoped_verification",
+      "implementation": [
+        "활성/비전투 원정 수동 실행과 전투 원정의 무변경 거절"
+      ],
+      "evidence": [
+        {
+          "run": "r233r30-impact-so-inspector-r30-third-remaining-01",
+          "sourceLabel": "r233r30",
+          "marker": "R30_STEP=PASS; name=manual-location;",
+          "originalWholeExit": 1,
+          "originalStopReason": null,
+          "evidenceFile": "unity.redacted.log",
+          "evidenceSha256": "2c25575ebe8fffc2b0b69b2a0f87a5edcafaddbacf17aeaf0e75b6adc00ece97",
+          "currentSourceRun": false
+        }
+      ]
+    },
+    {
+      "id": "R30-13",
+      "title": "현재 단절: 추출 장기 특수효과의 소비자가 없음",
+      "status": "fixed_with_scoped_verification",
+      "implementation": [
+        "특수 장기3종 정의/소비와 상태/쌍 슬롯 강도 및 기존 저장 ID 유지"
+      ],
+      "evidence": [
+        {
+          "run": "r246r30-impact-so-inspector-r30-fourth-final-01",
+          "sourceLabel": "r246r30",
+          "marker": "R30_STEP=PASS; name=natural-grafts;",
+          "originalWholeExit": 0,
+          "originalStopReason": null,
+          "evidenceFile": "unity.redacted.log",
+          "evidenceSha256": "6cfc0f0379cfd2fc53e201529c80d32f76d7b56cc344167985721c3e78b546ce",
+          "currentSourceRun": false
+        }
+      ]
+    },
+    {
+      "id": "R30-14",
+      "title": "현재 단절: 농사 지연 상태가 파종과 수확 속도에 적용되지 않음",
+      "status": "fixed_with_scoped_verification",
+      "implementation": [
+        "농사 작업 지연 capability 소비"
+      ],
+      "evidence": [
+        {
+          "run": "r228r30-impact-so-inspector-r30-second-remaining-01",
+          "sourceLabel": "r228r30",
+          "marker": "R30_STEP=PASS; name=farm-delay;",
+          "originalWholeExit": 1,
+          "originalStopReason": null,
+          "evidenceFile": "unity.redacted.log",
+          "evidenceSha256": "2b2c8a524cc43cf7208d69a49391f39f4fe53434108f0afecd294f84b6dcc118",
+          "currentSourceRun": false
+        }
+      ]
+    },
+    {
+      "id": "R30-15",
+      "title": "현재 단절: 대공사 2종의 완료 혜택이 계산만 되고 소비되지 않음",
+      "status": "fixed_with_scoped_verification",
+      "implementation": [
+        "정의 소유 혜택 사본, 공급7->19와 방어 재정비1.2 실제 소비"
+      ],
+      "evidence": [
+        {
+          "run": "r246r30-impact-so-inspector-r30-fourth-final-01",
+          "sourceLabel": "r246r30",
+          "marker": "R30_STEP=PASS; name=defense-preparation;",
+          "originalWholeExit": 0,
+          "originalStopReason": null,
+          "evidenceFile": "unity.redacted.log",
+          "evidenceSha256": "6cfc0f0379cfd2fc53e201529c80d32f76d7b56cc344167985721c3e78b546ce",
+          "currentSourceRun": false
+        },
+        {
+          "run": "r233r30-impact-so-inspector-r30-third-remaining-01",
+          "sourceLabel": "r233r30",
+          "marker": "R30_STEP=PASS; name=grand-project-benefits;",
+          "originalWholeExit": 1,
+          "originalStopReason": null,
+          "evidenceFile": "unity.redacted.log",
+          "evidenceSha256": "2c25575ebe8fffc2b0b69b2a0f87a5edcafaddbacf17aeaf0e75b6adc00ece97",
+          "currentSourceRun": false
+        },
+        {
+          "run": "r233r30-impact-so-inspector-r30-third-remaining-01",
+          "sourceLabel": "r233r30",
+          "marker": "R30_STEP=PASS; name=expedition-supply;",
+          "originalWholeExit": 1,
+          "originalStopReason": null,
+          "evidenceFile": "unity.redacted.log",
+          "evidenceSha256": "2c25575ebe8fffc2b0b69b2a0f87a5edcafaddbacf17aeaf0e75b6adc00ece97",
+          "currentSourceRun": false
+        }
+      ]
+    },
+    {
+      "id": "R30-16",
+      "title": "확정 구조 결합: 전술 대응 능력을 식별자 이름에서 추론함",
+      "status": "fixed_with_scoped_verification",
+      "implementation": [
+        "사거리/효과/역할 메타데이터 기반 전술 대응"
+      ],
+      "evidence": [
+        {
+          "run": "r233r30-impact-so-inspector-r30-third-remaining-01",
+          "sourceLabel": "r233r30",
+          "marker": "R30_STEP=PASS; name=counter-metadata;",
+          "originalWholeExit": 1,
+          "originalStopReason": null,
+          "evidenceFile": "unity.redacted.log",
+          "evidenceSha256": "2c25575ebe8fffc2b0b69b2a0f87a5edcafaddbacf17aeaf0e75b6adc00ece97",
+          "currentSourceRun": false
+        }
+      ]
+    },
+    {
+      "id": "R30-17",
+      "title": "확정 계약 불일치: Construct 방전과 Golem 전용 충전",
+      "status": "fixed_with_scoped_verification",
+      "implementation": [
+        "종족 이름 대신 충전 capability로 마모/방전/충전 처리"
+      ],
+      "evidence": [
+        {
+          "run": "r249r30-impact-so-inspector-r30-g12-01",
+          "sourceLabel": "r249r30",
+          "marker": "PHASE153_CHARGE_CAPABILITY_FOCUSED=PASS",
+          "originalWholeExit": 0,
+          "originalStopReason": null,
+          "evidenceFile": "unity.redacted.log",
+          "evidenceSha256": "5728f6c84bc965a4b81e5084b29989afaa97c42af40e1ac05f6c26e9862eb100",
+          "currentSourceRun": false
+        }
+      ]
+    },
+    {
+      "id": "R30-18",
+      "title": "확정 구조 결합: 필드 이름 변경으로 참조 검증이 사라짐",
+      "status": "fixed_with_scoped_verification",
+      "implementation": [
+        "여섯 참조 컨테이너의 명시적 context"
+      ],
+      "evidence": [
+        {
+          "run": "r226r30-impact-so-inspector-r30-second-01",
+          "sourceLabel": "r226r30",
+          "marker": "R30_STEP=PASS; name=reference-context-basic;",
+          "originalWholeExit": 1,
+          "originalStopReason": null,
+          "evidenceFile": "unity.redacted.log",
+          "evidenceSha256": "cdf1d5acbe43ad1508c0fd55ce2fbfe47e994ae4dc3f340d0bb81841a37a28ad",
+          "currentSourceRun": false
+        },
+        {
+          "run": "r226r30-impact-so-inspector-r30-second-01",
+          "sourceLabel": "r226r30",
+          "marker": "R30_STEP=PASS; name=reference-context-six;",
+          "originalWholeExit": 1,
+          "originalStopReason": null,
+          "evidenceFile": "unity.redacted.log",
+          "evidenceSha256": "cdf1d5acbe43ad1508c0fd55ce2fbfe47e994ae4dc3f340d0bb81841a37a28ad",
+          "currentSourceRun": false
+        }
+      ]
+    },
+    {
+      "id": "R30-19",
+      "title": "확정 중복 권위: 생산 용량 코드 최소값과 시설 에셋",
+      "status": "fixed_with_scoped_verification",
+      "implementation": [
+        "ID별 용량 하한 제거와 작성 capacity/max stack 소비"
+      ],
+      "evidence": [
+        {
+          "run": "r226r30-impact-so-inspector-r30-second-01",
+          "sourceLabel": "r226r30",
+          "marker": "R30_STEP=PASS; name=legacy-capacity;",
+          "originalWholeExit": 1,
+          "originalStopReason": null,
+          "evidenceFile": "unity.redacted.log",
+          "evidenceSha256": "cdf1d5acbe43ad1508c0fd55ce2fbfe47e994ae4dc3f340d0bb81841a37a28ad",
+          "currentSourceRun": false
+        }
+      ]
+    },
+    {
+      "id": "R30-20",
+      "title": "확정 등록 제약: 실행에 주입한 질량 정책이 검증에는 전달되지 않음",
+      "status": "fixed_with_scoped_verification",
+      "implementation": [
+        "질량 설명의 검증/실행 registry 단일화"
+      ],
+      "evidence": [
+        {
+          "run": "r226r30-impact-so-inspector-r30-second-01",
+          "sourceLabel": "r226r30",
+          "marker": "R30_STEP=PASS; name=mass-registry;",
+          "originalWholeExit": 1,
+          "originalStopReason": null,
+          "evidenceFile": "unity.redacted.log",
+          "evidenceSha256": "cdf1d5acbe43ad1508c0fd55ce2fbfe47e994ae4dc3f340d0bb81841a37a28ad",
+          "currentSourceRun": false
+        }
+      ]
+    },
+    {
+      "id": "R30-21",
+      "title": "단골 조회로 영입 상태와 전달 기록을 직접 변경할 수 있음",
+      "status": "fixed_with_scoped_verification",
+      "implementation": [
+        "단골 사본과 ACK 유실/복원/재시도 중복 방지"
+      ],
+      "evidence": [
+        {
+          "run": "r226r30-impact-so-inspector-r30-second-01",
+          "sourceLabel": "r226r30",
+          "marker": "R30_STEP=PASS; name=regular-customer;",
+          "originalWholeExit": 1,
+          "originalStopReason": null,
+          "evidenceFile": "unity.redacted.log",
+          "evidenceSha256": "cdf1d5acbe43ad1508c0fd55ce2fbfe47e994ae4dc3f340d0bb81841a37a28ad",
+          "currentSourceRun": false
+        }
+      ]
+    },
+    {
+      "id": "R30-22",
+      "title": "연구와 상점 조회가 진행도와 해금의 변경 권한까지 전달함",
+      "status": "fixed_with_scoped_verification",
+      "implementation": [
+        "연구/상점 published 사본과 소유자 명령"
+      ],
+      "evidence": [
+        {
+          "run": "r236r30-impact-so-inspector-r30-third-pending-01",
+          "sourceLabel": "r236r30",
+          "marker": "R30_STEP=PASS; name=research-shop;",
+          "originalWholeExit": 1,
+          "originalStopReason": null,
+          "evidenceFile": "unity.redacted.log",
+          "evidenceSha256": "c05a5742f976a7ec18774b070d1cb150b6144eb7e6d190c7b179710f9ad029bd",
+          "currentSourceRun": false
+        }
+      ]
+    },
+    {
+      "id": "R30-23",
+      "title": "메타 조회가 재화와 업그레이드 원본 명령을 노출함",
+      "status": "fixed_with_scoped_verification",
+      "implementation": [
+        "메타/추적 사본과 소유자 명령"
+      ],
+      "evidence": [
+        {
+          "run": "r226r30-impact-so-inspector-r30-second-01",
+          "sourceLabel": "r226r30",
+          "marker": "R30_STEP=PASS; name=meta;",
+          "originalWholeExit": 1,
+          "originalStopReason": null,
+          "evidenceFile": "unity.redacted.log",
+          "evidenceSha256": "cdf1d5acbe43ad1508c0fd55ce2fbfe47e994ae4dc3f340d0bb81841a37a28ad",
+          "currentSourceRun": false
+        }
+      ]
+    },
+    {
+      "id": "R30-24",
+      "title": "장비 구성 조회가 저장 대상 원본을 반환함",
+      "status": "fixed_with_scoped_verification",
+      "implementation": [
+        "장비 구성 중첩 사본과 명령"
+      ],
+      "evidence": [
+        {
+          "run": "r221r30-impact-so-inspector-r30-first-01",
+          "sourceLabel": "r221r30",
+          "marker": "R30_LOADOUT_QUERY=PASS",
+          "originalWholeExit": 0,
+          "originalStopReason": null,
+          "evidenceFile": "unity.redacted.log",
+          "evidenceSha256": "9e5ea163f3b334c35c456a0a20138f278e6b17a5b768070e0322862e165e85f6",
+          "currentSourceRun": false
+        }
+      ]
+    },
+    {
+      "id": "R30-25",
+      "title": "여러 조회가 가변 공유 캐시를 재사용함",
+      "status": "fixed_with_scoped_verification",
+      "implementation": [
+        "공유 캐시10경계 및 명령/외부 구역의 소유 상태 보호"
+      ],
+      "evidence": [
+        {
+          "run": "r226r30-impact-so-inspector-r30-second-01",
+          "sourceLabel": "r226r30",
+          "marker": "R30_STEP=PASS; name=derived-stats;",
+          "originalWholeExit": 1,
+          "originalStopReason": null,
+          "evidenceFile": "unity.redacted.log",
+          "evidenceSha256": "cdf1d5acbe43ad1508c0fd55ce2fbfe47e994ae4dc3f340d0bb81841a37a28ad",
+          "currentSourceRun": false
+        },
+        {
+          "run": "r226r30-impact-so-inspector-r30-second-01",
+          "sourceLabel": "r226r30",
+          "marker": "R30_STEP=PASS; name=usage-links;",
+          "originalWholeExit": 1,
+          "originalStopReason": null,
+          "evidenceFile": "unity.redacted.log",
+          "evidenceSha256": "cdf1d5acbe43ad1508c0fd55ce2fbfe47e994ae4dc3f340d0bb81841a37a28ad",
+          "currentSourceRun": false
+        },
+        {
+          "run": "r231r30-impact-so-inspector-r30-third-01",
+          "sourceLabel": "r231r30",
+          "marker": "R30_STEP=PASS; name=runtime-profile;",
+          "originalWholeExit": 1,
+          "originalStopReason": null,
+          "evidenceFile": "unity.redacted.log",
+          "evidenceSha256": "94e1d24edd30cfdc90d310b7e9eadc728ed06f2d516cc14b44a1115da9e42ded",
+          "currentSourceRun": false
+        },
+        {
+          "run": "r231r30-impact-so-inspector-r30-third-01",
+          "sourceLabel": "r231r30",
+          "marker": "R30_STEP=PASS; name=alerts;",
+          "originalWholeExit": 1,
+          "originalStopReason": null,
+          "evidenceFile": "unity.redacted.log",
+          "evidenceSha256": "94e1d24edd30cfdc90d310b7e9eadc728ed06f2d516cc14b44a1115da9e42ded",
+          "currentSourceRun": false
+        },
+        {
+          "run": "r231r30-impact-so-inspector-r30-third-01",
+          "sourceLabel": "r231r30",
+          "marker": "R30_STEP=PASS; name=all-stacks;",
+          "originalWholeExit": 1,
+          "originalStopReason": null,
+          "evidenceFile": "unity.redacted.log",
+          "evidenceSha256": "94e1d24edd30cfdc90d310b7e9eadc728ed06f2d516cc14b44a1115da9e42ded",
+          "currentSourceRun": false
+        },
+        {
+          "run": "r233r30-impact-so-inspector-r30-third-remaining-01",
+          "sourceLabel": "r233r30",
+          "marker": "R30_STEP=PASS; name=living-membership;",
+          "originalWholeExit": 1,
+          "originalStopReason": null,
+          "evidenceFile": "unity.redacted.log",
+          "evidenceSha256": "2c25575ebe8fffc2b0b69b2a0f87a5edcafaddbacf17aeaf0e75b6adc00ece97",
+          "currentSourceRun": false
+        },
+        {
+          "run": "r233r30-impact-so-inspector-r30-third-remaining-01",
+          "sourceLabel": "r233r30",
+          "marker": "R30_STEP=PASS; name=regional-contract;",
+          "originalWholeExit": 1,
+          "originalStopReason": null,
+          "evidenceFile": "unity.redacted.log",
+          "evidenceSha256": "2c25575ebe8fffc2b0b69b2a0f87a5edcafaddbacf17aeaf0e75b6adc00ece97",
+          "currentSourceRun": false
+        },
+        {
+          "run": "r233r30-impact-so-inspector-r30-third-remaining-01",
+          "sourceLabel": "r233r30",
+          "marker": "R30_STEP=PASS; name=crop-cache;",
+          "originalWholeExit": 1,
+          "originalStopReason": null,
+          "evidenceFile": "unity.redacted.log",
+          "evidenceSha256": "2c25575ebe8fffc2b0b69b2a0f87a5edcafaddbacf17aeaf0e75b6adc00ece97",
+          "currentSourceRun": false
+        },
+        {
+          "run": "r246r30-impact-so-inspector-r30-play-commands-01",
+          "sourceLabel": "r246r30",
+          "marker": "result=PASS",
+          "originalWholeExit": 0,
+          "originalStopReason": null,
+          "evidenceFile": "r30-commands-play.txt",
+          "evidenceSha256": "337b4eee4f56cbce4529e015fed78c25822ad219b980b627872266de398a3ef0",
+          "currentSourceRun": false
+        },
+        {
+          "run": "r246r30-impact-so-inspector-r30-play-exterior-01",
+          "sourceLabel": "r246r30",
+          "marker": "result=PASS",
+          "originalWholeExit": 0,
+          "originalStopReason": null,
+          "evidenceFile": "r30-exterior-play.txt",
+          "evidenceSha256": "4a17be3dd8efd6ebef17035e92e4368d07563e7d2a41393373576277013edab4",
+          "currentSourceRun": false
+        }
+      ]
+    },
+    {
+      "id": "R30-26",
+      "title": "[P3, 낮은 영향] 문 정책의 거절 결과를 화면이 버림",
+      "status": "fixed_with_scoped_verification",
+      "implementation": [
+        "문 권한 붙여넣기 거절 이유 표시"
+      ],
+      "evidence": [
+        {
+          "run": "r248r30-impact-so-inspector-r30-play-door-01",
+          "sourceLabel": "r248r30",
+          "marker": "result=PASS",
+          "originalWholeExit": 0,
+          "originalStopReason": null,
+          "evidenceFile": "r30-door-play.txt",
+          "evidenceSha256": "460311bf3db0c5663561dc023cb9de9dda8653db7fa5cfabe4db72486b98f950",
+          "currentSourceRun": false
+        }
+      ]
+    },
+    {
+      "id": "R30-27",
+      "title": "전투 조회가 실제 session과 가변 신체 부위를 노출함",
+      "status": "fixed_with_scoped_verification",
+      "implementation": [
+        "전투 중첩 사본과 명시적 완료 권한 및 무기 payload 복원"
+      ],
+      "evidence": [
+        {
+          "run": "r234r30-impact-so-inspector-r30-third-repairs-01",
+          "sourceLabel": "r234r30",
+          "marker": "R30_STEP=PASS; name=battle-query;",
+          "originalWholeExit": 1,
+          "originalStopReason": null,
+          "evidenceFile": "unity.redacted.log",
+          "evidenceSha256": "3ca90a2995878ebe18a064eaa451cb9531e190683b56e3cef31e2137ebd33d93",
+          "currentSourceRun": false
+        }
+      ]
+    },
+    {
+      "id": "R30-28",
+      "title": "방어 정책의 읽기와 생성 결과가 실제 정책 원본을 반환함",
+      "status": "fixed_with_scoped_verification",
+      "implementation": [
+        "방어 정책4반환의 사본과 생성/복제 격리"
+      ],
+      "evidence": [
+        {
+          "run": "r221r30-impact-so-inspector-r30-first-01",
+          "sourceLabel": "r221r30",
+          "marker": "R30_FIRST_CONTRACTS=PASS",
+          "originalWholeExit": 0,
+          "originalStopReason": null,
+          "evidenceFile": "unity.redacted.log",
+          "evidenceSha256": "9e5ea163f3b334c35c456a0a20138f278e6b17a5b768070e0322862e165e85f6",
+          "currentSourceRun": false
+        }
+      ]
+    },
+    {
+      "id": "R30-29",
+      "title": "시설 진화 조회가 다음 세대의 영속 후보를 확정함",
+      "status": "fixed_with_scoped_verification",
+      "implementation": [
+        "진화 조회 순수화와 명시적 후보/완료 명령 및 기존 저장 조정"
+      ],
+      "evidence": [
+        {
+          "run": "r234r30-impact-so-inspector-r30-third-repairs-01",
+          "sourceLabel": "r234r30",
+          "marker": "R30_STEP=PASS; name=generation-command;",
+          "originalWholeExit": 1,
+          "originalStopReason": null,
+          "evidenceFile": "unity.redacted.log",
+          "evidenceSha256": "3ca90a2995878ebe18a064eaa451cb9531e190683b56e3cef31e2137ebd33d93",
+          "currentSourceRun": false
+        }
+      ]
+    },
+    {
+      "id": "R30-30",
+      "title": "원정 선택과 완료 안내 문자열의 원문이 손상됨",
+      "status": "fixed_text_static_and_current_compilation",
+      "implementation": [
+        "원정 안내 문자열 손상 교정"
+      ],
+      "evidence": []
+    }
+  ],
+  "additional": [
+    {
+      "id": "MP01",
+      "status": "fixed_with_scoped_verification",
+      "evidence": {
+        "run": "r233r30-impact-so-inspector-r30-third-remaining-01",
+        "sourceLabel": "r233r30",
+        "marker": "R30_STEP=PASS; name=carry-restore-atomic;",
+        "originalWholeExit": 1,
+        "originalStopReason": null,
+        "evidenceFile": "unity.redacted.log",
+        "evidenceSha256": "2c25575ebe8fffc2b0b69b2a0f87a5edcafaddbacf17aeaf0e75b6adc00ece97",
+        "currentSourceRun": false
+      }
+    },
+    {
+      "id": "MP02",
+      "status": "fixed_with_scoped_verification",
+      "evidence": {
+        "run": "r233r30-impact-so-inspector-r30-third-remaining-01",
+        "sourceLabel": "r233r30",
+        "marker": "R30_STEP=PASS; name=seed-corruption;",
+        "originalWholeExit": 1,
+        "originalStopReason": null,
+        "evidenceFile": "unity.redacted.log",
+        "evidenceSha256": "2c25575ebe8fffc2b0b69b2a0f87a5edcafaddbacf17aeaf0e75b6adc00ece97",
+        "currentSourceRun": false
+      }
+    }
+  ],
+  "conditional": [
+    {
+      "id": "CP01",
+      "decision": "유전 공식의 고정 의미 키 계약 유지. 현행 누락 공식 또는 실패한 생산자 반례 없음."
+    },
+    {
+      "id": "CP02",
+      "decision": "단일 야전 키트 정책 유지. 현행 종족의 소비 불일치가 없으며 새 종족 일반 키트 경로는 기존 계약."
+    },
+    {
+      "id": "CP03",
+      "decision": "적 표시/수명 호스트와 전투 정의를 구별. 실제 적 수치/장비/능력은 별도 정의를 소비하므로 공통 원형을 일괄 교체하지 않음."
+    },
+    {
+      "id": "CP04",
+      "decision": "조립 검증기의 도메인 지식은 현행 책임. 실제 필드 경로 결합만 R30-18에서 수정."
+    },
+    {
+      "id": "CP05",
+      "decision": "고정 시작/귀환/사건 시나리오 안정 ID 유지. 일반 전술/충전 소비의 ID 분기는 R30-16/17에서 수정."
+    },
+    {
+      "id": "CP06",
+      "decision": "작성 SO는 불변 정의 계약. 14개 노출 후보의 실제 런타임 작성/소비 불일치가 입증되지 않아 일괄 복제나 구조 분리하지 않음. 런타임 상태/캐시 노출과 구별."
+    }
+  ],
+  "limits": [
+    "Historical partial PASS steps remain attached to their original whole FAIL and source labels. They are not relabelled as r249 full runs.",
+    "Current-source five-group integration is separate from scoped native evidence.",
+    "UI batch pointer/state/layout checks passed; screenshots and human visual acceptance were not run.",
+    "Graft surgery and transport include controlled fixtures; no claim of uncontrolled long-session balance or narrative-model inference.",
+    "R30-30 four rendered message branches were not individually clicked; literal diff, source path and current compilation were checked.",
+    "This closes the reported defects and does not prove every future content combination or every line correct."
+  ]
+}

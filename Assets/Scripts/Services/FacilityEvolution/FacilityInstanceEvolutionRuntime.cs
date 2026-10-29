@@ -90,10 +90,6 @@ public sealed class FacilityInstanceEvolutionRuntime : IFacilityEvolutionRuntime
     {
         FacilityEvolutionStateComponent component = RequireComponent(facility);
         component.InitializeIfNeeded(facility);
-        FacilityEvolutionState state = component.InstanceEvolution;
-        EnsureNarrativeSnapshot(state);
-        EnsureCandidates(facility, component, state);
-        component.ReplaceInstanceEvolution(state);
         return component.InstanceEvolution;
     }
 
@@ -119,7 +115,7 @@ public sealed class FacilityInstanceEvolutionRuntime : IFacilityEvolutionRuntime
             narrativeContext: narrativeContext);
         state.mastery = Mathf.Max(0f, state.mastery + Mathf.Max(0f, mastery));
         EnsureNarrativeSnapshot(state);
-        EnsureCandidates(facility, component, state);
+        EnsureCandidates(facility, state);
         component.ReplaceInstanceEvolution(state);
         facilityCandidateCache?.MarkDynamicStateDirty();
         return component.InstanceEvolution;
@@ -180,7 +176,7 @@ public sealed class FacilityInstanceEvolutionRuntime : IFacilityEvolutionRuntime
         FacilityEvolutionStateComponent component = RequireComponent(facility);
         component.InitializeIfNeeded(facility);
         FacilityEvolutionState state = component.InstanceEvolution;
-        EnsureCandidates(facility, component, state);
+        EnsureCandidates(facility, state);
         FacilityGenerationCandidate candidate = state.pendingCandidates
             .FirstOrDefault(entry => entry != null
                 && string.Equals(
@@ -594,9 +590,6 @@ public sealed class FacilityInstanceEvolutionRuntime : IFacilityEvolutionRuntime
                 return false;
             }
 
-            FacilityEvolutionState completedState = component.InstanceEvolution;
-            completedState.modificationOrder = null;
-            component.ReplaceInstanceEvolution(completedState);
             completed = true;
             RevokeCommittedInputOrThrow(modificationInput);
             return true;
@@ -924,6 +917,9 @@ public sealed class FacilityInstanceEvolutionRuntime : IFacilityEvolutionRuntime
         state.generation = candidate.targetGeneration;
         state.pendingCandidates.Clear();
         state.pendingHistoryHash = string.Empty;
+        state.modificationOrder = null;
+        EnsureNarrativeSnapshot(state);
+        EnsureCandidates(facility, state);
         component.ReplaceInstanceEvolution(state);
         RefreshRoomActivation(facility);
         facilityCandidateCache?.MarkDynamicStateDirty();
@@ -1082,9 +1078,11 @@ public sealed class FacilityInstanceEvolutionRuntime : IFacilityEvolutionRuntime
     {
         FacilityEvolutionStateComponent component = RequireComponent(facility);
         FacilityEvolutionState state = component.InstanceEvolution;
+        bool generationChanged = EnsureNarrativeSnapshot(state);
+        generationChanged |= EnsureCandidates(facility, state);
         int gridVersion = facility.Grid?.StructuralVersion ?? -1;
         int facilityVersion = facilityCandidateCache?.DynamicStateVersion ?? -1;
-        if (state.roomStructureVersion == gridVersion
+        if (!generationChanged && state.roomStructureVersion == gridVersion
             && state.facilityStateVersion == facilityVersion)
         {
             return false;
@@ -1116,14 +1114,13 @@ public sealed class FacilityInstanceEvolutionRuntime : IFacilityEvolutionRuntime
         return true;
     }
 
-    private void EnsureCandidates(
+    private bool EnsureCandidates(
         BuildableObject facility,
-        FacilityEvolutionStateComponent component,
         FacilityEvolutionState state)
     {
         if (!state.ReadyForGeneration || state.pendingCandidates.Count > 0)
         {
-            return;
+            return false;
         }
 
         CompactedHistorySegment closed = ledgerCompactor.CloseGeneration(
@@ -1204,7 +1201,7 @@ public sealed class FacilityInstanceEvolutionRuntime : IFacilityEvolutionRuntime
 
         state.pendingHistoryHash = historyHash;
         state.pendingCandidates = eligible;
-        component.ReplaceInstanceEvolution(state);
+        return true;
     }
 
     /// <summary>
@@ -1243,13 +1240,13 @@ public sealed class FacilityInstanceEvolutionRuntime : IFacilityEvolutionRuntime
         return true;
     }
 
-    private void EnsureNarrativeSnapshot(FacilityEvolutionState state)
+    private bool EnsureNarrativeSnapshot(FacilityEvolutionState state)
     {
         if (state == null
             || state.RequiredMastery <= 0f
             || state.mastery / state.RequiredMastery < 0.9f)
         {
-            return;
+            return false;
         }
 
         int targetGeneration = state.generation + 1;
@@ -1260,7 +1257,7 @@ public sealed class FacilityInstanceEvolutionRuntime : IFacilityEvolutionRuntime
                 && request.targetKind == EvolutionNarrativeTargetKind.Facility
                 && request.generation == targetGeneration))
         {
-            return;
+            return false;
         }
 
         string historyHash = ledgerCompactor.ComputeHistoryHash(
@@ -1303,6 +1300,7 @@ public sealed class FacilityInstanceEvolutionRuntime : IFacilityEvolutionRuntime
         historyNode.evidenceIds = new List<string>(request.evidenceIds);
         state.evolutionNodes.Add(historyNode);
         state.narrativeRequests.Add(request);
+        return true;
     }
 
     private FacilityGenerationCandidate CreateCandidate(

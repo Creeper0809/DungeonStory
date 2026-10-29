@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using UnityEngine;
 
@@ -36,25 +37,25 @@ public sealed class CharacterRuntimeProfile
         PhenotypeSpeciesId = request.PhenotypeSpeciesId;
         VisualVariantId = request.VisualVariantId;
         ReproductiveRole = request.ReproductiveRole;
-        expressedTraitIds = request.ExpressedTraitIds
+        expressedTraitIds = Array.AsReadOnly(request.ExpressedTraitIds
             .Select(value => value.Value)
-            .ToArray();
-        latentTraitIds = request.LatentTraitIds
+            .ToArray());
+        latentTraitIds = Array.AsReadOnly(request.LatentTraitIds
             .Select(value => value.Value)
-            .ToArray();
+            .ToArray());
         CharacterTraitSO[] authoredTraits = (expressedTraits
                 ?? Array.Empty<CharacterTraitSO>())
             .Where(value => value != null)
             .ToArray();
-        traitDisplayNames = authoredTraits
+        traitDisplayNames = Array.AsReadOnly(authoredTraits
             .Select(value => value?.traitName?.Trim() ?? string.Empty)
-            .ToArray();
-        legacyTraitPolicyNames = authoredTraits
+            .ToArray());
+        legacyTraitPolicyNames = Array.AsReadOnly(authoredTraits
             .SelectMany(value => value.LegacyPolicyNames)
             .Where(value => !string.IsNullOrWhiteSpace(value))
             .Select(value => value.Trim())
             .Distinct(StringComparer.Ordinal)
-            .ToArray();
+            .ToArray());
         behaviorUtilityDeltas = BuildBehaviorUtilityDeltas(authoredTraits);
         eventWeightMultipliers = BuildEventWeightMultipliers(authoredTraits);
         float legacyExperience = authoredTraits
@@ -69,9 +70,10 @@ public sealed class CharacterRuntimeProfile
             legacyExperience,
             .1f,
             1.75f);
-        innateAptitudes = new Dictionary<string, int>(
-            request.InnateAptitudes,
-            StringComparer.Ordinal);
+        innateAptitudes = new ReadOnlyDictionary<string, int>(
+            new Dictionary<string, int>(
+                request.InnateAptitudes,
+                StringComparer.Ordinal));
         this.finalModifiers = CopyModifiers(finalModifiers);
         SpeciesTag = species.speciesTag?.Trim() ?? string.Empty;
         needProfile = CopyNeeds(species.needs);

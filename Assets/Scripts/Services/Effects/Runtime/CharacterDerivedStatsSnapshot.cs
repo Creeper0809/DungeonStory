@@ -168,13 +168,15 @@ public sealed class CharacterSurgicalPartGameplayEffectSourceQuery :
     private readonly IAnatomyHealthRuntime anatomy;
     private readonly IAnatomyProfileCatalog anatomyProfiles;
     private readonly ISurgeryOrderDemandQuery surgeryOrders;
+    private readonly SurgicalGraftEffectCatalog graftEffects;
 
     public CharacterSurgicalPartGameplayEffectSourceQuery(
         Func<ISurgicalPartRuntime> partRuntime,
         IItemDefinitionCatalog items,
         IAnatomyHealthRuntime anatomy,
         IAnatomyProfileCatalog anatomyProfiles,
-        ISurgeryOrderDemandQuery surgeryOrders)
+        ISurgeryOrderDemandQuery surgeryOrders,
+        SurgicalGraftEffectCatalog graftEffects)
     {
         this.partRuntime = partRuntime
             ?? throw new ArgumentNullException(nameof(partRuntime));
@@ -182,6 +184,7 @@ public sealed class CharacterSurgicalPartGameplayEffectSourceQuery :
         this.anatomy = anatomy ?? throw new ArgumentNullException(nameof(anatomy));
         this.anatomyProfiles = anatomyProfiles
             ?? throw new ArgumentNullException(nameof(anatomyProfiles));
+        this.graftEffects = graftEffects ?? throw new ArgumentNullException(nameof(graftEffects));
         this.surgeryOrders = surgeryOrders
             ?? throw new ArgumentNullException(nameof(surgeryOrders));
     }
@@ -302,51 +305,36 @@ public sealed class CharacterSurgicalPartGameplayEffectSourceQuery :
             if (!part.installed)
                 continue;
 
-            string itemId = part.itemDefinitionId?.Trim() ?? string.Empty;
-            if (itemId.Length == 0)
-                continue;
-            if (!items.TryGet(new ItemDefinitionId(itemId), out ItemDefinitionSO item))
-            {
-                throw new InvalidOperationException(
-                    $"Installed surgical part '{part.partInstanceId}' references unknown item '{itemId}'.");
-            }
-            if (!item.TryGetFeature(
-                    out InstalledSurgicalPartEffectItemFeature feature))
-            {
-                continue;
-            }
-
+            var bindings = new List<GameplayEffectBinding>();
             int compatibleSlotCount = profile.Nodes.Count(candidate =>
-                candidate != null
-                && SurgicalPartAnatomyCompatibility.IsCompatible(
-                    profile,
-                    part.nodeId,
-                    candidate.NodeId));
+                candidate != null && SurgicalPartAnatomyCompatibility.IsCompatible(
+                    profile, part.nodeId, candidate.NodeId));
             if (compatibleSlotCount <= 0)
-            {
                 throw new InvalidOperationException(
                     $"Installed surgical part '{part.partInstanceId}' has no authored compatible anatomy slot.");
-            }
-
-            float strength = Mathf.Clamp(
-                node.ConditionFactor
-                    * Mathf.Max(0f, node.installedPartEfficiency),
-                0f,
+            float strength = Mathf.Clamp(node.ConditionFactor
+                * Mathf.Max(0f, node.installedPartEfficiency), 0f,
                 CharacterAnatomyStateBounds.MaximumInstalledPartEfficiency);
-            GameplayEffectBinding[] bindings = (feature.effects
-                    ?? new List<GameplayEffectBinding>())
-                .Where(value => value?.definition != null)
-                .Select(value => Scale(
-                    value,
-                    strength,
-                    compatibleSlotCount))
-                .ToArray();
-            if (bindings.Length > 0)
+            string itemId = part.itemDefinitionId?.Trim() ?? string.Empty;
+            if (itemId.Length > 0)
             {
-                sources.Add(new InstalledPartEffectSource(
-                    part.partInstanceId,
-                    bindings));
+                if (!items.TryGet(new ItemDefinitionId(itemId), out ItemDefinitionSO item))
+                    throw new InvalidOperationException(
+                        $"Installed surgical part '{part.partInstanceId}' references unknown item '{itemId}'.");
+                if (item.TryGetFeature(out InstalledSurgicalPartEffectItemFeature feature))
+                    bindings.AddRange((feature.effects ?? new List<GameplayEffectBinding>())
+                        .Where(value => value?.definition != null)
+                        .Select(value => Scale(value, strength, compatibleSlotCount)));
             }
+            if (!string.IsNullOrWhiteSpace(part.specialEffectId))
+            {
+                var graft = graftEffects.Require(part.specialEffectId);
+                float specialStrength = Mathf.Clamp01(strength * part.specialEffectStrength);
+                bindings.AddRange(graft.Effects.Select(value =>
+                    Scale(value, specialStrength, compatibleSlotCount)));
+            }
+            if (bindings.Count > 0)
+                sources.Add(new InstalledPartEffectSource(part.partInstanceId, bindings));
         }
 
         foreach (SurgicalPartInstance part in installedParts)
@@ -640,24 +628,42 @@ public sealed class CharacterTransientGameplayEffectSourceQuery :
 
 public sealed class CharacterDerivedStatsSnapshot
 {
+    private readonly GameplayEffectContribution[] contributions;
+
     public CharacterDerivedStatsSnapshot(
         string revisionKey,
         IReadOnlyDictionary<string, float> values,
         IReadOnlyList<GameplayEffectContribution> contributions)
     {
         RevisionKey = revisionKey ?? string.Empty;
-        Values = values ?? throw new ArgumentNullException(nameof(values));
-        Contributions = contributions
-            ?? throw new ArgumentNullException(nameof(contributions));
+        if (values == null) throw new ArgumentNullException(nameof(values));
+        if (contributions == null) throw new ArgumentNullException(nameof(contributions));
+        Values = new System.Collections.ObjectModel.ReadOnlyDictionary<string, float>(
+            values.ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal));
+        this.contributions = contributions.Select(CopyContribution).ToArray();
     }
 
     public string RevisionKey { get; }
     public IReadOnlyDictionary<string, float> Values { get; }
-    public IReadOnlyList<GameplayEffectContribution> Contributions { get; }
+    public IReadOnlyList<GameplayEffectContribution> Contributions =>
+        Array.AsReadOnly(contributions.Select(CopyContribution).ToArray());
     public float Get(string targetId, float fallback = 1f) =>
         Values.TryGetValue(targetId?.Trim() ?? string.Empty, out float value)
             ? value
             : fallback;
+
+    private static GameplayEffectContribution CopyContribution(GameplayEffectContribution value) =>
+        value == null ? null : new GameplayEffectContribution
+        {
+            EffectId = value.EffectId,
+            Source = value.Source,
+            BindingId = value.BindingId,
+            AuthoredValue = value.AuthoredValue,
+            AppliedValue = value.AppliedValue,
+            Suppressed = value.Suppressed,
+            SuppressionReason = value.SuppressionReason,
+            Definition = value.Definition
+        };
 }
 
 public sealed class CharacterDerivedStatsSnapshotProjector

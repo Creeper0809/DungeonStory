@@ -6,6 +6,7 @@ public interface ICircusRuntime
 {
     IReadOnlyList<CircusProgramModule> Programs { get; }
     IReadOnlyList<CircusShowOrder> Orders { get; }
+    IReadOnlyList<string> GetAutoSelectedPerformerIds(BuildableObject stage, string programId);
     CircusProgramForecast GetForecast(
         BuildableObject stage,
         string programId,
@@ -31,6 +32,7 @@ public interface ICircusRuntime
 public interface IWildlifeCaptureRuntime
 {
     bool IsCaptured(string wildlifeId);
+    bool CanAcceptCapture(BuildableObject pen, out string failureReason);
     bool TryCapture(WildlifeActor wildlife, BuildableObject pen, out string failureReason);
     bool TryOrderCapture(
         WildlifeActor wildlife,

@@ -562,7 +562,10 @@ internal static class DungeonRestoreOutcomeDebugScenarios
     private sealed class PauseAuthority : IGameSessionPauseAuthority
     {
         internal bool Paused;
+        public bool IsPaused => Paused;
         public void SetPaused(bool paused) { Paused = paused; }
+        public IDisposable AcquirePause() =>
+            throw new InvalidOperationException("This restore-failure fixture does not open UI pause scopes.");
     }
 
     private sealed class TimeScale : IGameTimeScaleController

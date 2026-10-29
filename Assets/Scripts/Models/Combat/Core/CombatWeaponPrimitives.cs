@@ -8,6 +8,7 @@ using UnityEngine.Scripting.APIUpdating;
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public abstract class CombatAttackVerb
 {
+    internal CombatAttackVerb CreateSnapshot() => (CombatAttackVerb)MemberwiseClone();
     [Min(0.1f)] public float attackTime = 1f;
     [Min(0f)] public float baseDamage = 10f;
     [Min(0f)] public float penetration = 5f;
@@ -140,6 +141,17 @@ public sealed class CombatWeaponSnapshot
     public CombatEquipmentRoleFlags RoleFlags { get; }
     public float ArcaneManaCost { get; }
 
+    public CombatWeaponSnapshot CreateSnapshot() => new(
+        DefinitionId, InstanceId, Kind, Verb?.CreateSnapshot(),
+        Array.AsReadOnly(Ranges.Select(value => new CombatRangeProfile
+        {
+            band = value.band, accuracyMultiplier = value.accuracyMultiplier,
+            damageMultiplier = value.damageMultiplier
+        }).ToArray()), MaximumRange, Quality, AmmunitionItemId, MagazineCapacity,
+        LoadedAmmo, ReloadSeconds, SupportsAimed, SupportsRapid, SupportsSuppressive,
+        MaterialDamageMultiplier, MaterialPenetrationMultiplier, EvolutionAccuracyMultiplier,
+        GunpowderWeapon, DurabilityRatio, MaximumMisfireChance, SmokeExposure, RoleFlags, ArcaneManaCost);
+
     public static IReadOnlyList<string> ValidateRangeProfiles(
         IEnumerable<CombatRangeProfile> profiles)
     {
@@ -247,61 +259,6 @@ public readonly struct CombatAmmunitionProfile
     public int StatusTurns { get; }
     public bool Nonlethal { get; }
     public float TargetAirborneExposure { get; }
-
-    public static CombatAmmunitionProfile For(string ammunitionItemId) =>
-        (ammunitionItemId?.Trim() ?? string.Empty) switch
-        {
-            "ammo:incendiary-arrow" => new(
-                CombatSpecialEffectFlags.Burning,
-                damageMultiplier: 1.05f,
-                statusPotency: 2.5f,
-                statusTurns: 3),
-            "ammo:incendiary-bolt" => new(
-                CombatSpecialEffectFlags.Burning,
-                damageMultiplier: 1.08f,
-                penetrationMultiplier: 1.1f,
-                statusPotency: 3f,
-                statusTurns: 3),
-            "ammo:smoke-cartridge" => new(
-                CombatSpecialEffectFlags.SmokeScreen,
-                damageMultiplier: 0.2f,
-                suppressionMultiplier: 1.8f,
-                statusPotency: 20f,
-                statusTurns: 2,
-                targetAirborneExposure: 20f),
-            "ammo:armor-piercing-cartridge" => new(
-                CombatSpecialEffectFlags.None,
-                damageMultiplier: 0.9f,
-                penetrationMultiplier: 1.65f),
-            "ammo:scatter-cartridge" => new(
-                CombatSpecialEffectFlags.Scatter,
-                suppressionMultiplier: 1.5f),
-            "ammo:signal-flare" => new(
-                CombatSpecialEffectFlags.SignalSupport,
-                damageMultiplier: 0.35f,
-                statusPotency: 0.12f,
-                statusTurns: 2),
-            "ammo:blacksteel-bolt" => new(
-                CombatSpecialEffectFlags.ConstructPiercing,
-                penetrationMultiplier: 1.4f),
-            "ammo:rune-cartridge" => new(
-                CombatSpecialEffectFlags.RuneDamage,
-                damageMultiplier: 1.2f,
-                penetrationMultiplier: 1.15f),
-            "ammo:tranquilizer-dart" => new(
-                CombatSpecialEffectFlags.Tranquilized,
-                damageMultiplier: 0.25f,
-                suppressionMultiplier: 2.25f,
-                statusPotency: 0.35f,
-                statusTurns: 3,
-                nonlethal: true),
-            "ammo:mana-disruptor-bolt" => new(
-                CombatSpecialEffectFlags.ManaBlocked,
-                damageMultiplier: 0.65f,
-                statusPotency: 0.25f,
-                statusTurns: 2),
-            _ => new CombatAmmunitionProfile(CombatSpecialEffectFlags.None)
-        };
 
     public float DamageMultiplierFor(
         CombatRangeBand band,

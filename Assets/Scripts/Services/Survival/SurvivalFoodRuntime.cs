@@ -88,6 +88,7 @@ public sealed partial class SurvivalFoodRuntime :
     private readonly IGameCalendar calendar;
     private readonly ICharacterConsumablesApplication consumables;
     private readonly IClimateQuery climate;
+    private readonly IClimateDefinitionCatalog climateDefinitions;
     private readonly SurvivalTreatmentRuntime treatment;
     private readonly SurvivalFoodStockRuntime stockRuntime;
     private readonly SurvivalFoodSpoilageRuntime spoilageRuntime;
@@ -169,6 +170,7 @@ public sealed partial class SurvivalFoodRuntime :
         this.itemStackRuntime = dependencies.ItemStackRuntime;
         this.itemCatalog = dependencies.ItemCatalog;
         climate = dependencies.Climate;
+        climateDefinitions = dependencies.ClimateDefinitions;
         this.gameClock = gameClock
             ?? throw new ArgumentNullException(nameof(gameClock));
         this.calendar = calendar ?? throw new ArgumentNullException(nameof(calendar));
@@ -1292,24 +1294,33 @@ public sealed partial class SurvivalFoodRuntime :
     }
 
     private SurvivalWeatherType CurrentWeather =>
-        debugWeatherOverride ?? MapWeather(climate.WeatherFrontId);
+        debugWeatherOverride ?? MapWeather(
+            climateDefinitions,
+            climate.WeatherFrontId);
 
     private float CurrentOutdoorTemperature => debugWeatherOverride.HasValue
         ? GetDebugOutdoorTemperature(debugWeatherOverride.Value)
         : climate.OutdoorTemperatureC;
 
-    private static SurvivalWeatherType MapWeather(string weatherFrontId) =>
-        weatherFrontId switch
+    private static SurvivalWeatherType MapWeather(
+        IClimateDefinitionCatalog definitions,
+        string weatherFrontId)
+    {
+        WeatherFrontDefinition front = (definitions
+            ?? throw new ArgumentNullException(nameof(definitions)))
+            .RequireFront(weatherFrontId);
+        return front.Kind switch
         {
-            "weather:rain" => SurvivalWeatherType.Rain,
-            "weather:fog" => SurvivalWeatherType.Fog,
-            "weather:heatwave" => SurvivalWeatherType.HeatWave,
-            "weather:cold-snap" => SurvivalWeatherType.ColdSnap,
-            "weather:storm" => SurvivalWeatherType.Storm,
-            "weather:clear" => SurvivalWeatherType.Clear,
+            WeatherFrontKind.Rain => SurvivalWeatherType.Rain,
+            WeatherFrontKind.Fog => SurvivalWeatherType.Fog,
+            WeatherFrontKind.Heatwave => SurvivalWeatherType.HeatWave,
+            WeatherFrontKind.ColdSnap => SurvivalWeatherType.ColdSnap,
+            WeatherFrontKind.Storm => SurvivalWeatherType.Storm,
+            WeatherFrontKind.Clear => SurvivalWeatherType.Clear,
             _ => throw new InvalidOperationException(
-                $"Unsupported climate weather front '{weatherFrontId}'.")
+                $"Unsupported climate weather front kind '{front.Kind}' for '{front.Id}'.")
         };
+    }
 
     private static float GetDebugOutdoorTemperature(
         SurvivalWeatherType weather) => weather switch

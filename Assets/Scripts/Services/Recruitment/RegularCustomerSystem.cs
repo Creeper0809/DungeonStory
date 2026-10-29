@@ -307,6 +307,10 @@ public sealed class RegularCustomerState
 
     public IReadOnlyCollection<RegularCustomerRecord> Records =>
         Current.RecordsView;
+    public RegularCustomerState CreateSnapshot() => new()
+    {
+        localState = Current.DeepClone()
+    };
     internal IReadOnlyList<RegularCustomerPendingFactData> PendingFacts =>
         Current.PendingFacts.Select(row => row.Clone()).ToArray();
 

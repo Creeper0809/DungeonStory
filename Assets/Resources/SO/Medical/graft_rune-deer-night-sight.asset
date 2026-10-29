@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 99c7a92f563b43a191cd66345dfc7836, type: 3}
+  m_Name: graft_rune-deer-night-sight
+  m_EditorClassIdentifier: Assembly-CSharp::SurgicalGraftEffectDefinitionSO
+  numericId: 16023043
+  graftId: graft:rune-deer-night-sight
+  donorSpecies: {fileID: 11400000, guid: 94cda6c23d98eea4a84c7fb5304d5503, type: 2}
+  requiredNodeKind: 2
+  requiredFunction: 4
+  displayName: "\ub8ec\uc0ac\uc2b4\uc758 \uc57c\uac04 \uc2dc\uc57c"
+  description: "\uac74\uac15\ud55c \uc591\ucabd \ub208 \uc774\uc2dd \uc2dc \uc800\uc870\ub3c4 \uc815\ubc00 \uc791\uc5c5\uc758 \uc2dc\uac01 \ud53c\ub85c\uc640 \uc6d0\uac70\ub9ac \uad11\ub7c9 \uba85\uc911 \ubd88\ub9ac 50% \uac10\uc18c. \uc190\uc0c1\uacfc \ud55c\ucabd \uc774\uc2dd \uc2dc \ud61c\ud0dd \uac10\uc18c."
+  effects:
+  - bindingId: graft:rune-deer-night-sight:effect:0
+    definition: {fileID: 11400000, guid: caf5965f66ad40e9829cc0a4c7c1fd0c, type: 2}
+    value: 0.5
+    condition: {fileID: 0}

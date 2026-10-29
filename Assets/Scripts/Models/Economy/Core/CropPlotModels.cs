@@ -230,6 +230,30 @@ public sealed class CropPlotSnapshot
     public int FrozenPrimaryQuantityBeforeSeasonalLoss { get; set; }
     public int FrozenPrimarySeasonalLossQuantity { get; set; }
     public int FrozenPrimaryQuantityAfterSeasonalLoss { get; set; }
+
+    public CropPlotSnapshot Clone()
+    {
+        CropPlotSnapshot clone = (CropPlotSnapshot)MemberwiseClone();
+        clone.RequiredMaterials = CloneQuantities(RequiredMaterials);
+        clone.DeliveredMaterials = CloneQuantities(DeliveredMaterials);
+        return clone;
+    }
+
+    private static IReadOnlyDictionary<string, int> CloneQuantities(
+        IReadOnlyDictionary<string, int> source)
+    {
+        Dictionary<string, int> copy =
+            new Dictionary<string, int>(StringComparer.Ordinal);
+        if (source != null)
+        {
+            foreach (KeyValuePair<string, int> quantity in source)
+            {
+                copy.Add(quantity.Key, quantity.Value);
+            }
+        }
+
+        return ReadOnlyView.Dictionary(copy);
+    }
 }
 
 public readonly struct CropPlotVisualState

@@ -74,6 +74,12 @@ public static class CharacterManualSkillRuntime
         out string message)
     {
         message = string.Empty;
+        if (source == null || source.IsDead
+            || source.CurrentLifecycleState != CharacterLifecycleState.Active)
+        {
+            message = "던전에서 활동 중인 인물만 이 경로로 작업 능력을 사용할 수 있습니다.";
+            return false;
+        }
         CharacterSkillInstance skill = FindSkill(source, skillId);
         if (!IsManualWorkSkill(skill))
         {
@@ -247,6 +253,7 @@ public static class CharacterManualSkillRuntime
         message = string.Empty;
         CharacterActor[] eligible = world.Characters
             .Where(value => value != null && !value.IsDead)
+            .Where(value => value.CurrentLifecycleState == CharacterLifecycleState.Active)
             .Where(value => skill.target == CharacterSkillTarget.Self
                 ? ReferenceEquals(value, source)
                 : skill.target == CharacterSkillTarget.Ally

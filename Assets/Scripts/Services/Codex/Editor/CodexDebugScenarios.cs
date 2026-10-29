@@ -577,8 +577,10 @@ public static class CodexDebugScenarios
 
             public BlueprintResearchState GetState()
             {
-                return state;
+                return state.CreateSnapshot();
             }
+
+            public BlueprintResearchState GetStateForDebug() => state;
         }
 
         private sealed class ScenarioBuildingDependencies :

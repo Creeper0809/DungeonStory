@@ -2,7 +2,7 @@
 
 서로 다른 콘텐츠가 공유하는 상태 변화를 단일 실행 규약으로 정의한다
 
-총 65개 항목이며, 비교군은 실제 대체 가능성을 검토하기 위한 후보군이다.
+총 68개 항목이며, 비교군은 실제 대체 가능성을 검토하기 위한 후보군이다.
 
 ## 데이터
 
@@ -63,6 +63,9 @@
 | `effect:environment:comfort-minimum-offset:addflat` | effect_environment_comfort-minimum-offset_addflat | 서로 다른 콘텐츠가 공유하는 상태 변화를 단일 실행 규약으로 정의한다 | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 1 | [effect_environment_comfort-minimum-offset_addflat.asset](../../../../../Assets/Resources/SO/V26/Effects/Definitions/effect_environment_comfort-minimum-offset_addflat.asset) |
 | `effect:environment:safe-minimum-offset:addflat` | effect_environment_safe-minimum-offset_addflat | 서로 다른 콘텐츠가 공유하는 상태 변화를 단일 실행 규약으로 정의한다 | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 1 | [effect_environment_safe-minimum-offset_addflat.asset](../../../../../Assets/Resources/SO/V26/Effects/Definitions/effect_environment_safe-minimum-offset_addflat.asset) |
 | `effect:food:spoilage-detection:multiply` | effect_food_spoilage-detection_multiply | 서로 다른 콘텐츠가 공유하는 상태 변화를 단일 실행 규약으로 정의한다 | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 1 | [effect_food_spoilage-detection_multiply.asset](../../../../../Assets/Resources/SO/V26/Effects/Definitions/effect_food_spoilage-detection_multiply.asset) |
+| `effect:graft:moss-boar-toughness:multiply` | effect_graft_moss-boar-toughness_multiply | 서로 다른 콘텐츠가 공유하는 상태 변화를 단일 실행 규약으로 정의한다 | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 0 | [effect_graft_moss-boar-toughness_multiply.asset](../../../../../Assets/Resources/SO/V26/Effects/Definitions/effect_graft_moss-boar-toughness_multiply.asset) |
+| `effect:graft:rune-deer-night-sight:multiply` | effect_graft_rune-deer-night-sight_multiply | 서로 다른 콘텐츠가 공유하는 상태 변화를 단일 실행 규약으로 정의한다 | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 0 | [effect_graft_rune-deer-night-sight_multiply.asset](../../../../../Assets/Resources/SO/V26/Effects/Definitions/effect_graft_rune-deer-night-sight_multiply.asset) |
+| `effect:graft:shadow-wolf-endurance:multiply` | effect_graft_shadow-wolf-endurance_multiply | 서로 다른 콘텐츠가 공유하는 상태 변화를 단일 실행 규약으로 정의한다 | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 0 | [effect_graft_shadow-wolf-endurance_multiply.asset](../../../../../Assets/Resources/SO/V26/Effects/Definitions/effect_graft_shadow-wolf-endurance_multiply.asset) |
 | `effect:harvest:seed-yield:multiply` | effect_harvest_seed-yield_multiply | 서로 다른 콘텐츠가 공유하는 상태 변화를 단일 실행 규약으로 정의한다 | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 1 | [effect_harvest_seed-yield_multiply.asset](../../../../../Assets/Resources/SO/V26/Effects/Definitions/effect_harvest_seed-yield_multiply.asset) |
 | `effect:harvest:yield:multiply` | effect_harvest_yield_multiply | 서로 다른 콘텐츠가 공유하는 상태 변화를 단일 실행 규약으로 정의한다 | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 1 | [effect_harvest_yield_multiply.asset](../../../../../Assets/Resources/SO/V26/Effects/Definitions/effect_harvest_yield_multiply.asset) |
 | `effect:medical:aftermath-duration:multiply` | effect_medical_aftermath-duration_multiply | 서로 다른 콘텐츠가 공유하는 상태 변화를 단일 실행 규약으로 정의한다 | 작성 자산에서 직접 비용·위험 수치를 확인할 수 없음 | catalog-registered-static-consumer | active-authored | 1 | [effect_medical_aftermath-duration_multiply.asset](../../../../../Assets/Resources/SO/V26/Effects/Definitions/effect_medical_aftermath-duration_multiply.asset) |

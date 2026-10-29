@@ -372,7 +372,7 @@ public static class VisitorExitOutcomeDebugScenarios
     }
     private static CharacterVisitorExitOutcomeRuntime Owner(TheftFixture f, FakePopulation p,
         VisitorExitPublicationRuntime journal, IGameEventBus events, IGameCalendar calendar = null) =>
-        new(p, f.Equipment, f.Theft, journal, calendar ?? new EditorFixedGameCalendar(3), events);
+        new(p, p, f.Equipment, f.Theft, journal, calendar ?? new EditorFixedGameCalendar(3), events);
     private static WorldCharacterProfile Profile(CharacterActor actor, int visitCount) => new()
     {
         persistentId = actor.Identity.PersistentId, characterDataId = actor.Identity.Data.id,
@@ -500,7 +500,8 @@ public static class VisitorExitOutcomeDebugScenarios
 
             actorObject = new GameObject("A03 Visitor Exit Fixture");
             Actor = actorObject.AddComponent<CharacterActor>();
-            actorObject.AddComponent<CharacterAiMemoryRuntime>();
+            Require(actorObject.GetComponent<CharacterAiMemoryRuntime>() != null,
+                "CharacterActor did not create its required AI memory component.");
             CharacterAiEditorTestDependencies.Inject(actorObject);
             Actor.EnsureRuntimeState();
             characterData = CharacterAiEditorTestDependencies
@@ -553,7 +554,7 @@ public static class VisitorExitOutcomeDebugScenarios
         }
     }
 
-    private sealed class FakePopulation : ICharacterPopulationService
+    private sealed class FakePopulation : ICharacterPopulationService, ICharacterVisitorExitProfileAuthority
     {
         private readonly CharacterActor actor;
         private readonly List<WorldCharacterProfile> profiles = new();
@@ -566,7 +567,7 @@ public static class VisitorExitOutcomeDebugScenarios
             bound = true;
         }
 
-        public IReadOnlyList<WorldCharacterProfile> Profiles => profiles;
+        public IReadOnlyList<WorldCharacterProfile> Profiles => profiles.Select(value => value.Clone()).ToArray();
         public WorldCharacterProfile AcquireVisitor(
             CharacterSO characterData,
             IEnumerable<string> unavailableProfileIds = null) => null;
@@ -634,8 +635,19 @@ public static class VisitorExitOutcomeDebugScenarios
             CharacterActor value,
             out WorldCharacterProfile profile)
         {
+            bool found = TryGetProfileForExit(value, out profile);
+            profile = bound && found ? profile.Clone() : null;
+            return profile != null;
+        }
+        public bool TryRebindRestoredProfile(CharacterActor value)
+        {
+            bound = TryGetProfileForExit(value, out _);
+            return bound;
+        }
+        public bool TryGetProfileForExit(CharacterActor value, out WorldCharacterProfile profile)
+        {
             profile = null;
-            if (!bound || value != actor) return false;
+            if (value != actor) return false;
             profile = profiles.FirstOrDefault(candidate => candidate != null
                 && candidate.persistentId == actor.Identity.PersistentId);
             return profile != null;

@@ -1,0 +1,15 @@
+origin=36,0
+placedBuildings=35
+powerRawRoute=REJECTED:facility_buffer_managed_route_required
+powerFuelCarriedRestore=350g
+powerFuelAutonomousOutcome=exact-once;physical-child=joined
+fluidQueryIsolation=networks-and-try-get
+power=32/10
+powerFuelRoute=exact-stack-admission-ai-haul
+cleanWater=-999
+wastewater=0.45
+mode=fluid-snapshot-only
+cleanup=canonical-except-gameplay-outcome-world-epoch-and-meta-elapsed-float-rounding-under-0.00001s
+result=PASS
+unityFrame=19
+gameTime=13.63

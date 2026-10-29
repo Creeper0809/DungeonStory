@@ -757,13 +757,13 @@ public static class CropPlotDebugScenarios
             IGridSystemProvider gridProvider =
                 scope.Container.Resolve<IGridSystemProvider>();
             Require(research != null, "Research runtime is missing.");
-            research.State.Projects.Complete(
+            research.StateForDebug.Projects.Complete(
                 new ResearchProjectId("research:agriculture:field"));
-            research.State.Projects.Complete(
+            research.StateForDebug.Projects.Complete(
                 new ResearchProjectId("research:agriculture:gathering"));
-            research.State.Projects.Complete(
+            research.StateForDebug.Projects.Complete(
                 new ResearchProjectId("research:agriculture:indoor"));
-            research.State.Projects.Complete(
+            research.StateForDebug.Projects.Complete(
                 new ResearchProjectId("research:forestry:fungal"));
             Require(gridProvider.TryGetGrid(out Grid grid), "Grid is missing.");
 

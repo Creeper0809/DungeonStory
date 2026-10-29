@@ -211,7 +211,7 @@ public sealed class CropPlotRuntime :
         {
             SynchronizePlots(force: false);
             snapshotProjector.RefreshSnapshots();
-            return snapshots;
+            return snapshotProjector.CreateSnapshotView();
         }
     }
 

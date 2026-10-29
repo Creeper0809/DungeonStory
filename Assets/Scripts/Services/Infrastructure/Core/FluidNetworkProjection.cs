@@ -34,6 +34,9 @@ public sealed class FluidNetworkSnapshot
     public float Blockage { get; set; }
     public float Leak { get; set; }
     public bool HasOverflowRisk { get; set; }
+
+    public FluidNetworkSnapshot Clone() =>
+        (FluidNetworkSnapshot)MemberwiseClone();
 }
 
 public readonly struct FluidTopologyNodeProjection

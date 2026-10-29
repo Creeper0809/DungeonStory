@@ -24,6 +24,7 @@ public static class P1P2FeatureSurfacePlayModeVerifier
     public const string ReportPath = "Temp/p1-p2-ui-surface-verification-report.txt";
     public const string ScreenshotPath = "Temp/p1-p2-ui-surface-verification.png";
 
+    internal const string StaffOnlyRequestPath = "Temp/p1-staff-ui-surface-verification.request";
     private const string OriginalActiveSceneKey = "DungeonStory.P1P2UiVerifier.OriginalActiveScene";
     private const string OpenedGameplaySceneKey =
         "DungeonStory.P1P2UiVerifier.OpenedGameplayScene";
@@ -47,11 +48,20 @@ public static class P1P2FeatureSurfacePlayModeVerifier
         File.WriteAllText(RequestPath, DateTime.Now.ToString("O"));
     }
 
+    [MenuItem("DungeonStory/Debug/QA/Request P1 Staff UI Verification")]
+    public static void RequestStaffOnlyRunFromMenu()
+    {
+        Directory.CreateDirectory("Temp");
+        File.WriteAllText(StaffOnlyRequestPath, DateTime.Now.ToString("O"));
+    }
+
     private static void OnEditorUpdate()
     {
+        bool verificationRequested = File.Exists(RequestPath)
+            || File.Exists(StaffOnlyRequestPath);
         if (preparingScenes
             || EditorApplication.isPlayingOrWillChangePlaymode
-            || !File.Exists(RequestPath))
+            || !verificationRequested)
         {
             return;
         }
@@ -79,8 +89,9 @@ public static class P1P2FeatureSurfacePlayModeVerifier
             return;
         }
 
+        bool staffOnlyRequested = File.Exists(StaffOnlyRequestPath);
         if (change != PlayModeStateChange.EnteredPlayMode
-            || !File.Exists(RequestPath)
+            || (!File.Exists(RequestPath) && !staffOnlyRequested)
             || runnerCreated)
         {
             return;
@@ -89,7 +100,8 @@ public static class P1P2FeatureSurfacePlayModeVerifier
         runnerCreated = true;
         GameObject runnerObject = new GameObject("P1 P2 UI Surface Verification Runner");
         UnityEngine.Object.DontDestroyOnLoad(runnerObject);
-        runnerObject.AddComponent<P1P2FeatureSurfaceVerificationRunner>();
+        runnerObject.AddComponent<P1P2FeatureSurfaceVerificationRunner>()
+            .Configure(staffOnlyRequested);
     }
 
     private static void PrepareScenesForPlayMode()
@@ -146,6 +158,7 @@ public static class P1P2FeatureSurfacePlayModeVerifier
         private bool capturingLogs;
         private CharacterActor guard;
         private CharacterActor rebel;
+        private CharacterActor staleStaff;
         private DefenseFacility defenseFixture;
         private FacilitySynthesisRecipeSO synthesisRecipe;
         private List<BuildableObject> synthesisMaterials = new List<BuildableObject>();
@@ -157,6 +170,12 @@ public static class P1P2FeatureSurfacePlayModeVerifier
         private Mouse originalMouse;
         private Mouse verificationMouse;
         private bool inputConfigured;
+        private bool staffOnly;
+
+        internal void Configure(bool value)
+        {
+            staffOnly = value;
+        }
 
         private IEnumerator Start()
         {
@@ -190,11 +209,28 @@ public static class P1P2FeatureSurfacePlayModeVerifier
                     yield break;
                 }
 
-                PlayModeVerificationPersistenceSnapshot.CaptureCurrent("p1-p2-ui-surface");
+                if (DungeonPersistencePaths.IsIsolatedVerification)
+                {
+                    lines.Add("persistenceSnapshot=skipped; isolatedVerification=true");
+                }
+                else
+                {
+                    PlayModeVerificationPersistenceSnapshot.CaptureCurrent(
+                        "p1-p2-ui-surface");
+                }
                 yield return DismissStartupAndSelectOwner(lines);
                 RunStep("SETUP", lines, () => PrepareGameState(lines));
                 yield return null;
                 yield return null;
+
+                if (staffOnly)
+                {
+                    lines.Add("mode=staff-only");
+                    RunStep("STAFF", lines, () => VerifyStaff(manager, lines));
+                    yield return null;
+                    yield return Capture("Temp/p1-ui-staff.png", lines);
+                    yield break;
+                }
 
                 RunStep("ROOM_IDENTITY", lines, () => VerifyRoomIdentity(manager, lines));
                 yield return null;
@@ -339,6 +375,7 @@ public static class P1P2FeatureSurfacePlayModeVerifier
 
             guard = CreateQaCharacter("P1 UI Guard", CharacterType.NPC, addWork: true);
             rebel = CreateQaCharacter("P1 UI Rebel", CharacterType.NPC, addWork: true);
+            staleStaff = CreateQaCharacter("P1 UI Stale Staff", CharacterType.NPC, addWork: true);
             guard.GetAbility<AbilityWork>()?.SetWorkPriority(BuiltInWorkTypeIds.Guard, WorkPriorityLevel.Priority1);
             Dictionary<CharacterCondition, float> rebelStats =
                 new Dictionary<CharacterCondition, float>(rebel.stats);
@@ -759,8 +796,8 @@ public static class P1P2FeatureSurfacePlayModeVerifier
             int activeAfterStart = expedition?.ActiveExpeditions.Count ?? -1;
             IOffenseBattleRuntime battle = ResolveFromLifetimeScope<IOffenseBattleRuntime>();
             bool routeAdvanced = startClicked && AdvanceOffenseJourneyToFirstBattle(expedition, battle);
-            OffenseBattleSession startedBattle = battle?.Session;
-            OffenseBattleCombatant enemy = battle?.Session?.Combatants
+            OffenseBattleSnapshot startedBattle = battle?.Session;
+            OffenseBattleCombatant enemy = startedBattle?.Combatants
                 .FirstOrDefault(combatant => combatant.Team == OffenseBattleTeam.Enemies && !combatant.IsDead);
             float enemyHealthBefore = enemy?.CurrentHealth ?? -1f;
             long commandBefore = startedBattle?.LastProcessedCommandId ?? -1;
@@ -768,8 +805,10 @@ public static class P1P2FeatureSurfacePlayModeVerifier
             bool targetClickedInBattle = ClickFirst("Combatant_enemy:");
             bool attackConfirmed = targetClickedInBattle
                 && ClickExact("Button_공격 확정");
-            float enemyHealthAfter = enemy?.CurrentHealth ?? -1f;
-            long commandAfter = startedBattle?.LastProcessedCommandId ?? -1;
+            OffenseBattleSnapshot updatedBattle = battle?.Session;
+            float enemyHealthAfter = updatedBattle?
+                .FindCombatant(enemy?.PersistentId)?.CurrentHealth ?? -1f;
+            long commandAfter = updatedBattle?.LastProcessedCommandId ?? -1;
             bool returnedToRoute = battle != null
                 && !battle.HasActiveBattle
                 && expedition?.ActiveExpeditions.FirstOrDefault()?.Phase == OffenseExpeditionPhase.ChoosingRoute;
@@ -876,7 +915,19 @@ public static class P1P2FeatureSurfacePlayModeVerifier
                 }
             }
             OpenTab(manager, 2);
+            StaffWorkPriorityPanel staffPanel = FindActiveSceneComponent<StaffWorkPriorityPanel>();
+            if (staffPanel == null)
+                throw new InvalidOperationException("The actual staff panel is missing.");
+            // 실제 재주입 뒤 기존 모드 버튼도 현재 패널 상태를 변경해야 한다.
+            InjectGameObjectFromLifetimeScope(staffPanel.gameObject);
+            staffPanel.Refresh();
             bool modeClicked = ClickExact("P1Action_StaffModeManagement");
+            IStaffWorkforceQueryService workforce = ResolveFromLifetimeScope<IStaffWorkforceQueryService>();
+            lines.Add("staffWorkforce=" + string.Join("|", workforce.FindActiveWorkers()
+                .Select(actor => actor.Identity.PersistentId + ":" + actor.Identity.DisplayName)));
+            lines.Add("staffButtons=" + string.Join("|", FindActiveButtons("P1Action_Staff")
+                .Select(button => button.name + ":" + string.Join("/", button.transform.parent
+                    .GetComponentsInChildren<TMP_Text>(true).Select(text => text.text)))));
             bool guardSelected = ClickByCardText("P1Action_StaffSelect_", guard.name);
             AbilityWork guardWork = guard.GetAbility<AbilityWork>();
             bool dutyBefore = guardWork.IsOffDuty;
@@ -917,6 +968,77 @@ public static class P1P2FeatureSurfacePlayModeVerifier
             AddResult(lines, "P1-09 OWNER_PRIORITY_SUPPRESS",
                 resumedDuty && guardSelected && priorityClicked && priorityTargetAfterClick != null && suppressClicked && guardWork.PrioritySuppressActor == rebel,
                 $"resumedDuty={resumedDuty}; guardSelected={guardSelected}; reachable={reachableBuildings.Count}; fixture={GetBuildingName(priorityFixture)}; priorityClicked={priorityClicked}; workTarget={priorityTargetAfterClick?.name ?? "<none>"}; suppressClicked={suppressClicked}; suppressTarget={guardWork.PrioritySuppressActor?.name ?? "<none>"}");
+
+            CharacterActor staleActor = staleStaff;
+            bool staleActorRefresh = ClickExact("P1Action_StaffModeManagement");
+            bool staleActorSelected = staleActorRefresh
+                && ClickByCardText("P1Action_StaffSelect_", staleActor.name);
+            Button stalePriorityButton = FindActiveButtons("P1Action_OwnerPriority_").FirstOrDefault();
+            Button staleSuppressButton = FindActiveButtons("P1Action_OwnerSuppress", exact: true)
+                .FirstOrDefault();
+            IPlayerStaffCommandSource staffCommands =
+                ResolveFromLifetimeScope<IPlayerStaffCommandSource>();
+            BuildableObject priorityBeforeStaleCommand = guardWork.PriorityWorkTarget;
+            CharacterActor suppressBeforeStaleCommand = guardWork.PrioritySuppressActor;
+            bool hasSuppressBeforeStaleCommand = guardWork.HasPrioritySuppressTarget;
+            const string selectionFailureMessage = "명령할 직원을 선택할 수 없습니다.";
+            NoticeFeed noticeFeed = UnityEngine.Object.FindFirstObjectByType<NoticeFeed>(
+                FindObjectsInactive.Exclude);
+            int selectionFailureNoticesBefore = noticeFeed != null
+                ? noticeFeed.GetComponentsInChildren<TMP_Text>(false)
+                    .Count(label => label != null
+                        && label.text != null
+                        && label.text.Contains(selectionFailureMessage, StringComparison.Ordinal))
+                : 0;
+            GameObject staleActorObject = staleActor != null ? staleActor.gameObject : null;
+            bool staleCallbacksReady = staleActorSelected
+                && staffCommands?.SelectedActor == guard
+                && priorityBeforeStaleCommand == null
+                && suppressBeforeStaleCommand == rebel
+                && hasSuppressBeforeStaleCommand
+                && stalePriorityButton != null
+                && staleSuppressButton != null
+                && staleActorObject != null;
+            bool priorityRefusalPreserved = false;
+            bool suppressRefusalPreserved = false;
+            Func<bool> originalCommandStateUnchanged = () => staffCommands?.SelectedActor == guard
+                && ReferenceEquals(guardWork.PriorityWorkTarget, priorityBeforeStaleCommand)
+                && ReferenceEquals(guardWork.PrioritySuppressActor, suppressBeforeStaleCommand)
+                && guardWork.HasPrioritySuppressTarget == hasSuppressBeforeStaleCommand;
+            if (staleCallbacksReady)
+            {
+                UnityEngine.Object.DestroyImmediate(staleActorObject);
+                stalePriorityButton.onClick.Invoke();
+                priorityRefusalPreserved = originalCommandStateUnchanged();
+                staleSuppressButton.onClick.Invoke();
+                suppressRefusalPreserved = originalCommandStateUnchanged();
+            }
+
+            int selectionFailureNoticesAfter = noticeFeed != null
+                ? noticeFeed.GetComponentsInChildren<TMP_Text>(false)
+                    .Count(label => label != null
+                        && label.text != null
+                        && label.text.Contains(selectionFailureMessage, StringComparison.Ordinal))
+                : 0;
+            bool selectedGuardUnchanged = staffCommands?.SelectedActor == guard;
+            bool priorityUnchanged = ReferenceEquals(
+                guardWork.PriorityWorkTarget,
+                priorityBeforeStaleCommand);
+            bool suppressUnchanged = ReferenceEquals(
+                guardWork.PrioritySuppressActor,
+                suppressBeforeStaleCommand)
+                && guardWork.HasPrioritySuppressTarget == hasSuppressBeforeStaleCommand;
+            bool selectionFailureNoticesObserved = selectionFailureNoticesAfter
+                >= selectionFailureNoticesBefore + 2;
+            AddResult(lines, "R30-11 STALE_STAFF_COMMAND_REJECTION",
+                staleCallbacksReady
+                && priorityRefusalPreserved
+                && suppressRefusalPreserved
+                && selectedGuardUnchanged
+                && priorityUnchanged
+                && suppressUnchanged
+                && selectionFailureNoticesObserved,
+                $"callbacksReady={staleCallbacksReady}; staleRefresh={staleActorRefresh}; staleSelected={staleActorSelected}; priorityButton={stalePriorityButton != null}; suppressButton={staleSuppressButton != null}; baselineWork={priorityBeforeStaleCommand?.name ?? "<none>"}; baselineSuppress={suppressBeforeStaleCommand?.name ?? "<none>"}; selectedGuard={selectedGuardUnchanged}; priorityUnchanged={priorityUnchanged}; suppressUnchanged={suppressUnchanged}; notices={selectionFailureNoticesBefore}->{selectionFailureNoticesAfter}");
 
             bool profileClicked = ClickExact("P1Action_StaffProfile");
             AddResult(lines, "P1-13 CHARACTER_PROFILE", profileClicked && guard.Identity?.Profile != null,
@@ -1149,16 +1271,31 @@ public static class P1P2FeatureSurfacePlayModeVerifier
 
         private CharacterActor CreateQaCharacter(string name, CharacterType type, bool addWork)
         {
-            CharacterSO data = ScriptableObject.CreateInstance<CharacterSO>();
+            IGameContentCatalog contentCatalog = ResolveFromLifetimeScope<IGameContentCatalog>()
+                ?? throw new InvalidOperationException(
+                    "P1/P2 staff fixture requires the active game content catalog.");
+            CharacterSO authoredHuman = contentCatalog.GetAll<CharacterSO>()
+                .FirstOrDefault((definition) => definition != null
+                    && !definition.IsOwnerCandidate
+                    && string.Equals(
+                        definition.SpeciesTag,
+                        "human",
+                        StringComparison.OrdinalIgnoreCase));
+            if (authoredHuman == null)
+            {
+                throw new InvalidOperationException(
+                    "P1/P2 staff fixture requires an authored non-owner human character.");
+            }
+
+            CharacterSO data = Instantiate(authoredHuman);
             tempObjects.Add(data);
             data.id = 995000 + tempObjects.Count;
             data.characterName = name;
             data.characterType = type;
             data.role = CharacterRole.Regular;
-            data.speciesTag = "QA";
-            data.defaultWorkPriorities = WorkPriorityProfile.CreateDefault();
 
             GameObject obj = new GameObject(name);
+            obj.SetActive(false);
             tempObjects.Add(obj);
             obj.AddComponent<SpriteRenderer>();
             CharacterActor actor = obj.AddComponent<CharacterActor>();
@@ -1171,14 +1308,30 @@ public static class P1P2FeatureSurfacePlayModeVerifier
 
             AIBrain brain = obj.AddComponent<AIBrain>();
             brain.availableActions = AiDebugScenarioActionFactory.CreateStaffActions();
+            actor.EnsureRuntimeState();
+            actor.PrepareForComposition();
             InjectGameObjectFromLifetimeScope(obj);
             actor.RefreshAbilityCache();
-            actor.Initialization(data);
             actor.Identity.SetPersistentId($"character:p1p2-ui:{data.id}");
-            actor.EnsureRuntimeState();
-            InjectGameObjectFromLifetimeScope(obj);
+            actor.Initialization(data);
+            if (actor.Identity.Profile == null)
+                throw new InvalidOperationException("The production character initializer did not publish a runtime profile.");
+            CharacterGrowthState preparedOwner = FindActiveSceneComponent<OwnerRunManager>()
+                ?.CurrentOwnerActor?.Progression?.GrowthState;
+            if (preparedOwner?.startingProfile?.prepared != true)
+                throw new InvalidOperationException("The staff fixture requires the officially prepared starting identity.");
+            actor.Progression.ApplyPreparedIdentity(
+                name,
+                preparedOwner.origin,
+                Array.Empty<int>(),
+                CharacterGrowthRules.RollPotential(actor.Progression.SkillSettings, new System.Random(data.id)),
+                data.id,
+                autoChooseDrafts: false,
+                startingProfile: preparedOwner.startingProfile);
             actor.RefreshAbilityCache();
             actor.SetLifecycleState(CharacterLifecycleState.Active);
+            actor.PublishComposition();
+            obj.SetActive(true);
             actor.stats[CharacterCondition.SLEEP] = 100f;
             actor.stats[CharacterCondition.MOOD] = 100f;
             return actor;
@@ -1810,8 +1963,14 @@ public static class P1P2FeatureSurfacePlayModeVerifier
         {
             ForceLayout();
             yield return null;
-            yield return new WaitForEndOfFrame();
+            yield return PlayModeVerificationFrameWait.CaptureReady();
             LogLargeUiVisuals(path, lines);
+            if (Application.isBatchMode)
+            {
+                // batch Editor에는 화면 표시 종료 프레임이 없다. UI 명령과 배치 검사는 유지한다.
+                lines.Add($"tabCapture=NOT_RUN; batchMode=true; requested={path}");
+                yield break;
+            }
             Texture2D screenshot = ScreenCapture.CaptureScreenshotAsTexture();
             File.WriteAllBytes(path, screenshot.EncodeToPNG());
             UnityEngine.Object.Destroy(screenshot);
@@ -2481,6 +2640,10 @@ public static class P1P2FeatureSurfacePlayModeVerifier
             if (File.Exists(RequestPath))
             {
                 File.Delete(RequestPath);
+            }
+            if (File.Exists(StaffOnlyRequestPath))
+            {
+                File.Delete(StaffOnlyRequestPath);
             }
 
             EditorApplication.ExitPlaymode();

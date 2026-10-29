@@ -11,6 +11,13 @@ using VContainer;
 
 public static class PhysicalStockQueryV18DebugScenarios
 {
+    public static void RunR30AllStackQueryFocused()
+    {
+        IDungeonItemCatalogProvider catalog = EditorItemCatalogFactory.Create();
+        VerifyAllStackCacheIsolation(catalog, CreateMassQuery(catalog));
+        Debug.Log("R30_ALL_STACK_QUERY=PASS");
+    }
+
     public const string WarehouseMassAuthorityReportPath =
         "Artifacts/QA/v27-storage-mass-authority.txt";
     private const string LumberItemId = "material:lumber";
@@ -206,6 +213,9 @@ public static class PhysicalStockQueryV18DebugScenarios
             query.GetAllStacks().All(stack =>
                 Mathf.Approximately(stack.UnitWeight, 1.2f)),
             "Physical stock snapshots bypassed the integer-gram mass authority.");
+        VerifyAllStackCacheIsolation(
+            catalog,
+            massQuery);
 
         WorldItemRepositoryEditorAccess.RemoveStack(repository, outboundId);
         Require(query.GetWarehouseTotal(firstWarehouse) == 7,
@@ -333,6 +343,85 @@ public static class PhysicalStockQueryV18DebugScenarios
               + "V27_PENDING_DISPOSITION_TAMPER_REJECTED=PASS; "
             + "V27_WAREHOUSE_MASS_QUERY_10000_OP_P95=PASS; "
             + "V27_WAREHOUSE_MASS_QUERY_STEADY_ALLOC_0B=PASS.");
+    }
+
+    private static void VerifyAllStackCacheIsolation(
+        IDungeonItemCatalogProvider catalog,
+        IPhysicalItemMassQuery massQuery)
+    {
+        WorldItemRepository repository = new(
+            new GuidPersistentIdGenerator(),
+            new DungeonRuntimeAggregateRootStore());
+        string stackId = WorldItemRepositoryEditorAccess.AddStack(
+            repository,
+            LumberItemId,
+            11,
+            WorldItemStackState.Loose,
+            components: new[]
+            {
+                new ItemInstanceComponentSaveData
+                {
+                    componentTypeId = "qa:cache-isolation",
+                    values = new List<ItemStateValueSaveData>
+                    {
+                        new ItemStateValueSaveData
+                        {
+                            key = "quality",
+                            kind = ItemStateValueKind.String,
+                            stringValue = "original"
+                        }
+                    }
+                }
+            });
+        WorldItemQueryService query = new(
+            catalog,
+            massQuery,
+            repository,
+            EditorNullItemMarkerPresenter.Instance);
+        WorldItemStackSnapshot exposed = query.GetAllStacks()
+            .Single(value => string.Equals(
+                value.StackId,
+                stackId,
+                StringComparison.Ordinal));
+        Require(exposed.Quantity == 11
+                && exposed.Components.Count == 1
+                && exposed.Components[0].values.Count == 1
+                && exposed.Components[0].values[0].stringValue == "original",
+            "All-stack isolation fixture did not retain its scalar and nested values.");
+
+        exposed.Quantity = 777;
+        exposed.ItemId = "qa:mutated-item";
+        exposed.Components[0].componentTypeId = "qa:mutated-component";
+        exposed.Components[0].values[0].stringValue = "mutated";
+        exposed.Components = Array.Empty<ItemInstanceComponentSaveData>();
+
+        WorldItemStackSnapshot unchanged = query.GetAllStacks()
+            .Single(value => string.Equals(
+                value.StackId,
+                stackId,
+                StringComparison.Ordinal));
+        Require(!ReferenceEquals(exposed, unchanged)
+                && unchanged.Quantity == 11
+                && string.Equals(unchanged.ItemId, LumberItemId,
+                    StringComparison.Ordinal)
+                && unchanged.Components.Count == 1
+                && unchanged.Components[0].componentTypeId
+                    == "qa:cache-isolation"
+                && unchanged.Components[0].values[0].stringValue == "original",
+            "Caller mutation leaked into the same-version all-stack query.");
+
+        WorldItemRepositoryEditorAccess.SetQuantity(repository, stackId, 12);
+        Require(query.GetAllStacks().Single(value => string.Equals(
+                    value.StackId,
+                    stackId,
+                    StringComparison.Ordinal)).Quantity == 12,
+            "Owner quantity change did not invalidate the all-stack cache.");
+        WorldItemRepositoryEditorAccess.SetQuantity(repository, stackId, 11);
+        Require(query.GetAllStacks().Single(value => string.Equals(
+                    value.StackId,
+                    stackId,
+                    StringComparison.Ordinal)).Quantity == 11,
+            "Owner quantity restoration did not refresh the all-stack cache.");
     }
 
     private static void VerifyProductionRawConsumeManifest()

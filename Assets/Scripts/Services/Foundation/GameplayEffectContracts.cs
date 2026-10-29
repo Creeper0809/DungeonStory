@@ -84,6 +84,7 @@ public static class GameplayEffectTargetIds
     public const string SalvageYield = "work:salvage-yield";
     public const string HaulCapacity = "work:haul-capacity";
     public const string FatigueRate = "character:fatigue-rate";
+    public const string LowLightPenalty = "character:low-light-penalty";
     public const string RecoverySpeed = "character:recovery-speed";
     public const string DiseaseResistance = "character:disease-resistance";
     public const string DiseaseRecoverySpeed = "character:disease-recovery-speed";

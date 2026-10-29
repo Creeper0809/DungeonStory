@@ -458,6 +458,8 @@ public sealed class AmmunitionItemFeature : ItemFeatureDefinition
 
     public override IEnumerable<string> Validate(ItemDefinitionSO owner)
     {
+        if (owner != null && !owner.TryGetFeature(out CombatAmmunitionProfileItemFeature _))
+            yield return "Ammunition requires an authored combat profile feature.";
         if (string.IsNullOrWhiteSpace(ammunitionKindId)
             || !string.Equals(
                 ammunitionKindId,
@@ -467,6 +469,101 @@ public sealed class AmmunitionItemFeature : ItemFeatureDefinition
             yield return "Ammunition feature has a noncanonical ammunition kind ID.";
         }
     }
+}
+
+[Serializable]
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public sealed class CombatAmmunitionProfileItemFeature : ItemFeatureDefinition
+{
+    private const CombatSpecialEffectFlags AllEffects =
+        CombatSpecialEffectFlags.Burning
+        | CombatSpecialEffectFlags.SmokeScreen
+        | CombatSpecialEffectFlags.Scatter
+        | CombatSpecialEffectFlags.SignalSupport
+        | CombatSpecialEffectFlags.ConstructPiercing
+        | CombatSpecialEffectFlags.RuneDamage
+        | CombatSpecialEffectFlags.Tranquilized
+        | CombatSpecialEffectFlags.ManaBlocked;
+
+    [SerializeField] private CombatSpecialEffectFlags effects;
+    [SerializeField] private float damageMultiplier = 1f;
+    [SerializeField] private float penetrationMultiplier = 1f;
+    [SerializeField] private float suppressionMultiplier = 1f;
+    [SerializeField] private float statusPotency;
+    [SerializeField] private float targetAirborneExposure;
+    [SerializeField] private int statusTurns;
+    [SerializeField] private bool nonlethal;
+
+    public override string FeatureId => "combat-ammunition-profile";
+    public override bool RequiresProductionOutputInstanceState => false;
+
+    public CombatAmmunitionProfile CreateSnapshot()
+    {
+        foreach (string error in Validate(null))
+        {
+            throw new InvalidOperationException(
+                "Combat ammunition profile is invalid: " + error);
+        }
+
+        return new CombatAmmunitionProfile(
+            effects,
+            damageMultiplier,
+            penetrationMultiplier,
+            suppressionMultiplier,
+            statusPotency,
+            statusTurns,
+            nonlethal,
+            targetAirborneExposure);
+    }
+
+    public override IEnumerable<string> Validate(ItemDefinitionSO owner)
+    {
+        if ((effects & ~AllEffects) != 0)
+        {
+            yield return "Combat ammunition profile has undefined effect flags.";
+        }
+        if (!IsFiniteNonnegative(damageMultiplier))
+        {
+            yield return "Combat ammunition profile damage multiplier must be finite and nonnegative.";
+        }
+        if (!IsFiniteNonnegative(penetrationMultiplier))
+        {
+            yield return "Combat ammunition profile penetration multiplier must be finite and nonnegative.";
+        }
+        if (!IsFiniteNonnegative(suppressionMultiplier))
+        {
+            yield return "Combat ammunition profile suppression multiplier must be finite and nonnegative.";
+        }
+        if (!IsFiniteNonnegative(statusPotency))
+        {
+            yield return "Combat ammunition profile status potency must be finite and nonnegative.";
+        }
+        if (!IsFiniteNonnegative(targetAirborneExposure))
+        {
+            yield return "Combat ammunition profile airborne exposure must be finite and nonnegative.";
+        }
+        if (statusTurns < 0)
+        {
+            yield return "Combat ammunition profile status turns must be nonnegative.";
+        }
+    }
+
+#if UNITY_EDITOR
+    public void Configure(CombatAmmunitionProfile profile)
+    {
+        effects = profile.Effects;
+        damageMultiplier = profile.DamageMultiplier;
+        penetrationMultiplier = profile.PenetrationMultiplier;
+        suppressionMultiplier = profile.SuppressionMultiplier;
+        statusPotency = profile.StatusPotency;
+        statusTurns = profile.StatusTurns;
+        nonlethal = profile.Nonlethal;
+        targetAirborneExposure = profile.TargetAirborneExposure;
+    }
+#endif
+
+    private static bool IsFiniteNonnegative(float value) =>
+        !float.IsNaN(value) && !float.IsInfinity(value) && value >= 0f;
 }
 
 [Serializable]

@@ -364,6 +364,7 @@ internal sealed class EditorBlueprintResearchStateService :
     internal EditorBlueprintResearchStateService(BlueprintResearchState state = null) =>
         this.state = state ?? new BlueprintResearchState();
 
-    public BlueprintResearchState GetState() => state;
+    public BlueprintResearchState GetState() => state.CreateSnapshot();
+    public BlueprintResearchState GetStateForDebug() => state;
 }
 #endif

@@ -35,13 +35,13 @@
 
 ## 현재 스냅샷
 
-- 전체 콘텐츠 행: 3,483
+- 전체 콘텐츠 행: 3,486
 - 관계 행: 6,583
 - 콘텐츠 유형별 CSV: 75개
 - 관계 유형별 CSV: 75개
-- 코드 소비처 근거: 1,489건
-- 런타임 정적 근거 확인: 3,283
-- 근거 확인: 3,438
+- 코드 소비처 근거: 1,464건
+- 런타임 정적 근거 확인: 3,286
+- 근거 확인: 3,441
 - 수동 검토 필요: 45
 - 동일 유형·안정 ID 중복 그룹: 10
 - 파싱 오류: 0
@@ -52,7 +52,7 @@
 | 생산·시설 | 951 |
 | 인물·특성 | 302 |
 | 사건·캠페인 | 200 |
-| 연구·효과 | 591 |
+| 연구·효과 | 594 |
 | 전투·건강·세계 | 365 |
 
 ## 유형별 CSV
@@ -108,7 +108,7 @@
 | 인물·특성 | `FestivalDefinitionSO` | 20 | [열기](types/characters-traits/festival/README.md) | [CSV](fields/characters-traits/festival.csv) | [CSV](relations/characters-traits/festival.csv) | [CSV](incoming/characters-traits/festival.csv) | [CSV](code-consumers/characters-traits/festival.csv) |
 | 인물·특성 | `FuneralCultureSO` | 11 | [열기](types/characters-traits/funeral-culture/README.md) | [CSV](fields/characters-traits/funeral-culture.csv) | [CSV](relations/characters-traits/funeral-culture.csv) | [CSV](incoming/characters-traits/funeral-culture.csv) | [CSV](code-consumers/characters-traits/funeral-culture.csv) |
 | 연구·효과 | `GameplayEffectConditionDefinitionSO` | 45 | [열기](types/research-effects/gameplay-effect-condition/README.md) | [CSV](fields/research-effects/gameplay-effect-condition.csv) | [CSV](relations/research-effects/gameplay-effect-condition.csv) | [CSV](incoming/research-effects/gameplay-effect-condition.csv) | [CSV](code-consumers/research-effects/gameplay-effect-condition.csv) |
-| 연구·효과 | `GameplayEffectDefinitionSO` | 65 | [열기](types/research-effects/gameplay-effect/README.md) | [CSV](fields/research-effects/gameplay-effect.csv) | [CSV](relations/research-effects/gameplay-effect.csv) | [CSV](incoming/research-effects/gameplay-effect.csv) | [CSV](code-consumers/research-effects/gameplay-effect.csv) |
+| 연구·효과 | `GameplayEffectDefinitionSO` | 68 | [열기](types/research-effects/gameplay-effect/README.md) | [CSV](fields/research-effects/gameplay-effect.csv) | [CSV](relations/research-effects/gameplay-effect.csv) | [CSV](incoming/research-effects/gameplay-effect.csv) | [CSV](code-consumers/research-effects/gameplay-effect.csv) |
 | 아이템 | `GenericItemDefinitionSO` | 703 | [열기](types/items/generic-item/README.md) | [CSV](fields/items/generic-item.csv) | [CSV](relations/items/generic-item.csv) | [CSV](incoming/items/generic-item.csv) | [CSV](code-consumers/items/generic-item.csv) |
 | 사건·캠페인 | `GuestRequestDefinitionSO` | 14 | [열기](types/events-campaign/guest-request/README.md) | [CSV](fields/events-campaign/guest-request.csv) | [CSV](relations/events-campaign/guest-request.csv) | [CSV](incoming/events-campaign/guest-request.csv) | [CSV](code-consumers/events-campaign/guest-request.csv) |
 | 인물·특성 | `HeritableTraitDefinitionSO` | 24 | [열기](types/characters-traits/heritable-trait/README.md) | [CSV](fields/characters-traits/heritable-trait.csv) | [CSV](relations/characters-traits/heritable-trait.csv) | [CSV](incoming/characters-traits/heritable-trait.csv) | [CSV](code-consumers/characters-traits/heritable-trait.csv) |

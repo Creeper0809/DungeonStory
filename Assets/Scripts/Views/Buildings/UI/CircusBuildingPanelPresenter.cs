@@ -63,14 +63,6 @@ public sealed class CircusBuildingPanelPresenter : ICircusBuildingPanelPresenter
             lethality = CircusLethalityPolicy.StopWhenDowned;
             selectedLethality[stageKey] = lethality;
         }
-        BuildingCircusStageAbility stageAbility =
-            building.BuildingData.GetCircusStageAbility();
-        string[] availablePerformers = captivity.Captives
-            .Where(item => item.IsInCustody)
-            .OrderByDescending(item => item.performerSkill)
-            .Take(Mathf.Max(1, stageAbility.performerCapacity))
-            .Select(item => item.captiveId)
-            .ToArray();
         string[] availableAnimals = wildlife.CapturedAnimals
             .Where(item => string.IsNullOrWhiteSpace(item.assignedShowOrderId))
             .Select(item => item.wildlifeId)
@@ -198,12 +190,17 @@ public sealed class CircusBuildingPanelPresenter : ICircusBuildingPanelPresenter
             foreach (CircusProgramModule program in circus.Programs.Skip(offset).Take(3))
             {
                 CircusProgramModule capturedProgram = program;
+                IReadOnlyList<string> availablePerformers =
+                    circus.GetAutoSelectedPerformerIds(building, program.programId);
+                IReadOnlyList<string> programAnimals = program.requiresWildlife
+                    ? availableAnimals
+                    : Array.Empty<string>();
                 CircusProgramForecast forecast = circus.GetForecast(
                     building,
                     program.programId,
                     lethality,
                     availablePerformers,
-                    availableAnimals);
+                    programAnimals);
                 string forecastLabel =
                     $"{program.displayName}\n"
                     + $"수입 {forecast.ExpectedRevenue}"
@@ -214,13 +211,15 @@ public sealed class CircusBuildingPanelPresenter : ICircusBuildingPanelPresenter
                 {
                     CircusLethalityPolicy selected =
                         selectedLethality[stageKey];
+                    IReadOnlyList<string> currentPerformers =
+                        circus.GetAutoSelectedPerformerIds(building, capturedProgram.programId);
                     CircusProgramForecast currentForecast =
                         circus.GetForecast(
                             building,
                             capturedProgram.programId,
                             selected,
-                            availablePerformers,
-                            availableAnimals);
+                            currentPerformers,
+                            programAnimals);
                     if (!currentForecast.CanSchedule)
                     {
                         panelStatus[stageKey] =
@@ -244,7 +243,7 @@ public sealed class CircusBuildingPanelPresenter : ICircusBuildingPanelPresenter
                         pendingLethalProgram[stageKey] =
                             capturedProgram.programId;
                         panelStatus[stageKey] =
-                            $"치명 정책 확인: 대상 {availablePerformers.Length}명"
+                            $"치명 정책 확인: 대상 {currentPerformers.Count}명"
                             + $" · 부상 {currentForecast.InjuryChance:P0}"
                             + $" · 사망 {currentForecast.DeathChance:P0}"
                             + $" · 명성 +{currentForecast.Renown:0.#}"
@@ -259,8 +258,8 @@ public sealed class CircusBuildingPanelPresenter : ICircusBuildingPanelPresenter
                         building,
                         capturedProgram.programId,
                         selected,
-                        availablePerformers,
-                        availableAnimals,
+                        currentPerformers,
+                        programAnimals,
                         out _,
                         out string failureReason);
                     pendingLethalProgram.Remove(stageKey);

@@ -144,7 +144,7 @@ public class OffenseWorldMapRuntime : MonoBehaviour,
         if (target == null)
         {
             snapshot = null;
-            message = "諛쒓껄?섏? ?딆? ?먯젙 ??곸엯?덈떎";
+            message = "발견하지 못했거나 선택할 수 없는 원정 대상입니다.";
             return false;
         }
 
@@ -156,7 +156,7 @@ public class OffenseWorldMapRuntime : MonoBehaviour,
 
         MutableState.SetSelectedTarget(target.id);
         snapshot = target.ToSnapshot(HasPreciseIntel(target.id), MutableState);
-        message = $"{snapshot.title} ?좏깮";
+        message = $"{snapshot.title} 선택";
         TargetSelected?.Invoke(snapshot);
         RaiseChanged();
         return true;
@@ -204,7 +204,7 @@ public class OffenseWorldMapRuntime : MonoBehaviour,
         if (target == null || !MutableState.KnowTarget(targetId))
         {
             completedTarget = null;
-            message = "?????녿뒗 ?ㅽ렂??紐⑺몴?낅땲??";
+            message = "발견하지 못했거나 완료할 수 없는 원정 목표입니다.";
             return false;
         }
 
@@ -243,7 +243,7 @@ public class OffenseWorldMapRuntime : MonoBehaviour,
         completedTarget = target.ToSnapshot(
             HasPreciseIntel(target.id),
             MutableState);
-        message = $"?ㅽ렂??紐⑺몴 ?꾨즺 {MutableState.CompletedTargetCount}/{targets.Count}";
+        message = $"원정 목표 완료 {MutableState.CompletedTargetCount}/{targets.Count}";
         RaiseChanged();
         gameEventBus.RaiseAlert(
             "원정 진척",

@@ -182,13 +182,21 @@ public sealed class DoorAccessPlayModeVerificationRunner : MonoBehaviour
         }
 
         Canvas.ForceUpdateCanvases();
-        yield return new WaitForEndOfFrame();
-        Texture2D capture = ScreenCapture.CaptureScreenshotAsTexture();
-        File.WriteAllBytes(capturePath, capture.EncodeToPNG());
-        report.Add(
-            $"capture={capturePath}; requested={resolution.x}x{resolution.y}; "
-            + $"actual={capture.width}x{capture.height}");
-        Destroy(capture);
+        yield return PlayModeVerificationFrameWait.CaptureReady();
+        if (Application.isBatchMode)
+        {
+            // 화면 PNG만 미실행이다. 아래의 포인터와 화면 경계 단언은 동일하게 실행한다.
+            report.Add($"capture=NOT_RUN; batchMode=true; requested={capturePath}");
+        }
+        else
+        {
+            Texture2D capture = ScreenCapture.CaptureScreenshotAsTexture();
+            File.WriteAllBytes(capturePath, capture.EncodeToPNG());
+            report.Add(
+                $"capture={capturePath}; requested={resolution.x}x{resolution.y}; "
+                + $"actual={capture.width}x{capture.height}");
+            Destroy(capture);
+        }
 
         RectTransform accessHeader = Resources.FindObjectsOfTypeAll<RectTransform>()
             .FirstOrDefault(item =>
@@ -258,6 +266,37 @@ public sealed class DoorAccessPlayModeVerificationRunner : MonoBehaviour
             yield break;
         }
 
+        const string pasteFailureMessage =
+            "문 권한을 붙여넣지 못했습니다. 먼저 다른 문에서 권한을 복사하거나 문 상태를 확인하세요.";
+        DoorAccessPolicyState policyCaptureBeforePaste = door.AccessPolicy.Clone();
+        Button pastePolicy = FindActive<Button>("Button_권한_붙여넣기");
+        bool pasteAvailableBeforeClick = pastePolicy != null && pastePolicy.IsInteractable();
+        yield return Click(pastePolicy);
+        yield return null;
+        Canvas.ForceUpdateCanvases();
+        Transform feedback = FindActive<Transform>("BuildingActionFeedback");
+        string feedbackMessage = feedback != null
+            ? feedback.GetComponentInChildren<TMPro.TMP_Text>(true)?.text
+            : null;
+        DoorAccessPolicyState policyCaptureAfterPaste = door.AccessPolicy.Clone();
+        bool policyCaptureUnchanged = policyCaptureBeforePaste.AllowedGroups
+            == policyCaptureAfterPaste.AllowedGroups
+            && policyCaptureBeforePaste.Revision == policyCaptureAfterPaste.Revision
+            && policyCaptureBeforePaste.IndividuallyAllowedIds.SequenceEqual(
+                policyCaptureAfterPaste.IndividuallyAllowedIds,
+                StringComparer.Ordinal)
+            && policyCaptureBeforePaste.IndividuallyDeniedIds.SequenceEqual(
+                policyCaptureAfterPaste.IndividuallyDeniedIds,
+                StringComparer.Ordinal);
+        Check(
+            pasteAvailableBeforeClick
+            && feedbackMessage != null
+            && feedbackMessage.Contains(pasteFailureMessage, StringComparison.Ordinal)
+            && policyCaptureUnchanged,
+            "EMPTY_CLIPBOARD_PASTE_FEEDBACK",
+            $"paste={pasteAvailableBeforeClick}; feedback={feedbackMessage}; policyUnchanged={policyCaptureUnchanged}");
+
+        captiveToggle = FindActive<Toggle>("Toggle_포로");
         bool captiveBefore = door.AccessPolicy.IsGroupAllowed(DoorAccessGroup.Captive);
         yield return Click(captiveToggle);
         yield return null;

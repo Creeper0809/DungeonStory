@@ -9,6 +9,9 @@ public static class RegularCustomerDebugScenarios
 {
     public static bool RunStrictSaveBoundary() => VerifyStrictSaveBoundary();
 
+    public static bool RunR30SnapshotIsolationFocused() =>
+        VerifyR30SnapshotIsolation();
+
     [MenuItem("DungeonStory/Debug/Recruitment/Run P2 Regular Customer Scenarios")]
     public static void RunFromMenu()
     {
@@ -395,6 +398,163 @@ public static class RegularCustomerDebugScenarios
         }
     }
 
+    private static bool VerifyR30SnapshotIsolation()
+    {
+        GameObject runtimeObject = new GameObject(
+            "R30 Regular Customer Snapshot Owner");
+        GameObject restoredObject = new GameObject(
+            "R30 Regular Customer Snapshot Restored");
+        RegularCustomerRuntime runtime =
+            runtimeObject.AddComponent<RegularCustomerRuntime>();
+        RegularCustomerRuntime restored =
+            restoredObject.AddComponent<RegularCustomerRuntime>();
+        CharacterActor customer = null;
+        BuildableObject facility = null;
+        var activation = new FakeRecruitActivationService
+        {
+            AllowActivation = false
+        };
+        MigratedProducerOutcomeEditorFixture outcomes = new(
+            "run:r30-regular-customer-snapshot");
+        using var facts = new RegularCustomerFactEditorFixture(outcomes);
+        try
+        {
+            runtime.ConstructRecruitmentRuntime(
+                new DungeonStory.Foundation.UnityUiClock(),
+                activation,
+                new DungeonStory.Foundation.GameEventBus(),
+                new FixedSessionStateProvider(1),
+                facts.Publisher,
+                facts.Recovery);
+            customer = CreateCustomer(
+                114,
+                "R30 Snapshot Candidate",
+                "Slime",
+                85f);
+            facility = CreateFacility();
+            for (int index = 0; index < 4; index++)
+            {
+                runtime.OnTriggerEvent(new FacilityVisitEvent(
+                    CharacterActor.From(customer),
+                    facility));
+            }
+
+            string customerId = RegularCustomerService.GetCustomerId(customer);
+            var catalog = new FixedRunCharacterCatalog(customer.data);
+            var adapter = new RegularCustomerPersistenceAdapter(
+                runtime,
+                catalog);
+            var section = new RegularCustomerSaveSection(adapter, adapter);
+            string captureBeforeSnapshotMutation = section.Capture();
+            RegularCustomerState exposed = runtime.State;
+            bool snapshotHasCandidate = exposed.TryGetRecord(
+                customerId,
+                out RegularCustomerRecord copiedRecord)
+                && copiedRecord.MarkRecruited(99);
+            if (snapshotHasCandidate)
+            {
+                exposed.AddPendingFact(new RegularCustomerPendingFactData
+                {
+                    publicationKey = "r30:snapshot-pending",
+                    fact = RegularCustomerFact.Capture(
+                        RegularCustomerFactStage.RecruitmentCommitted,
+                        copiedRecord,
+                        1)
+                });
+                exposed.PendingFacts[0].fact.displayName = "tampered snapshot";
+            }
+
+            bool ownerUnchangedAfterSnapshotMutation =
+                string.Equals(
+                    section.Capture(),
+                    captureBeforeSnapshotMutation,
+                    StringComparison.Ordinal)
+                && runtime.State.TryGetRecord(
+                    customerId,
+                    out RegularCustomerRecord ownerBeforeCommand)
+                && !ownerBeforeCommand.IsRecruited
+                && runtime.State.PendingFacts.Count == 0;
+
+            facts.HideNextAcknowledgement = true;
+            facts.HideAcknowledgementStage = RegularCustomerFactStage.RecruitmentCommitted;
+            facts.BlockRecovery = true;
+            bool recruitmentCommitted = runtime.TryRecruit(
+                customerId,
+                out RegularCustomerRecruitResult firstRecruit);
+            bool failedDeliveryRemainsRetryable = recruitmentCommitted
+                && firstRecruit.Success
+                && facts.HiddenAcknowledgements == 1
+                && runtime.State.PendingFacts.Count == 1
+                && activation.ActivateAttempts == 0
+                && runtime.State.TryGetRecord(
+                    customerId,
+                    out RegularCustomerRecord pendingDelivery)
+                && pendingDelivery.IsRecruited
+                && pendingDelivery.RecruitDeliveryPending
+                && !pendingDelivery.RecruitDeliveryApplied;
+
+            activation.AllowActivation = true;
+            facts.BlockRecovery = false;
+            runtime.RetryPendingRecruitDeliveriesForDebug();
+            runtime.RetryPendingRecruitDeliveriesForDebug();
+            bool retryUpdatedFreshQuery = runtime.State.TryGetRecord(
+                customerId,
+                out RegularCustomerRecord delivered)
+                && delivered.IsRecruited
+                && !delivered.RecruitDeliveryPending
+                && delivered.RecruitDeliveryApplied
+                && activation.ActivateAttempts == 1
+                && runtime.State.PendingFacts.Count == 0;
+
+            string canonicalJson = section.Capture();
+            restored.ConstructRestoreRootForDebug(
+                new DungeonStory.Foundation.UnityUiClock(),
+                new DungeonRuntimeAggregateRootStore());
+            var restoredAdapter = new RegularCustomerPersistenceAdapter(
+                restored,
+                catalog);
+            var restoredSection = new RegularCustomerSaveSection(
+                restoredAdapter,
+                restoredAdapter);
+            var restoreReport = new DungeonGameRestoreReport();
+            restoredSection.Restore(
+                canonicalJson,
+                restoredSection.SectionVersion,
+                restoreReport);
+            bool freshOwnerRestored = restoreReport.Success
+                && restored.State.TryGetRecord(
+                    customerId,
+                    out RegularCustomerRecord restoredRecord)
+                && restoredRecord.IsRecruited
+                && !restoredRecord.RecruitDeliveryPending
+                && restoredRecord.RecruitDeliveryApplied
+                && string.Equals(
+                    restoredSection.Capture(),
+                    canonicalJson,
+                    StringComparison.Ordinal);
+
+            return snapshotHasCandidate
+                && ownerUnchangedAfterSnapshotMutation
+                && failedDeliveryRemainsRetryable
+                && retryUpdatedFreshQuery
+                && freshOwnerRestored;
+        }
+        finally
+        {
+            if (facility?.BuildingData != null)
+            {
+                Object.DestroyImmediate(facility.BuildingData);
+            }
+            if (facility != null)
+            {
+                Object.DestroyImmediate(facility.gameObject);
+            }
+            DestroyCustomer(customer);
+            Object.DestroyImmediate(runtimeObject);
+            Object.DestroyImmediate(restoredObject);
+        }
+    }
+
     private static bool VerifyVisitEventSnapshotDoesNotDrift()
     {
         RegularCustomerState state = new RegularCustomerState();
@@ -454,9 +614,11 @@ public static class RegularCustomerDebugScenarios
 
         try
         {
-            runtime.State.RecordVisit(CharacterActor.From(first), rules);
-            runtime.State.RecordVisit(CharacterActor.From(second), rules);
-            runtime.State.RecordVisit(CharacterActor.From(third), rules);
+            RegularCustomerState prepared = runtime.State;
+            prepared.RecordVisit(CharacterActor.From(first), rules);
+            prepared.RecordVisit(CharacterActor.From(second), rules);
+            prepared.RecordVisit(CharacterActor.From(third), rules);
+            runtime.ReplaceStateForDebug(prepared.Records);
 
             int candidateCount = 0;
             void CountCandidate(RegularCustomerSnapshot snapshot) => candidateCount++;
@@ -824,6 +986,9 @@ public static class RegularCustomerDebugScenarios
 
     private sealed class FakeRecruitActivationService : IRecruitedCharacterActivationService
     {
+        public bool AllowActivation { get; set; } = true;
+        public int ActivateAttempts { get; private set; }
+
         public bool TryValidateActivation(
             RegularCustomerRecord record,
             out string message)
@@ -839,6 +1004,14 @@ public static class RegularCustomerDebugScenarios
             out CharacterActor actor,
             out string message)
         {
+            ActivateAttempts++;
+            if (!AllowActivation)
+            {
+                actor = null;
+                message = "activation rejected";
+                return false;
+            }
+
             actor = record?.ActiveActor;
             if (actor != null)
             {

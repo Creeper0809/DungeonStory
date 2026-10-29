@@ -193,7 +193,8 @@ public sealed class RegionalSupplyContractRuntime :
 
     public int Version => state.Version;
     public bool IsUnlocked => IsResearchCompleted("research:commerce:integration");
-    public IReadOnlyList<RegionalSupplyContractState> Contracts => state.ContractView;
+    public IReadOnlyList<RegionalSupplyContractState> Contracts =>
+        CloneContractView(state.ContractView);
 
     public void Initialize()
     {
@@ -1032,6 +1033,24 @@ public sealed class RegionalSupplyContractRuntime :
             .ThenBy(contract => contract.contractId, StringComparer.Ordinal)
             .Select(contract => contract.Clone())
             .ToArray();
+    }
+
+    private static IReadOnlyList<RegionalSupplyContractState> CloneContractView(
+        IReadOnlyList<RegionalSupplyContractState> source)
+    {
+        if (source == null || source.Count == 0)
+        {
+            return Array.Empty<RegionalSupplyContractState>();
+        }
+
+        RegionalSupplyContractState[] result =
+            new RegionalSupplyContractState[source.Count];
+        for (int index = 0; index < source.Count; index++)
+        {
+            result[index] = source[index]?.Clone();
+        }
+
+        return result;
     }
 
     private static int ContractSortOrder(

@@ -10,8 +10,6 @@ public sealed class DefenseResponsePolicyRuntime : IDefenseResponsePolicyRuntime
     private const string CustomPolicyIdPrefix = DefenseResponsePolicyIds.CustomPrefix;
 
     private readonly InvasionAggregateStateStore aggregateStateStore;
-    private IReadOnlyList<DefenseResponsePolicyData> policiesView;
-    private DefensePolicyAggregateState policiesViewState;
     private DefensePolicyAggregateState State => aggregateStateStore.State.Policies;
     private List<DefenseResponsePolicyData> policies => State.Policies;
     private Dictionary<string, string> assignmentByCharacterId =>
@@ -30,24 +28,13 @@ public sealed class DefenseResponsePolicyRuntime : IDefenseResponsePolicyRuntime
         ResetDefaults();
     }
 
-    public IReadOnlyList<DefenseResponsePolicyData> Policies
-    {
-        get
-        {
-            DefensePolicyAggregateState state = State;
-            if (!ReferenceEquals(policiesViewState, state))
-            {
-                policiesViewState = state;
-                policiesView = ReadOnlyView.List(state.Policies);
-            }
-            return policiesView;
-        }
-    }
+    public IReadOnlyList<DefenseResponsePolicyData> Policies =>
+        ReadOnlyView.List(policies.Select(policy => policy.Clone()).ToArray());
 
     public DefenseResponsePolicyData GetPolicy(IInvasionThreatSubject actor)
     {
         string policyId = GetAssignedPolicyId(actor);
-        return FindPolicy(policyId) ?? FindPolicy(StandardPolicyId);
+        return (FindPolicy(policyId) ?? FindPolicy(StandardPolicyId))?.Clone();
     }
 
     public string GetAssignedPolicyId(IInvasionThreatSubject actor)
@@ -75,31 +62,15 @@ public sealed class DefenseResponsePolicyRuntime : IDefenseResponsePolicyRuntime
     public bool TryCreatePolicy(string displayName, out DefenseResponsePolicyData policy)
     {
         policy = null;
-        string normalizedName = displayName?.Trim();
-        if (string.IsNullOrWhiteSpace(normalizedName))
+        if (!TryCreateOwnedPolicy(
+                displayName,
+                null,
+                out DefenseResponsePolicyData created))
         {
             return false;
         }
 
-        string policyId;
-        do
-        {
-            policyId = $"{CustomPolicyIdPrefix}{++customSequence}";
-        }
-        while (FindPolicy(policyId) != null);
-
-        policy = new DefenseResponsePolicyData
-        {
-            id = policyId,
-            displayName = normalizedName,
-            kind = DefenseResponsePolicyKind.Custom,
-            autoRespond = true,
-            minimumDispatchHealthRatio = 0.4f,
-            retreatHealthRatio = 0.2f,
-            holdWithoutReplacement = true,
-            rejoinHealthRatio = 0.6f
-        };
-        policies.Add(policy);
+        policy = created.Clone();
         return true;
     }
 
@@ -110,16 +81,16 @@ public sealed class DefenseResponsePolicyRuntime : IDefenseResponsePolicyRuntime
     {
         policy = null;
         DefenseResponsePolicyData source = FindPolicy(sourcePolicyId);
-        if (source == null || !TryCreatePolicy(displayName, out policy))
+        if (source == null
+            || !TryCreateOwnedPolicy(
+                displayName,
+                source,
+                out DefenseResponsePolicyData duplicate))
         {
             return false;
         }
 
-        policy.autoRespond = source.autoRespond;
-        policy.minimumDispatchHealthRatio = source.minimumDispatchHealthRatio;
-        policy.retreatHealthRatio = source.retreatHealthRatio;
-        policy.holdWithoutReplacement = source.holdWithoutReplacement;
-        policy.rejoinHealthRatio = source.rejoinHealthRatio;
+        policy = duplicate.Clone();
         return true;
     }
 
@@ -149,6 +120,51 @@ public sealed class DefenseResponsePolicyRuntime : IDefenseResponsePolicyRuntime
         target.rejoinHealthRatio = source.rejoinHealthRatio;
         target.id = stableId;
         target.kind = stableKind;
+        return true;
+    }
+
+    private bool TryCreateOwnedPolicy(
+        string displayName,
+        DefenseResponsePolicyData source,
+        out DefenseResponsePolicyData policy)
+    {
+        policy = null;
+        string normalizedName = displayName?.Trim();
+        if (string.IsNullOrWhiteSpace(normalizedName))
+        {
+            return false;
+        }
+
+        string policyId;
+        do
+        {
+            policyId = $"{CustomPolicyIdPrefix}{++customSequence}";
+        }
+        while (FindPolicy(policyId) != null);
+
+        DefenseResponsePolicyData created = new DefenseResponsePolicyData
+        {
+            id = policyId,
+            displayName = normalizedName,
+            kind = DefenseResponsePolicyKind.Custom,
+            autoRespond = true,
+            minimumDispatchHealthRatio = 0.4f,
+            retreatHealthRatio = 0.2f,
+            holdWithoutReplacement = true,
+            rejoinHealthRatio = 0.6f
+        };
+        if (source != null)
+        {
+            created.autoRespond = source.autoRespond;
+            created.minimumDispatchHealthRatio = source.minimumDispatchHealthRatio;
+            created.retreatHealthRatio = source.retreatHealthRatio;
+            created.holdWithoutReplacement = source.holdWithoutReplacement;
+            created.rejoinHealthRatio = source.rejoinHealthRatio;
+        }
+
+        created.Normalize();
+        policies.Add(created);
+        policy = created;
         return true;
     }
 
@@ -205,8 +221,6 @@ public sealed class DefenseResponsePolicyRuntime : IDefenseResponsePolicyRuntime
 
         policies.Clear();
         assignmentByCharacterId.Clear();
-        policiesView = null;
-        policiesViewState = null;
         customSequence = 0;
         foreach (DefenseResponsePolicyData source in snapshot.policies)
         {
@@ -236,8 +250,6 @@ public sealed class DefenseResponsePolicyRuntime : IDefenseResponsePolicyRuntime
     {
         policies.Clear();
         assignmentByCharacterId.Clear();
-        policiesView = null;
-        policiesViewState = null;
         customSequence = 0;
         policies.Add(new DefenseResponsePolicyData
         {

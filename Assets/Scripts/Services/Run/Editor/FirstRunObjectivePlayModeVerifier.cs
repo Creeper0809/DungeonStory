@@ -1915,7 +1915,7 @@ public sealed class FirstRunObjectiveVerificationRunner : MonoBehaviour
                     && !building.IsDeprecatedCompatibilityAsset
                     && FacilityShopService.CanEnterBasicPurchase(building))
                 .OrderBy(building => building.id).First();
-            shop.UnlockState.UnlockBasicPurchase(basic);
+            shop.UnlockStateForDebug.UnlockBasicPurchase(basic);
             report.Add("[CONTROLLED] BASIC_PURCHASE_UNLOCK building=" + basic.id
                 + "; UI purchase regression setup, not research completion evidence");
         }

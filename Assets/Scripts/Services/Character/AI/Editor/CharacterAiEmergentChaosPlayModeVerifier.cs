@@ -327,7 +327,7 @@ public sealed class CharacterAiEmergentChaosPlayModeRunner : MonoBehaviour
             300f,
             calendar.AbsoluteHour,
             applyLearningMultiplier: false);
-        research.GetState().Projects.RestoreCompleted(
+        research.GetStateForDebug().Projects.RestoreCompleted(
             new ResearchProjectId(MedicalResearchId));
         doctorWork = doctor.GetAbility<AbilityWork>();
         doctorWork?.SetDutyState(AbilityWork.DutyState.OnDuty);

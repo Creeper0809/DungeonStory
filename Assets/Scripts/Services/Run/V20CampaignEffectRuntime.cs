@@ -192,6 +192,11 @@ internal sealed class V20CampaignEffectRuntime : IContentWorkDelayQuery, IConten
                     or "crop:harvest"
                     or "item:haul"
                     or "building:stock";
+        if (scope == "farm")
+            return WorkTypeCatalog.TryGet(
+                    workTypeId,
+                    out WorkTypeDefinition definition)
+                && definition.CapabilityId is "crop:sow" or "crop:harvest";
         if (scope is "road" or "whiteout")
             return ContainsAny(workTypeId, "expedition", "haul", "logistic", "carry", "trade");
         if (workTypeId.IndexOf(scope, StringComparison.OrdinalIgnoreCase) >= 0)

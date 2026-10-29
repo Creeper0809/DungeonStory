@@ -62,3 +62,11 @@ public sealed class ContentReferenceAttribute : PropertyAttribute
 // Published identities are compatibility contracts, not editable display names.
 [AttributeUsage(AttributeTargets.Field)]
 public sealed class ContentIdentityAttribute : PropertyAttribute { }
+
+// A container supplies the concrete reference kind for its reusable child rows.
+[AttributeUsage(AttributeTargets.Field)]
+public sealed class ContentReferenceContextAttribute : Attribute
+{
+    public ContentReferenceContextAttribute(ContentReferenceKind kind) => Kind = kind;
+    public ContentReferenceKind Kind { get; }
+}

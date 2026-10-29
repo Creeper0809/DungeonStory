@@ -377,7 +377,7 @@ public static partial class FacilitySynthesisDebugScenarios
             recipe,
             new[] { first, second },
             out FacilitySynthesisResult beforeResult);
-        researchRuntime.State.UnlockRecipe(recipe.requiredResearchRecipeId);
+        researchRuntime.StateForDebug.UnlockRecipe(recipe.requiredResearchRecipeId);
         bool acceptedAfterResearch = runtime.TrySynthesize(
             recipe,
             new[] { first, second },
@@ -640,8 +640,10 @@ public static partial class FacilitySynthesisDebugScenarios
 
             public BlueprintResearchState GetState()
             {
-                return world.GetResearchState();
+                return world.GetResearchState().CreateSnapshot();
             }
+
+            public BlueprintResearchState GetStateForDebug() => world.GetResearchState();
         }
 
         private sealed class NullGridTextureProvider : IGridTextureProvider

@@ -1749,6 +1749,7 @@ public static partial class MigratedProducerRunOffenseEntryE2EDebugScenarios
                         new ResourceGameContentCatalog(
                             new UnityGameContentRootLoader()))),
                 EmptyReturnArrivalRuntime.Instance,
+                EditorItemCatalogFactory.CreateDefinitions(),
                 CharacterAiEditorTestDependencies.NeutralPerformance);
             runtime.ConstructProficiencyProgression(
                 null,
@@ -1787,7 +1788,7 @@ public static partial class MigratedProducerRunOffenseEntryE2EDebugScenarios
         }
 
         public override string CaptureDomain() =>
-            JsonUtility.ToJson(runtime.Session.CapturePersistentState());
+            JsonUtility.ToJson(runtime.OwnedSession.CapturePersistentState());
 
         public override void Execute()
         {

@@ -3386,7 +3386,7 @@ public static partial class ProductionPreparedOutputFullPersistenceDebugScenario
             {
                 // This isolated graph does not own research saves or unlock publication;
                 // it only needs the production gate to represent an already unlocked recipe.
-                research.State.Projects.RestoreCompleted(
+                research.StateForDebug.Projects.RestoreCompleted(
                     new ResearchProjectId(Recipe.RequiredResearchId));
             }
             ProgressionSceneRuntimeReferences progression = new(

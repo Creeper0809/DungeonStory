@@ -24,6 +24,13 @@ GROUPS = {
     "crop": "V27CiEvidenceBatch.RunImpactCrops",
     "world": "V27CiEvidenceBatch.RunImpactWorldRestore",
 }
+# All three executions are required when the effects group is partitioned.
+# They invoke the same bodies as RunImpactEffectContracts, under unchanged guards.
+EFFECT_PARTS = {
+    "effects-definitions": "V27CiEvidenceBatch.RunImpactEffectDefinitionContracts",
+    "effects-recovery": "V27CiEvidenceBatch.RunImpactEffectRecoveryContracts",
+    "effects-traits": "V27CiEvidenceBatch.RunImpactAcquiredTraitContracts",
+}
 # Ordered ownership rules. Shared/unknown dependencies deliberately take all groups.
 DOMAIN_RULES = (
     ("Assets/Scripts/Content/", {"effects"}),
@@ -72,17 +79,50 @@ def required_groups(paths: list[str]) -> set[str]:
     return selected
 
 
-def archive_changed(paths: list[str]) -> bool:
+BALANCE_AUTHORITY = "docs/game-design/whole-game-balance-baseline.md"
+
+
+def only_adds_balance_records(before: str, after: str) -> bool:
+    """A new record cannot rewrite, remove or shadow historical authority text."""
+    title, separator, previous_records = before.partition("\n\n")
+    if (not separator or not title.startswith("# ") or not previous_records
+            or len(after) <= len(before) or not after.startswith(title + separator)
+            or not after.endswith(previous_records)):
+        return False
+    added = after[len(title + separator):-len(previous_records)]
+    if not added.startswith("## ") or not added.endswith("\n\n"):
+        return False
+    record_pattern = r"`(balance:[a-z0-9][a-z0-9:._-]*)`"
+    identities = re.findall(record_pattern, added)
+    if not identities or len(identities) != len(set(identities)):
+        return False
+    # Also reject a reused key written without backticks in the old document.
+    return all(identity not in before for identity in identities)
+
+
+def archive_changed(paths: list[str], base: str | None = None, head: str = "HEAD") -> bool:
     exact = set(ledger.MANIFEST_ARTIFACT_HASHES.values()) | {
         "Artifacts/QA/v27-balance-artifact-manifest.json",
         "docs/game-design/v27-balance-market-review-decisions.json",
-        "docs/game-design/whole-game-balance-baseline.md",
+        BALANCE_AUTHORITY,
         "docs/implementation-reports/world-resource-runtime-latest.txt",
         "docs/implementation-reports/crop-plot-runtime-latest.txt",
     }
-    return any(path in exact or path.startswith((
-        "Artifacts/QA/v27-", "Artifacts/QA/combat-balance-final/",
-    )) for path in paths)
+    for path in paths:
+        if path == BALANCE_AUTHORITY and base is not None:
+            ancestor = subprocess.check_output(
+                ["git", "merge-base", base, head], cwd=ROOT).decode().strip()
+            before, after = (
+                subprocess.check_output(["git", "show", f"{ref}:{path}"], cwd=ROOT)
+                .decode("utf-8", errors="strict")
+                for ref in (ancestor, head)
+            )
+            if only_adds_balance_records(before, after):
+                continue
+        if path in exact or path.startswith((
+                "Artifacts/QA/v27-", "Artifacts/QA/combat-balance-final/")):
+            return True
+    return False
 
 
 def configuration_snapshot(root: Path = ROOT) -> str:
@@ -120,6 +160,30 @@ def configuration_snapshot(root: Path = ROOT) -> str:
 def verify_execution(check: dict, source: str, config: str, root: Path = ROOT) -> str:
     group = check.get("group")
     if group not in GROUPS or check.get("method") != GROUPS[group]:
+        ledger.fail("unknown or mismatched targeted execution method")
+    if "parts" not in check:
+        return _verify_execution_record(check, source, config, root, GROUPS)
+    parts = check["parts"]
+    if (group != "effects" or not isinstance(parts, list) or len(parts) != len(EFFECT_PARTS)
+            or {"log", "summary", "logSha256", "summarySha256"}.intersection(check)):
+        ledger.fail("partitioned effects require exactly the three complete executions")
+    observed = set()
+    for part in parts:
+        if not isinstance(part, dict) or "parts" in part:
+            ledger.fail("invalid or nested effects execution part")
+        current = _verify_execution_record(part, source, config, root, EFFECT_PARTS)
+        if current in observed:
+            ledger.fail("duplicate effects execution part")
+        observed.add(current)
+    if observed != set(EFFECT_PARTS):
+        ledger.fail("missing required effects execution part")
+    return group
+
+
+def _verify_execution_record(check: dict, source: str, config: str, root: Path,
+                             methods: dict[str, str]) -> str:
+    group = check.get("group")
+    if group not in methods or check.get("method") != methods[group]:
         ledger.fail("unknown or mismatched targeted execution method")
     loaded = {}
     for field in ("log", "summary"):
@@ -176,7 +240,7 @@ def main() -> None:
     args = parser.parse_args()
     paths = changed_paths(args.base, args.head)
     groups = required_groups(paths)
-    full = archive_changed(paths)
+    full = archive_changed(paths, args.base, args.head)
     print(json.dumps(dict(changedFiles=len(paths), requiredGroups=sorted(groups),
                           fullBalanceCertification=full), ensure_ascii=False))
     if args.plan_only:

@@ -43,6 +43,11 @@ public sealed class ContentReferenceDrawer : PropertyDrawer
         ContentReferenceKind? kind = resolved?.Kind;
         if (kind == null)
         {
+            if (ContentReferenceCatalog.RequiresContainerContext(requested))
+            {
+                EditorGUI.LabelField(position, label.text, "참조 종류 문맥 누락: 소유 필드 설정 필요");
+                return;
+            }
             // Free-form effect labels and non-SO faction reaction keys are not references.
             EditorGUI.PropertyField(position, property, label);
             return;
@@ -171,7 +176,8 @@ public static class ContentReferenceSelection
     public static ContentReferenceKind? ResolveKind(ContentReferenceKind kind, SerializedProperty property)
     {
         if (kind == ContentReferenceKind.WeightedTarget)
-            return ContentReferenceCatalog.ResolveWeightedTargetKind(property.propertyPath);
+            return ContentReferenceCatalog.ResolveContainerContext(
+                property.serializedObject.targetObject.GetType(), property.propertyPath);
         if (kind != ContentReferenceKind.EffectTarget) return kind;
         int dot = property.propertyPath.LastIndexOf('.');
         var effectKind = property.serializedObject.FindProperty(property.propertyPath.Substring(0, dot + 1) + "kind");
@@ -181,6 +187,11 @@ public static class ContentReferenceSelection
 
     public static ContentReferenceAttribute ResolveReference(ContentReferenceAttribute reference, SerializedProperty property)
     {
+        if (ContentReferenceCatalog.RequiresContainerContext(reference.Kind))
+            return ContentReferenceCatalog.ResolveReference(reference, property.propertyPath, null,
+                property.serializedObject.targetObject as ScriptableObject,
+                ContentReferenceCatalog.ResolveContainerContext(
+                    property.serializedObject.targetObject.GetType(), property.propertyPath));
         if (reference.Kind == ContentReferenceKind.DefenseFamily)
             return Sibling(property, "enabled")?.boolValue == false ? null : reference;
         if (reference.Kind == ContentReferenceKind.FacilityRecordMetric)

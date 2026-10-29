@@ -410,6 +410,7 @@ public static class DungeonCharacterRegistration
         builder.Register<CharacterPopulationApplicationAdapter>(Lifetime.Singleton);
         builder.Register<CharacterPopulationService>(Lifetime.Singleton)
             .As<ICharacterPopulationService>()
+            .As<ICharacterVisitorExitProfileAuthority>()
             .As<ICharacterSettlementStandingQuery>();
         builder.Register<CharacterVisitorExitOutcomeRuntime>(Lifetime.Singleton)
             .As<ICharacterVisitorExitOutcomeRuntime>();

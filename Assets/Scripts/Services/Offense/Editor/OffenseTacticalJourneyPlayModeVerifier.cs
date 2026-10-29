@@ -517,7 +517,7 @@ public sealed class OffenseTacticalJourneyPlayModeRunner : MonoBehaviour
     private static EnemyIndividualSaveData SelectConditionActor(
         EnemyTacticalIntentKind intent,
         IReadOnlyList<EnemyIndividualSaveData> individuals,
-        OffenseBattleSession session,
+        OffenseBattleSnapshot session,
         IEnemyArchetypeCatalog archetypes)
     {
         IEnumerable<EnemyIndividualSaveData> candidates = individuals
@@ -724,7 +724,7 @@ public sealed class OffenseTacticalJourneyPlayModeRunner : MonoBehaviour
     private bool RunOnePlayerTurn(IOffenseBattleRuntime battle)
     {
         battle.AdvanceToPlayerDecision();
-        OffenseBattleSession session = battle.Session;
+        OffenseBattleSnapshot session = battle.Session;
         if (session == null || session.IsComplete) return true;
         if (session.CurrentActor == null
             || session.CurrentActor.Team != OffenseBattleTeam.Allies)
@@ -737,7 +737,9 @@ public sealed class OffenseTacticalJourneyPlayModeRunner : MonoBehaviour
         bool hasForwardEnemy = enemies.Any(value =>
             value.Formation != OffenseFormationSlot.Rear);
         OffenseBattleCombatant target = enemies
-            .Where(value => session.PreviewBasicAttack(actor, value).Valid
+            .Where(value => battle.PreviewBasicAttack(
+                    actor.PersistentId,
+                    value.PersistentId).Valid
                 && (actor.Weapon?.IsRanged == true
                     || !hasForwardEnemy
                     || value.Formation != OffenseFormationSlot.Rear))

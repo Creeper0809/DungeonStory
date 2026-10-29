@@ -18,6 +18,13 @@ using VContainer.Unity;
 
 public static class V20CampaignDebugScenarios
 {
+    public static void RunR30FarmDelayFocused()
+    {
+        var content = new ResourceGameContentCatalog(new UnityGameContentRootLoader());
+        VerifyPersistedWorkDelay(new V20StoryContentCatalog(content));
+        Debug.Log("R30_FARM_DELAY=PASS");
+    }
+
     public static string RunWimWinterContractFocused()
     {
         const string path = "Artifacts/QA/wim-implementation/wim-009-winter-contract-focused.txt";
@@ -1767,6 +1774,70 @@ public static class V20CampaignDebugScenarios
                     flood.GetWorkSpeedMultiplier(workType) - 1f)
                 < 0.0001f),
             "Flood work delay did not expire on its authored day boundary.");
+
+        V20CampaignRuntime farm = new(
+            new DungeonRuntimeAggregateRootStore(),
+            catalog);
+        const int farmStartDay = 20;
+        farm.PublishSociety(farm.PrepareSociety(new SocietyEventWorldSaveData
+        {
+            lastEvaluationAbsoluteDay = farmStartDay
+        }));
+        farm.ApplyWorkDelay("farm", 2, farmStartDay);
+        WorkTypeId[] farmAffected =
+        {
+            BuiltInWorkTypeIds.Sow,
+            BuiltInWorkTypeIds.Harvest
+        };
+        Require(farmAffected.All(workType => Math.Abs(
+                    farm.GetWorkSpeedMultiplier(workType)
+                    - ContentWorkDelaySpeedAuthority.PerActiveDelayMultiplier)
+                < 0.0001f)
+                && Math.Abs(farm.GetWorkSpeedMultiplier(
+                    BuiltInWorkTypeIds.AnimalCare) - 1f) < 0.0001f
+                && Math.Abs(farm.GetWorkSpeedMultiplier(
+                    BuiltInWorkTypeIds.Research) - 1f) < 0.0001f
+                && Math.Abs(farm.GetWorkSpeedMultiplier(
+                    new WorkTypeId("work:farm-inspection")) - 1f) < 0.0001f,
+            "Farm work delay did not follow exact crop capabilities.");
+        SocietyEventWorldSaveData farmCaptured = farm.CaptureSociety();
+        V20CampaignRuntime farmRestored = new(
+            new DungeonRuntimeAggregateRootStore(),
+            catalog);
+        farmRestored.PublishSociety(
+            farmRestored.PrepareSociety(farmCaptured));
+        Require(farmRestored.GetRemainingDays("farm") == 2
+                && farmAffected.All(workType => Math.Abs(
+                        farmRestored.GetWorkSpeedMultiplier(workType)
+                        - ContentWorkDelaySpeedAuthority.PerActiveDelayMultiplier)
+                    < 0.0001f),
+            "Farm work delay scope or crop capability was lost on restore.");
+        V20CampaignRuntime withoutFarm = new(
+            new DungeonRuntimeAggregateRootStore(), catalog);
+        withoutFarm.PublishSociety(withoutFarm.PrepareSociety(farmCaptured));
+        withoutFarm.ApplyWorkDelay("farm", -2, farmStartDay);
+        Require(withoutFarm.GetRemainingDays("farm") == 0,
+            "Farm expiry control retained the deliberately removed delay.");
+        V20DailyEventContext ExpiryDay() => new()
+        {
+            AbsoluteDay = farmStartDay + 2,
+            RunSeed = 43043,
+            Season = Season.Spring
+        };
+        farmRestored.EvaluateDaily(ExpiryDay());
+        withoutFarm.EvaluateDaily(ExpiryDay());
+        SocietyEventWorldSaveData afterExpiry = farmRestored.CaptureSociety();
+        Require(farmRestored.GetRemainingDays("farm") == 0
+                && farmAffected.All(workType => Math.Abs(
+                        farmRestored.GetWorkSpeedMultiplier(workType)
+                        - withoutFarm.GetWorkSpeedMultiplier(workType))
+                    < 0.0001f),
+            "Restored farm work delay did not expire on its authored day boundary: day="
+                + afterExpiry.lastEvaluationAbsoluteDay + "; delays="
+                + string.Join(",", afterExpiry.workDelays.Select(delay =>
+                    delay.scopeId + ":" + delay.untilAbsoluteDayExclusive))
+                + "; sow=" + farmRestored.GetWorkSpeedMultiplier(BuiltInWorkTypeIds.Sow)
+                + "; control=" + withoutFarm.GetWorkSpeedMultiplier(BuiltInWorkTypeIds.Sow));
     }
 
     private static void VerifyDailyEffectScopeAndRootReplacement(V20StoryContentCatalog catalog)

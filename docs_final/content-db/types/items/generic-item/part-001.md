@@ -4,8 +4,8 @@
 
 | 안정 ID | 이름 | 전략적 역할 | 비용·위험 | 런타임 상태 | 수명주기 | 역참조 | 구현 권위 |
 |---|---|---|---|---|---|---:|---|
-| `ammo:arrow` | 화살 | 재고 범주 7에서 원거리 전투의 탄약 소비, 생산망의 입력·출력 역할을 맡는다. | unitPrice=1 | catalog-registered-static-consumer | active-authored | 8 | [ammo_arrow.asset](../../../../../Assets/Resources/SO/Items/Definitions/ammo_arrow.asset) |
-| `ammo:bolt` | 볼트 | 재고 범주 7에서 원거리 전투의 탄약 소비, 생산망의 입력·출력 역할을 맡는다. | unitPrice=2 | catalog-registered-static-consumer | active-authored | 4 | [ammo_bolt.asset](../../../../../Assets/Resources/SO/Items/Definitions/ammo_bolt.asset) |
+| `ammo:arrow` | 화살 | 재고 범주 7에서 원거리 전투의 탄약 소비, Combat Ammunition Profile Item Feature, 생산망의 입력·출력 역할을 맡는다. | unitPrice=1 | catalog-registered-static-consumer | active-authored | 8 | [ammo_arrow.asset](../../../../../Assets/Resources/SO/Items/Definitions/ammo_arrow.asset) |
+| `ammo:bolt` | 볼트 | 재고 범주 7에서 원거리 전투의 탄약 소비, Combat Ammunition Profile Item Feature, 생산망의 입력·출력 역할을 맡는다. | unitPrice=2 | catalog-registered-static-consumer | active-authored | 4 | [ammo_bolt.asset](../../../../../Assets/Resources/SO/Items/Definitions/ammo_bolt.asset) |
 | `captivity:extracted-blood` | 추출 혈액 | 재고 범주 8에서 생산망의 입력·출력 역할을 맡는다. | unitPrice=22 | catalog-registered-static-consumer | active-authored | 0 | [captivity_extracted_blood.asset](../../../../../Assets/Resources/SO/Items/Definitions/captivity_extracted_blood.asset) |
 | `captivity:memory-residue` | 기억 잔재 | 재고 범주 9에서 생산망의 입력·출력 역할을 맡는다. | unitPrice=35 | catalog-registered-static-consumer | active-authored | 2 | [captivity_memory_residue.asset](../../../../../Assets/Resources/SO/Items/Definitions/captivity_memory_residue.asset) |
 | `captivity:restraints` | 구속구 | 재고 범주 1에서 생산망의 입력·출력 역할을 맡는다. | unitPrice=18 | catalog-registered-static-consumer | active-authored | 0 | [captivity_restraints.asset](../../../../../Assets/Resources/SO/Items/Definitions/captivity_restraints.asset) |

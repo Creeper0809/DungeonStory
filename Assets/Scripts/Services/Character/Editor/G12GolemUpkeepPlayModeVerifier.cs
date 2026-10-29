@@ -75,7 +75,7 @@ public static class G12GolemUpkeepPlayModeVerifier
             GameplayOutcomeLedgerSaveData ledger = scope.Container
                 .Resolve<GameplayOutcomeLedger>()
                 .CaptureGameplayOutcomes();
-            GameplayOutcomeSnapshot[] episodes = ledger.exactOutcomes
+            GameplayOutcomeSnapshot[] allEpisodes = ledger.exactOutcomes
                 .Concat(ledger.outbox)
                 .Where(value => value != null
                     && string.Equals(
@@ -83,11 +83,18 @@ public static class G12GolemUpkeepPlayModeVerifier
                         EnvironmentOutcomeIds.GolemUpkeepEpisode.Value,
                         StringComparison.Ordinal))
                 .ToArray();
+            GameplayOutcomeSnapshot[] episodes = allEpisodes
+                .Where(value => HasSpecies(value, "Golem"))
+                .ToArray();
+            GameplayOutcomeSnapshot[] alternateChargeEpisodes = allEpisodes
+                .Where(value => HasSpecies(value, "QaChargeConstruct"))
+                .ToArray();
             report.golemEpisodeCount = episodes.Length;
             report.wearEpisodeCount = CountKind(episodes, "wear");
             report.rechargeEpisodeCount = CountKind(episodes, "recharge");
             report.dischargeEpisodeCount = CountKind(episodes, "discharge");
-            report.allEpisodesHaveExactChildren = episodes.All(value =>
+            report.alternateChargeEpisodeCount = alternateChargeEpisodes.Length;
+            report.allEpisodesHaveExactChildren = allEpisodes.All(value =>
                 HasFact(value, EnvironmentOutcomeIds.StateBeforeFact.Value)
                 && HasFact(value, EnvironmentOutcomeIds.StateAfterFact.Value)
                 && HasFact(value, EnvironmentOutcomeIds.PhysicalChildFact.Value)
@@ -97,6 +104,10 @@ public static class G12GolemUpkeepPlayModeVerifier
                     && report.wearEpisodeCount == 2
                     && report.rechargeEpisodeCount == 1
                     && report.dischargeEpisodeCount == 1
+                    && report.alternateChargeEpisodeCount == 3
+                    && CountKind(alternateChargeEpisodes, "wear") == 1
+                    && CountKind(alternateChargeEpisodes, "recharge") == 1
+                    && CountKind(alternateChargeEpisodes, "discharge") == 1
                     && report.allEpisodesHaveExactChildren
                     && report.surgeryParentHasMaterialLaborBody
                     && report.surgeryParentHasGolemBeforeAfter,
@@ -144,6 +155,18 @@ public static class G12GolemUpkeepPlayModeVerifier
             && string.Equals(value.factId, factId, StringComparison.Ordinal)
             && !string.IsNullOrWhiteSpace(value.value));
 
+    private static bool HasSpecies(
+        GameplayOutcomeSnapshot outcome,
+        string speciesId) => outcome.subjects.Any(value => value != null
+            && string.Equals(
+                value.entityKindId,
+                EnvironmentOutcomeIds.SpeciesDefinitionKind.Value,
+                StringComparison.Ordinal)
+            && string.Equals(
+                value.entityId,
+                speciesId,
+                StringComparison.Ordinal));
+
     private static void WriteNew(string name, string content)
     {
         string root = Environment.GetEnvironmentVariable(
@@ -176,6 +199,7 @@ public static class G12GolemUpkeepPlayModeVerifier
         public int wearEpisodeCount;
         public int rechargeEpisodeCount;
         public int dischargeEpisodeCount;
+        public int alternateChargeEpisodeCount;
         public bool allEpisodesHaveExactChildren;
         public bool surgeryParentHasMaterialLaborBody;
         public bool surgeryParentHasGolemBeforeAfter;

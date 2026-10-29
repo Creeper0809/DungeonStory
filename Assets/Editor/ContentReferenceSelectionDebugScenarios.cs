@@ -438,6 +438,23 @@ public static class ContentReferenceSelectionDebugScenarios
         }
     }
 
+    public static void RunR30ExplicitContextFocused()
+    {
+        var temporaryObjects = new List<Object>();
+        try
+        {
+            VerifyR30ExplicitContext(temporaryObjects);
+        }
+        finally
+        {
+            for (int index = temporaryObjects.Count - 1; index >= 0; index--)
+            {
+                if (temporaryObjects[index] != null)
+                    Object.DestroyImmediate(temporaryObjects[index]);
+            }
+        }
+    }
+
     public static void VerifyCatalogComposition()
     {
         var root = AssetDatabase.LoadAssetAtPath<GameContentCatalogSO>(
@@ -866,7 +883,7 @@ public static class ContentReferenceSelectionDebugScenarios
                     ContentReferenceKind.WeightedTarget,
                     property) == ContentReferenceKind.LifeEvent
                     && ContentReferenceCatalog.ResolveKind(ContentReferenceKind.WeightedTarget,
-                        property.propertyPath, null) == ContentReferenceKind.LifeEvent,
+                        property.propertyPath, null, ContentReferenceKind.LifeEvent) == ContentReferenceKind.LifeEvent,
                 "relatedEventWeights did not resolve to LifeEvent.");
         }
         using (var serialized = new SerializedObject(culture))
@@ -881,7 +898,7 @@ public static class ContentReferenceSelectionDebugScenarios
                     ContentReferenceKind.WeightedTarget,
                     property) == ContentReferenceKind.Culture
                     && ContentReferenceCatalog.ResolveKind(ContentReferenceKind.WeightedTarget,
-                        property.propertyPath, null) == ContentReferenceKind.Culture,
+                        property.propertyPath, null, ContentReferenceKind.Culture) == ContentReferenceKind.Culture,
                 "otherCultureAttitudes did not resolve to Culture.");
         }
         using (var serialized = new SerializedObject(background))
@@ -896,7 +913,7 @@ public static class ContentReferenceSelectionDebugScenarios
                     ContentReferenceKind.WeightedTarget,
                     reaction) == ContentReferenceKind.EnemyFaction
                     && ContentReferenceCatalog.ResolveKind(ContentReferenceKind.WeightedTarget,
-                        reaction.propertyPath, null) == ContentReferenceKind.EnemyFaction
+                        reaction.propertyPath, null, ContentReferenceKind.EnemyFaction) == ContentReferenceKind.EnemyFaction
                     && ContentReferenceCatalog.IsKeyReference(ContentReferenceKind.EnemyFaction),
                 "factionReactions did not resolve to the registered enemy-faction key protocol.");
             var factionKeys = ContentReferenceSelection.Entries(
@@ -988,6 +1005,158 @@ public static class ContentReferenceSelectionDebugScenarios
         Require(ContentReferenceSelection.ResolveReference(
             new ContentReferenceAttribute(ContentReferenceKind.NarrativeTarget), id)?.Kind == ContentReferenceKind.Building,
             "Narrative drawer ignored the pending serialized kind.");
+    }
+
+    private static void VerifyR30ExplicitContext(List<Object> temporaryObjects)
+    {
+        var lifeEvent = Create<LifeEventDefinitionSO>(temporaryObjects);
+        lifeEvent.ConfigureMetadata("r30:context-life-event", "R30 life event", "Fixture", 1, "Fixture");
+        var culture = Create<SpeciesCultureDefinitionSO>(temporaryObjects);
+        culture.ConfigureMetadata("r30:context-culture", "R30 culture", "Fixture", 1, "Fixture");
+        var enemy = Create<EnemyArchetypeDefinitionSO>(temporaryObjects);
+        enemy.factionId = "human:crown";
+
+        var fixture = Create<R30ExplicitContextFixture>(temporaryObjects);
+        fixture.firstBucket.Add(new V20WeightedId { id = lifeEvent.StableId });
+        fixture.secondBucket.Add(new V20WeightedId { id = culture.StableId });
+        fixture.thirdBucket.Add(new V20WeightedId { id = "faction:old-nobility" });
+        fixture.fourthBucket.Add(new FacilityEvolutionMetricRequirement
+        {
+            key = RoomProfileBuilder.ProducedScoreKeys.First()
+        });
+        fixture.fifthBucket.Add(new FacilityEvolutionMetricRequirement
+        {
+            key = RoomProfileBuilder.ProducedMetricKeys.First()
+        });
+        fixture.sixthBucket.Add(new FacilityEvolutionValue
+        {
+            key = FacilityIdentityPressureUtility.PressureKeys.First()
+        });
+
+        var catalog = new ContentReferenceCatalog(new ScriptableObject[]
+        {
+            lifeEvent, culture, enemy
+        });
+        string originalJson = EditorJsonUtility.ToJson(fixture);
+        VerifyR30ResolvedContainerContext(
+            fixture, "firstBucket.Array.data[0].id", ContentReferenceKind.WeightedTarget,
+            ContentReferenceKind.LifeEvent);
+        VerifyR30ResolvedContainerContext(
+            fixture, "secondBucket.Array.data[0].id", ContentReferenceKind.WeightedTarget,
+            ContentReferenceKind.Culture);
+        VerifyR30ResolvedContainerContext(
+            fixture, "thirdBucket.Array.data[0].id", ContentReferenceKind.WeightedTarget,
+            ContentReferenceKind.EnemyFaction);
+        VerifyR30ResolvedContainerContext(
+            fixture, "fourthBucket.Array.data[0].key", ContentReferenceKind.RoomProfileKey,
+            ContentReferenceKind.RoomScore);
+        VerifyR30ResolvedContainerContext(
+            fixture, "fifthBucket.Array.data[0].key", ContentReferenceKind.RoomProfileKey,
+            ContentReferenceKind.RoomMetric);
+        VerifyR30ResolvedContainerContext(
+            fixture, "sixthBucket.Array.data[0].key", ContentReferenceKind.FacilityValueKey,
+            ContentReferenceKind.FacilityPressure);
+        Require(
+            catalog.Validate(new ScriptableObject[] { fixture }).Count == 0,
+            "Explicit container contexts rejected valid IDs.");
+        Require(
+            EditorJsonUtility.ToJson(fixture) == originalJson,
+            "Explicit container context validation changed fixture data.");
+
+        fixture.firstBucket[0].id = "r30:missing-life-event";
+        RequireR30RejectedContextId(catalog, fixture, "r30:missing-life-event");
+        fixture.firstBucket[0].id = lifeEvent.StableId;
+        fixture.secondBucket[0].id = "r30:missing-culture";
+        RequireR30RejectedContextId(catalog, fixture, "r30:missing-culture");
+        fixture.secondBucket[0].id = culture.StableId;
+        fixture.thirdBucket[0].id = "r30:missing-enemy-faction";
+        RequireR30RejectedContextId(catalog, fixture, "r30:missing-enemy-faction");
+        fixture.thirdBucket[0].id = "faction:old-nobility";
+        SetR30MetricRequirementKey(fixture.fourthBucket, "r30:missing-room-score");
+        RequireR30RejectedContextId(catalog, fixture, "r30:missing-room-score");
+        SetR30MetricRequirementKey(fixture.fourthBucket, RoomProfileBuilder.ProducedScoreKeys.First());
+        SetR30MetricRequirementKey(fixture.fifthBucket, "r30:missing-room-metric");
+        RequireR30RejectedContextId(catalog, fixture, "r30:missing-room-metric");
+        SetR30MetricRequirementKey(fixture.fifthBucket, RoomProfileBuilder.ProducedMetricKeys.First());
+        SetR30FacilityValueKey(fixture.sixthBucket, "r30:missing-facility-pressure");
+        RequireR30RejectedContextId(catalog, fixture, "r30:missing-facility-pressure");
+        SetR30FacilityValueKey(fixture.sixthBucket, FacilityIdentityPressureUtility.PressureKeys.First());
+        Require(
+            EditorJsonUtility.ToJson(fixture) == originalJson,
+            "Context rejection recovery did not restore the original fixture data.");
+
+        var missing = Create<R30MissingContextFixture>(temporaryObjects);
+        missing.unannotatedWeights.Add(new V20WeightedId { id = lifeEvent.StableId });
+        missing.unannotatedRooms.Add(new FacilityEvolutionMetricRequirement
+        {
+            key = RoomProfileBuilder.ProducedScoreKeys.First()
+        });
+        missing.unannotatedPressures.Add(new FacilityEvolutionValue
+        {
+            key = FacilityIdentityPressureUtility.PressureKeys.First()
+        });
+        IReadOnlyList<string> missingErrors = catalog.Validate(new ScriptableObject[] { missing });
+        Require(
+            missingErrors.Count(error => error.Contains("missing explicit container reference context")) == 3,
+            "Missing container annotations did not fail for weighted, room, and facility values.");
+    }
+
+    private static void VerifyR30ResolvedContainerContext(
+        ScriptableObject fixture,
+        string propertyPath,
+        ContentReferenceKind requested,
+        ContentReferenceKind expected)
+    {
+        Require(
+            ContentReferenceCatalog.ResolveContainerContext(fixture.GetType(), propertyPath) == expected,
+            $"{propertyPath} did not retain its explicit {expected} context.");
+        var reference = new ContentReferenceAttribute(requested);
+        Require(
+            ContentReferenceCatalog.ResolveReference(reference, propertyPath, null, fixture, expected)?.Kind
+                == expected,
+            $"{propertyPath} did not resolve through its explicit {expected} context.");
+        using var serialized = new SerializedObject(fixture);
+        serialized.Update();
+        SerializedProperty property = RequireProperty(serialized, propertyPath);
+        Require(
+            ContentReferenceSelection.ResolveReference(reference, property)?.Kind == expected,
+            $"Inspector selection lost the {expected} context for {propertyPath}.");
+        if (requested == ContentReferenceKind.WeightedTarget)
+        {
+            Require(
+                ContentReferenceCatalog.ResolveKind(requested, propertyPath, null, expected) == expected
+                && ContentReferenceSelection.ResolveKind(requested, property) == expected,
+                $"Weighted target resolution did not retain the {expected} context for {propertyPath}.");
+        }
+    }
+
+    private static void RequireR30RejectedContextId(
+        ContentReferenceCatalog catalog,
+        ScriptableObject fixture,
+        string id)
+    {
+        Require(
+            catalog.Validate(new ScriptableObject[] { fixture })
+                .Any(error => error.Contains(id, StringComparison.Ordinal)),
+            $"Invalid context ID '{id}' was accepted.");
+    }
+
+    private static void SetR30MetricRequirementKey(
+        List<FacilityEvolutionMetricRequirement> values,
+        string key)
+    {
+        FacilityEvolutionMetricRequirement value = values[0];
+        value.key = key;
+        values[0] = value;
+    }
+
+    private static void SetR30FacilityValueKey(
+        List<FacilityEvolutionValue> values,
+        string key)
+    {
+        FacilityEvolutionValue value = values[0];
+        value.key = key;
+        values[0] = value;
     }
 
     private static void VerifySourceAssetsUnchanged(List<AssetSnapshot> snapshots)
@@ -1122,6 +1291,29 @@ public static class ContentReferenceSelectionDebugScenarios
     {
         if (!condition)
             throw new InvalidOperationException(message);
+    }
+
+    private sealed class R30ExplicitContextFixture : ScriptableObject
+    {
+        [ContentReferenceContext(ContentReferenceKind.LifeEvent)]
+        public List<V20WeightedId> firstBucket = new();
+        [ContentReferenceContext(ContentReferenceKind.Culture)]
+        public List<V20WeightedId> secondBucket = new();
+        [ContentReferenceContext(ContentReferenceKind.EnemyFaction)]
+        public List<V20WeightedId> thirdBucket = new();
+        [ContentReferenceContext(ContentReferenceKind.RoomScore)]
+        public List<FacilityEvolutionMetricRequirement> fourthBucket = new();
+        [ContentReferenceContext(ContentReferenceKind.RoomMetric)]
+        public List<FacilityEvolutionMetricRequirement> fifthBucket = new();
+        [ContentReferenceContext(ContentReferenceKind.FacilityPressure)]
+        public List<FacilityEvolutionValue> sixthBucket = new();
+    }
+
+    private sealed class R30MissingContextFixture : ScriptableObject
+    {
+        public List<V20WeightedId> unannotatedWeights = new();
+        public List<FacilityEvolutionMetricRequirement> unannotatedRooms = new();
+        public List<FacilityEvolutionValue> unannotatedPressures = new();
     }
 }
 

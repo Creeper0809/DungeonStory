@@ -811,7 +811,7 @@ public static class FacilityWishlistProcurementCausalProductionEntryDebugScenari
         foreach (FacilityShopFulfillmentSaveData row in saved?.shopFulfillments
                      ?? new List<FacilityShopFulfillmentSaveData>())
         {
-            runtime.State.RestoreShopFulfillment(new FacilityShopFulfillmentRecord
+            runtime.StateForDebug.RestoreShopFulfillment(new FacilityShopFulfillmentRecord
             {
                 PurchaseResultKey = row.purchaseResultKey,
                 OfferTypeId = row.offerTypeId,
@@ -985,7 +985,7 @@ public static class FacilityWishlistProcurementCausalProductionEntryDebugScenari
                 DisabledDungeonDebugRuleQuery.Instance);
             research = host.AddComponent<BlueprintResearchRuntime>();
             research.Construct(
-                new FixedUnlockStateService(shop.UnlockState),
+                new FixedUnlockStateService(shop.UnlockStateForDebug),
                 shopCatalog,
                 new FacilityCandidateCacheStore(
                     CharacterAiEditorTestDependencies.WorldRegistry,
@@ -1474,10 +1474,10 @@ public static class FacilityWishlistProcurementCausalProductionEntryDebugScenari
             items.Restore(JsonUtility.FromJson<DungeonPhysicalItemSaveData>(
                 physicalJson.ToString(Formatting.None)));
             foreach (int unlockedId in unlocks.Values<int>())
-                research.State.RestoreUnlockedBuildingId(unlockedId);
+                research.StateForDebug.RestoreUnlockedBuildingId(unlockedId);
             foreach (JToken row in (state["shopFulfillments"] as JArray
                          ?? new JArray()))
-                research.State.RestoreShopFulfillment(
+                research.StateForDebug.RestoreShopFulfillment(
                     new FacilityShopFulfillmentRecord
                     {
                         PurchaseResultKey = (string)row["purchaseResultKey"],
@@ -1819,12 +1819,15 @@ public static class FacilityWishlistProcurementCausalProductionEntryDebugScenari
     }
 
     private sealed class FixedUnlockStateService :
-        IFacilityShopUnlockStateService
+        IFacilityShopUnlockStateService,
+        IFacilityShopUnlockStateAuthority
     {
         private readonly FacilityShopUnlockState state;
         internal FixedUnlockStateService(FacilityShopUnlockState state) =>
             this.state = state ?? throw new ArgumentNullException(nameof(state));
-        public FacilityShopUnlockState GetUnlockState() => state;
+        public FacilityShopUnlockState GetUnlockState() => state.CreateSnapshot();
+        public FacilityShopUnlockState GetOwnedUnlockState() => state;
+        public FacilityShopUnlockState GetUnlockStateForDebug() => state;
     }
 
     private sealed class ToggleDropZone : IWorldDropZoneQuery

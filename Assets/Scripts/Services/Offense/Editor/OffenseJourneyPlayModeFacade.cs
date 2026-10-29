@@ -1152,11 +1152,12 @@ public static partial class OffenseJourneyPlayModeFacade
         Action<StrategicBattlePointerTurnResult> complete)
     {
         OffenseBattleDirectorStateData state = director.State;
-        OffenseBattleSession session = battle?.Session;
-        if (state == null || session == null)
+        OffenseBattleSnapshot session = battle?.Session;
+        OffenseBattleSession ownedSession = (battle as OffenseBattleRuntime)?.OwnedSession;
+        if (state == null || session == null || ownedSession == null)
         {
             complete?.Invoke(StrategicBattlePointerTurnResult.Fail(
-                "strategic battle director state or session is missing"));
+                "strategic battle director state or concrete owned session is missing"));
             yield break;
         }
 
@@ -1325,14 +1326,16 @@ public static partial class OffenseJourneyPlayModeFacade
             yield break;
         }
 
+        OffenseBattleSnapshot sessionAfter = battle.Session
+            ?? new OffenseBattleSnapshot(ownedSession);
         float allyHealthAfter = GetLivingTeamHealth(
-            session,
+            sessionAfter,
             OffenseBattleTeam.Allies);
         float enemyHealthAfter = GetLivingTeamHealth(
-            session,
+            sessionAfter,
             OffenseBattleTeam.Enemies);
-        long commandIdAfter = session.LastProcessedCommandId;
-        string formationAfter = DescribeBattleFormation(session);
+        long commandIdAfter = sessionAfter.LastProcessedCommandId;
+        string formationAfter = DescribeBattleFormation(sessionAfter);
         complete?.Invoke(new StrategicBattlePointerTurnResult
         {
             Success = true,
@@ -1345,7 +1348,7 @@ public static partial class OffenseJourneyPlayModeFacade
             EnemyHealthAfter = enemyHealthAfter,
             BattleTerminal = battleTerminal,
             RoundBefore = roundBefore,
-            RoundAfter = session.RoundNumber,
+            RoundAfter = sessionAfter.RoundNumber,
             CommandIdBefore = commandIdBefore,
             CommandIdAfter = commandIdAfter,
             FormationBefore = formationBefore,
@@ -1408,7 +1411,7 @@ public static partial class OffenseJourneyPlayModeFacade
 
     private static OffenseEnemyIntentStateData SelectLivingEnemyIntent(
         IReadOnlyList<OffenseEnemyIntentStateData> intents,
-        OffenseBattleSession session,
+        OffenseBattleSnapshot session,
         ISet<string> alreadyCommittedIntentIds = null)
     {
         OffenseEnemyIntentStateData[] living = intents?
@@ -1424,7 +1427,7 @@ public static partial class OffenseJourneyPlayModeFacade
     }
 
     private static float GetLivingTeamHealth(
-        OffenseBattleSession session,
+        OffenseBattleSnapshot session,
         OffenseBattleTeam team)
     {
         return session?.Combatants
@@ -1448,7 +1451,7 @@ public static partial class OffenseJourneyPlayModeFacade
             + $"reason={command.execution.FailureReason}"));
     }
 
-    private static string DescribeBattleFormation(OffenseBattleSession session)
+    private static string DescribeBattleFormation(OffenseBattleSnapshot session)
     {
         return session == null
             ? "missing"

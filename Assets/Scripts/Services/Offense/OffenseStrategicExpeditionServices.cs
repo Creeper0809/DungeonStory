@@ -451,7 +451,7 @@ public sealed class OffenseStrategicBattleLauncher :
         IReadOnlyList<OffenseBattleMemberDeckSeed> members =
             OffenseStrategicBattleSetupFactory.CreateMemberDecks(battles.Session);
         IReadOnlyList<OffenseEnemyIntentStateData> intents =
-            OffenseStrategicBattleSetupFactory.CreateEnemyIntents(battles.Session);
+            OffenseStrategicBattleSetupFactory.CreateEnemyIntents(battles);
         if (!director.TryStartBattle(
                 battles.Session.BattleId,
                 members,

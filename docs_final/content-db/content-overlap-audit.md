@@ -9,7 +9,7 @@
 | `item:1:EvolutionCatalystItemFeature+ProductionItemFeature` | 168 |
 | `building:생산 작업대` | 114 |
 | `CharacterPerformanceFormulaDefinitionSO` | 107 |
-| `GameplayEffectDefinitionSO` | 65 |
+| `GameplayEffectDefinitionSO` | 68 |
 | `ResearchUnlockBundleDefinitionSO:role:0` | 63 |
 | `ApparelDefinitionSO` | 56 |
 | `item:2:EquipmentItemFeature+ProductionItemFeature+ResearchGateItemFeature` | 55 |
@@ -28,7 +28,7 @@
 | `research-field:14` | 27 |
 | `item:0:FoodItemFeature+ProductionItemFeature` | 25 |
 | `item:0:FoodItemFeature+MarketItemFeature+ProductionItemFeature+ResearchGateItemFeature` | 22 |
-| `item:7:AmmunitionItemFeature+MarketItemFeature+ProductionItemFeature+ResearchGateItemFeature` | 21 |
+| `item:7:AmmunitionItemFeature+CombatAmmunitionProfileItemFeature+MarketItemFeature+ProductionItemFeature+ResearchGateItemFeature` | 21 |
 | `EquipmentModuleDefinitionSO` | 20 |
 | `FestivalDefinitionSO` | 20 |
 | `building:공정 자동화+물류 입출력+생산 작업대+전력 소비` | 20 |
@@ -253,7 +253,7 @@
 | `event:GuestRequestDefinitionSO:5` | 2 |
 | `event:GuestRequestDefinitionSO:6` | 2 |
 | `item:3:MarketItemFeature+ProductionItemFeature+ResearchGateItemFeature` | 2 |
-| `item:7:AmmunitionItemFeature+ProductionItemFeature` | 2 |
+| `item:7:AmmunitionItemFeature+CombatAmmunitionProfileItemFeature+ProductionItemFeature` | 2 |
 | `recipe:alchemy:craft` | 2 |
 | `recipe:alchemy:drug` | 2 |
 | `recipe:alchemy:material` | 2 |

@@ -1,14 +1,14 @@
 {
   "artifact_kind": "dungeonstory-content-database",
   "generator": "tools/Documentation/generate_content_database.py",
-  "output_digest": "83ed23d0d562fc296416cd22c4e81d8090b8e677485e71b9793b0719d84e23eb",
+  "output_digest": "f6ac8357e336b4780a4e4e48fca9cff8b3e528aba2baab2c90b628a3b3c6a193",
   "output_file_count": 491,
-  "output_files_manifest_sha256": "8cd5b120d18b8b4642f3924454fdbe4ecd82ed7ba53c3f0bcca45184cd5ce7b6",
+  "output_files_manifest_sha256": "184d7e9efeae6441ab0d6f116a99b3b8ee4285b8e37d7eb4c4f56ae6c8cfd5ab",
   "output_root": "docs_final/content-db",
   "schema_version": 1,
-  "source_digest": "b2609d7f60c5436e2dca8a2d61d6d218d1174526021ff5b23ca2819db3c23db7",
-  "source_file_count": 19668,
-  "source_files_manifest_sha256": "70f3804a903afb50524b209a5cefc39f3d2e273d922c89632e5dc9395ae5e408",
+  "source_digest": "12774610aa33bd9e3e5f1753797bb6d8d940427d6ed1768e9a2a8f117439f6fd",
+  "source_file_count": 19684,
+  "source_files_manifest_sha256": "b505fae94d4a637be4cf014d46292ca4a6346cece94b1bf31c77defbd5fd6e5b",
   "source_specs": [
     {
       "name": "unity-authored-assets",
@@ -42,10 +42,10 @@
   ],
   "statistics": {
     "code_consumer_csv_count": 75,
-    "code_consumer_row_count": 1489,
+    "code_consumer_row_count": 1464,
     "content_csv_count": 75,
     "duplicate_typed_id_groups": 10,
-    "excluded_asset_type_count": 67,
+    "excluded_asset_type_count": 68,
     "field_csv_count": 75,
     "generated_from": "Assets/**/*.asset",
     "group_counts": {
@@ -54,11 +54,11 @@
       "events-campaign": 200,
       "items": 1074,
       "production-facilities": 951,
-      "research-effects": 591
+      "research-effects": 594
     },
     "incoming_csv_count": 75,
     "lifecycle_counts": {
-      "active-authored": 3458,
+      "active-authored": 3461,
       "duplicate-authority-review": 20,
       "legacy-authoring-review": 5
     },
@@ -72,12 +72,12 @@
       "unresolved-runtime-domain-id": 87
     },
     "review_counts": {
-      "근거 확인": 3438,
+      "근거 확인": 3441,
       "수동 검토 필요": 45
     },
-    "row_count": 3483,
+    "row_count": 3486,
     "runtime_counts": {
-      "catalog-registered-static-consumer": 3254,
+      "catalog-registered-static-consumer": 3257,
       "resources-authored-consumer-unverified": 181,
       "stable-id-literal-consumer": 29,
       "type-consumer-registration-unverified": 19
@@ -132,7 +132,7 @@
       "FestivalDefinitionSO": 20,
       "FuneralCultureSO": 11,
       "GameplayEffectConditionDefinitionSO": 45,
-      "GameplayEffectDefinitionSO": 65,
+      "GameplayEffectDefinitionSO": 68,
       "GenericItemDefinitionSO": 703,
       "GuestRequestDefinitionSO": 14,
       "HeritableTraitDefinitionSO": 24,

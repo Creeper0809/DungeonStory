@@ -1,14 +1,14 @@
 {
   "artifact_kind": "dungeonstory-system-knowledge-base",
   "generator": "tools/Documentation/generate_knowledge_base.py",
-  "output_digest": "673f2351482b5084cb024e3c9432384d7a04003cb749d3832bdfe100ad4f9013",
+  "output_digest": "1f8f8b2998db927ee1a0edc0c71f5641f738897b5e178f2d7d2b23385f06433d",
   "output_file_count": 90,
-  "output_files_manifest_sha256": "5981c43c740b7e89b328a9c2ea989180328fd67d70623ee4366fa0f5ad64d264",
+  "output_files_manifest_sha256": "cb68d82725e242ded50cea326c1a16819ec9b943838caaa4c96f361b519006cd",
   "output_root": "docs_final/knowledge-base",
   "schema_version": 1,
-  "source_digest": "f31cffbf7ac81a5c1ac11a98be4afa4283957b653cf52aeee7d2c34f1bcc9382",
-  "source_file_count": 4176,
-  "source_files_manifest_sha256": "81f81bd36ee9632bcfab864c62c51ed2c651a43da4a514a8b2187fef03b7a7f8",
+  "source_digest": "7fcd53288e0ff065322ac124d9c7b8e9f2c2dab46875338e66478aaecaf2ae57",
+  "source_file_count": 4177,
+  "source_files_manifest_sha256": "b7fa4e53796ed7c32217d8551a9529f2d264314d8b92248aaa012d3fb273da8e",
   "source_specs": [
     {
       "name": "csharp-implementation",
@@ -71,10 +71,10 @@
     "architecture_mapped_code_file_count": 168,
     "architecture_source_link_count": 179,
     "architecture_system_count": 19,
-    "code_source_file_count": 4020,
+    "code_source_file_count": 4021,
     "code_system_count": 76,
     "content_impact_type_count": 75,
-    "content_source_digest": "b2609d7f60c5436e2dca8a2d61d6d218d1174526021ff5b23ca2819db3c23db7",
+    "content_source_digest": "12774610aa33bd9e3e5f1753797bb6d8d940427d6ed1768e9a2a8f117439f6fd",
     "document_broken_link_count": 0,
     "document_count": 74,
     "implementation_status_count": 37,
@@ -82,6 +82,6 @@
     "persistence_code_file_count": 566,
     "research_unlock_relation_count": 938,
     "state_authority_count": 36,
-    "system_content_relation_count": 350
+    "system_content_relation_count": 348
   }
 }

@@ -497,7 +497,7 @@ public sealed class SurgeryPlayModeVerificationRunner : MonoBehaviour
             doctorWork.SetDutyState(AbilityWork.DutyState.OnDuty);
         }
 
-            research.GetState().Projects.RestoreCompleted(
+            research.GetStateForDebug().Projects.RestoreCompleted(
                 new ResearchProjectId(MedicalResearchId));
             BuildingSO tableAsset = AssetDatabase.LoadAssetAtPath<BuildingSO>(
                 "Assets/Resources/SO/Building/Medical/M01_응급처치대.asset");
@@ -2114,7 +2114,7 @@ public sealed class SurgeryPlayModeVerificationRunner : MonoBehaviour
             yield break;
         }
 
-        research.GetState().Projects.RestoreCompleted(
+        research.GetStateForDebug().Projects.RestoreCompleted(
             new ResearchProjectId(AnesthesiaResearchId));
         int anestheticBeforeProduction = CountPhysicalItem(AnestheticItemId);
         int vialBeforeProduction = CountPhysicalItem(MedicalVialItemId);

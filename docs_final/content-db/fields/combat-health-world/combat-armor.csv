@@ -127,6 +127,8 @@ CombatArmorSO|equipment-item:armor:blast-coat,equipment-item:armor:blast-coat,bo
 CombatArmorSO|equipment-item:armor:blast-coat,equipment-item:armor:blast-coat,bodyPartDefense.0.slashDefense,16,,,explicit-serialized
 CombatArmorSO|equipment-item:armor:blast-coat,equipment-item:armor:blast-coat,bodyPartDefense.0.pierceDefense,18,,,explicit-serialized
 CombatArmorSO|equipment-item:armor:blast-coat,equipment-item:armor:blast-coat,bodyPartDefense.0.bluntDefense,26,,,explicit-serialized
+CombatArmorSO|equipment-item:armor:blast-coat,equipment-item:armor:blast-coat,roleFlags,128,,,explicit-serialized
+CombatArmorSO|equipment-item:armor:blast-coat,equipment-item:armor:blast-coat,arcaneManaCost,0,,,explicit-serialized
 CombatArmorSO|equipment-item:armor:blast-coat,equipment-item:armor:blast-coat,Kind,0,CombatEquipmentKind,Melee Weapon,implicit-csharp-default
 CombatArmorSO|equipment-item:armor:breastplate,equipment-item:armor:breastplate,m_Name,A08_Breastplate,,,explicit-serialized
 CombatArmorSO|equipment-item:armor:breastplate,equipment-item:armor:breastplate,equipmentId,armor:breastplate,,,explicit-serialized
@@ -846,4 +848,6 @@ CombatArmorSO|equipment-item:armor:smoke-hood,equipment-item:armor:smoke-hood,bo
 CombatArmorSO|equipment-item:armor:smoke-hood,equipment-item:armor:smoke-hood,bodyPartDefense.0.slashDefense,7,,,explicit-serialized
 CombatArmorSO|equipment-item:armor:smoke-hood,equipment-item:armor:smoke-hood,bodyPartDefense.0.pierceDefense,6,,,explicit-serialized
 CombatArmorSO|equipment-item:armor:smoke-hood,equipment-item:armor:smoke-hood,bodyPartDefense.0.bluntDefense,12,,,explicit-serialized
+CombatArmorSO|equipment-item:armor:smoke-hood,equipment-item:armor:smoke-hood,roleFlags,128,,,explicit-serialized
+CombatArmorSO|equipment-item:armor:smoke-hood,equipment-item:armor:smoke-hood,arcaneManaCost,0,,,explicit-serialized
 CombatArmorSO|equipment-item:armor:smoke-hood,equipment-item:armor:smoke-hood,Kind,0,CombatEquipmentKind,Melee Weapon,implicit-csharp-default

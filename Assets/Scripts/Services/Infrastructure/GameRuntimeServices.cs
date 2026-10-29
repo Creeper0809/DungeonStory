@@ -23,7 +23,9 @@ public interface IGameSessionPersistence
 
 public interface IGameSessionPauseAuthority
 {
+    bool IsPaused { get; }
     void SetPaused(bool paused);
+    IDisposable AcquirePause();
 }
 
 public interface IGameMoneyAccount
@@ -93,6 +95,9 @@ public sealed class ScopedGameSessionStateStore :
     private GameSessionSnapshot? previousSnapshot;
     private float previousTimeScale;
     private bool published;
+    private int pauseRequests;
+    private long pauseRequestRevision;
+    private long previousPauseRequestRevision;
 
     public ScopedGameSessionStateStore(
         DungeonSceneRuntimeReferences sceneReferences,
@@ -121,15 +126,32 @@ public sealed class ScopedGameSessionStateStore :
     public void Restore(GameSessionSnapshot snapshot)
     {
         mutation.Restore(snapshot);
-        timeScaleController.Scale = snapshot.IsPaused
-            ? 0f
-            : snapshot.GameSpeed;
+        ApplyTimeScale();
     }
+
+    public bool IsPaused => state.IsPaused || pauseRequests > 0;
 
     public void SetPaused(bool paused)
     {
         mutation.SetPaused(paused);
+        ApplyTimeScale();
     }
+
+    public IDisposable AcquirePause()
+    {
+        pauseRequests++;
+        pauseRequestRevision++;
+        ApplyTimeScale();
+        return new GamePauseRequest(() =>
+        {
+            pauseRequests--;
+            pauseRequestRevision++;
+            ApplyTimeScale();
+        });
+    }
+
+    private void ApplyTimeScale() =>
+        timeScaleController.Scale = IsPaused ? 0f : state.gameSpeed.Value;
 
     public GameSessionSaveData CaptureSession() =>
         GameSessionSaveData.From(state.Capture());
@@ -155,6 +177,7 @@ public sealed class ScopedGameSessionStateStore :
         // Defense/result overlays can temporarily change the effective scale
         // without changing the persisted player speed/pause preference.
         previousTimeScale = timeScaleController.Scale;
+        previousPauseRequestRevision = pauseRequestRevision;
         published = false;
     }
 
@@ -171,7 +194,10 @@ public sealed class ScopedGameSessionStateStore :
         if (published && previousSnapshot.HasValue)
         {
             mutation.Restore(previousSnapshot.Value);
-            timeScaleController.Scale = previousTimeScale;
+            if (previousPauseRequestRevision == pauseRequestRevision)
+                timeScaleController.Scale = IsPaused ? 0f : previousTimeScale;
+            else
+                ApplyTimeScale();
         }
         DiscardRestoreCandidate();
     }

@@ -1,0 +1,9 @@
+{
+  "pid": 1995415,
+  "exitCode": -9,
+  "actions": [
+    "terminate-owned-child",
+    "kill-owned-child-after-30s"
+  ],
+  "terminal": true
+}

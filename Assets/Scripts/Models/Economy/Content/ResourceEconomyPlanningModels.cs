@@ -657,6 +657,71 @@ public enum GrandProjectStatus
 }
 
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public sealed class GrandProjectBenefitMetadata
+{
+    public static readonly GrandProjectBenefitMetadata Neutral = new(
+        Array.Empty<string>(),
+        productionOutputMultiplier: 1f,
+        contractRewardMultiplier: 1f,
+        defensePreparationMultiplier: 1f,
+        expeditionSupplyCapacityBonus: 0);
+
+    public GrandProjectBenefitMetadata(
+        IEnumerable<string> productionFacilityTags,
+        float productionOutputMultiplier = 1f,
+        float contractRewardMultiplier = 1f,
+        float defensePreparationMultiplier = 1f,
+        int expeditionSupplyCapacityBonus = 0)
+    {
+        var distinctTags = new List<string>();
+        foreach (string rawTag in productionFacilityTags ?? Array.Empty<string>())
+        {
+            string tag = rawTag?.Trim() ?? string.Empty;
+            if (!string.IsNullOrWhiteSpace(tag)
+                && !distinctTags.Contains(tag))
+            {
+                distinctTags.Add(tag);
+            }
+        }
+
+        string[] copiedTags = distinctTags.ToArray();
+        ProductionFacilityTags = Array.AsReadOnly(copiedTags);
+        ProductionOutputMultiplier = RequirePositiveFinite(
+            productionOutputMultiplier,
+            nameof(productionOutputMultiplier));
+        ContractRewardMultiplier = RequirePositiveFinite(
+            contractRewardMultiplier,
+            nameof(contractRewardMultiplier));
+        DefensePreparationMultiplier = RequirePositiveFinite(
+            defensePreparationMultiplier,
+            nameof(defensePreparationMultiplier));
+        if (expeditionSupplyCapacityBonus < 0)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(expeditionSupplyCapacityBonus));
+        }
+
+        ExpeditionSupplyCapacityBonus = expeditionSupplyCapacityBonus;
+    }
+
+    public IReadOnlyList<string> ProductionFacilityTags { get; }
+    public float ProductionOutputMultiplier { get; }
+    public float ContractRewardMultiplier { get; }
+    public float DefensePreparationMultiplier { get; }
+    public int ExpeditionSupplyCapacityBonus { get; }
+
+    private static float RequirePositiveFinite(float value, string parameterName)
+    {
+        if (float.IsNaN(value) || float.IsInfinity(value) || value <= 0f)
+        {
+            throw new ArgumentOutOfRangeException(parameterName);
+        }
+
+        return value;
+    }
+}
+
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class GrandProjectDefinition
 {
     public GrandProjectDefinition(
@@ -666,13 +731,36 @@ public sealed class GrandProjectDefinition
         string requiredResearchId,
         float requiredWork,
         params ItemAmountDefinition[] requirements)
+        : this(
+            projectId,
+            displayName,
+            description,
+            requiredResearchId,
+            requiredWork,
+            GrandProjectBenefitMetadata.Neutral,
+            requirements)
+    {
+    }
+
+    public GrandProjectDefinition(
+        string projectId,
+        string displayName,
+        string description,
+        string requiredResearchId,
+        float requiredWork,
+        GrandProjectBenefitMetadata benefits,
+        params ItemAmountDefinition[] requirements)
     {
         ProjectId = projectId?.Trim() ?? string.Empty;
         DisplayName = displayName?.Trim() ?? string.Empty;
         Description = description?.Trim() ?? string.Empty;
         RequiredResearchId = requiredResearchId?.Trim() ?? string.Empty;
         RequiredWork = Mathf.Max(1f, requiredWork);
-        Requirements = requirements ?? Array.Empty<ItemAmountDefinition>();
+        Benefits = benefits ?? throw new ArgumentNullException(nameof(benefits));
+        ItemAmountDefinition[] copiedRequirements = requirements == null
+            ? Array.Empty<ItemAmountDefinition>()
+            : (ItemAmountDefinition[])requirements.Clone();
+        Requirements = Array.AsReadOnly(copiedRequirements);
     }
 
     public string ProjectId { get; }
@@ -680,6 +768,7 @@ public sealed class GrandProjectDefinition
     public string Description { get; }
     public string RequiredResearchId { get; }
     public float RequiredWork { get; }
+    public GrandProjectBenefitMetadata Benefits { get; }
     public IReadOnlyList<ItemAmountDefinition> Requirements { get; }
 }
 

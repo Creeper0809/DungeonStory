@@ -114,6 +114,16 @@ public sealed class OffenseBattleEncounterRules
     public IReadOnlyCollection<string> MatchedCounterTags => matchedCounterTags;
     public IReadOnlyList<string> RewardItemIds { get; }
 
+    public OffenseBattleEncounterRules CreateSnapshot()
+    {
+        var copy = new OffenseBattleEncounterRules(Objective, RoundLimit, ObjectiveTargetId,
+            ObjectiveCombatantId, Modifiers, authoredCounterTags, RewardItemIds,
+            EnemyDamageMultiplier, EnemyAccuracyMultiplier, ObjectiveControlResistanceMultiplier);
+        copy.availableCounterTags.UnionWith(availableCounterTags);
+        copy.matchedCounterTags.UnionWith(matchedCounterTags);
+        return copy;
+    }
+
     public void EvaluatePartyCounters(IEnumerable<OffenseBattleCombatant> combatants)
     {
         availableCounterTags.Clear();
@@ -294,9 +304,7 @@ public static class OffenseBattleCounterRules
         {
             CombatWeaponSnapshot weapon = member.Weapon
                 ?? CombatWeaponSnapshot.CreateUnarmed();
-            string weaponId = weapon.DefinitionId ?? string.Empty;
-            string ammunitionId = weapon.AmmunitionItemId ?? string.Empty;
-            string shieldId = member.Shield.DefinitionId ?? string.Empty;
+            CombatSpecialEffectFlags ammunitionEffects = member.AmmunitionProfile.Effects;
             CombatEquipmentRoleFlags armorFlags = member.Armor.Aggregate(
                 CombatEquipmentRoleFlags.None,
                 (value, armor) => value | armor.RoleFlags);
@@ -321,10 +329,7 @@ public static class OffenseBattleCounterRules
                     Add(tags, "counter:pin-leader", "counter:split-pressure");
                 }
             }
-            if (weaponId.Contains("spear", StringComparison.Ordinal)
-                || weaponId.Contains("halberd", StringComparison.Ordinal)
-                || weaponId.Contains("poleaxe", StringComparison.Ordinal)
-                || weaponId.Contains("lance", StringComparison.Ordinal))
+            if (!weapon.IsRanged && weapon.MaximumRange > 1)
             {
                 Add(tags, "counter:reach", "counter:brace");
             }
@@ -345,25 +350,23 @@ public static class OffenseBattleCounterRules
                     "counter:slow-advance");
             }
             if ((allFlags & CombatEquipmentRoleFlags.SpellBlock) != 0
-                || ammunitionId.Contains("mana-disruptor", StringComparison.Ordinal))
+                || (ammunitionEffects & CombatSpecialEffectFlags.ManaBlocked) != 0)
             {
                 Add(tags,
                     "counter:mana-disrupt",
                     "counter:mana-grounding",
                     "counter:dispel");
             }
-            if ((allFlags & CombatEquipmentRoleFlags.BlastAndSmokeProtection) != 0
-                || member.Armor.Any(value =>
-                    value.DefinitionId.Contains("smoke-hood", StringComparison.Ordinal)
-                    || value.DefinitionId.Contains("blast-coat", StringComparison.Ordinal)))
+            if ((allFlags & CombatEquipmentRoleFlags.BlastAndSmokeProtection) != 0)
             {
                 Add(tags, "counter:air-filter", "counter:smoke-hood", "counter:insulated");
             }
-            if (ammunitionId.Contains("smoke", StringComparison.Ordinal))
+            if ((ammunitionEffects & CombatSpecialEffectFlags.SmokeScreen) != 0)
             {
                 tags.Add("counter:smoke");
             }
-            if (ammunitionId.Contains("tranquilizer", StringComparison.Ordinal))
+            if (member.AmmunitionProfile.Nonlethal
+                || (ammunitionEffects & CombatSpecialEffectFlags.Tranquilized) != 0)
             {
                 tags.Add("counter:nonlethal");
             }
@@ -371,8 +374,8 @@ public static class OffenseBattleCounterRules
             {
                 tags.Add("counter:powder");
             }
-            if (weaponId.Contains("rune", StringComparison.Ordinal)
-                || weaponId.Contains("mana", StringComparison.Ordinal))
+            if (weapon.ArcaneManaCost > 0f
+                || (ammunitionEffects & CombatSpecialEffectFlags.RuneDamage) != 0)
             {
                 tags.Add("counter:arcane");
             }
@@ -380,12 +383,12 @@ public static class OffenseBattleCounterRules
             {
                 Add(tags, "counter:engineering", "counter:mobile");
             }
-            if (shieldId.Contains("pavise", StringComparison.Ordinal))
+            if ((member.Shield.RoleFlags & CombatEquipmentRoleFlags.DeployableCover) != 0)
             {
                 Add(tags, "counter:cover", "counter:slow-advance");
             }
-            if (member.Abilities.Any(value => value.Id.Contains("heal", StringComparison.Ordinal)
-                || value.Id.Contains("dressing", StringComparison.Ordinal)))
+            if (member.Abilities.Any(value => value.Effects.Any(effect =>
+                effect is OffenseHealEffect)))
             {
                 tags.Add("counter:interrupt-heal");
             }
@@ -394,8 +397,8 @@ public static class OffenseBattleCounterRules
         if (melee && ranged) tags.Add("counter:mixed-tactics");
         if (front && rear) tags.Add("counter:flank");
         if (party.Length > 0 && party.All(value =>
-            !(value.Weapon?.DefinitionId?.Contains("rune", StringComparison.Ordinal) ?? false)
-            && !(value.Weapon?.DefinitionId?.Contains("mana", StringComparison.Ordinal) ?? false)))
+            (value.Weapon?.ArcaneManaCost ?? 0f) <= 0f
+            && (value.AmmunitionProfile.Effects & CombatSpecialEffectFlags.RuneDamage) == 0))
         {
             tags.Add("counter:mundane");
         }
@@ -469,6 +472,7 @@ public sealed class OffenseBattleStats
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class OffenseBattleStatus
 {
+    internal OffenseBattleStatus CreateSnapshot() => (OffenseBattleStatus)MemberwiseClone();
     public OffenseBattleStatus(
         string id,
         OffenseBattleStatusType type,
@@ -600,7 +604,8 @@ public sealed class OffenseBattleCombatant
     public int TurnsStarted { get; private set; }
     public IReadOnlyList<CharacterCombatAbilityDefinition> Abilities => abilitiesView;
     public IReadOnlyList<OffenseBattleStatus> Statuses => statusesView;
-    public IReadOnlyList<CharacterBodyPartHealthState> BodyParts => bodyPartsView;
+    public IReadOnlyList<CharacterBodyPartHealthState> BodyParts =>
+        Array.AsReadOnly(bodyParts.Select(CloneBodyPart).ToArray());
     public CombatWeaponSnapshot Weapon { get; private set; } = CombatWeaponSnapshot.CreateUnarmed();
     public IReadOnlyList<CombatArmorSnapshot> Armor => armor;
     public CombatShieldSnapshot Shield { get; private set; }
@@ -615,6 +620,31 @@ public sealed class OffenseBattleCombatant
     public CombatFireMode FireMode { get; private set; } = CombatFireMode.Aimed;
     public float ArcanePowerMultiplier { get; private set; } = 1f;
     public float BluntDamageMultiplier { get; private set; } = 1f;
+    public CombatAmmunitionProfile AmmunitionProfile { get; private set; } =
+        new CombatAmmunitionProfile(CombatSpecialEffectFlags.None);
+    public void SetAmmunitionProfile(CombatAmmunitionProfile profile) => AmmunitionProfile = profile;
+
+    public OffenseBattleCombatant CreateSnapshot()
+    {
+        var copy = new OffenseBattleCombatant(PersistentId, DisplayName, SpeciesTag, Team,
+            Stats, CurrentHealth, abilities.Select(value => value.CreateSnapshot()), PortraitDataId,
+            Formation, ParticipatesInInitiative, RetreatHealthFraction)
+        {
+            IsDowned = IsDowned, InitiativePenalty = InitiativePenalty,
+            TotalDamageTaken = TotalDamageTaken, TurnsStarted = TurnsStarted,
+            Weapon = Weapon?.CreateSnapshot(), armor = Array.AsReadOnly(armor.ToArray()),
+            Shield = Shield, Suppression = Suppression, BloodLoss = BloodLoss,
+            PinnedThisTurn = PinnedThisTurn, LastHitBodyPart = LastHitBodyPart,
+            CoverBlockChance = CoverBlockChance, FireMode = FireMode,
+            ArcanePowerMultiplier = ArcanePowerMultiplier, BluntDamageMultiplier = BluntDamageMultiplier,
+            AmmunitionProfile = AmmunitionProfile
+        };
+        copy.bodyParts.Clear();
+        copy.bodyParts.AddRange(bodyParts.Select(CloneBodyPart));
+        copy.statuses.AddRange(statuses.Select(value => value.CreateSnapshot()));
+        foreach (var pair in cooldowns) copy.cooldowns.Add(pair.Key, pair.Value);
+        return copy;
+    }
 
     public void SetBluntDamageMultiplier(float multiplier)
     {

@@ -4,6 +4,7 @@ using UnityEngine;
 
 public interface ICaptivityRuntime
 {
+    bool CanAssignPerformer(string captiveId, out string failureReason);
     IReadOnlyList<CaptiveState> Captives { get; }
     IReadOnlyList<CaptivePolicyData> Policies { get; }
     bool TryGetCaptive(string captiveId, out CaptiveState captive);

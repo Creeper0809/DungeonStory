@@ -6,6 +6,129 @@ using UnityEngine;
 
 public static class InstanceEvolutionDebugScenarios
 {
+    public static void RunR30GenerationCommandFocused()
+    {
+        using FacilityFixture fixture = new("R30 generation owner");
+        var facility = new FacilityData { roles = FacilityRole.Meal, requiredWorkers = 1 };
+        facility.SetSupportedWorkTypeIds(new[] { BuiltInWorkTypeIds.Operate, BuiltInWorkTypeIds.Research });
+        var abilities = new BuildingAbilityCollection();
+        abilities.Add(new BuildingFacilityAbility { settings = facility });
+        abilities.Add(new BuildingProductionAbility
+        {
+            outputCategory = StockCategory.General,
+            amount = 1
+        });
+        abilities.Add(new BuildingProductionWorkstationAbility
+        {
+            workstationTag = "workstation:r30-generation",
+            lanePolicy = ProductionWorkstationLanePolicy.ManualWithDetachedBatchProcessors,
+            manualWorkLaneCount = 1, automaticWorkLaneCount = 0
+        });
+        fixture.Data.ReplaceAbilities(abilities);
+        IDungeonItemCatalogProvider catalog = EditorItemCatalogFactory.Create();
+        var repository = new WorldItemRepository(new GuidPersistentIdGenerator(),
+            new DungeonRuntimeAggregateRootStore());
+        var dispositions = new PhysicalItemBatchDispositionService(repository,
+            new PhysicalItemMassQuery(catalog), EditorNullItemMarkerPresenter.Instance,
+            clock: new DungeonStory.Foundation.UnityUiClock());
+        var inputs = new R30InputOwner();
+        var runtime = new FacilityInstanceEvolutionRuntime(
+            new FacilityEvolutionStateComponentFactory(), new UsageLedgerCompactor(),
+            new EvolutionModuleRegistry(), null, null, null,
+            new NoopRelocationWorldService(), new FixedRunSeedProvider(0), dispositions, inputs);
+        fixture.State.ReplaceInstanceEvolution(new FacilityEvolutionState
+        {
+            facilityPersistentId = "facility:r30:generation", mastery = 0f, generation = 0
+        });
+        runtime.RecordUsage(fixture.Building, "research.completed", 300f, 3f,
+            "worker:r30", new[] { "research", "arcane" });
+        FacilityEvolutionState prepared = fixture.State.InstanceEvolution;
+        Require(prepared.pendingCandidates.Count > 0, "Usage command did not freeze candidates.");
+        string beforeRead = JsonUtility.ToJson(prepared);
+        for (int index = 0; index < 3; index++)
+        {
+            runtime.GetState(fixture.Building);
+            runtime.GetGenerationCandidates(fixture.Building);
+            runtime.TryGetPendingWork(fixture.Building, out _, out _);
+        }
+        Require(JsonUtility.ToJson(fixture.State.InstanceEvolution) == beforeRead,
+            "Queries changed the generation ledger or candidates.");
+        FacilityGenerationCandidate candidate = prepared.pendingCandidates.First(value =>
+            value.kind == FacilityGenerationCandidateKind.PrimaryRole);
+        Require(runtime.TryQueueCandidate(fixture.Building, candidate.candidateId,
+            out _, out string failure), failure);
+        FacilityEvolutionState pending = fixture.State.InstanceEvolution;
+        // Start at the existing committed-material boundary. Physical ACK retry is tested separately.
+        pending.modificationOrder.materialsConsumed = true;
+        pending.modificationOrder.materialTransferOperationId = string.Empty;
+        string saved = JsonUtility.ToJson(pending);
+        fixture.State.ReplaceInstanceEvolution(JsonUtility.FromJson<FacilityEvolutionState>(saved));
+        inputs.AllowTerminal = false;
+        Require(!runtime.ApplyPendingWork(fixture.Building, 100000f, out _, out bool blocked, out _)
+            && !blocked && fixture.State.InstanceEvolution.generation == 0
+            && Mathf.Approximately(fixture.State.InstanceEvolution.mastery, 300f),
+            "Rejected input release partially committed a generation.");
+        inputs.AllowTerminal = true;
+        Require(runtime.ApplyPendingWork(fixture.Building, 100000f, out _, out bool completed,
+            out failure) && completed, failure);
+        FacilityEvolutionState committed = fixture.State.InstanceEvolution;
+        Require(committed.generation == 1 && Mathf.Approximately(committed.mastery, 180f)
+            && committed.modificationOrder == null && committed.pendingCandidates.Count > 0
+            && committed.pendingCandidates.All(value => value.targetGeneration == 2)
+            && inputs.Revocations == 1,
+            "Completion did not atomically spend mastery, clear the order and freeze the next generation.");
+        string committedJson = JsonUtility.ToJson(committed);
+        fixture.State.ReplaceInstanceEvolution(JsonUtility.FromJson<FacilityEvolutionState>(committedJson));
+        runtime.GetState(fixture.Building);
+        runtime.GetGenerationCandidates(fixture.Building);
+        Require(!runtime.ApplyPendingWork(fixture.Building, 100000f, out _, out _, out _)
+            && JsonUtility.ToJson(fixture.State.InstanceEvolution) == committedJson
+            && inputs.Revocations == 1, "Completed restore/retry changed or charged the generation twice.");
+
+        FacilityEvolutionState legacy = fixture.State.InstanceEvolution;
+        legacy.pendingCandidates.Clear();
+        legacy.pendingHistoryHash = string.Empty;
+        fixture.State.ReplaceInstanceEvolution(legacy);
+        string legacyJson = JsonUtility.ToJson(fixture.State.InstanceEvolution);
+        runtime.GetGenerationCandidates(fixture.Building);
+        Require(JsonUtility.ToJson(fixture.State.InstanceEvolution) == legacyJson,
+            "Legacy query performed hidden generation repair.");
+        runtime.RefreshRoomActivation(fixture.Building);
+        Require(fixture.State.InstanceEvolution.pendingCandidates.Count > 0,
+            "Explicit reconciliation did not repair missing legacy candidates.");
+        string reconciled = JsonUtility.ToJson(fixture.State.InstanceEvolution);
+        runtime.RefreshRoomActivation(fixture.Building);
+        Require(JsonUtility.ToJson(fixture.State.InstanceEvolution) == reconciled,
+            "Repeated reconciliation changed frozen candidates.");
+        Require(FacilityModificationMaterialOutboxFixture.Run(), "Physical material save/retry failed.");
+        Debug.Log("R30_GENERATION_COMMAND=PASS; pure queries/completion/JSON/reject/retry/legacy reconcile/physical ACK");
+    }
+
+    private sealed class R30InputOwner : IFacilityEvolutionInputOwnerRuntime
+    {
+        public bool AllowTerminal;
+        public int Revocations;
+        public bool TryOpen(FacilityEvolutionInputOwnerDescriptor descriptor,
+            out FacilityEvolutionInputOwnerProjection projection, out string failureReason)
+        {
+            projection = new FacilityEvolutionInputOwnerProjection(3000, 1, "r30:capacity");
+            failureReason = string.Empty;
+            return true;
+        }
+        public bool TryRequest(FacilityEvolutionInputOwnerDescriptor descriptor, out string failureReason)
+        { failureReason = string.Empty; return true; }
+        public bool TryValidateAuthority(FacilityEvolutionInputOwnerDescriptor descriptor, out string failureReason)
+        { failureReason = string.Empty; return true; }
+        public bool TryPrepareTerminalRelease(FacilityEvolutionInputOwnerDescriptor descriptor,
+            string reasonCode, out string failureReason)
+        { failureReason = AllowTerminal ? string.Empty : "r30:blocked-input-release"; return AllowTerminal; }
+        public bool TryRevoke(FacilityEvolutionInputOwnerDescriptor descriptor, out string failureReason)
+        { Revocations++; failureReason = string.Empty; return true; }
+        public bool TryReplaceForRestore(IReadOnlyList<FacilityEvolutionInputOwnerDescriptor> descriptors,
+            out string failureReason)
+        { failureReason = string.Empty; return true; }
+    }
+
     [MenuItem("DungeonStory/Debug/Evolution/Run Instance Evolution Contracts")]
     public static void RunFromMenu()
     {

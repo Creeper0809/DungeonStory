@@ -37,6 +37,7 @@ Assets/Scripts/Services/Medical/SurgeryRuntimeServices.cs,services:medical,Servi
 Assets/Scripts/Services/Medical/SurgeryWorkExecutionHandler.cs,services:medical,Services,Medical,runtime,,1,SurgeryWorkExecutionHandler,class,mutation-boundary-or-orchestration,,
 Assets/Scripts/Services/Medical/SurgicalCorpseFreshnessRuntime.cs,services:medical,Services,Medical,runtime,,1,SurgicalCorpseFreshnessRuntime,class,runtime-support,dictionary-index; hash-membership,
 Assets/Scripts/Services/Medical/SurgicalFacilityQuery.cs,services:medical,Services,Medical,runtime,,1,SurgicalFacilityQuery,class,read-projection,,
+Assets/Scripts/Services/Medical/SurgicalGraftEffectDefinitionSO.cs,services:medical,Services,Medical,runtime,,2,SurgicalGraftEffectDefinitionSO; SurgicalGraftEffectCatalog,class,authored-definition,dictionary-index; hash-membership,
 Assets/Scripts/Services/Medical/SurgicalOrganPreservationOutbox.cs,services:medical,Services,Medical,runtime,,1,SurgicalOrganPreservationOutbox,class,event-or-transaction,transaction-idempotency,
 Assets/Scripts/Services/Medical/SurgicalPartInstallationRuntime.cs,services:medical,Services,Medical,runtime,,1,SurgicalPartInstallationRuntime,class,runtime-support,transaction-idempotency,
 Assets/Scripts/Services/Medical/SurgicalPartPreparedOutputDebugScenarios.cs,services:medical,Services,Medical,runtime,,5,SurgicalPartPreparedOutputDebugScenarios; Fixture; AdmissionFake; PublicationFake; RuntimeFake,class,validation,transaction-idempotency,

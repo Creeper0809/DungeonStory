@@ -1373,7 +1373,7 @@ public static class SurgeryDebugScenarios
                 using var fixture = new ReplacementRuntimeFixture(kind, 60f, incomingTransferFault);
                 fixture.Anatomy.ProjectionProfileId = "anatomy:humanoid";
                 var source = new CharacterSurgicalPartGameplayEffectSourceQuery(
-                    () => fixture.Runtime, effectCatalog, fixture.Anatomy, profiles, fixture.OrderDemand);
+                    () => fixture.Runtime, effectCatalog, fixture.Anatomy, profiles, fixture.OrderDemand, new SurgicalGraftEffectCatalog(new ResourceGameContentCatalog(new UnityGameContentRootLoader())));
                 AssertProjected(fixture.PreviousPart.partInstanceId, 1.08f);
                 Require(TryReserveReplacementRuntime(fixture.Runtime, fixture.Order, fixture.Anatomy.Node,
                     fixture.OutputPosition, fixture.Admission, out DomainFailure reserveFailure),
@@ -1467,6 +1467,144 @@ public static class SurgeryDebugScenarios
         }
     }
 
+    public static string RunR30NaturalGraftEffectsFocused()
+    {
+        var content = new ResourceGameContentCatalog(new UnityGameContentRootLoader());
+        var grafts = new SurgicalGraftEffectCatalog(content);
+        var profiles = new ResourceAnatomyProfileCatalog(content);
+        var items = new ResourceItemDefinitionCatalog(Resources.LoadAll<ItemDefinitionSO>(ItemDefinitionSO.UnifiedResourcePath));
+        Require(content.GetAll<SurgicalGraftEffectDefinitionSO>().Count == 3, "The three authored natural grafts are missing.");
+        foreach (var definition in content.GetAll<SurgicalGraftEffectDefinitionSO>())
+        {
+            using var fixture = new ReplacementRuntimeFixture(extractionProfiles: profiles);
+            string subjectId = "character:r30-graft:" + definition.GraftId;
+            fixture.Actor.Identity.SetPersistentId(subjectId);
+            var donorProfile = profiles.GetForSpecies(definition.DonorSpeciesId);
+            var donorNodes = donorProfile.Nodes.Where(node =>
+                node.Kind == definition.RequiredNodeKind
+                && (node.Functions & definition.RequiredFunction) == definition.RequiredFunction).ToArray();
+            Require(donorNodes.Length > 0, "Authored graft has no donor node: " + definition.GraftId);
+            foreach (var container in donorProfile.Nodes.Where(node => node.Kind != definition.RequiredNodeKind
+                && (node.Functions & definition.RequiredFunction) == definition.RequiredFunction))
+                Require(grafts.FindForExtraction(definition.DonorSpeciesId, container) == null,
+                    "Parent body part inherited the organ-specific graft: " + container.NodeId);
+            var nodes = new List<AnatomyNodeHealthState>();
+            var graftOrders = new List<SurgeryOrder>();
+            int ordinal = 0;
+            foreach (var donorNode in donorNodes)
+            {
+                var donor = new SurgicalSubjectRef { subjectId = "wildlife:r30:graft", speciesId = definition.DonorSpeciesId,
+                    anatomyProfileId = donorProfile.ProfileId, displayName = "R30 donor" };
+                Require(fixture.Runtime.TryCreateExtractedPart(donor, donorNode.NodeId,
+                    SurgicalPartKind.NaturalOrgan, 1f, new Vector2Int(0, ordinal++), out var extracted, out var failure),
+                    "Actual graft extraction failed: " + failure);
+                Require(extracted.specialEffectId == definition.GraftId && extracted.specialEffectStrength == 1f
+                    && fixture.Runtime.GetSpecialEffectLabel(extracted) == definition.DisplayName + ": " + definition.Description,
+                    "Extracted graft identity, strength or UI label was lost.");
+                string orderId = "surgery:" + (2 + ordinal);
+                Require(fixture.Runtime.TryReserveForOrder(extracted.partInstanceId, orderId, out failure)
+                    && fixture.Runtime.TryConsumeForInstallation(extracted.partInstanceId, orderId, subjectId,
+                        out _, out failure), "Actual graft installation failed: " + failure);
+                string installedBeforeRetry = fixture.CaptureProjectionStateJson();
+                Require(fixture.Runtime.TryConsumeForInstallation(extracted.partInstanceId, orderId, subjectId,
+                        out _, out failure) && fixture.CaptureProjectionStateJson() == installedBeforeRetry,
+                    "Installation retry duplicated or changed physical ownership: " + failure);
+                nodes.Add(new AnatomyNodeHealthState { nodeId = donorNode.NodeId, installedPartId = extracted.partInstanceId,
+                    installedPartKind = SurgicalPartKind.NaturalOrgan, installedPartEfficiency = 1f,
+                    maxHealth = 10f, currentHealth = 10f });
+                graftOrders.Add(fixture.RecordR30NaturalGraftInstallation(orderId, subjectId, extracted, donorNode.NodeId));
+            }
+            var anatomy = CreateReplacementProxy<IAnatomyHealthRuntime>((method, args) =>
+            {
+                if (method.Name == "GetAnatomySnapshot")
+                    return new AnatomyHealthSnapshot("anatomy:humanoid", nodes, 1f, 1f, 1f, 1f, 1f, 1f, 1f, 1f, 1f, 1f, 1f, 1f, 1f, 1f);
+                if (method.Name == "TryAddNodeBurden")
+                {
+                    var node = nodes.Single(value => value.nodeId == (string)args[1]);
+                    node.rejectionBurden += (float)args[2];
+                    node.mutationBurden += (float)args[3];
+                    node.infection += (float)args[4];
+                    args[5] = DomainFailure.None;
+                    return true;
+                }
+                throw new InvalidOperationException("Unexpected graft anatomy operation: " + method.Name);
+            });
+            var demand = CreateReplacementProxy<ISurgeryOrderDemandQuery>((method, _) => method.Name == "get_ActiveOrders"
+                ? Array.Empty<SurgeryOrder>() : throw new InvalidOperationException(method.Name));
+            var query = new CharacterSurgicalPartGameplayEffectSourceQuery(() => fixture.Runtime, items, anatomy, profiles, demand, grafts);
+            Check(query, definition.Effects.Single().value, "complete set");
+            foreach (var node in nodes) node.currentHealth = 5f;
+            Check(query, 1f + (definition.Effects.Single().value - 1f) * .5f, "condition once");
+            foreach (var node in nodes) node.currentHealth = 0f;
+            Check(query, 1f, "nonfunctional neutral");
+            foreach (var node in nodes) { node.currentHealth = 10f; node.installedPartEfficiency = 2.5f; }
+            Check(query, definition.Effects.Single().value, "special benefit capped at full strength");
+            foreach (var node in nodes) node.installedPartEfficiency = 1f;
+            var transplant = content.GetAll<SurgicalProcedureSO>().Single(value => value.ProcedureId == "procedure:natural-organ-transplant");
+            Require(transplant.Effects.Count == 2 && transplant.Effects.OfType<ApplySurgicalBurdenEffect>().Count() == 1,
+                "The controlled graft fixture must execute every authored transplant effect.");
+            var characters = CreateReplacementProxy<ICharacterWorldQuery>((method, _) => method.Name == "get_Characters"
+                ? new[] { fixture.Actor } : throw new InvalidOperationException(method.Name));
+            var wildlife = CreateReplacementProxy<IWildlifeWorldQuery>((method, _) => throw new InvalidOperationException(method.Name));
+            var wildlifeAnatomy = CreateReplacementProxy<IWildlifeAnatomyHealthRuntime>((method, _) => throw new InvalidOperationException(method.Name));
+            var facilities = CreateReplacementProxy<ISurgicalFacilityQuery>((method, _) => method.Name == "Evaluate"
+                ? new SurgicalFacilitySnapshot(null, SurgeryFacilityTag.None, 0f, 1f, 0f, 0f, Array.Empty<BuildableObject>(), DomainFailure.None)
+                : throw new InvalidOperationException(method.Name));
+            var burdenHandler = new ApplySurgicalBurdenEffectHandler(characters, wildlife, anatomy, wildlifeAnatomy, facilities);
+            foreach (var order in graftOrders)
+            {
+                Require(burdenHandler.Apply(order, transplant.Effects.OfType<ApplySurgicalBurdenEffect>().Single(), null, out var failure),
+                    "The actual transplant burden consumer failed: " + failure);
+                var node = nodes.Single(value => value.nodeId == order.targetNodeId);
+                Require(node.rejectionBurden == 8f && node.infection == 4f && node.mutationBurden == 0f,
+                    "Actual transplant burden was not applied to the controlled anatomy owner.");
+                order.resolvedEffectCount++;
+                order.resolvedFact.after.rejection = node.rejectionBurden;
+                order.resolvedFact.after.infection = node.infection;
+                order.resolutionFingerprint = SurgeryResolvedFactMapping.ComputeContextSha256(order.resolvedFact);
+            }
+            float afterBurden = 1f + (definition.Effects.Single().value - 1f) * .93296f;
+            Check(query, afterBurden, "actual transplant burden scales benefit");
+            var saved = JsonUtility.FromJson<DungeonSurgerySaveData>(JsonUtility.ToJson(fixture.CaptureSurgerySave()));
+            var saveReport = new DungeonGameRestoreReport();
+            SurgerySaveValidation.Validate(saved, new ResourceSurgicalProcedureCatalog(
+                content.GetAll<SurgicalProcedureSO>()), profiles, saveReport);
+            Require(saveReport.Success, "Installed graft JSON failed surgery preflight: " + string.Join(" | ", saveReport.Errors));
+            grafts.ValidateSavedParts(saved.parts);
+            var store = new SurgeryAggregateStateStore(new DungeonRuntimeAggregateRootStore());
+            store.Replace(SurgerySaveValidation.CreateState(saved));
+            nodes = nodes.Select(value => JsonUtility.FromJson<AnatomyNodeHealthState>(JsonUtility.ToJson(value))).ToList();
+            var freshParts = CreateReplacementProxy<ISurgicalPartRuntime>((method, _) => method.Name == "get_Parts"
+                ? store.State.Parts : throw new InvalidOperationException(method.Name));
+            var fresh = new CharacterSurgicalPartGameplayEffectSourceQuery(() => freshParts, items, anatomy, profiles, demand,
+                new SurgicalGraftEffectCatalog(content));
+            Check(fresh, afterBurden, "fresh JSON owner projection");
+            string before = JsonUtility.ToJson(new SurgeryPersistence(store).Capture());
+            string correctId = saved.parts.Last().specialEffectId;
+            saved.parts.Last().specialEffectId = "graft:r30-missing-definition";
+            bool rejected = false;
+            try { grafts.ValidateSavedParts(saved.parts); store.Replace(SurgerySaveValidation.CreateState(saved)); }
+            catch (InvalidOperationException) { rejected = true; }
+            Require(rejected && before == JsonUtility.ToJson(new SurgeryPersistence(store).Capture()),
+                "Unknown graft restore changed the published owner.");
+            saved.parts.Last().specialEffectId = correctId;
+            grafts.ValidateSavedParts(saved.parts);
+            store.Replace(SurgerySaveValidation.CreateState(saved));
+            Check(fresh, afterBurden, "repaired JSON retry");
+
+            void Check(CharacterSurgicalPartGameplayEffectSourceQuery source, float expected, string stage)
+            {
+                string beforeQuery = fixture.CaptureProjectionStateJson();
+                float actual = CharacterGameplayEffectProjector.Resolve(definition.Effects.Single().definition.TargetId,
+                    1f, source.GetInstalledPartSources(fixture.Actor)).Value;
+                Require(Mathf.Abs(actual - expected) < .0001f,
+                    definition.GraftId + " / " + stage + ":expected=" + expected + ";actual=" + actual);
+                Require(beforeQuery == fixture.CaptureProjectionStateJson(), "Graft query mutated production state.");
+            }
+        }
+        return "PASS authored3 actual extraction/physical installation/duplicate retry;paired scaling;condition/cap;legacy ID JSON/fresh owner/rejection/repair;controlled anatomy projection";
+    }
+
     // Root-owned authored projection witness. Scratch installed records and a
     // controlled anatomy adapter are not a live species surgery or save preflight.
     public static string RunAuthoredInstalledEffectCompositionFocused()
@@ -1500,7 +1638,7 @@ public static class SurgeryDebugScenarios
                 : throw new InvalidOperationException("Unexpected anatomy mutation/query: " + method.Name));
             var demand = CreateReplacementProxy<ISurgeryOrderDemandQuery>((method, _) => method.Name == "get_ActiveOrders"
                 ? Array.Empty<SurgeryOrder>() : throw new InvalidOperationException("Unexpected order query: " + method.Name));
-            var query = new CharacterSurgicalPartGameplayEffectSourceQuery(() => runtime, items, anatomy, profiles, demand);
+            var query = new CharacterSurgicalPartGameplayEffectSourceQuery(() => runtime, items, anatomy, profiles, demand, new SurgicalGraftEffectCatalog(new ResourceGameContentCatalog(new UnityGameContentRootLoader())));
 
             Check(test.Item6, "full authored single slot");
             parts[0].quality = nodes[0].installedPartEfficiency = .5f;
@@ -2882,7 +3020,8 @@ public static class SurgeryDebugScenarios
         internal ReplacementRuntimeFixture(
             SurgicalPartKind incomingKind = SurgicalPartKind.Prosthetic,
             float incomingFreshnessSeconds = 0f,
-            bool failFirstIncomingTransfer = false)
+            bool failFirstIncomingTransfer = false,
+            IAnatomyProfileCatalog extractionProfiles = null)
         {
             IItemDefinitionCatalog itemDefinitions =
                 new ResourceItemDefinitionCatalog(
@@ -2927,11 +3066,20 @@ public static class SurgeryDebugScenarios
                 Admission);
             stateStore = new SurgeryAggregateStateStore(
                 new DungeonRuntimeAggregateRootStore());
-            IWorldItemStackRuntime items = CreateReplacementProxy<
-                IWorldItemStackRuntime>((method, _) => method.Name
-                    == "GetAllStacks"
-                    ? query.GetAllStacks()
-                    : DefaultReplacementValue(method.ReturnType));
+            var spawner = new WorldItemSpawner(catalog, Repository, EditorNullItemMarkerPresenter.Instance);
+            IWorldItemStackRuntime items = CreateReplacementProxy<IWorldItemStackRuntime>((method, args) =>
+            {
+                if (method.Name == "GetAllStacks") return query.GetAllStacks();
+                if (method.Name == "get_CatalogProvider") return catalog;
+                if (method.Name == "SpawnUniqueItemAt")
+                {
+                    bool spawned = spawner.SpawnUnique((string)args[0], (Vector2Int)args[1],
+                        (WorldItemStackState)args[2], (string)args[3], out string stackId);
+                    args[4] = stackId;
+                    return spawned;
+                }
+                return DefaultReplacementValue(method.ReturnType);
+            });
             IBuildingWorldQuery buildings = CreateReplacementProxy<
                 IBuildingWorldQuery>((method, _) => method.Name
                     == "get_Buildings"
@@ -2943,7 +3091,7 @@ public static class SurgeryDebugScenarios
             IEnvironmentalFieldQuery environment = CreateReplacementProxy<
                 IEnvironmentalFieldQuery>((method, _) =>
                 DefaultReplacementValue(method.ReturnType));
-            IAnatomyProfileCatalog profiles = CreateReplacementProxy<
+            IAnatomyProfileCatalog profiles = extractionProfiles ?? CreateReplacementProxy<
                 IAnatomyProfileCatalog>((method, _) =>
                 DefaultReplacementValue(method.ReturnType));
             IGameClock clock = CreateReplacementProxy<IGameClock>((method, _) =>
@@ -2982,7 +3130,8 @@ public static class SurgeryDebugScenarios
                     claims,
                     Admission,
                     Admission),
-                ReplacementNoopRelease.Instance);
+                ReplacementNoopRelease.Instance,
+                new SurgicalGraftEffectCatalog(new ResourceGameContentCatalog(new UnityGameContentRootLoader())));
 
             actorObject = CharacterAiPlanDebugFixtures.CreateActorObject(
                 "Surgery Replacement Runtime Fixture");
@@ -3132,6 +3281,24 @@ public static class SurgeryDebugScenarios
         }
 
         internal SurgicalPartRuntime Runtime { get; }
+        internal DungeonSurgerySaveData CaptureSurgerySave() => new SurgeryPersistence(stateStore).Capture();
+        internal SurgeryOrder RecordR30NaturalGraftInstallation(string orderId, string subjectId, SurgicalPartInstance part, string nodeId)
+        {
+            var order = new SurgeryOrder { orderId = orderId, procedureId = "procedure:natural-organ-transplant",
+                subject = new SurgicalSubjectRef { kind = SurgicalSubjectKind.Character, subjectId = subjectId,
+                    speciesId = "human", anatomyProfileId = "anatomy:humanoid" }, targetNodeId = nodeId,
+                selectedPartInstanceId = part.partInstanceId, facilityId = FacilityId, state = SurgeryOrderState.Completed,
+                resultRolled = true, resultSucceeded = true, resultOutcomeId = "success",
+                completionDoctorId = "character:r30-graft-doctor", completionAbsoluteDay = 13, resolvedEffectCount = 1 };
+            var after = CreatePhysicalFixtureAnatomy(nodeId, 10f, 10f, part.partInstanceId);
+            after.installedPartKind = SurgicalPartKind.NaturalOrgan;
+            ConfigureAcceptedPhysicalFixtureObservation(order, CreatePhysicalFixtureAnatomy(nodeId, 0f, 10f, string.Empty), after);
+            order.resolvedFact.procedureKind = SurgicalProcedureKind.TransplantOrgan;
+            order.resolutionFingerprint = SurgeryResolvedFactMapping.ComputeContextSha256(order.resolvedFact);
+            stateStore.State.Orders.Add(order);
+            stateStore.State.OrderSequence = int.Parse(orderId.Substring("surgery:".Length), System.Globalization.CultureInfo.InvariantCulture);
+            return order;
+        }
         internal ISurgeryOrderDemandQuery OrderDemand => stateStore;
         internal List<SurgeryOrder> MutableOrders => stateStore.State.Orders;
         internal string CaptureProjectionStateJson() =>

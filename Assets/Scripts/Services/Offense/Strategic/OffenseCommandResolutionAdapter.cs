@@ -74,7 +74,7 @@ public sealed class OffenseCommandResolutionAdapter :
         out string failure)
     {
         failure = string.Empty;
-        OffenseBattleSession session = battleRuntime.Session;
+        OffenseBattleSnapshot session = battleRuntime.Session;
         OffenseBattleCombatant actor = session?.FindCombatant(request.actorId);
         if (actor == null)
         {

@@ -212,6 +212,7 @@ public static class DungeonCombatRegistration
         builder.RegisterEntryPoint<SurgicalCorpseFreshnessRuntime>(
                 Lifetime.Singleton)
             .As<ISurgicalCorpseFreshnessRuntime>();
+        builder.Register<SurgicalGraftEffectCatalog>(Lifetime.Singleton);
         builder.RegisterEntryPoint<SurgicalPartRuntime>(Lifetime.Singleton)
             .As<ISurgicalPartRuntime>()
             .As<ISurgicalAugmentationQuery>();

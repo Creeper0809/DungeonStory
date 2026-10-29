@@ -290,7 +290,7 @@ public static partial class FacilitySynthesisDebugScenarios
                 Require(firstRecipe != null && secondRecipe != null,
                     "Facility synthesis causal recipes are missing.");
                 BlueprintResearchRuntime research = world.CreateResearchRuntime();
-                Require(research.State.UnlockRecipe(
+                Require(research.StateForDebug.UnlockRecipe(
                         secondRecipe.requiredResearchRecipeId),
                     "Facility synthesis causal prerequisite research was not unlocked.");
 

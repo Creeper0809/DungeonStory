@@ -303,6 +303,8 @@ public static class CaptivityCareLaborInputOwnerDebugScenarios
 
     private sealed class EmptyCaptivityRuntime : ICaptivityRuntime
     {
+        public bool CanAssignPerformer(string captiveId, out string failureReason)
+        { failureReason = "No captive in the empty fixture."; return false; }
         public IReadOnlyList<CaptiveState> Captives =>
             Array.Empty<CaptiveState>();
         public IReadOnlyList<CaptivePolicyData> Policies =>

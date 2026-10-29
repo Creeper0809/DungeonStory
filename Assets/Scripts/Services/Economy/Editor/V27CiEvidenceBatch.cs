@@ -80,6 +80,9 @@ public static class V27CiEvidenceBatch
 
     public static void RunImpactCharacterContracts() => RunImpact("character", RunPreparationSkills);
     public static void RunImpactEffectContracts() => RunImpact("effects", RunEffectInputs);
+    public static void RunImpactEffectDefinitionContracts() => RunImpact("effects-definitions", RunEffectDefinitionInputs);
+    public static void RunImpactEffectRecoveryContracts() => RunImpact("effects-recovery", RunEffectRecoveryInputs);
+    public static void RunImpactAcquiredTraitContracts() => RunImpact("effects-traits", RunAcquiredTraitInputs);
     public static void RunSoAuthoringContracts() => RunImpact("so-authoring", () => ContentReferenceSelectionDebugScenarios.RunWithUndoIsolation(() =>
     {
         ContentReferenceIntegrityDebugScenarios.RunAll();
@@ -480,19 +483,36 @@ public static class V27CiEvidenceBatch
         Application.logMessageReceived += Observe;
         try
         {
-            ContentReferenceIntegrityDebugScenarios.RunAll();
-            Debug.Log(ScriptableObjectModularityDebugScenarios.RunCatalogExtensionsForBatch());
-            V20ContentResolutionRecoveryDebugScenarios.RunAuthoredReferenceBoundaries();
-            V20ContentResolutionRecoveryDebugScenarios.RunObserverBatch();
-            V20ContentResolutionRecoveryDebugScenarios.RunRegisteredHandlerContracts();
-            if (!CharacterProgressionDebugScenarios.RunAcquiredTraitEffectProjectionScenario()
-                || !CharacterProgressionDebugScenarios.RunAcquiredTraitMilestoneLifecycleScenario()
-                || !CharacterProgressionDebugScenarios.RunAcquiredTraitFormulaV2CompositionScenario()
-                || errors)
+            RunEffectDefinitionInputs();
+            RunEffectRecoveryInputs();
+            RunAcquiredTraitInputs();
+            if (errors)
                 throw new InvalidOperationException("V27 effect-input regression failed.");
             Debug.Log("V27_EFFECT_INPUTS=PASS; catalog invalidation; authored effects; malformed state/ledger/authority rejection; milestone lifecycle; formula-v2 composition");
         }
         finally { Application.logMessageReceived -= Observe; }
+    }
+
+    // 전체 검사와 분할 실행이 같은 본문을 호출한다. 시간/메모리 한도는 실행별로 유지한다.
+    private static void RunEffectDefinitionInputs()
+    {
+        ContentReferenceIntegrityDebugScenarios.RunAll();
+        Debug.Log(ScriptableObjectModularityDebugScenarios.RunCatalogExtensionsForBatch());
+        V20ContentResolutionRecoveryDebugScenarios.RunAuthoredReferenceBoundaries();
+    }
+
+    private static void RunEffectRecoveryInputs()
+    {
+        V20ContentResolutionRecoveryDebugScenarios.RunObserverBatch();
+        V20ContentResolutionRecoveryDebugScenarios.RunRegisteredHandlerContracts();
+    }
+
+    private static void RunAcquiredTraitInputs()
+    {
+        if (!CharacterProgressionDebugScenarios.RunAcquiredTraitEffectProjectionScenario()
+            || !CharacterProgressionDebugScenarios.RunAcquiredTraitMilestoneLifecycleScenario()
+            || !CharacterProgressionDebugScenarios.RunAcquiredTraitFormulaV2CompositionScenario())
+            throw new InvalidOperationException("V27 acquired-trait effect regression failed.");
     }
 
     public static void RunSpatial()

@@ -430,16 +430,8 @@ public sealed class EquipmentCraftingPanelPresenter :
         refresh?.Invoke();
     }
 
-    private static string FormatWorkerMode(WorkerSelectionPolicySaveData policy)
-    {
-        WorkerSelectionPolicySaveData value = policy?.CloneNormalized()
-            ?? WorkerSelectionPolicySaveData.Anyone();
-        return value.mode == WorkerSelectionMode.RuleSet
-            ? "민첩 7+"
-            : value.sortMode == WorkerCandidateSortMode.BestExpectedQuality
-                ? "품질"
-                : "속도";
-    }
+    private static string FormatWorkerMode(WorkerSelectionPolicySaveData policy) =>
+        GameplayUiPresentationText.WorkerPolicy(policy);
 
     private static WorkerSelectionPolicySaveData NextWorkerPolicy(
         WorkerSelectionPolicySaveData policy)

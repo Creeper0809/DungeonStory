@@ -212,7 +212,8 @@ public static class BatchBSpeciesHusbandryDebugScenarios
             JsonUtility.FromJson<CharacterSpeciesRuntimeSaveData>(
                 JsonUtility.ToJson(payload)),
             31f,
-            ResolveSpeciesIncident);
+            ResolveSpeciesIncident,
+            UsesFixtureCharge);
         Require(live.State.Characters.Count == 1
             && live.State.Characters[new CharacterId("character:fixture:1")].Charge == 42f,
             "Character-species valid JSON round-trip lost state.");
@@ -223,7 +224,8 @@ public static class BatchBSpeciesHusbandryDebugScenarios
         RequireThrows(() => CharacterSpeciesStateCodec.BuildRestore(
             invalid,
             99f,
-            ResolveSpeciesIncident),
+            ResolveSpeciesIncident,
+            UsesFixtureCharge),
             "Unknown character species was accepted.");
         Require(live.State.Characters.Count == 1
             && live.State.NextTickAt == 31f,
@@ -303,6 +305,9 @@ public static class BatchBSpeciesHusbandryDebugScenarios
         speciesId.Equals(new CharacterSpeciesId("Golem"))
             ? CharacterSpeciesIncidentIds.GolemCoreOverload
             : null;
+
+    private static bool UsesFixtureCharge(CharacterSpeciesId speciesId) =>
+        speciesId.Equals(new CharacterSpeciesId("Golem"));
 
     private static void RequireThrows(Action action, string message)
     {

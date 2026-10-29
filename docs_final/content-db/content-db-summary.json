@@ -1,22 +1,22 @@
 {
   "generated_from": "Assets/**/*.asset",
-  "row_count": 3483,
+  "row_count": 3486,
   "relation_count": 6583,
   "content_csv_count": 75,
   "relation_csv_count": 75,
   "field_csv_count": 75,
   "incoming_csv_count": 75,
   "code_consumer_csv_count": 75,
-  "code_consumer_row_count": 1489,
+  "code_consumer_row_count": 1464,
   "parse_error_count": 0,
-  "excluded_asset_type_count": 67,
+  "excluded_asset_type_count": 68,
   "duplicate_typed_id_groups": 10,
   "group_counts": {
     "items": 1074,
     "production-facilities": 951,
     "characters-traits": 302,
     "events-campaign": 200,
-    "research-effects": 591,
+    "research-effects": 594,
     "combat-health-world": 365
   },
   "type_counts": {
@@ -69,7 +69,7 @@
     "FestivalDefinitionSO": 20,
     "FuneralCultureSO": 11,
     "GameplayEffectConditionDefinitionSO": 45,
-    "GameplayEffectDefinitionSO": 65,
+    "GameplayEffectDefinitionSO": 68,
     "GenericItemDefinitionSO": 703,
     "GuestRequestDefinitionSO": 14,
     "HeritableTraitDefinitionSO": 24,
@@ -97,17 +97,17 @@
     "WildlifeSpeciesSO": 18
   },
   "review_counts": {
-    "근거 확인": 3438,
+    "근거 확인": 3441,
     "수동 검토 필요": 45
   },
   "runtime_counts": {
-    "catalog-registered-static-consumer": 3254,
+    "catalog-registered-static-consumer": 3257,
     "resources-authored-consumer-unverified": 181,
     "stable-id-literal-consumer": 29,
     "type-consumer-registration-unverified": 19
   },
   "lifecycle_counts": {
-    "active-authored": 3458,
+    "active-authored": 3461,
     "duplicate-authority-review": 20,
     "legacy-authoring-review": 5
   },

@@ -136,7 +136,7 @@ public sealed class GameSpeedController : IGameSpeedController
     }
 
     public int Speed => RequireState().gameSpeed.Value;
-    public bool IsPaused => RequireState().IsPaused;
+    public bool IsPaused => pauseAuthority.IsPaused;
 
     public void CycleSpeed()
     {
@@ -148,7 +148,7 @@ public sealed class GameSpeedController : IGameSpeedController
         RequireSafeProgression();
         GameSessionState state = RequireState();
         state.gameSpeed.Value = Mathf.Clamp(speed, 1, 5);
-        if (!state.IsPaused)
+        if (!IsPaused)
         {
             timeScaleController.Scale = state.gameSpeed.Value;
         }
@@ -156,15 +156,24 @@ public sealed class GameSpeedController : IGameSpeedController
 
     public void TogglePause()
     {
-        SetPaused(!IsPaused);
+        SetPaused(!RequireState().IsPaused);
     }
 
     public void SetPaused(bool paused)
     {
         if (!paused) RequireSafeProgression();
-        GameSessionState state = RequireState();
         pauseAuthority.SetPaused(paused);
-        timeScaleController.Scale = paused ? 0f : state.gameSpeed.Value;
+    }
+
+    public IDisposable AcquirePause()
+    {
+        IDisposable request = pauseAuthority.AcquirePause();
+        return new GamePauseRequest(() =>
+        {
+            if (restoreSafety.RequiresRecovery)
+                pauseAuthority.SetPaused(true);
+            request.Dispose();
+        });
     }
 
     private void RequireSafeProgression()
@@ -179,5 +188,23 @@ public sealed class GameSpeedController : IGameSpeedController
             && state != null
             ? state
             : throw new InvalidOperationException("The game session state is not initialized.");
+    }
+}
+
+internal sealed class GamePauseRequest : IDisposable
+{
+    private Action release;
+
+    public GamePauseRequest(Action release)
+    {
+        this.release = release ?? throw new ArgumentNullException(nameof(release));
+    }
+
+    public void Dispose()
+    {
+        Action pending = release;
+        if (pending == null) return;
+        release = null;
+        pending();
     }
 }

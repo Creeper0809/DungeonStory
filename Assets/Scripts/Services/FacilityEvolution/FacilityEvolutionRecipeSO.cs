@@ -26,7 +26,9 @@ public class FacilityEvolutionRecipeSO : DataScriptableObject
 
     [Header("Room")]
     public bool requireUsableRoom = true;
+    [ContentReferenceContext(ContentReferenceKind.RoomScore)]
     public FacilityEvolutionMetricRequirement[] requiredRoomScores = Array.Empty<FacilityEvolutionMetricRequirement>();
+    [ContentReferenceContext(ContentReferenceKind.RoomMetric)]
     public FacilityEvolutionMetricRequirement[] requiredRoomMetrics = Array.Empty<FacilityEvolutionMetricRequirement>();
     [ContentReference(ContentReferenceKind.RoomTag)]
     public string[] requiredRoomTags = Array.Empty<string>();
@@ -40,6 +42,7 @@ public class FacilityEvolutionRecipeSO : DataScriptableObject
     public bool consumeRecordTokens;
 
     [Header("Identity Pressure")]
+    [ContentReferenceContext(ContentReferenceKind.FacilityPressure)]
     public FacilityEvolutionValue[] identityPressureWeights = Array.Empty<FacilityEvolutionValue>();
     [Range(0f, 1f)] public float minimumIdentityScore;
 

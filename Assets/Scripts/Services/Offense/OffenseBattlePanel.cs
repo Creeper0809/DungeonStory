@@ -62,7 +62,7 @@ public sealed class OffenseBattlePanel : MonoBehaviour
 
     public void Refresh()
     {
-        OffenseBattleSession session = runtime?.Session;
+        OffenseBattleSnapshot session = runtime?.Session;
         if (session == null)
         {
             HideAll();
@@ -129,7 +129,7 @@ public sealed class OffenseBattlePanel : MonoBehaviour
     }
 
     private void RebuildDynamicUi(
-        OffenseBattleSession session,
+        OffenseBattleSnapshot session,
         OffenseBattleCombatant current)
     {
         ClearDynamicObjects();
@@ -232,7 +232,7 @@ public sealed class OffenseBattlePanel : MonoBehaviour
     }
 
     private void BuildActionButtons(
-        OffenseBattleSession session,
+        OffenseBattleSnapshot session,
         OffenseBattleCombatant current)
     {
         if (session.IsComplete)
@@ -443,7 +443,7 @@ public sealed class OffenseBattlePanel : MonoBehaviour
         if (selectedAction == OffenseBattleActionType.BasicAttack)
         {
             previewTargetId = target.PersistentId;
-            statusMessage = BuildAttackPreview(runtime.Session, current, target);
+            statusMessage = BuildAttackPreview(current, target);
             Refresh();
             return;
         }
@@ -546,13 +546,12 @@ public sealed class OffenseBattlePanel : MonoBehaviour
             next.instanceId);
     }
 
-    private static string BuildAttackPreview(
-        OffenseBattleSession session,
+    private string BuildAttackPreview(
         OffenseBattleCombatant source,
         OffenseBattleCombatant target)
     {
-        CombatAttackPreview preview = session.PreviewBasicAttack(source, target);
-        int distance = session.GetFormationDistanceForPreview(source, target);
+        CombatAttackPreview preview = runtime.PreviewBasicAttack(source.PersistentId, target.PersistentId);
+        int distance = OffenseBattleSessionRules.GetFormationDistance(source, target);
         if (!preview.Valid)
         {
             return $"{target.DisplayName}: {preview.FailureReason}";
@@ -689,7 +688,7 @@ public sealed class OffenseBattlePanel : MonoBehaviour
         return "던전 실시간 진행";
     }
 
-    private static string BuildInitiativeText(OffenseBattleSession session)
+    private static string BuildInitiativeText(OffenseBattleSnapshot session)
     {
         return "행동 순서  " + string.Join("  >  ", session.InitiativeOrder
             .Select(id => session.FindCombatant(id))
@@ -698,7 +697,7 @@ public sealed class OffenseBattlePanel : MonoBehaviour
     }
 
     private string BuildPrompt(
-        OffenseBattleSession session,
+        OffenseBattleSnapshot session,
         OffenseBattleCombatant current)
     {
         if (session.IsComplete)

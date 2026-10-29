@@ -34,6 +34,7 @@ MonoBehaviour:
   features:
   - rid: 7737211673752633593
   - rid: 7737211673752633594
+  - rid: 7737211673752633595
   references:
     version: 2
     RefIds:
@@ -47,3 +48,14 @@ MonoBehaviour:
       type: {class: AmmunitionItemFeature, ns: , asm: Assembly-CSharp}
       data:
         ammunitionKindId: ammo:arrow
+    - rid: 7737211673752633595
+      type: {class: CombatAmmunitionProfileItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        effects: 0
+        damageMultiplier: 1
+        penetrationMultiplier: 1
+        suppressionMultiplier: 1
+        statusPotency: 0
+        targetAirborneExposure: 0
+        statusTurns: 0
+        nonlethal: 0

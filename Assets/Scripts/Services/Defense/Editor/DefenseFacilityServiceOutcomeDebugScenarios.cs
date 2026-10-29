@@ -60,7 +60,8 @@ public static class DefenseFacilityServiceOutcomeDebugScenarios
         DefenseFacilityRuntime CreateRuntime(DungeonRuntimeAggregateRootStore root) => new(
             UnavailableEquipmentPhysicalItemGateway.Instance, physical, new FixtureInputOwner(),
             CharacterAiEditorTestDependencies.GameClock, CharacterAiEditorTestDependencies.GameEvents,
-            power, network, new FacilityCapabilityQuery(world), root);
+            power, network, new FacilityCapabilityQuery(world), root,
+            new MigratedProducerCombatDefenseEntryE2EDebugScenarios.R30DefensePreparationBenefits(1f));
         DefenseFacilityRuntime runtime = CreateRuntime(new DungeonRuntimeAggregateRootStore());
 
         foreach (DefenseFacility facility in new[] { launcher, copiedLauncher })
@@ -639,7 +640,8 @@ public static class DefenseFacilityServiceOutcomeDebugScenarios
             new FacilityCapabilityQuery(world),
             root,
             journal,
-            CharacterAiEditorTestDependencies.GameCalendar);
+            CharacterAiEditorTestDependencies.GameCalendar,
+            new MigratedProducerCombatDefenseEntryE2EDebugScenarios.R30DefensePreparationBenefits(1f));
     }
 
     private static GameplayResultKey PhysicalChild(

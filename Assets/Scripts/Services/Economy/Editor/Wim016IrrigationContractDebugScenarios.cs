@@ -177,7 +177,8 @@ public static class Wim016IrrigationContractDebugScenarios
     private sealed class ControlledResearch : IBlueprintResearchStateService
     {
         private readonly BlueprintResearchState state = new BlueprintResearchState();
-        public BlueprintResearchState GetState() => state;
+        public BlueprintResearchState GetState() => state.CreateSnapshot();
+        public BlueprintResearchState GetStateForDebug() => state;
     }
     private sealed class ControlledClock : IGameClock
     {

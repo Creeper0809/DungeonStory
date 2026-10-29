@@ -55,6 +55,9 @@ public static class MetaProgressionDebugScenarios
     public static bool RunStrictSaveInvalidNoMutationOnly() =>
         VerifyStrictMetaSaveRestore();
 
+    public static bool RunR30SnapshotIsolationFocused() =>
+        VerifyR30SnapshotIsolation();
+
     [MenuItem("DungeonStory/QA/Run WIM-050 Committed Run Result History")]
     public static void RunWim050CommittedRunResultHistoryFromMenu()
     {
@@ -139,7 +142,7 @@ public static class MetaProgressionDebugScenarios
     private static bool VerifyOperationKnowledgeUpgrades()
     {
         using ScenarioRuntime scenario = new ScenarioRuntime();
-        scenario.Runtime.State.AddCurrency(500);
+        scenario.Runtime.AddCurrencyForDebug(500);
 
         bool purchasedFacility = scenario.Runtime.TryPurchaseUpgrade(
             MetaUpgradeIds.StartingFacilityCandidatePlusOne,
@@ -180,7 +183,7 @@ public static class MetaProgressionDebugScenarios
     private static bool VerifyRecipePreservation()
     {
         using ScenarioRuntime scenario = new ScenarioRuntime();
-        scenario.Runtime.State.AddCurrency(500);
+        scenario.Runtime.AddCurrencyForDebug(500);
         scenario.Runtime.TryPurchaseUpgrade(MetaUpgradeIds.SpecialRecipeRecordSlot, out _);
 
         FacilityBlueprintSO blueprint = ScriptableObject.CreateInstance<FacilityBlueprintSO>();
@@ -208,7 +211,7 @@ public static class MetaProgressionDebugScenarios
     private static bool VerifyOwnerSurvivalUpgrades()
     {
         using ScenarioRuntime scenario = new ScenarioRuntime();
-        scenario.Runtime.State.AddCurrency(500);
+        scenario.Runtime.AddCurrencyForDebug(500);
         bool healthPurchased = scenario.Runtime.TryPurchaseUpgrade(MetaUpgradeIds.OwnerSurvivalBonus, out _);
         bool traitPurchased = scenario.Runtime.TryPurchaseUpgrade(MetaUpgradeIds.StartingOwnerTraitCandidatePlusOne, out _);
         bool warningPurchased = scenario.Runtime.TryPurchaseUpgrade(MetaUpgradeIds.InvasionWarningAccuracy, out _);
@@ -229,7 +232,7 @@ public static class MetaProgressionDebugScenarios
     private static bool VerifyStrategyUpgradeEffects()
     {
         using ScenarioRuntime scenario = new ScenarioRuntime();
-        scenario.Runtime.State.AddCurrency(1000);
+        scenario.Runtime.AddCurrencyForDebug(1000);
         bool commercePurchased = scenario.Runtime.TryPurchaseUpgrade(MetaUpgradeIds.CommerceSupplyNetwork, out _);
         bool fortressPurchased = scenario.Runtime.TryPurchaseUpgrade(MetaUpgradeIds.FortressEngineering, out _);
         bool arcanePurchased = scenario.Runtime.TryPurchaseUpgrade(MetaUpgradeIds.ArcaneResearchMethod, out _);
@@ -285,7 +288,7 @@ public static class MetaProgressionDebugScenarios
         GameObject researchRuntimeObject = new GameObject("Strategy Research Runtime");
         BlueprintResearchRuntime researchRuntime = researchRuntimeObject.AddComponent<BlueprintResearchRuntime>();
         CharacterAiEditorTestDependencies.Inject(researchRuntime);
-        researchRuntime.State.EnqueueBlueprint(researchBlueprint);
+        researchRuntime.StateForDebug.EnqueueBlueprint(researchBlueprint);
         BlueprintResearchWorkService researchService = new BlueprintResearchWorkService(
             new ProgressionSceneRuntimeReferences(null, researchRuntime, null),
             metaReader,
@@ -344,6 +347,168 @@ public static class MetaProgressionDebugScenarios
         return MetaProgressionEffects.GetIntegerBonus(state, EffectId) == 6
             && state.UpgradeLevels.ContainsKey(UpgradeId)
             && immutableStableId;
+    }
+
+    private static bool VerifyR30SnapshotIsolation()
+    {
+        const string UpgradeId =
+            MetaUpgradeIds.StartingFacilityCandidatePlusOne;
+        using ScenarioRuntime scenario = new ScenarioRuntime();
+        MetaUpgradeDefinition upgrade = scenario.Runtime.State.Catalog.Get(
+            UpgradeId);
+        if (upgrade == null || upgrade.cost <= 0)
+        {
+            return false;
+        }
+
+        var section = new MetaProgressionSaveSection(scenario.Runtime);
+        DungeonMetaProgressionSaveData captureBeforeSnapshotMutation =
+            JsonUtility.FromJson<DungeonMetaProgressionSaveData>(
+                section.Capture());
+        MetaProgressionState exposedState = scenario.Runtime.State;
+        exposedState.AddCurrency(upgrade.cost);
+        bool snapshotPurchased = exposedState.TryPurchaseUpgrade(
+            UpgradeId,
+            out _);
+        exposedState.RecordRunCompleted();
+        exposedState.PreserveRecipes(new[] { "r30:snapshot-recipe" }, 1);
+        MetaRunProgressTracker exposedProgress = scenario.Runtime.RunProgress;
+        exposedProgress.RecordOperatingDayStarted(8);
+        exposedProgress.RecordOperatingDayReport(8);
+        exposedProgress.RecordFacilityDiscovery(9921);
+        exposedProgress.RecordRecipes(
+            new[] { "r30:snapshot-recipe" });
+        exposedProgress.RecordOffenseSuccess();
+        DungeonMetaProgressionSaveData captureAfterSnapshotMutation =
+            JsonUtility.FromJson<DungeonMetaProgressionSaveData>(
+                section.Capture());
+        bool ownerUnchangedAfterSnapshotMutation = snapshotPurchased
+            && scenario.Runtime.State.LifetimeEarnedCurrency == 0
+            && scenario.Runtime.State.SpentCurrency == 0
+            && scenario.Runtime.State.CompletedRunCount == 0
+            && scenario.Runtime.State.GetUpgradeLevel(UpgradeId) == 0
+            && !scenario.Runtime.State.PreservedRecipeIds.Contains(
+                "r30:snapshot-recipe")
+            && scenario.Runtime.RunProgress.CurrentDay == 1
+            && scenario.Runtime.RunProgress.SettlementCount == 0
+            && scenario.Runtime.RunProgress.DiscoveredFacilityIds.Count == 0
+            && scenario.Runtime.RunProgress.UnlockedRecipeIds.Count == 0
+            && HasSameMetaOwnerCapture(
+                captureBeforeSnapshotMutation,
+                captureAfterSnapshotMutation);
+
+        DungeonMetaProgressionSaveData captureBeforeRejectedPurchase =
+            JsonUtility.FromJson<DungeonMetaProgressionSaveData>(
+                section.Capture());
+        bool rejectedBeforeCurrency = !scenario.Runtime.TryPurchaseUpgrade(
+                UpgradeId,
+                out _)
+            && HasSameMetaOwnerCapture(
+                captureBeforeRejectedPurchase,
+                JsonUtility.FromJson<DungeonMetaProgressionSaveData>(
+                    section.Capture()));
+        scenario.Runtime.AddCurrencyForDebug(upgrade.cost);
+        bool purchasedAfterRetry = scenario.Runtime.TryPurchaseUpgrade(
+            UpgradeId,
+            out _);
+        scenario.Runtime.RecordOperatingDayStarted(4);
+        scenario.Runtime.RecordOperatingDayReport(4);
+        scenario.Runtime.RecordFacilityDiscovery(9922);
+        scenario.Runtime.RecordResearchRecipes(
+            new[] { "r30:owner-recipe" });
+        scenario.Runtime.RecordOffenseSuccess();
+        bool ownerCommandUpdatedFreshQuery = purchasedAfterRetry
+            && scenario.Runtime.State.LifetimeEarnedCurrency == upgrade.cost
+            && scenario.Runtime.State.SpentCurrency == upgrade.cost
+            && scenario.Runtime.State.GetUpgradeLevel(UpgradeId) == 1
+            && scenario.Runtime.RunProgress.CurrentDay == 4
+            && scenario.Runtime.RunProgress.SettlementCount == 1
+            && scenario.Runtime.RunProgress.DiscoveredFacilityIds.Contains(9922)
+            && scenario.Runtime.RunProgress.UnlockedRecipeIds.Contains(
+                "r30:owner-recipe")
+            && scenario.Runtime.RunProgress.OffenseSuccessCount == 1;
+
+        RunResultSnapshot completed = scenario.Runtime.EndRun(
+            "R30 snapshot owner",
+            "snapshot isolation completion");
+        int currencyAfterCompletion =
+            scenario.Runtime.State.LifetimeEarnedCurrency;
+        RunResultSnapshot duplicate = scenario.Runtime.EndRun(
+            "ignored duplicate owner",
+            "ignored duplicate completion");
+        bool duplicateCompletionIgnored = completed != null
+            && ReferenceEquals(completed, duplicate)
+            && scenario.Runtime.State.CompletedRunCount == 1
+            && scenario.Runtime.State.LifetimeEarnedCurrency ==
+                currencyAfterCompletion;
+
+        string canonicalJson = section.Capture();
+        using ScenarioRuntime restored = new ScenarioRuntime();
+        var restoredSection = new MetaProgressionSaveSection(restored.Runtime);
+        var restoreReport = new DungeonGameRestoreReport();
+        restoredSection.Restore(
+            canonicalJson,
+            restoredSection.SectionVersion,
+            restoreReport);
+        bool freshOwnerRestored = restoreReport.Success
+            && restored.Runtime.State.LifetimeEarnedCurrency ==
+                scenario.Runtime.State.LifetimeEarnedCurrency
+            && restored.Runtime.State.SpentCurrency ==
+                scenario.Runtime.State.SpentCurrency
+            && restored.Runtime.State.CompletedRunCount == 1
+            && restored.Runtime.State.GetUpgradeLevel(UpgradeId) == 1
+            && restored.Runtime.RunProgress.CurrentDay == 4
+            && restored.Runtime.RunProgress.SettlementCount == 1
+            && restored.Runtime.RunProgress.DiscoveredFacilityIds.Contains(9922)
+            && restored.Runtime.RunProgress.UnlockedRecipeIds.Contains(
+                "r30:owner-recipe")
+            && restored.Runtime.HasEnded
+            && restored.Runtime.LatestResult != null;
+
+        return ownerUnchangedAfterSnapshotMutation
+            && rejectedBeforeCurrency
+            && ownerCommandUpdatedFreshQuery
+            && duplicateCompletionIgnored
+            && freshOwnerRestored;
+    }
+
+    private static bool HasSameMetaOwnerCapture(
+        DungeonMetaProgressionSaveData expected,
+        DungeonMetaProgressionSaveData actual)
+    {
+        return expected != null
+            && actual != null
+            && expected.lifetimeEarnedCurrency == actual.lifetimeEarnedCurrency
+            && expected.spentCurrency == actual.spentCurrency
+            && expected.completedRunCount == actual.completedRunCount
+            && expected.upgradeLevels.Count == actual.upgradeLevels.Count
+            && expected.upgradeLevels.Select((pair, index) =>
+                string.Equals(
+                    pair.key,
+                    actual.upgradeLevels[index].key,
+                    StringComparison.Ordinal)
+                && pair.value == actual.upgradeLevels[index].value).All(value => value)
+            && expected.preservedRecipeIds.SequenceEqual(
+                actual.preservedRecipeIds)
+            && expected.runProgress.currentDay == actual.runProgress.currentDay
+            && expected.runProgress.settlementCount ==
+                actual.runProgress.settlementCount
+            && expected.runProgress.defendedInvasionCount ==
+                actual.runProgress.defendedInvasionCount
+            && expected.runProgress.maxThreatStage ==
+                actual.runProgress.maxThreatStage
+            && Mathf.Approximately(
+                expected.runProgress.finalInvasionThreat,
+                actual.runProgress.finalInvasionThreat)
+            && expected.runProgress.offenseSuccessCount ==
+                actual.runProgress.offenseSuccessCount
+            && expected.runProgress.discoveredFacilityIds.SequenceEqual(
+                actual.runProgress.discoveredFacilityIds)
+            && expected.runProgress.unlockedRecipeIds.SequenceEqual(
+                actual.runProgress.unlockedRecipeIds)
+            && expected.ended == actual.ended
+            && expected.hasLatestResult == actual.hasLatestResult
+            && expected.hasPendingCompletion == actual.hasPendingCompletion;
     }
 
     private static bool VerifyCommittedRunResultHistory()
@@ -522,7 +687,7 @@ public static class MetaProgressionDebugScenarios
     private static bool VerifyStrictMetaSaveRestore()
     {
         using ScenarioRuntime scenario = new ScenarioRuntime();
-        scenario.Runtime.State.AddCurrency(17);
+        scenario.Runtime.AddCurrencyForDebug(17);
         MetaProgressionSaveSection section = new MetaProgressionSaveSection(
             scenario.Runtime);
         string captured = section.Capture();

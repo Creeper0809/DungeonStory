@@ -523,10 +523,17 @@ public static class DefenseFacilityRules
     public static float ResolveCooldown(
         float currentTime,
         float cooldownSeconds,
-        int resetSpeedLevel) =>
-        currentTime
-        + Math.Max(0f, cooldownSeconds)
-        / (1f + Math.Max(0, resetSpeedLevel) * 0.1f);
+        int resetSpeedLevel,
+        float preparationSpeed = 1f)
+    {
+        if (float.IsNaN(preparationSpeed) || float.IsInfinity(preparationSpeed)
+            || preparationSpeed <= 0f)
+            throw new ArgumentOutOfRangeException(nameof(preparationSpeed));
+        return currentTime
+            + Math.Max(0f, cooldownSeconds)
+            / (1f + Math.Max(0, resetSpeedLevel) * 0.1f)
+            / preparationSpeed;
+    }
 
     public static bool Roll(
         string persistentId,

@@ -32,6 +32,7 @@ public sealed class SurgicalPartRuntime :
     private readonly ISurgicalFacilityQuery facilities;
     private readonly IEnvironmentalFieldQuery environment;
     private readonly IAnatomyProfileCatalog anatomyProfiles;
+    private readonly SurgicalGraftEffectCatalog graftEffects;
     private readonly IGameClock clock;
     private readonly SurgeryAggregateStateStore stateStore;
     private readonly IPhysicalItemBatchDispositionService batchDispositions;
@@ -69,7 +70,8 @@ public sealed class SurgicalPartRuntime :
         IFacilityBufferDestinationClaimAuthorityQuery destinationClaims,
         IFacilityBufferMassCapacityAuthorityQuery destinationCapacities,
         IFacilityBufferDestinationLifecycleCommand destinationLifecycle,
-        IFacilityBufferDestinationReleaseService destinationReleases)
+        IFacilityBufferDestinationReleaseService destinationReleases,
+        SurgicalGraftEffectCatalog graftEffects)
     {
         this.items = items ?? throw new ArgumentNullException(nameof(items));
         this.itemTransfers = itemTransfers
@@ -80,6 +82,7 @@ public sealed class SurgicalPartRuntime :
             ?? throw new ArgumentNullException(nameof(environment));
         this.anatomyProfiles = anatomyProfiles
             ?? throw new ArgumentNullException(nameof(anatomyProfiles));
+        this.graftEffects = graftEffects ?? throw new ArgumentNullException(nameof(graftEffects));
         this.clock = clock ?? throw new ArgumentNullException(nameof(clock));
         this.stateStore = stateStore
             ?? throw new ArgumentNullException(nameof(stateStore));
@@ -144,6 +147,13 @@ public sealed class SurgicalPartRuntime :
             return false;
         }
 
+        var donorProfile = anatomyProfiles.GetForSpecies(donor.speciesId);
+        if (!donorProfile.TryGetNode(nodeId.Trim(), out var donorNode))
+        {
+            failure = new DomainFailure(FailureCode.SurgeryTargetNodeMissing, nodeId);
+            return false;
+        }
+        var graft = graftEffects.FindForExtraction(donor.speciesId, donorNode);
         SurgeryAggregateState state = stateStore.State;
         if (!state.TryPrepareNextPartIdentity(
                 out int nextPartSequence,
@@ -197,12 +207,8 @@ public sealed class SurgicalPartRuntime :
             donorSpeciesId = donor.speciesId,
             anatomyFamily = ResolveAnatomyFamily(donor),
             quality = Mathf.Clamp(quality, 0.1f, 1.75f),
-            specialEffectId = ResolveSpecialEffectId(
-                donor.speciesId,
-                nodeId),
-            specialEffectStrength = ResolveSpecialEffectStrength(
-                donor.speciesId,
-                nodeId),
+            specialEffectId = graft != null ? graft.GraftId : string.Empty,
+            specialEffectStrength = graft != null ? 1f : 0f,
             freshnessSeconds = kind == SurgicalPartKind.NaturalOrgan
                 ? LooseFreshnessSeconds
                 : 0f,
@@ -217,13 +223,9 @@ public sealed class SurgicalPartRuntime :
 
     public string GetSpecialEffectLabel(SurgicalPartInstance part)
     {
-        return part?.specialEffectId switch
-        {
-            "graft:rune-deer-night-sight" => "룬사슴의 야간 시야",
-            "graft:shadow-wolf-endurance" => "그림자늑대의 지구력",
-            "graft:moss-boar-toughness" => "이끼멧돼지의 강인함",
-            _ => string.Empty
-        };
+        if (string.IsNullOrWhiteSpace(part?.specialEffectId)) return string.Empty;
+        var definition = graftEffects.Require(part.specialEffectId);
+        return definition.DisplayName + ": " + definition.Description;
     }
 
     public bool TryCreateCraftedPart(
@@ -1485,40 +1487,7 @@ public sealed class SurgicalPartRuntime :
         return anatomyProfiles.GetForSpecies(donor.speciesId).AnatomyFamily;
     }
 
-    private static string ResolveSpecialEffectId(
-        string speciesId,
-        string nodeId)
-    {
-        if (string.Equals(speciesId, "rune_deer", StringComparison.OrdinalIgnoreCase)
-            && nodeId?.StartsWith("eye:", StringComparison.Ordinal) == true)
-        {
-            return "graft:rune-deer-night-sight";
-        }
 
-        if (string.Equals(speciesId, "shadow_wolf", StringComparison.OrdinalIgnoreCase)
-            && nodeId?.StartsWith("lung:", StringComparison.Ordinal) == true)
-        {
-            return "graft:shadow-wolf-endurance";
-        }
-
-        if (string.Equals(speciesId, "moss_boar", StringComparison.OrdinalIgnoreCase)
-            && string.Equals(nodeId, "heart", StringComparison.Ordinal))
-        {
-            return "graft:moss-boar-toughness";
-        }
-
-        return string.Empty;
-    }
-
-    private static float ResolveSpecialEffectStrength(
-        string speciesId,
-        string nodeId)
-    {
-        return string.IsNullOrWhiteSpace(
-            ResolveSpecialEffectId(speciesId, nodeId))
-                ? 0f
-                : 1f;
-    }
 }
 
 internal static class SurgicalPartRecoveryComponentCodec

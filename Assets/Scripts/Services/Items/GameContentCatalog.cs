@@ -3,13 +3,20 @@ using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Content.CoreSession;
 using UnityEngine;
+using VContainer;
 
 public sealed class ResourceGameContentCatalog :
     IGameContentCatalog,
     ICoreSessionRulesProvider
 {
     public ResourceGameContentCatalog(IGameContentRootLoader rootLoader)
+        : this(rootLoader, ProductionMassExplanationCapabilityRegistry.CreateDefault()) { }
+
+    [Inject]
+    public ResourceGameContentCatalog(IGameContentRootLoader rootLoader,
+        ProductionMassExplanationCapabilityRegistry massExplanations)
     {
+        if (massExplanations == null) throw new ArgumentNullException(nameof(massExplanations));
         if (rootLoader == null)
         {
             throw new ArgumentNullException(nameof(rootLoader));
@@ -64,7 +71,7 @@ public sealed class ResourceGameContentCatalog :
 
         CoreSessionRules = Domain.CoreSessionRules.CreateRuntimeDefinition();
         var relationErrors = ContentReferenceCatalog.FromCatalogs(
-            Root.DomainCatalogs.OfType<GameDomainContentCatalogSO>(), Items, CharacterSkillSettings)
+            Root.DomainCatalogs.OfType<GameDomainContentCatalogSO>(), Items, CharacterSkillSettings, massExplanations)
             .Validate(new ScriptableObject[] { Root });
         if (relationErrors.Count > 0)
             throw new InvalidOperationException("Game content references are invalid:\n" + string.Join("\n", relationErrors));

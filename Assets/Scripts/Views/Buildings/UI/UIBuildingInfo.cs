@@ -497,6 +497,7 @@ public class UIBuildingInfo : SerializedMonoBehaviour
                 RequireContextActionsRoot(),
                 door,
                 nameText != null ? nameText.font : null,
+                message => craftStatusMessage = message,
                 () => DisplayBuildingInfo(door));
             craftActionObjects.AddRange(doorObjects);
         }

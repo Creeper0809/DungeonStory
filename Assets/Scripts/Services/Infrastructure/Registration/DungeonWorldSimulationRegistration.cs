@@ -651,8 +651,6 @@ public static class DungeonWorldSimulationRegistration
         builder.Register<ProductionPreparedOutputRoutingRestoreJoin>(
                 Lifetime.Singleton)
             .As<IProductionPreparedOutputRoutingRestoreJoin>();
-        builder.RegisterInstance(
-            ProductionMassExplanationCapabilityRegistry.CreateDefault());
         builder.Register<ProductionPreparedOutputExecutionAdapter>(
                 Lifetime.Singleton)
             .As<IProductionPreparedOutputExecutionPort>()

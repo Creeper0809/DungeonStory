@@ -1941,7 +1941,8 @@ public sealed class WimInterrogationInformationRunner : MonoBehaviour
         {
             var pending = new EscortMovementProbe();
             ability.Configure(pending, clock);
-            ability.StartEscort("qa:wim055:movement");
+            Require(ability.TryStartEscort("qa:wim055:movement", out _),
+                "Pending escort start was rejected.");
             yield return null;
             yield return null;
             Require(pending.Requests > 0 && ability.IsEscorting && pending.Owned
@@ -1955,7 +1956,8 @@ public sealed class WimInterrogationInformationRunner : MonoBehaviour
 
             var cancelled = new EscortMovementProbe();
             ability.Configure(cancelled, clock);
-            ability.StartEscort("qa:wim055:movement");
+            Require(ability.TryStartEscort("qa:wim055:movement", out _),
+                "Cancellation probe escort start was rejected.");
             yield return null;
             Require(cancelled.Requests > 0 && ability.IsEscorting, "Cancel probe never reached Pending.");
             ability.StopEscort("qa:cancel-pending-path");
@@ -1967,7 +1969,7 @@ public sealed class WimInterrogationInformationRunner : MonoBehaviour
 
             var unreachable = new EscortMovementProbe { Resolution = CaptivityMovementResolution.Unreachable };
             ability.Configure(unreachable, clock);
-            ability.StartEscort("qa:wim055:movement");
+            ability.TryStartEscort("qa:wim055:movement", out _);
             for (int i = 0; i < 4 && ability.IsEscorting; i++) yield return null;
             Require(!ability.IsEscorting && !unreachable.Owned && unreachable.Failures == 1
                     && unreachable.Pickups == 0 && unreachable.Carries == 0 && unreachable.Completed == 0,

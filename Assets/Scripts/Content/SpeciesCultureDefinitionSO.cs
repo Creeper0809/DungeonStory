@@ -37,6 +37,7 @@ public sealed class SpeciesCultureDefinitionSO : V20AuthoredContentSO
     public CultureRoomPreferenceDefinition roomPreference = new();
     public List<string> etiquetteRules = new();
     [ContentReference(ContentReferenceKind.Practice)] public List<string> ceremonyIds = new();
+    [ContentReferenceContext(ContentReferenceKind.Culture)]
     public List<V20WeightedId> otherCultureAttitudes = new();
     [Min(1)] public int assimilationDays = 120;
 

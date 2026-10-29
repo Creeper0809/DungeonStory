@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using UnityEngine;
 using UnityEngine.Scripting.APIUpdating;
 
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
@@ -168,23 +167,11 @@ public sealed class ProductionOutputPlanningService :
                 out ResourceItemDefinitionSO item)
             ? item.MaxStack
             : 1;
-        int capacity = bridge.ResolveOutputCapacity(
+        return bridge.ResolveOutputCapacity(
             facility,
             itemId,
             outputPerBatch,
             stackLimit);
-        int authoredMinimum = itemId switch
-        {
-            "material:lead-ingot" => 24,
-            "material:lead-shot" => 96,
-            "material:black-powder" => 48,
-            "material:paper" => 64,
-            "ammo:paper-cartridge" => 120,
-            "component:machine-parts" => 16,
-            "component:precision-parts" => 16,
-            _ => 1
-        };
-        return Mathf.Max(capacity, authoredMinimum);
     }
 
     public string ResolveDestinationId(ProductionFacilityHandle facility)

@@ -2458,6 +2458,12 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 08914626698d2d74cadd1168727fb31c, type: 2}
   - {fileID: 11400000, guid: 6ca2b1a3420d0d047b1134758556ffe5, type: 2}
   - {fileID: 11400000, guid: 3df2aae293ce6e947be576552432cbf5, type: 2}
+  - {fileID: 11400000, guid: 74cd4ffde48f4e5cb2ab2184acc239f8, type: 2}
+  - {fileID: 11400000, guid: 6d3f8cd0aada4c2792a165ca6e370a0b, type: 2}
+  - {fileID: 11400000, guid: c9042bb7429a4224851bbde4e3674775, type: 2}
+  - {fileID: 11400000, guid: caf5965f66ad40e9829cc0a4c7c1fd0c, type: 2}
+  - {fileID: 11400000, guid: a3103546ccc942e19fe2afdd7add71b1, type: 2}
+  - {fileID: 11400000, guid: 86ddc40876dd41bfb774d58502fe38ab, type: 2}
   metaUpgrades:
   - id: meta:starting-facility-candidate
     branch: 0

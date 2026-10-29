@@ -8,6 +8,91 @@ using UnityEngine;
 
 public static class CombatSystemDebugScenarios
 {
+    public static void RunR30AmmunitionProfilesFocused()
+    {
+        ResourceItemDefinitionCatalog catalog = EditorItemCatalogFactory.CreateDefinitions();
+        var content = new ResourceGameContentCatalog(new UnityGameContentRootLoader());
+        var equipmentCatalog = new ResourceCombatEquipmentCatalog(content);
+        foreach (CombatWeaponSO weapon in content.GetAll<CombatWeaponSO>())
+        foreach (ItemDefinitionId itemId in weapon.CompatibleAmmunitionItemIds)
+            _ = CombatResolutionService.ResolveAmmunitionProfile(catalog, itemId.Value);
+
+        CombatStatSnapshot attacker = new(8f, 12f, 5f, 5f, 7f, 6f, 8f);
+        CombatStatSnapshot defender = new(7f, 7f, 4f, 5f, 6f, 8f, 5f);
+        string[] ids = { "ammo:arrow-bone", "ammo:arrow-iron", "ammo:arrow-steel", "ammo:arrow-rune" };
+        var previews = ids.Select(id => PreviewAmmo(id, 4, attacker, defender, default)).ToArray();
+        var hits = ids.Select(id => ResolveAmmo(id, 4, attacker, defender,
+            NoOpCharacterEnvironmentExposureCommand.Instance)).ToArray();
+        if (previews.Any(value => !value.Valid) || hits.Any(value => !value.Executed || !value.Hit)
+            || !(previews[0].DamageOnHit < previews[1].DamageOnHit
+                && previews[1].DamageOnHit < previews[2].DamageOnHit
+                && previews[2].DamageOnHit < previews[3].DamageOnHit)
+            || !(hits[0].AppliedDamage < hits[1].AppliedDamage
+                && hits[1].AppliedDamage < hits[2].AppliedDamage
+                && hits[2].AppliedDamage < hits[3].AppliedDamage)
+            || (hits[3].SpecialEffects & CombatSpecialEffectFlags.RuneDamage) == 0)
+            throw new InvalidOperationException("R30 authored ammunition preview/actual damage diverged: preview="
+                + string.Join(",", previews.Select(value => value.DamageOnHit))
+                + "; actual=" + string.Join(",", hits.Select(value => value.AppliedDamage)));
+
+        ResourceItemDefinitionSO renamed = ScriptableObject.CreateInstance<ResourceItemDefinitionSO>();
+        try
+        {
+            renamed.Configure("ammo:r30:renamed", "R30 renamed ammunition", "controlled fixture",
+                StockCategory.Ammunition, ResourceItemKind.Ammunition, ResourceIngredientTag.None,
+                1, .1f, 100, string.Empty);
+            var feature = new CombatAmmunitionProfileItemFeature();
+            feature.Configure(CombatResolutionService.ResolveAmmunitionProfile(catalog, "ammo:arrow-steel"));
+            renamed.SetFeature(feature);
+            var extended = new ResourceItemDefinitionCatalog(catalog.All.Concat(new[] { renamed }));
+            var resolution = new CombatResolutionService(new SequenceRandom(0f, .99f, .2f),
+                null, null, null, NoEnvironmentalFieldQuery.Instance, null,
+                NoOpCharacterEnvironmentExposureCommand.Instance, extended);
+            CombatAttackRequest Request(string id) => new("r30:authored-ammo", "r30:a", "r30:d",
+                attacker, defender, CreateAmmoWeapon(id), 4, CombatFireMode.Aimed, default,
+                defenderMeleeLocked: true);
+            CombatAttackPreview renamedPreview = resolution.Preview(Request(renamed.ItemId));
+            CombatAttackResult renamedHit = resolution.Resolve(Request(renamed.ItemId));
+            if (!renamedPreview.Valid || !renamedHit.Executed || !renamedHit.Hit
+                || !Mathf.Approximately(renamedPreview.DamageOnHit, previews[2].DamageOnHit)
+                || !Mathf.Approximately(renamedHit.AppliedDamage, hits[2].AppliedDamage))
+                throw new InvalidOperationException("Renamed authored ammunition did not use the same profile.");
+            bool unknownRejected = false;
+            try { resolution.Preview(Request("ammo:r30:missing")); }
+            catch (KeyNotFoundException) { unknownRejected = true; }
+            renamed.RemoveFeature<CombatAmmunitionProfileItemFeature>();
+            bool missingProfileRejected = false;
+            try { resolution.Resolve(Request(renamed.ItemId)); }
+            catch (InvalidOperationException) { missingProfileRejected = true; }
+            if (!unknownRejected || !missingProfileRejected)
+                throw new InvalidOperationException("Unknown/missing ammunition profile was silently accepted.");
+        }
+        finally { UnityEngine.Object.DestroyImmediate(renamed); }
+
+        WorldItemRepository repository = new(new GuidPersistentIdGenerator(), new DungeonRuntimeAggregateRootStore());
+        CombatEquipmentRuntime equipment = CombatEquipmentEditorTestFactory.Create(equipmentCatalog, repository,
+            new CharacterCarryInventoryRegistry(), researchProvider: EditorAllResearchRuntimeProvider.Instance,
+            materialCatalog: EmptyResourceEconomyContentCatalog.Instance,
+            evolutionModules: EmptyEvolutionModuleRegistry.Instance, moduleCatalog: EmptyEquipmentModuleCatalog.Instance,
+            itemStackRuntime: UnavailableEquipmentPhysicalItemGateway.Instance,
+            calendar: new EditorFixedGameCalendar(137, 9));
+        CombatEquipmentInstance bow = equipment.CreateInstance("weapon:shortbow", CombatEquipmentQuality.Normal);
+        if (!VerifyPhysicalAmmunitionReload(equipment, bow)
+            || !VerifyLoadedAmmunitionIdentityAndMixing(equipment)
+            || !VerifyV21SpecialAmmunitionEffects())
+            throw new InvalidOperationException("R30 physical ammunition identity/restore or existing special effects failed.");
+        CombatEquipmentInstance loaded = repository.EquipmentInstances.Values.First(value => value.loadedAmmo > 0);
+        ItemInstanceComponentSaveData encoded = EquipmentItemStateCodec.Encode(loaded);
+        ItemInstanceComponentSaveData decodedJson = JsonUtility.FromJson<ItemInstanceComponentSaveData>(JsonUtility.ToJson(encoded));
+        if (!EquipmentItemStateCodec.TryDecode(decodedJson, out CombatEquipmentInstance restored, out string error)
+            || restored.loadedAmmo != loaded.loadedAmmo
+            || restored.loadedAmmunition.ammunitionItemId != loaded.loadedAmmunition.ammunitionItemId
+            || restored.loadedAmmunition.remaining != loaded.loadedAmmunition.remaining)
+            throw new InvalidOperationException("Loaded ammunition component JSON restore failed: " + error);
+        _ = CombatResolutionService.ResolveAmmunitionProfile(catalog, restored.loadedAmmunition.ammunitionItemId);
+        Debug.Log("R30_AMMO_PROFILES=PASS; active compatible definitions/preview/actual/renamed/reject/physical loaded identity/special effects");
+    }
+
     public static void VerifyHeritableBluntDamage()
     {
         foreach (CombatDamageType kind in new[] { CombatDamageType.Blunt, CombatDamageType.Slash })
@@ -20,7 +105,8 @@ public static class CombatSystemDebugScenarios
             CombatAttackResult Resolve(float bodyFactor)
             {
                 var service = new CombatResolutionService(new SequenceRandom(0f, .99f, .2f), null, null, null,
-                    NoEnvironmentalFieldQuery.Instance, null, NoOpCharacterEnvironmentExposureCommand.Instance);
+                    NoEnvironmentalFieldQuery.Instance, null, NoOpCharacterEnvironmentExposureCommand.Instance,
+                    itemCatalog: EditorItemCatalogFactory.CreateDefinitions());
                 var request = new CombatAttackRequest("r22:blunt", "attacker", "defender",
                     new CombatStatSnapshot(10f, 5f, 5f, 5f, 8f, 5f, 8f),
                     new CombatStatSnapshot(5f, 5f, 5f, 5f, 5f, 8f, 5f, bluntDamageMultiplier: bodyFactor),
@@ -214,7 +300,7 @@ public static class CombatSystemDebugScenarios
         CombatStatSnapshot attacker = new CombatStatSnapshot(5f, 10f, 4f, 5f, 5f, 5f, 8f);
         CombatStatSnapshot defender = new CombatStatSnapshot(5f, 5f, 5f, 5f, 5f, 5f, 5f);
 
-        CombatResolutionService blocked = new CombatResolutionService(new SequenceRandom(0f), evolution: null, overclock: null, environmentStatus: null, environmentalField: NoEnvironmentalFieldQuery.Instance, characters: null, environmentExposure: NoOpCharacterEnvironmentExposureCommand.Instance);
+        CombatResolutionService blocked = new CombatResolutionService(new SequenceRandom(0f), evolution: null, overclock: null, environmentStatus: null, environmentalField: NoEnvironmentalFieldQuery.Instance, characters: null, environmentExposure: NoOpCharacterEnvironmentExposureCommand.Instance, itemCatalog: EditorItemCatalogFactory.CreateDefinitions());
         CombatAttackResult friendlyRisk = blocked.Resolve(new CombatAttackRequest(
             "friendly-risk",
             "a",
@@ -231,7 +317,7 @@ public static class CombatSystemDebugScenarios
             return false;
         }
 
-        CombatResolutionService coverService = new CombatResolutionService(new SequenceRandom(0f, 0f), evolution: null, overclock: null, environmentStatus: null, environmentalField: NoEnvironmentalFieldQuery.Instance, characters: null, environmentExposure: NoOpCharacterEnvironmentExposureCommand.Instance);
+        CombatResolutionService coverService = new CombatResolutionService(new SequenceRandom(0f, 0f), evolution: null, overclock: null, environmentStatus: null, environmentalField: NoEnvironmentalFieldQuery.Instance, characters: null, environmentExposure: NoOpCharacterEnvironmentExposureCommand.Instance, itemCatalog: EditorItemCatalogFactory.CreateDefinitions());
         CombatAttackResult cover = coverService.Resolve(new CombatAttackRequest(
             "cover",
             "a",
@@ -248,7 +334,7 @@ public static class CombatSystemDebugScenarios
     private static bool VerifyAttackPreview()
     {
         CombatWeaponSnapshot bow = CreateRangedWeapon(loadedAmmo: 1);
-        CombatResolutionService service = new CombatResolutionService(new SequenceRandom(0.5f), evolution: null, overclock: null, environmentStatus: null, environmentalField: NoEnvironmentalFieldQuery.Instance, characters: null, environmentExposure: NoOpCharacterEnvironmentExposureCommand.Instance);
+        CombatResolutionService service = new CombatResolutionService(new SequenceRandom(0.5f), evolution: null, overclock: null, environmentStatus: null, environmentalField: NoEnvironmentalFieldQuery.Instance, characters: null, environmentExposure: NoOpCharacterEnvironmentExposureCommand.Instance, itemCatalog: EditorItemCatalogFactory.CreateDefinitions());
         CombatAttackRequest request = new CombatAttackRequest(
             "preview",
             "a",
@@ -295,7 +381,7 @@ public static class CombatSystemDebugScenarios
             10f,
             8f,
             5f);
-        CombatResolutionService shieldService = new CombatResolutionService(new SequenceRandom(0f, 0f), evolution: null, overclock: null, environmentStatus: null, environmentalField: NoEnvironmentalFieldQuery.Instance, characters: null, environmentExposure: NoOpCharacterEnvironmentExposureCommand.Instance);
+        CombatResolutionService shieldService = new CombatResolutionService(new SequenceRandom(0f, 0f), evolution: null, overclock: null, environmentStatus: null, environmentalField: NoEnvironmentalFieldQuery.Instance, characters: null, environmentExposure: NoOpCharacterEnvironmentExposureCommand.Instance, itemCatalog: EditorItemCatalogFactory.CreateDefinitions());
         CombatAttackResult blocked = shieldService.Resolve(new CombatAttackRequest(
             "shield",
             "a",
@@ -330,7 +416,7 @@ public static class CombatSystemDebugScenarios
             12f,
             9f,
             8f);
-        CombatResolutionService armorService = new CombatResolutionService(new SequenceRandom(0f, 0.99f, 0.2f), evolution: null, overclock: null, environmentStatus: null, environmentalField: NoEnvironmentalFieldQuery.Instance, characters: null, environmentExposure: NoOpCharacterEnvironmentExposureCommand.Instance);
+        CombatResolutionService armorService = new CombatResolutionService(new SequenceRandom(0f, 0.99f, 0.2f), evolution: null, overclock: null, environmentStatus: null, environmentalField: NoEnvironmentalFieldQuery.Instance, characters: null, environmentExposure: NoOpCharacterEnvironmentExposureCommand.Instance, itemCatalog: EditorItemCatalogFactory.CreateDefinitions());
         CombatAttackResult armored = armorService.Resolve(new CombatAttackRequest(
             "armor",
             "a",
@@ -385,7 +471,7 @@ public static class CombatSystemDebugScenarios
             true,
             false,
             false);
-        CombatResolutionService service = new CombatResolutionService(new SequenceRandom(0f, 0.99f, 0.2f), evolution: null, overclock: null, environmentStatus: null, environmentalField: NoEnvironmentalFieldQuery.Instance, characters: null, environmentExposure: NoOpCharacterEnvironmentExposureCommand.Instance);
+        CombatResolutionService service = new CombatResolutionService(new SequenceRandom(0f, 0.99f, 0.2f), evolution: null, overclock: null, environmentStatus: null, environmentalField: NoEnvironmentalFieldQuery.Instance, characters: null, environmentExposure: NoOpCharacterEnvironmentExposureCommand.Instance, itemCatalog: EditorItemCatalogFactory.CreateDefinitions());
         CombatAttackResult result = service.Resolve(new CombatAttackRequest(
             "lethality",
             "a",
@@ -441,7 +527,8 @@ public static class CombatSystemDebugScenarios
             environmentStatus: null,
             environmentalField: NoEnvironmentalFieldQuery.Instance,
             characters: null,
-            environmentExposure: misfireExposure).Resolve(new CombatAttackRequest(
+            environmentExposure: misfireExposure,
+            itemCatalog: EditorItemCatalogFactory.CreateDefinitions()).Resolve(new CombatAttackRequest(
                 "gunpowder:worn",
                 "character:combat-role:gunner",
                 "combat-role:target",
@@ -480,7 +567,8 @@ public static class CombatSystemDebugScenarios
             environmentStatus: null,
             environmentalField: NoEnvironmentalFieldQuery.Instance,
             characters: null,
-            environmentExposure: hitExposure);
+            environmentExposure: hitExposure,
+            itemCatalog: EditorItemCatalogFactory.CreateDefinitions());
         CombatAttackResult gunHit = resolution.Resolve(new CombatAttackRequest(
             "gunpowder:hit",
             "character:combat-role:gunner",
@@ -519,7 +607,8 @@ public static class CombatSystemDebugScenarios
             environmentStatus: null,
             environmentalField: NoEnvironmentalFieldQuery.Instance,
             characters: null,
-            environmentExposure: missExposure).Resolve(new CombatAttackRequest(
+            environmentExposure: missExposure,
+            itemCatalog: EditorItemCatalogFactory.CreateDefinitions()).Resolve(new CombatAttackRequest(
                 "gunpowder:miss",
                 "character:combat-role:gunner",
                 "combat-role:target",
@@ -608,7 +697,8 @@ public static class CombatSystemDebugScenarios
             environmentalField: NoEnvironmentalFieldQuery.Instance,
             characters: null,
             environmentExposure:
-                NoOpCharacterEnvironmentExposureCommand.Instance);
+                NoOpCharacterEnvironmentExposureCommand.Instance,
+            itemCatalog: EditorItemCatalogFactory.CreateDefinitions());
         return resolution.Preview(new CombatAttackRequest(
             $"role-preview:{weapon.DefinitionId}",
             "combat-role:attacker",
@@ -693,7 +783,8 @@ public static class CombatSystemDebugScenarios
             environmentStatus: null,
             environmentalField: NoEnvironmentalFieldQuery.Instance,
             characters: null,
-            environmentExposure: exposure).Resolve(new CombatAttackRequest(
+            environmentExposure: exposure,
+            itemCatalog: EditorItemCatalogFactory.CreateDefinitions()).Resolve(new CombatAttackRequest(
                 "ammo:blacksteel",
                 "ammo:attacker",
                 "ammo:construct",
@@ -740,7 +831,8 @@ public static class CombatSystemDebugScenarios
             environmentStatus: null,
             environmentalField: NoEnvironmentalFieldQuery.Instance,
             characters: null,
-            environmentExposure: NoOpCharacterEnvironmentExposureCommand.Instance);
+            environmentExposure: NoOpCharacterEnvironmentExposureCommand.Instance,
+            itemCatalog: EditorItemCatalogFactory.CreateDefinitions());
         CombatAttackPreview aimed = previewService.Preview(new CombatAttackRequest(
             "role:repeating:aimed",
             "role:attacker",
@@ -785,7 +877,8 @@ public static class CombatSystemDebugScenarios
             environmentStatus: null,
             environmentalField: NoEnvironmentalFieldQuery.Instance,
             characters: null,
-            environmentExposure: NoOpCharacterEnvironmentExposureCommand.Instance)
+            environmentExposure: NoOpCharacterEnvironmentExposureCommand.Instance,
+            itemCatalog: EditorItemCatalogFactory.CreateDefinitions())
             .Resolve(new CombatAttackRequest(
                 "role:pollaxe",
                 "role:attacker",
@@ -1177,7 +1270,8 @@ public static class CombatSystemDebugScenarios
         environmentStatus: null,
         environmentalField: NoEnvironmentalFieldQuery.Instance,
         characters: null,
-        environmentExposure: NoOpCharacterEnvironmentExposureCommand.Instance);
+        environmentExposure: NoOpCharacterEnvironmentExposureCommand.Instance,
+        itemCatalog: EditorItemCatalogFactory.CreateDefinitions());
 
     private static T CloneEquipmentWithId<T>(string assetPath, string definitionId)
         where T : CombatEquipmentDefinitionSO
@@ -1268,7 +1362,8 @@ public static class CombatSystemDebugScenarios
             environmentStatus: null,
             environmentalField: NoEnvironmentalFieldQuery.Instance,
             characters: null,
-            environmentExposure: NoOpCharacterEnvironmentExposureCommand.Instance);
+            environmentExposure: NoOpCharacterEnvironmentExposureCommand.Instance,
+            itemCatalog: EditorItemCatalogFactory.CreateDefinitions());
         return service.Preview(new CombatAttackRequest(
             $"preview:{ammunitionItemId}:{distance}",
             "ammo:attacker",
@@ -1299,7 +1394,8 @@ public static class CombatSystemDebugScenarios
             environmentStatus: null,
             environmentalField: NoEnvironmentalFieldQuery.Instance,
             characters: null,
-            environmentExposure: exposure).Resolve(new CombatAttackRequest(
+            environmentExposure: exposure,
+            itemCatalog: EditorItemCatalogFactory.CreateDefinitions()).Resolve(new CombatAttackRequest(
                 $"resolve:{ammunitionItemId}",
                 "ammo:attacker",
                 "ammo:defender",

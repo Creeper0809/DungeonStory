@@ -79,6 +79,18 @@ public static class OffenseStrategicDebugScenarios
             + "; scope=authored assets and production services; not live UI or whole-save";
     }
 
+    public static string RunR30ExpeditionSupplyCapacityFocused()
+    {
+        VerifyR30ExpeditionSupplyCapacity();
+        return "R30 expedition supply capacity passed: baseline=7, completed=19, reject=20, accept=19";
+    }
+
+    public static string RunR30CounterMetadataFocused()
+    {
+        VerifyR30CounterMetadata();
+        return "R30 counter metadata passed: typed roles, ammunition, healing, range, and authored protection";
+    }
+
     private static void VerifyWeatherAuthoredPublication()
     {
         GameContentCatalogSO root = Resources.Load<GameContentCatalogSO>(
@@ -1996,6 +2008,465 @@ public static class OffenseStrategicDebugScenarios
             "다음 턴 draw가 완료된 직전 resolution trace를 지웠습니다.");
     }
 
+    private static void VerifyR30CounterMetadata()
+    {
+        VerifyCounterMetadataIgnoresIdentifiers();
+        VerifyCounterMetadataRejectsMisleadingIdentifiers();
+        VerifyCounterMetadataUsesTypedEffects();
+        VerifyCounterMetadataUsesAuthoredDefinitions();
+    }
+
+    private static void VerifyCounterMetadataIgnoresIdentifiers()
+    {
+        CombatSpecialEffectFlags effects =
+            CombatSpecialEffectFlags.ManaBlocked
+            | CombatSpecialEffectFlags.SmokeScreen
+            | CombatSpecialEffectFlags.Tranquilized
+            | CombatSpecialEffectFlags.RuneDamage;
+        CharacterCombatAbilityDefinition typedHeal =
+            new CharacterCombatAbilityDefinition(
+                "ability:metadata-repair",
+                "지원",
+                "식별자와 무관한 회복 효과",
+                0,
+                OffenseBattleTargetRule.Ally,
+                new OffenseHealEffect(8f));
+        CharacterCombatAbilityDefinition equivalentTypedHeal =
+            new CharacterCombatAbilityDefinition(
+                "ability:metadata-support",
+                "보조",
+                "동일 metadata의 다른 식별자",
+                0,
+                OffenseBattleTargetRule.Ally,
+                new OffenseHealEffect(8f));
+        OffenseBattleCombatant first = CreateCounterMetadataCombatant(
+            "ally:counter-alpha",
+            "weapon:counter-alpha",
+            maximumRange: 2,
+            arcaneManaCost: 3f,
+            weaponRoleFlags: CombatEquipmentRoleFlags.SpellBlock,
+            armorRoleFlags: CombatEquipmentRoleFlags.BlastAndSmokeProtection,
+            shieldRoleFlags: CombatEquipmentRoleFlags.DeployableCover,
+            ammunitionProfile: new CombatAmmunitionProfile(effects),
+            abilities: new[] { typedHeal });
+        OffenseBattleCombatant second = CreateCounterMetadataCombatant(
+            "ally:counter-beta",
+            "weapon:counter-beta",
+            maximumRange: 2,
+            arcaneManaCost: 3f,
+            weaponRoleFlags: CombatEquipmentRoleFlags.SpellBlock,
+            armorRoleFlags: CombatEquipmentRoleFlags.BlastAndSmokeProtection,
+            shieldRoleFlags: CombatEquipmentRoleFlags.DeployableCover,
+            ammunitionProfile: new CombatAmmunitionProfile(effects),
+            abilities: new[] { equivalentTypedHeal });
+        HashSet<string> firstTags = ProjectCounterTags(first);
+        HashSet<string> secondTags = ProjectCounterTags(second);
+        OffenseBattleCombatant snapshot = first.CreateSnapshot();
+        Require(
+            firstTags.SetEquals(secondTags),
+            "동일 metadata와 다른 식별자가 다른 counter 태그 집합을 만들었습니다.");
+        Require(
+            snapshot.AmmunitionProfile.Effects == effects
+            && ProjectCounterTags(snapshot).SetEquals(firstTags),
+            "전투원 snapshot이 derived ammunition profile 또는 counter 태그를 보존하지 않았습니다.");
+        RequireCounterTags(
+            firstTags,
+            "counter:reach",
+            "counter:brace",
+            "counter:mana-disrupt",
+            "counter:mana-grounding",
+            "counter:dispel",
+            "counter:air-filter",
+            "counter:smoke-hood",
+            "counter:insulated",
+            "counter:smoke",
+            "counter:nonlethal",
+            "counter:arcane",
+            "counter:cover",
+            "counter:interrupt-heal");
+        Require(
+            !firstTags.Contains("counter:mundane"),
+            "RuneDamage 또는 mana cost metadata가 있는 파티에 mundane 태그가 생겼습니다.");
+    }
+
+    private static void VerifyCounterMetadataRejectsMisleadingIdentifiers()
+    {
+        OffenseBattleCombatant misleading = CreateCounterMetadataCombatant(
+            "ally:spear-rune-mana-smoke-heal-dressing",
+            "weapon:spear-rune-mana-smoke-heal-dressing",
+            maximumRange: 1,
+            arcaneManaCost: 0f,
+            ammunitionProfile: new CombatAmmunitionProfile(
+                CombatSpecialEffectFlags.None));
+        HashSet<string> misleadingTags = ProjectCounterTags(misleading);
+        Require(
+            !misleadingTags.Contains("counter:reach")
+            && !misleadingTags.Contains("counter:arcane")
+            && !misleadingTags.Contains("counter:smoke")
+            && !misleadingTags.Contains("counter:nonlethal")
+            && !misleadingTags.Contains("counter:interrupt-heal")
+            && misleadingTags.Contains("counter:mundane"),
+            "오도 식별자가 counter metadata 태그를 만들었습니다.");
+
+        HashSet<string> longMeleeTags = ProjectCounterTags(
+            CreateCounterMetadataCombatant(
+                "ally:range-two",
+                "weapon:ordinary-tool",
+                maximumRange: 2,
+                arcaneManaCost: 0f,
+                ammunitionProfile: new CombatAmmunitionProfile(
+                    CombatSpecialEffectFlags.None)));
+        HashSet<string> namedSpearTags = ProjectCounterTags(
+            CreateCounterMetadataCombatant(
+                "ally:range-one",
+                "weapon:spear",
+                maximumRange: 1,
+                arcaneManaCost: 0f,
+                ammunitionProfile: new CombatAmmunitionProfile(
+                    CombatSpecialEffectFlags.None)));
+        Require(
+            longMeleeTags.Contains("counter:reach")
+            && longMeleeTags.Contains("counter:brace")
+            && !namedSpearTags.Contains("counter:reach"),
+            "근접 reach 태그가 MaximumRange metadata와 독립적으로 판정되지 않았습니다.");
+    }
+
+    private static void VerifyCounterMetadataUsesTypedEffects()
+    {
+        RequireCounterTags(
+            ProjectCounterTags(CreateCounterMetadataCombatant(
+                "ally:mana-ammo",
+                "weapon:neutral",
+                ammunitionProfile: new CombatAmmunitionProfile(
+                    CombatSpecialEffectFlags.ManaBlocked))),
+            "counter:mana-disrupt",
+            "counter:mana-grounding",
+            "counter:dispel");
+        RequireCounterTags(
+            ProjectCounterTags(CreateCounterMetadataCombatant(
+                "ally:spell-block",
+                "weapon:neutral",
+                weaponRoleFlags: CombatEquipmentRoleFlags.SpellBlock,
+                ammunitionProfile: new CombatAmmunitionProfile(
+                    CombatSpecialEffectFlags.None))),
+            "counter:mana-disrupt",
+            "counter:mana-grounding",
+            "counter:dispel");
+        RequireCounterTags(
+            ProjectCounterTags(CreateCounterMetadataCombatant(
+                "ally:protection",
+                "weapon:neutral",
+                armorRoleFlags:
+                    CombatEquipmentRoleFlags.BlastAndSmokeProtection,
+                ammunitionProfile: new CombatAmmunitionProfile(
+                    CombatSpecialEffectFlags.None))),
+            "counter:air-filter",
+            "counter:smoke-hood",
+            "counter:insulated");
+        RequireCounterTags(
+            ProjectCounterTags(CreateCounterMetadataCombatant(
+                "ally:smoke",
+                "weapon:neutral",
+                ammunitionProfile: new CombatAmmunitionProfile(
+                    CombatSpecialEffectFlags.SmokeScreen))),
+            "counter:smoke");
+        RequireCounterTags(
+            ProjectCounterTags(CreateCounterMetadataCombatant(
+                "ally:nonlethal",
+                "weapon:neutral",
+                ammunitionProfile: new CombatAmmunitionProfile(
+                    CombatSpecialEffectFlags.None,
+                    nonlethal: true))),
+            "counter:nonlethal");
+        RequireCounterTags(
+            ProjectCounterTags(CreateCounterMetadataCombatant(
+                "ally:tranquilized",
+                "weapon:neutral",
+                ammunitionProfile: new CombatAmmunitionProfile(
+                    CombatSpecialEffectFlags.Tranquilized))),
+            "counter:nonlethal");
+        RequireCounterTags(
+            ProjectCounterTags(CreateCounterMetadataCombatant(
+                "ally:mana-cost",
+                "weapon:neutral",
+                arcaneManaCost: 1f,
+                ammunitionProfile: new CombatAmmunitionProfile(
+                    CombatSpecialEffectFlags.None))),
+            "counter:arcane");
+        RequireCounterTags(
+            ProjectCounterTags(CreateCounterMetadataCombatant(
+                "ally:rune-ammo",
+                "weapon:neutral",
+                ammunitionProfile: new CombatAmmunitionProfile(
+                    CombatSpecialEffectFlags.RuneDamage))),
+            "counter:arcane");
+        RequireCounterTags(
+            ProjectCounterTags(CreateCounterMetadataCombatant(
+                "ally:cover",
+                "weapon:neutral",
+                shieldRoleFlags: CombatEquipmentRoleFlags.DeployableCover,
+                ammunitionProfile: new CombatAmmunitionProfile(
+                    CombatSpecialEffectFlags.None))),
+            "counter:cover",
+            "counter:slow-advance");
+
+        CharacterCombatAbilityDefinition typedHeal =
+            new CharacterCombatAbilityDefinition(
+                "ability:unrelated",
+                "보조",
+                "식별자와 무관한 회복",
+                0,
+                OffenseBattleTargetRule.Ally,
+                new OffenseHealEffect(4f));
+        CharacterCombatAbilityDefinition namedDamage =
+            new CharacterCombatAbilityDefinition(
+                "ability:heal-damage",
+                "heal",
+                "피해 효과",
+                0,
+                OffenseBattleTargetRule.Enemy,
+                new OffenseDamageEffect(1f));
+        CharacterCombatAbilityDefinition namedStatus =
+            new CharacterCombatAbilityDefinition(
+                "ability:heal-status",
+                "dressing",
+                "상태 효과",
+                0,
+                OffenseBattleTargetRule.Enemy,
+                new OffenseVulnerabilityEffect(0.2f, 1));
+        RequireCounterTags(
+            ProjectCounterTags(CreateCounterMetadataCombatant(
+                "ally:typed-heal",
+                "weapon:neutral",
+                ammunitionProfile: new CombatAmmunitionProfile(
+                    CombatSpecialEffectFlags.None),
+                abilities: new[] { typedHeal })),
+            "counter:interrupt-heal");
+        Require(
+            !ProjectCounterTags(CreateCounterMetadataCombatant(
+                "ally:named-heal",
+                "weapon:neutral",
+                ammunitionProfile: new CombatAmmunitionProfile(
+                    CombatSpecialEffectFlags.None),
+                abilities: new[] { namedDamage, namedStatus }))
+                .Contains("counter:interrupt-heal"),
+            "이름만 heal 또는 dressing인 damage/status 능력이 회복 counter 태그를 만들었습니다.");
+    }
+
+    private static void VerifyCounterMetadataUsesAuthoredDefinitions()
+    {
+        ResourceGameContentCatalog content = new ResourceGameContentCatalog(
+            new UnityGameContentRootLoader());
+        ResourceCombatEquipmentCatalog equipment = new(content);
+        Require(
+            equipment.TryGet("armor:blast-coat", out CombatEquipmentDefinitionSO blastCoat)
+            && blastCoat is CombatArmorSO
+            && blastCoat.RoleFlags
+                == CombatEquipmentRoleFlags.BlastAndSmokeProtection
+            && equipment.TryGet("armor:smoke-hood", out CombatEquipmentDefinitionSO smokeHood)
+            && smokeHood is CombatArmorSO
+            && smokeHood.RoleFlags
+                == CombatEquipmentRoleFlags.BlastAndSmokeProtection,
+            "활성 콘텐츠 루트의 A13/A14 보호 role metadata가 128이 아닙니다.");
+
+        ResourceItemDefinitionCatalog items =
+            EditorItemCatalogFactory.CreateDefinitions();
+        CombatAmmunitionProfile smoke =
+            CombatResolutionService.ResolveAmmunitionProfile(
+                items,
+                "ammo:smoke-cartridge");
+        CombatAmmunitionProfile mana =
+            CombatResolutionService.ResolveAmmunitionProfile(
+                items,
+                "ammo:mana-disruptor-bolt");
+        Require(
+            (smoke.Effects & CombatSpecialEffectFlags.SmokeScreen) != 0
+            && (mana.Effects & CombatSpecialEffectFlags.ManaBlocked) != 0,
+            "활성 탄약 profile의 typed effect metadata가 유실되었습니다.");
+    }
+
+    private static OffenseBattleCombatant CreateCounterMetadataCombatant(
+        string persistentId,
+        string weaponDefinitionId,
+        int maximumRange = 1,
+        float arcaneManaCost = 0f,
+        CombatEquipmentRoleFlags weaponRoleFlags = CombatEquipmentRoleFlags.None,
+        CombatEquipmentRoleFlags armorRoleFlags = CombatEquipmentRoleFlags.None,
+        CombatEquipmentRoleFlags shieldRoleFlags = CombatEquipmentRoleFlags.None,
+        CombatAmmunitionProfile ammunitionProfile = default,
+        IEnumerable<CharacterCombatAbilityDefinition> abilities = null)
+    {
+        OffenseBattleCombatant combatant = new OffenseBattleCombatant(
+            persistentId,
+            persistentId,
+            "human",
+            OffenseBattleTeam.Allies,
+            new OffenseBattleStats(60f, 8f, 7f, 6f, 7f, 6f),
+            60f,
+            abilities);
+        CombatWeaponSnapshot weapon = new CombatWeaponSnapshot(
+            weaponDefinitionId,
+            "instance:" + persistentId,
+            CombatEquipmentKind.MeleeWeapon,
+            new MeleeStrikeVerb
+            {
+                attackTime = 1f,
+                baseDamage = 6f,
+                penetration = 0f,
+                damageType = CombatDamageType.Slash
+            },
+            new[]
+            {
+                new CombatRangeProfile
+                {
+                    band = CombatRangeBand.Contact,
+                    accuracyMultiplier = 1f,
+                    damageMultiplier = 1f
+                }
+            },
+            maximumRange,
+            CombatEquipmentQuality.Normal,
+            string.Empty,
+            0,
+            0,
+            0f,
+            false,
+            false,
+            false,
+            roleFlags: weaponRoleFlags,
+            arcaneManaCost: arcaneManaCost);
+        IReadOnlyList<CombatArmorSnapshot> armor = armorRoleFlags
+            == CombatEquipmentRoleFlags.None
+            ? Array.Empty<CombatArmorSnapshot>()
+            : new[]
+            {
+                new CombatArmorSnapshot(
+                    "armor-instance:" + persistentId,
+                    CombatBodyPart.Torso,
+                    CombatArmorLayer.Outer,
+                    CombatEquipmentQuality.Normal,
+                    1f,
+                    0f,
+                    0f,
+                    0f,
+                    definitionId: "armor:" + persistentId,
+                    roleFlags: armorRoleFlags)
+            };
+        CombatShieldSnapshot shield = shieldRoleFlags
+            == CombatEquipmentRoleFlags.None
+            ? default
+            : new CombatShieldSnapshot(
+                "shield-instance:" + persistentId,
+                CombatEquipmentQuality.Normal,
+                1f,
+                0.5f,
+                0f,
+                0f,
+                0f,
+                0f,
+                definitionId: "shield:" + persistentId,
+                roleFlags: shieldRoleFlags);
+        combatant.SetCombatEquipment(weapon, armor, shield);
+        combatant.SetAmmunitionProfile(ammunitionProfile);
+        return combatant;
+    }
+
+    private static HashSet<string> ProjectCounterTags(
+        params OffenseBattleCombatant[] combatants)
+    {
+        return new HashSet<string>(
+            OffenseBattleCounterRules.Project(combatants),
+            StringComparer.Ordinal);
+    }
+
+    private static void RequireCounterTags(
+        IReadOnlyCollection<string> tags,
+        params string[] expected)
+    {
+        Require(
+            expected.All(tag => tags.Contains(tag)),
+            "typed counter metadata 태그가 누락되었습니다: "
+            + string.Join(", ", expected.Where(tag => !tags.Contains(tag))));
+    }
+
+    private static void VerifyR30ExpeditionSupplyCapacity()
+    {
+        GameObject stagingObject =
+            new GameObject("R30ExpeditionSupplyCapacityFixture");
+        try
+        {
+            ExteriorZoneMarker staging =
+                stagingObject.AddComponent<ExteriorZoneMarker>();
+            typeof(BuildableObject)
+                .GetProperty(
+                    nameof(BuildableObject.centerPos),
+                    System.Reflection.BindingFlags.Instance
+                    | System.Reflection.BindingFlags.Public
+                    | System.Reflection.BindingFlags.NonPublic)
+                ?.SetValue(staging, new Vector2Int(11, 6));
+            RecordingProductionItemGateway items = new();
+            RecordingOffenseSupplyPhysicalCustodyGateway custody = new();
+            FacilityBufferDestinationClaimRegistry claims = new();
+            DungeonOffensePreparationService baselineService =
+                CreatePreparationService(
+                    new EmptyWarehouseInventoryQuery(),
+                    items,
+                    new FixedExteriorZoneQuery(staging),
+                    claims,
+                    custody,
+                    new FixtureGrandProjectBenefits(),
+                    out _);
+            Require(
+                baselineService.Evaluate().Preparation.SupplyCapacity == 7,
+                "대공사 미완료 원정 보급 한도가 7이 아닙니다.");
+
+            DungeonOffensePreparationService completedService =
+                CreatePreparationService(
+                    new EmptyWarehouseInventoryQuery(),
+                    items,
+                    new FixedExteriorZoneQuery(staging),
+                    claims,
+                    custody,
+                    new FixtureGrandProjectBenefits(
+                        expeditionSupplyCapacityBonus: 12),
+                    out _);
+            OffenseExpeditionPreparation completedPreparation =
+                completedService.Evaluate().Preparation;
+            Require(
+                completedPreparation.SupplyCapacity == 19,
+                "원정 보급 기지 완료 후 원정 보급 한도가 19가 아닙니다.");
+
+            OffenseSupplyLoadout rejected = new();
+            rejected.Add(OffenseSupplyType.Rations, 20);
+            Require(
+                !completedService.TryCommitLoadout(
+                    rejected,
+                    completedPreparation,
+                    "r30-supply:reject",
+                    out string rejection)
+                && rejection.Contains("20/19", StringComparison.Ordinal)
+                && !completedService.GetPackingSnapshot("r30-supply:reject").Exists,
+                "19 한도를 넘는 보급 적재가 거절되거나 무변경으로 끝나지 않았습니다.");
+
+            OffenseSupplyLoadout accepted = new();
+            accepted.Add(OffenseSupplyType.Rations, 19);
+            Require(
+                completedService.TryCommitLoadout(
+                    accepted,
+                    completedPreparation,
+                    "r30-supply:accept",
+                    out string acceptance)
+                && completedService.GetPackingSnapshot("r30-supply:accept")
+                    .Required == 19,
+                "완료 보급 한도의 정확한 경계 적재가 승인되지 않았습니다: "
+                + acceptance);
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(stagingObject);
+        }
+    }
+
     private static void VerifyPhysicalExpeditionPacking()
     {
         GameObject stagingObject =
@@ -2022,6 +2493,7 @@ public static class OffenseStrategicDebugScenarios
                     new FixedExteriorZoneQuery(staging),
                     destinationClaims,
                     custody,
+                    new FixtureGrandProjectBenefits(),
                     out FacilityBufferMassAdmissionService destinationCapacities);
             OffenseSupplyLoadout loadout = new OffenseSupplyLoadout();
             loadout.Add(OffenseSupplyType.Rations, 2);
@@ -2242,6 +2714,7 @@ public static class OffenseStrategicDebugScenarios
                     new FixedExteriorZoneQuery(staging),
                     restoredDestinationClaims,
                     custody,
+                    new FixtureGrandProjectBenefits(),
                     out FacilityBufferMassAdmissionService restoredCapacities);
             restoredPreparation.RestorePackingState(savedPacking);
             Require(
@@ -2412,6 +2885,7 @@ public static class OffenseStrategicDebugScenarios
                     new FixedExteriorZoneQuery(staging),
                     returnRestoreClaims,
                     returnRestoreCustody,
+                    new FixtureGrandProjectBenefits(),
                     out _);
             returnRestored.RestorePackingState(returnedState);
             OffenseSupplyPackingStateData roundTrippedReturn =
@@ -2464,6 +2938,7 @@ public static class OffenseStrategicDebugScenarios
                     new FixedExteriorZoneQuery(staging),
                     destinationClaims,
                     custody,
+                    new FixtureGrandProjectBenefits(),
                     out _);
             OffenseSupplyLoadout loadout = new OffenseSupplyLoadout();
             loadout.Add(OffenseSupplyType.Tools, 2);
@@ -2695,6 +3170,7 @@ public static class OffenseStrategicDebugScenarios
                 new FixedExteriorZoneQuery(staging),
                 restoredDestinationClaims,
                 new RecordingOffenseSupplyPhysicalCustodyGateway(),
+                new FixtureGrandProjectBenefits(),
                 out _);
         OffenseWorldStateSaveCodec restoredSection = new OffenseWorldStateSaveCodec(
             restoredWorld,
@@ -3127,6 +3603,7 @@ public static class OffenseStrategicDebugScenarios
             new FixedExteriorZoneQuery(null),
             new FacilityBufferDestinationClaimRegistry(),
             new RecordingOffenseSupplyPhysicalCustodyGateway(),
+            new FixtureGrandProjectBenefits(),
             out _);
         OffenseWorldStateSaveCodec codec = new OffenseWorldStateSaveCodec(
             world,
@@ -4418,6 +4895,20 @@ public static class OffenseStrategicDebugScenarios
         }
     }
 
+    private sealed class FixtureGrandProjectBenefits : IGrandProjectBenefitQuery
+    {
+        public FixtureGrandProjectBenefits(int expeditionSupplyCapacityBonus = 0)
+        {
+            ExpeditionSupplyCapacityBonus = expeditionSupplyCapacityBonus;
+        }
+
+        public bool IsCompleted(string projectId) => false;
+        public float GetProductionOutputMultiplier(string facilityTag) => 1f;
+        public float ContractRewardMultiplier => 1f;
+        public float DefensePreparationMultiplier => 1f;
+        public int ExpeditionSupplyCapacityBonus { get; }
+    }
+
     private sealed class MutableGameClock : IGameClock
     {
         public float DeltaTime { get; private set; }
@@ -4590,6 +5081,7 @@ public static class OffenseStrategicDebugScenarios
         IExteriorZoneQuery exteriorZones,
         FacilityBufferDestinationClaimRegistry claims,
         IOffenseSupplyPhysicalCustodyGateway custody,
+        IGrandProjectBenefitQuery grandProjectBenefits,
         out FacilityBufferMassAdmissionService capacities)
     {
         capacities = new FacilityBufferMassAdmissionService(
@@ -4607,7 +5099,8 @@ public static class OffenseStrategicDebugScenarios
             claims,
             capacities,
             lifecycle,
-            custody);
+            custody,
+            grandProjectBenefits);
     }
 
     private sealed class EmptyFacilityBufferOccupancyQuery :

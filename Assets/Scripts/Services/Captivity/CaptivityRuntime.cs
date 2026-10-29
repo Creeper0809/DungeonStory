@@ -734,8 +734,16 @@ public sealed class CaptivityRuntime :
             return false;
         }
 
+        if (carrier.GetComponent<AbilityCaptiveEscort>()?.IsEscorting == true
+            || carrier.GetComponent<AbilityWildlifeCaptureTransport>()?.IsTransporting == true)
+        {
+            failureReason = "운반자가 이미 다른 포획 대상을 운반 중입니다.";
+            return false;
+        }
+
         CaptiveState state = stateRuntime.EnsureCandidate(subject);
-        if (state.status is CaptivityStatus.Escorting
+        if (state.status is CaptivityStatus.Stabilizing
+            or CaptivityStatus.Escorting
             or CaptivityStatus.Confined
             or CaptivityStatus.Labor
             or CaptivityStatus.Interaction
@@ -809,8 +817,7 @@ public sealed class CaptivityRuntime :
             return false;
         }
 
-        escort.StartEscort(state.captiveId);
-        return true;
+        return escort.TryStartEscort(state.captiveId, out failureReason);
     }
 
     public bool CancelCapture(string captiveId, string reason)
@@ -1800,6 +1807,9 @@ public sealed class CaptivityRuntime :
         captiveId,
         trigger,
         out failureReason);
+
+    public bool CanAssignPerformer(string captiveId, out string failureReason) =>
+        performerRuntime.CanAssign(captiveId, out failureReason);
 
     public bool TryAssignPerformer(
         string captiveId,

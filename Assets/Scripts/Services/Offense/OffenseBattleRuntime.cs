@@ -8,11 +8,12 @@ using VContainer.Unity;
 
 public interface IOffenseBattleRuntime
 {
-    OffenseBattleSession Session { get; }
+    OffenseBattleSnapshot Session { get; }
     bool HasActiveBattle { get; }
     bool IsBattleViewVisible { get; }
     event Action StateChanged;
-    event Action<OffenseBattleSession> BattleCompleted;
+    CombatAttackPreview PreviewBasicAttack(string sourceId, string targetId);
+    OffenseBattleCommand CreateStrategicEnemyCommand(string enemyId, long commandId);
     bool TryStartBattle(OffenseExpeditionRun expedition, out string message);
     void AdvanceToPlayerDecision();
     bool TryIssuePlayerCommand(
@@ -39,6 +40,11 @@ public interface IOffenseBattleRuntime
     void ClearForPersistentRestore();
     void SetBattleViewVisible(bool visible);
     void ClearCompletedBattle();
+}
+
+public interface IOffenseBattleCompletionAuthority : IOffenseBattleRuntime
+{
+    event Action<OffenseBattleSession> BattleCompleted;
 }
 
 /// <summary>
@@ -115,8 +121,49 @@ public sealed class OffenseBattleRestoreCandidate
     internal IReadOnlyList<EnemyIndividualSaveData> EnemyIndividuals { get; }
 }
 
+public sealed class OffenseBattleSnapshot
+{
+    internal OffenseBattleSnapshot(OffenseBattleSession session)
+    {
+        if (session == null) throw new ArgumentNullException(nameof(session));
+        BattleId = session.BattleId;
+        ExpeditionId = session.ExpeditionId;
+        TargetId = session.TargetId;
+        TargetTitle = session.TargetTitle;
+        Difficulty = session.Difficulty;
+        Outcome = session.Outcome;
+        EncounterRules = session.EncounterRules.CreateSnapshot();
+        RoundNumber = session.RoundNumber;
+        LastProcessedCommandId = session.LastProcessedCommandId;
+        CurrentOrderIndex = session.CurrentOrderIndex;
+        Combatants = Array.AsReadOnly(session.Combatants.Select(value => value.CreateSnapshot()).ToArray());
+        InitiativeOrder = Array.AsReadOnly(session.InitiativeOrder.ToArray());
+        Log = Array.AsReadOnly(session.Log.ToArray());
+    }
+    public string BattleId { get; }
+    public string ExpeditionId { get; }
+    public string TargetId { get; }
+    public string TargetTitle { get; }
+    public DungeonDifficulty Difficulty { get; }
+    public OffenseBattleOutcome Outcome { get; }
+    public OffenseBattleEncounterRules EncounterRules { get; }
+    public int RoundNumber { get; }
+    public long LastProcessedCommandId { get; }
+    public int CurrentOrderIndex { get; }
+    public IReadOnlyList<OffenseBattleCombatant> Combatants { get; }
+    public IReadOnlyList<string> InitiativeOrder { get; }
+    public IReadOnlyList<string> Log { get; }
+    public bool IsComplete => Outcome != OffenseBattleOutcome.InProgress;
+    public OffenseBattleCombatant CurrentActor => CurrentOrderIndex >= 0
+        && CurrentOrderIndex < InitiativeOrder.Count
+            ? FindCombatant(InitiativeOrder[CurrentOrderIndex]) : null;
+    public OffenseBattleCombatant FindCombatant(string persistentId) =>
+        Combatants.FirstOrDefault(value => string.Equals(value.PersistentId, persistentId, StringComparison.Ordinal));
+}
+
 public sealed class OffenseBattleRuntime :
     IOffenseBattleRuntime,
+    IOffenseBattleCompletionAuthority,
     IOffenseEnemyTacticalTraceQuery,
     IDungeonRestoreTransactionParticipant,
     IStartable,
@@ -131,6 +178,7 @@ public sealed class OffenseBattleRuntime :
     private readonly DungeonRestorePublication restorePublication = new();
     private readonly RunVariableRuntime runVariables;
     private readonly ICombatResolutionService combatResolution;
+    private readonly IItemDefinitionCatalog itemCatalog;
     private readonly ICombatEquipmentRuntime combatEquipmentRuntime;
     private readonly ICharacterBodyHealthQuery bodyHealthQuery;
     private readonly ICharacterBodyHealthCommand bodyHealthCommands;
@@ -169,6 +217,7 @@ public sealed class OffenseBattleRuntime :
         IEnemyEncounterFactory enemyEncounterFactory,
         IEnemyTacticalDecisionService enemyTactics,
         IOffenseReturnArrivalRuntime returnArrivals,
+        IItemDefinitionCatalog itemCatalog,
         ICharacterPerformanceQuery performance = null)
     {
         this.characterSaveService = characterSaveService
@@ -180,6 +229,7 @@ public sealed class OffenseBattleRuntime :
                 $"{nameof(OffenseBattleRuntime)} requires a loaded {nameof(RunVariableRuntime)}.");
         this.gameEventBus = gameEventBus ?? throw new ArgumentNullException(nameof(gameEventBus));
         this.combatResolution = combatResolution;
+        this.itemCatalog = itemCatalog ?? throw new ArgumentNullException(nameof(itemCatalog));
         this.combatEquipmentRuntime = combatEquipmentRuntime;
         this.bodyHealthQuery = bodyHealthQuery;
         this.bodyHealthCommands = bodyHealthCommands;
@@ -214,14 +264,27 @@ public sealed class OffenseBattleRuntime :
             ?? throw new ArgumentNullException(nameof(transactions));
     }
 
-    public OffenseBattleSession Session { get; private set; }
-    public bool HasActiveBattle => Session != null && (!Session.IsComplete || HasPendingObservation);
-    private bool HasPendingObservation => commandPublications?.HasPending(Session?.BattleId) == true;
+    internal OffenseBattleSession OwnedSession { get; private set; }
+    public OffenseBattleSnapshot Session => OwnedSession == null ? null : new OffenseBattleSnapshot(OwnedSession);
+    public CombatAttackPreview PreviewBasicAttack(string sourceId, string targetId) =>
+        OwnedSession != null
+            ? OwnedSession.PreviewBasicAttack(OwnedSession.FindCombatant(sourceId), OwnedSession.FindCombatant(targetId))
+            : new CombatAttackPreview(false, "진행 중인 전투가 없습니다.", CombatRangeBand.OutOfRange,
+                0f, 0f, 0f, 0f, 0f, 0f);
+    public OffenseBattleCommand CreateStrategicEnemyCommand(string enemyId, long commandId) =>
+        OwnedSession?.CreateStrategicEnemyCommand(enemyId, commandId);
+    public bool HasActiveBattle => OwnedSession != null && (!OwnedSession.IsComplete || HasPendingObservation);
+    private bool HasPendingObservation => commandPublications?.HasPending(OwnedSession?.BattleId) == true;
     public bool IsBattleViewVisible { get; private set; }
     public IReadOnlyList<OffenseEnemyTacticalExecutionTrace> EnemyTacticalTrace =>
         enemyTacticalTrace;
     public event Action StateChanged;
-    public event Action<OffenseBattleSession> BattleCompleted;
+    private event Action<OffenseBattleSession> battleCompleted;
+    event Action<OffenseBattleSession> IOffenseBattleCompletionAuthority.BattleCompleted
+    {
+        add => battleCompleted += value;
+        remove => battleCompleted -= value;
+    }
 
     public void Start()
     {
@@ -293,7 +356,7 @@ public sealed class OffenseBattleRuntime :
         activeEnemyIndividuals = encounter.Individuals
             .Select(value => value.Clone())
             .ToList();
-        Session = new OffenseBattleSession(
+        OwnedSession = new OffenseBattleSession(
             Guid.NewGuid().ToString("N"),
             expedition.ExpeditionId,
             expedition.Target.id,
@@ -303,10 +366,10 @@ public sealed class OffenseBattleRuntime :
             combatResolution,
             combatEquipmentRuntime,
             encounter.Rules);
-        Session.BindSettlementOwner(expedition);
+        OwnedSession.BindSettlementOwner(expedition);
         completionRaised = false;
         IsBattleViewVisible = true;
-        TriggerBattleStarted(Session);
+        TriggerBattleStarted(OwnedSession);
         StateChanged?.Invoke();
         message = $"{expedition.Target.title} 전투가 시작되었습니다.";
         return true;
@@ -334,15 +397,15 @@ public sealed class OffenseBattleRuntime :
         string abilityId,
         out OffenseBattleCommandResult result)
     {
-        if (Session?.CurrentActor == null || Session.CurrentActor.Team != OffenseBattleTeam.Allies)
+        if (OwnedSession?.CurrentActor == null || OwnedSession.CurrentActor.Team != OffenseBattleTeam.Allies)
         {
             result = new OffenseBattleCommandResult(false, "현재 아군의 차례가 아닙니다.");
             return false;
         }
 
         OffenseBattleCommand command = new OffenseBattleCommand(
-            Session.LastProcessedCommandId + 1,
-            Session.CurrentActor.PersistentId,
+            OwnedSession.LastProcessedCommandId + 1,
+            OwnedSession.CurrentActor.PersistentId,
             actionType,
             targetId,
             abilityId);
@@ -353,7 +416,7 @@ public sealed class OffenseBattleRuntime :
         OffenseBattleCommand command,
         out OffenseBattleCommandResult result)
     {
-        if (Session == null)
+        if (OwnedSession == null)
         {
             result = new OffenseBattleCommandResult(false, "진행 중인 전투가 없습니다.");
             return false;
@@ -375,7 +438,7 @@ public sealed class OffenseBattleRuntime :
         string abilityId,
         out OffenseBattleCommandResult result)
     {
-        if (Session == null)
+        if (OwnedSession == null)
         {
             result = new OffenseBattleCommandResult(
                 false,
@@ -386,8 +449,8 @@ public sealed class OffenseBattleRuntime :
         if (!RecoverCommandObservation())
         { result = new OffenseBattleCommandResult(false, commandPublications.LastFailure); return false; }
         OffenseBattlePersistenceState commandBefore =
-            Session.CapturePersistentState();
-        if (!Session.PreparePlannedRound(
+            OwnedSession.CapturePersistentState();
+        if (!OwnedSession.PreparePlannedRound(
                 directorTurn,
                 out string preparationFailure))
         {
@@ -406,7 +469,7 @@ public sealed class OffenseBattleRuntime :
             return false;
         }
         OffenseBattleCommand command = new OffenseBattleCommand(
-            Session.LastProcessedCommandId + 1,
+            OwnedSession.LastProcessedCommandId + 1,
             actorId,
             actionType,
             targetId,
@@ -415,11 +478,11 @@ public sealed class OffenseBattleRuntime :
                 or OffenseBattleActionType.SetFireMode
                     ? abilityId
                     : string.Empty);
-        OffenseBattleCombatant actingBefore = Session.FindCombatant(actorId);
+        OffenseBattleCombatant actingBefore = OwnedSession.FindCombatant(actorId);
         if (!TryExecuteCommandWithOutcome(
                 command,
                 actingBefore,
-                Session.TryExecutePlannedCommand,
+                OwnedSession.TryExecutePlannedCommand,
                 commandBefore,
                 out result))
         {
@@ -431,7 +494,7 @@ public sealed class OffenseBattleRuntime :
 
     public bool FinalizePlannedTurn(int directorTurn, out string failureReason)
     {
-        if (Session == null)
+        if (OwnedSession == null)
         {
             failureReason = "There is no active battle session to finalize.";
             return false;
@@ -439,7 +502,7 @@ public sealed class OffenseBattleRuntime :
 
         if (!RecoverCommandObservation())
         { failureReason = commandPublications.LastFailure; return false; }
-        if (!Session.FinalizePlannedRound(directorTurn, out failureReason))
+        if (!OwnedSession.FinalizePlannedRound(directorTurn, out failureReason))
         {
             return false;
         }
@@ -466,7 +529,7 @@ public sealed class OffenseBattleRuntime :
     public OffenseBattlePersistenceState CapturePersistentState()
     {
         if (!HasActiveBattle) return null;
-        OffenseBattlePersistenceState state = Session.CapturePersistentState();
+        OffenseBattlePersistenceState state = OwnedSession.CapturePersistentState();
         state.encounterId = activeEncounterId;
         state.enemyIndividuals = activeEnemyIndividuals
             .Select(value => value.Clone())
@@ -545,7 +608,7 @@ public sealed class OffenseBattleRuntime :
             .Select(value => value.Clone())
             .ToList();
         actorsById = candidateActors;
-        Session = candidateSession;
+        OwnedSession = candidateSession;
         activeEncounterId = encounter.Encounter.encounterId;
         activeEnemyIndividuals = candidateEnemies;
         completionRaised = false;
@@ -657,7 +720,7 @@ public sealed class OffenseBattleRuntime :
 
     private Action CaptureRestoreRollback()
     {
-        var previous0 = Session;
+        var previous0 = OwnedSession;
         var previous1 = actorsById;
         var previous2 = activeEncounterId;
         var previous3 = activeEnemyIndividuals;
@@ -667,7 +730,7 @@ public sealed class OffenseBattleRuntime :
         long previousTraceSequence = enemyTacticalTraceSequence;
         return () =>
         {
-            Session = previous0;
+            OwnedSession = previous0;
             actorsById = previous1;
             activeEncounterId = previous2;
             activeEnemyIndividuals = previous3;
@@ -687,7 +750,7 @@ public sealed class OffenseBattleRuntime :
 
     private void ApplyRestore(OffenseBattleRestoreCandidate candidate)
     {
-        Session = candidate.Session;
+        OwnedSession = candidate.Session;
         actorsById = candidate.ActorsById;
         activeEncounterId = candidate.EncounterId;
         activeEnemyIndividuals = candidate.EnemyIndividuals
@@ -703,7 +766,7 @@ public sealed class OffenseBattleRuntime :
 
     public void ClearForPersistentRestore()
     {
-        Session = null;
+        OwnedSession = null;
         actorsById.Clear();
         activeEncounterId = string.Empty;
         activeEnemyIndividuals.Clear();
@@ -714,16 +777,16 @@ public sealed class OffenseBattleRuntime :
 
     public void SetBattleViewVisible(bool visible)
     {
-        if (Session == null || IsBattleViewVisible == visible) return;
+        if (OwnedSession == null || IsBattleViewVisible == visible) return;
         IsBattleViewVisible = visible;
         StateChanged?.Invoke();
     }
 
     public void ClearCompletedBattle()
     {
-        if (Session == null || !Session.IsComplete || HasPendingObservation) return;
+        if (OwnedSession == null || !OwnedSession.IsComplete || HasPendingObservation) return;
         List<string> enemyCharacterIds = new List<string>();
-        foreach (OffenseBattleCombatant combatant in Session.Combatants)
+        foreach (OffenseBattleCombatant combatant in OwnedSession.Combatants)
         {
             if (combatant == null)
             {
@@ -757,7 +820,7 @@ public sealed class OffenseBattleRuntime :
         {
             combatEquipmentRuntime.HandleCharacterDeath(enemyCharacterId);
         }
-        Session = null;
+        OwnedSession = null;
         actorsById.Clear();
         activeEncounterId = string.Empty;
         activeEnemyIndividuals.Clear();
@@ -769,7 +832,7 @@ public sealed class OffenseBattleRuntime :
     public void OnTriggerEvent(OwnerRunEndedEvent eventType)
     {
         if (!HasActiveBattle) return;
-        Session.AbortForOwnerDeath();
+        OwnedSession.AbortForOwnerDeath();
         StateChanged?.Invoke();
         RaiseCompletionIfNeeded();
     }
@@ -778,23 +841,23 @@ public sealed class OffenseBattleRuntime :
     {
         if (!RecoverCommandObservation()) return;
         int safety = 0;
-        while (Session != null
-            && !Session.IsComplete
+        while (OwnedSession != null
+            && !OwnedSession.IsComplete
             && !HasPendingObservation
-            && Session.CurrentActor != null
-            && Session.CurrentActor.Team == OffenseBattleTeam.Enemies
+            && OwnedSession.CurrentActor != null
+            && OwnedSession.CurrentActor.Team == OffenseBattleTeam.Enemies
             && safety++ < 100)
         {
             EnemyIndividualSaveData individual = activeEnemyIndividuals
                 .FirstOrDefault(value => string.Equals(
                     value.characterId,
-                    Session.CurrentActor.PersistentId,
+                    OwnedSession.CurrentActor.PersistentId,
                     StringComparison.Ordinal));
             if (individual == null)
                 throw new InvalidOperationException(
-                    $"Enemy combatant '{Session.CurrentActor.PersistentId}' has no persistent individual profile.");
+                    $"Enemy combatant '{OwnedSession.CurrentActor.PersistentId}' has no persistent individual profile.");
             EnemyTacticalDecision decision = enemyTactics.Decide(
-                Session,
+                OwnedSession,
                 individual);
             OffenseBattleCommand command = ToCommand(decision);
             bool accepted = TryExecuteSessionCommand(
@@ -804,7 +867,7 @@ public sealed class OffenseBattleRuntime :
             if (!accepted && !HasPendingObservation)
             {
                 decision = enemyTactics.Decide(
-                    Session,
+                    OwnedSession,
                     individual,
                     allowAbility: false);
                 command = ToCommand(decision);
@@ -840,7 +903,7 @@ public sealed class OffenseBattleRuntime :
 
         enemyTacticalTrace.Add(new OffenseEnemyTacticalExecutionTrace(
             ++enemyTacticalTraceSequence,
-            Session?.BattleId,
+            OwnedSession?.BattleId,
             command?.ActorId,
             decision.Intent,
             command?.ActionType ?? OffenseBattleActionType.BasicAttack,
@@ -862,8 +925,8 @@ public sealed class OffenseBattleRuntime :
             _ => OffenseBattleActionType.BasicAttack
         };
         return new OffenseBattleCommand(
-            Session.LastProcessedCommandId + 1,
-            Session.CurrentActor.PersistentId,
+            OwnedSession.LastProcessedCommandId + 1,
+            OwnedSession.CurrentActor.PersistentId,
             action,
             decision.TargetId,
             decision.AbilityId);
@@ -871,21 +934,21 @@ public sealed class OffenseBattleRuntime :
 
     private bool RaiseCompletionIfNeeded()
     {
-        if (Session == null || !Session.IsComplete || completionRaised || HasPendingObservation) return false;
-        if (Session.Outcome == OffenseBattleOutcome.Victory)
+        if (OwnedSession == null || !OwnedSession.IsComplete || completionRaised || HasPendingObservation) return false;
+        if (OwnedSession.Outcome == OffenseBattleOutcome.Victory)
         {
             returnArrivals.RegisterBattlePrisonerCandidates(
-                Session.ExpeditionId,
+                OwnedSession.ExpeditionId,
                 activeEnemyIndividuals);
         }
         else
         {
             returnArrivals.DiscardBattlePrisonerCandidates(
-                Session.ExpeditionId);
+                OwnedSession.ExpeditionId);
         }
         if (proficiencyCommands != null && proficiencyCalendar != null)
         {
-            foreach (OffenseBattleCombatant combatant in Session.Combatants)
+            foreach (OffenseBattleCombatant combatant in OwnedSession.Combatants)
             {
                 if (combatant == null || combatant.IsDead
                     || combatant.Team != OffenseBattleTeam.Allies
@@ -907,13 +970,13 @@ public sealed class OffenseBattleRuntime :
                     0.50f,
                     training: false,
                     stableAwardKey:
-                        $"{Session.BattleId}:{combatant.PersistentId}:complete",
+                        $"{OwnedSession.BattleId}:{combatant.PersistentId}:complete",
                     absoluteHour: proficiencyCalendar.AbsoluteHour);
             }
         }
         completionRaised = true;
         SynchronizeAlliedBodyHealth();
-        BattleCompleted?.Invoke(Session);
+        battleCompleted?.Invoke(OwnedSession);
         return true;
     }
 
@@ -925,12 +988,12 @@ public sealed class OffenseBattleRuntime :
         { result = new OffenseBattleCommandResult(false, commandPublications.LastFailure); return false; }
         // A replay cannot apply effects. Let the session's existing identity
         // guard reject it before reserving an outcome or rebuilding a snapshot.
-        if (command != null && command.CommandId <= Session.LastProcessedCommandId)
-            return Session.TryExecuteCommand(command, out result);
+        if (command != null && command.CommandId <= OwnedSession.LastProcessedCommandId)
+            return OwnedSession.TryExecuteCommand(command, out result);
         return TryExecuteCommandWithOutcome(
             command,
-            Session?.CurrentActor,
-            Session.TryExecuteCommand,
+            OwnedSession?.CurrentActor,
+            OwnedSession.TryExecuteCommand,
             null,
             out result);
     }
@@ -952,11 +1015,11 @@ public sealed class OffenseBattleRuntime :
         if (!RecoverCommandObservation())
         { result = new OffenseBattleCommandResult(false, commandPublications.LastFailure); return false; }
 
-        var before = rollbackSnapshot ?? Session.CapturePersistentState();
-        var target = Session.FindCombatant(command.TargetId);
+        var before = rollbackSnapshot ?? OwnedSession.CapturePersistentState();
+        var target = OwnedSession.FindCombatant(command.TargetId);
         var data = new OffenseBattleCommandFactData
         {
-            battleId = Session.BattleId, expeditionId = Session.ExpeditionId,
+            battleId = OwnedSession.BattleId, expeditionId = OwnedSession.ExpeditionId,
             commandId = command.CommandId, actorId = command.ActorId, actorDisplayName = actingCombatant.DisplayName ?? string.Empty,
             targetId = command.TargetId, targetDisplayName = target?.DisplayName ?? string.Empty,
             abilityId = command.AbilityId, actionType = command.ActionType,
@@ -989,7 +1052,7 @@ public sealed class OffenseBattleRuntime :
                 var request = new CharacterSkillAppliedActivationRequest(
                     new CharacterSkillExecutionContext(actor, CharacterSkillTrigger.ManualCombat,
                         "battle:" + data.battleId + ":command:" + data.commandId + ":offense-ultimate",
-                        Session, actingCombatant, target), actor.Progression.Ultimate,
+                        OwnedSession, actingCombatant, target), actor.Progression.Ultimate,
                     "battle:" + data.battleId + ":command:" + data.commandId + ":offense-ultimate",
                     CharacterGrowthRules.StableNonNegativeHash(data.battleId), commandPublications.ReservedPublicationKey);
                 if (!skillActivationTransactions.TryBeginAppliedAutomatic(request, out scope, out string beginFailure))
@@ -1002,8 +1065,8 @@ public sealed class OffenseBattleRuntime :
             data.resolved = true;
             data.weaponInstanceId = actingCombatant.Weapon?.InstanceId ?? string.Empty;
             data.weaponDefinitionId = actingCombatant.Weapon?.DefinitionId ?? string.Empty;
-            data.targetHealthAfter = Session.FindCombatant(command.TargetId)?.CurrentHealth ?? data.targetHealthBefore;
-            data.targetIsDead = Session.FindCombatant(command.TargetId)?.IsDead ?? data.targetWasDead;
+            data.targetHealthAfter = OwnedSession.FindCombatant(command.TargetId)?.CurrentHealth ?? data.targetHealthBefore;
+            data.targetIsDead = OwnedSession.FindCombatant(command.TargetId)?.IsDead ?? data.targetWasDead;
             data.amount = result.Amount; data.hit = result.Hit;
             data.shieldBlocked = result.ShieldBlocked; data.coverBlocked = result.CoverBlocked;
             var delivery = commandPublications.PublishApplied(new OffenseBattleCommandFact(data), skill.Fact, skill.Lease);
@@ -1034,18 +1097,18 @@ public sealed class OffenseBattleRuntime :
     {
         if (restoring || recoveringCommand) return false;
         if (commandPublications == null || !commandPublications.HasAnyPending) return true;
-        if (Session == null) return false;
+        if (OwnedSession == null) return false;
         recoveringCommand = true;
         try
         {
             if (!commandPublications.RecoverPending(out _)) return false;
-            var row = commandPublications.PendingForBattle(Session.BattleId);
+            var row = commandPublications.PendingForBattle(OwnedSession.BattleId);
             if (row == null) throw new InvalidOperationException("battle-command-pending-session-missing");
             var fact = row.fact;
-            if (Session.LastProcessedCommandId != fact.commandId)
+            if (OwnedSession.LastProcessedCommandId != fact.commandId)
                 throw new InvalidOperationException("battle-command-pending-revision-conflict");
-            var actor = Session.FindCombatant(fact.actorId);
-            var target = Session.FindCombatant(fact.targetId);
+            var actor = OwnedSession.FindCombatant(fact.actorId);
+            var target = OwnedSession.FindCombatant(fact.targetId);
             var command = new OffenseBattleCommand(fact.commandId, fact.actorId, fact.actionType, fact.targetId, fact.abilityId);
             var result = new OffenseBattleCommandResult(true, string.Empty, fact.amount, fact.hit, fact.shieldBlocked, fact.coverBlocked);
             while (row.followupStage < OffenseBattleCommandPublicationRuntime.FollowupsComplete)
@@ -1070,14 +1133,14 @@ public sealed class OffenseBattleRuntime :
                             && TryGetActor(target.PersistentId, out var damaged))
                             CharacterSkillRuntimeEffects.ApplyTriggeredPassives(new CharacterSkillExecutionContext(
                                 damaged, CharacterSkillTrigger.DamageTaken, $"{fact.battleId}:{fact.commandId}:damage-taken",
-                                Session, target, actor));
+                                OwnedSession, target, actor));
                         break;
                     case 4:
                         if (actor?.Team == OffenseBattleTeam.Allies && target?.Team == OffenseBattleTeam.Enemies
                             && !fact.targetWasDead && fact.targetIsDead && TryGetActor(actor.PersistentId, out var attacker))
                             CharacterSkillRuntimeEffects.ApplyTriggeredPassives(new CharacterSkillExecutionContext(
                                 attacker, CharacterSkillTrigger.EnemyDefeated, $"{fact.battleId}:{fact.commandId}:enemy-defeated",
-                                Session, actor, target));
+                                OwnedSession, actor, target));
                         break;
                 }
                 commandPublications.AdvanceFollowup(fact.battleId, fact.commandId, row.followupStage++);
@@ -1093,17 +1156,17 @@ public sealed class OffenseBattleRuntime :
     private void RestoreRejectedBattleCommand(
         OffenseBattlePersistenceState commandBefore)
     {
-        if (commandBefore == null || Session == null)
+        if (commandBefore == null || OwnedSession == null)
             return;
-        OffenseExpeditionRun settlementOwner = Session.SettlementOwner;
-        Session = OffenseBattleSession.Restore(
+        OffenseExpeditionRun settlementOwner = OwnedSession.SettlementOwner;
+        OwnedSession = OffenseBattleSession.Restore(
             commandBefore,
-            Session.Combatants,
+            OwnedSession.Combatants,
             combatResolution,
             combatEquipmentRuntime,
-            Session.EncounterRules);
+            OwnedSession.EncounterRules);
         if (settlementOwner != null)
-            Session.BindSettlementOwner(settlementOwner);
+            OwnedSession.BindSettlementOwner(settlementOwner);
     }
 
 
@@ -1150,7 +1213,7 @@ public sealed class OffenseBattleRuntime :
             proficiencyId,
             experience,
             training: false,
-            stableAwardKey: $"{Session.BattleId}:{command.CommandId}:attack",
+            stableAwardKey: $"{OwnedSession.BattleId}:{command.CommandId}:attack",
             absoluteHour: absoluteHour);
     }
 
@@ -1184,7 +1247,7 @@ public sealed class OffenseBattleRuntime :
             proficiencyId,
             0.25f,
             training: false,
-            stableAwardKey: $"{Session.BattleId}:{command.CommandId}:block:{targetAfter.PersistentId}",
+            stableAwardKey: $"{OwnedSession.BattleId}:{command.CommandId}:block:{targetAfter.PersistentId}",
             absoluteHour: absoluteHour);
     }
 
@@ -1202,6 +1265,8 @@ public sealed class OffenseBattleRuntime :
             weapon,
             combatEquipmentRuntime.GetArmor(combatant.PersistentId),
             combatEquipmentRuntime.GetShield(combatant.PersistentId));
+        combatant.SetAmmunitionProfile(CombatResolutionService.ResolveAmmunitionProfile(
+            itemCatalog, weapon?.AmmunitionItemId));
     }
 
     private void ConfigureBodyHealth(CharacterActor actor, OffenseBattleCombatant combatant)
@@ -1227,12 +1292,12 @@ public sealed class OffenseBattleRuntime :
 
     private void SynchronizeAlliedBodyHealth()
     {
-        if (Session == null || bodyHealthCommands == null)
+        if (OwnedSession == null || bodyHealthCommands == null)
         {
             return;
         }
 
-        foreach (OffenseBattleCombatant combatant in Session.Combatants
+        foreach (OffenseBattleCombatant combatant in OwnedSession.Combatants
             .Where(value => value.Team == OffenseBattleTeam.Allies))
         {
             if (TryGetActor(combatant.PersistentId, out CharacterActor actor))

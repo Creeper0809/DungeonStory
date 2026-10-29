@@ -43,6 +43,12 @@ public sealed class MetaRunProgressTracker
     }
 
     public IReadOnlyCollection<string> UnlockedRecipeIds => State.UnlockedRecipeIds;
+    public MetaRunProgressTracker CreateSnapshot()
+    {
+        var root = new DungeonRuntimeAggregateRootStore();
+        root.Replace(CloneState(State));
+        return new MetaRunProgressTracker(gameClock, root);
+    }
     public IReadOnlyCollection<int> DiscoveredFacilityIds => State.DiscoveredFacilityIds;
     public float ElapsedSeconds => Mathf.Max(0f, gameClock.Time - State.RunStartTime);
     public int CurrentDay => State.CurrentDay;

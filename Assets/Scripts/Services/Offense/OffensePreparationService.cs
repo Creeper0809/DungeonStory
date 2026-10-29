@@ -409,6 +409,7 @@ public sealed class DungeonOffensePreparationService :
     private readonly IFacilityBufferMassCapacityQuery destinationCapacities;
     private readonly IFacilityBufferDestinationLifecycleCommand destinationLifecycle;
     private readonly IOffenseSupplyPhysicalCustodyGateway physicalCustody;
+    private readonly IGrandProjectBenefitQuery grandProjectBenefits;
     private Dictionary<string, ExpeditionSupplyPackage> packages =
         new Dictionary<string, ExpeditionSupplyPackage>(StringComparer.Ordinal);
     private PackingRestoreCandidate stagedRestore;
@@ -425,7 +426,8 @@ public sealed class DungeonOffensePreparationService :
         IFacilityBufferDestinationClaimQuery destinationClaims,
         IFacilityBufferMassCapacityQuery destinationCapacities,
         IFacilityBufferDestinationLifecycleCommand destinationLifecycle,
-        IOffenseSupplyPhysicalCustodyGateway physicalCustody)
+        IOffenseSupplyPhysicalCustodyGateway physicalCustody,
+        IGrandProjectBenefitQuery grandProjectBenefits)
     {
         this.inventoryQuery = inventoryQuery ?? throw new ArgumentNullException(nameof(inventoryQuery));
         this.itemGateway = itemGateway
@@ -440,12 +442,18 @@ public sealed class DungeonOffensePreparationService :
             ?? throw new ArgumentNullException(nameof(destinationLifecycle));
         this.physicalCustody = physicalCustody
             ?? throw new ArgumentNullException(nameof(physicalCustody));
+        this.grandProjectBenefits = grandProjectBenefits
+            ?? throw new ArgumentNullException(nameof(grandProjectBenefits));
     }
 
     public OffensePreparationSnapshot Evaluate()
     {
+        OffenseExpeditionPreparation baseline = new();
         return new OffensePreparationSnapshot(
-            new OffenseExpeditionPreparation(),
+            new OffenseExpeditionPreparation(
+                supplyCapacity: checked(
+                    baseline.SupplyCapacity
+                    + grandProjectBenefits.ExpeditionSupplyCapacityBonus)),
             CaptureAvailableSupplies());
     }
 

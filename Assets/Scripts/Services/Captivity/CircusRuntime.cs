@@ -116,6 +116,58 @@ public sealed class CircusRuntime :
     public IReadOnlyList<CircusProgramModule> Programs => programs.Definitions;
     public IReadOnlyList<CircusShowOrder> Orders => orders.Select(order => order.Clone()).ToArray();
 
+    public IReadOnlyList<string> GetAutoSelectedPerformerIds(BuildableObject stage, string programId)
+    {
+        BuildingCircusStageAbility ability = stage?.BuildingData?.GetCircusStageAbility();
+        if (ability?.IsValid != true
+            || !programs.TryGet(programId, out ICircusProgramHandler program)
+            || !program.Definition.requiresCaptive)
+            return Array.Empty<string>();
+        return captivity.Captives
+            .Where(captive => CanUsePerformer(captive, out _, out _))
+            .OrderByDescending(captive => captive.performerSkill)
+            .ThenBy(captive => captive.captiveId, StringComparer.Ordinal)
+            .Take(ability.performerCapacity)
+            .Select(captive => captive.captiveId)
+            .ToArray();
+    }
+
+    private bool CanUsePerformer(
+        CaptiveState performer,
+        out bool needsTreatment,
+        out string failureReason)
+    {
+        needsTreatment = false;
+        failureReason = string.Empty;
+        if (performer == null)
+        {
+            failureReason = "공연자 상태를 찾을 수 없습니다.";
+            return false;
+        }
+        if (!captivity.CanAssignPerformer(performer.captiveId, out failureReason))
+            return false;
+        if (orders.Any(order => order != null && !order.IsTerminal
+                && order.performerIds.Contains(performer.captiveId)))
+        {
+            failureReason = "이미 다른 공연에 배정된 포로입니다.";
+            return false;
+        }
+        CharacterActor actor = FindActor(world, performer.captiveId);
+        if (actor == null)
+        {
+            failureReason = "공연할 포로를 찾을 수 없습니다.";
+            return false;
+        }
+        CharacterBodyHealthSnapshot health = bodyHealthQuery.GetSnapshot(actor);
+        needsTreatment = health.Downed
+            || health.BloodLoss > 0.01f
+            || health.Parts.Any(part => part != null
+                && part.currentHealth + 0.01f < part.maxHealth);
+        if (!needsTreatment) return true;
+        failureReason = $"{performer.displayName}은 부상 치료가 끝날 때까지 공연할 수 없습니다.";
+        return false;
+    }
+
     public CircusProgramForecast GetForecast(
         BuildableObject stage,
         string programId,
@@ -140,6 +192,9 @@ public sealed class CircusRuntime :
             return CircusProgramForecastService.Unavailable(failureReason);
         }
 
+        foreach (CaptiveState performer in context.Performers)
+            if (!CanUsePerformer(performer, out _, out failureReason))
+                return CircusProgramForecastService.Unavailable(failureReason);
         return forecastService.GetForecast(handler, context, lethality);
     }
 
@@ -232,30 +287,18 @@ public sealed class CircusRuntime :
             room,
             program.Definition.publiclyCruel);
         List<CaptiveState> performers = (performerIds ?? Array.Empty<string>())
+            .Distinct(StringComparer.Ordinal)
             .Select(id => captivity.TryGetCaptive(id, out CaptiveState captive) ? captive : null)
             .Where(captive => captive != null && captive.IsInCustody)
             .Take(stageAbility.performerCapacity)
             .ToList();
         foreach (CaptiveState performer in performers)
         {
-            CharacterActor actor = FindActor(world, performer.captiveId);
-            CharacterBodyHealthSnapshot health = bodyHealthQuery.GetSnapshot(actor);
-            bool injured = actor == null
-                || health.Downed
-                || health.BloodLoss > 0.01f
-                || health.Parts.Any(part =>
-                    part != null && part.currentHealth + 0.01f < part.maxHealth);
-            if (!injured)
-            {
+            if (CanUsePerformer(performer, out bool needsTreatment, out failureReason))
                 continue;
-            }
-
-            if (actor != null)
-            {
+            CharacterActor actor = FindActor(world, performer.captiveId);
+            if (needsTreatment && actor != null)
                 medicalCommands.TryRequestTreatment(actor, out _, out _);
-            }
-
-            failureReason = $"{performer.displayName}은 부상 치료가 끝날 때까지 공연할 수 없습니다.";
             return false;
         }
 
@@ -293,18 +336,16 @@ public sealed class CircusRuntime :
             return false;
         }
 
+        var assignedPerformers = new List<string>();
         foreach (string captiveId in candidate.performerIds)
         {
             if (!captivityCommands.TryAssignPerformer(captiveId, true, out failureReason))
             {
-                ReleasePerformers(
-                    candidate,
-                    captiveId => captivityCommands.TryAssignPerformer(
-                        captiveId,
-                        false,
-                        out _));
+                foreach (string assignedId in assignedPerformers)
+                    captivityCommands.TryAssignPerformer(assignedId, false, out _);
                 return false;
             }
+            assignedPerformers.Add(captiveId);
         }
 
         foreach (string wildlifeId in candidate.wildlifeIds)

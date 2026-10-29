@@ -1,0 +1,22 @@
+{
+  "old": "HEAD:Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs",
+  "new": "Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs",
+  "sameOrderedScenarioCalls": [
+    "ContentReferenceIntegrityDebugScenarios.RunAll()",
+    "ScriptableObjectModularityDebugScenarios.RunCatalogExtensionsForBatch()",
+    "V20ContentResolutionRecoveryDebugScenarios.RunAuthoredReferenceBoundaries()",
+    "V20ContentResolutionRecoveryDebugScenarios.RunObserverBatch()",
+    "V20ContentResolutionRecoveryDebugScenarios.RunRegisteredHandlerContracts()",
+    "CharacterProgressionDebugScenarios.RunAcquiredTraitEffectProjectionScenario()",
+    "CharacterProgressionDebugScenarios.RunAcquiredTraitMilestoneLifecycleScenario()",
+    "CharacterProgressionDebugScenarios.RunAcquiredTraitFormulaV2CompositionScenario()"
+  ],
+  "allEightOnce": true,
+  "guards": "RunImpact unchanged; per-run source/config/console and outer native time/RAM/display guards unchanged",
+  "productionChange": false,
+  "r249Failures": [
+    "effects01 exit-9 1831s",
+    "effects02 exit-9 1831s"
+  ],
+  "r249TimedRoot": "definitions/authored reference about970s; recovery/registered effects used the rest of1800s before acquired-trait checks could finish"
+}

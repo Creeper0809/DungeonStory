@@ -1,0 +1,8 @@
+RUNTIME=PASS; actors=2; scene=GameplayScene
+COMBAT_COMMAND_QUERY_ISOLATION=PASS; count=1; command=combat-command:2147483647
+COMBAT_COMMAND_SEQUENCE_EXHAUSTED_ATOMIC=PASS; restored=True; issued=False; reason=전투 명령 ID를 더 발급할 수 없습니다.; sequence=2147483647
+COMBAT_COMMAND_PREFLIGHT_ATOMIC=PASS; commands=0; errors=Combat-command payload has missing collections or a negative sequence.
+COMBAT_COMMAND_LATE_PARTICIPANT=PASS; rollbackExact=True; completed=True; candidateStance=True; aiPaused=True; combatActive=True; publish=2; complete=1; errors=
+CONSOLE_ERRORS=PASS; 
+CONSOLE_WARNINGS=PASS; 
+RESULT=PASS; failures=0; 

@@ -475,7 +475,7 @@ public static class P0FeatureSurfacePlayModeVerifier
             if (meta != null)
             {
                 int beforeCurrency = meta.State.AvailableCurrency;
-                meta.State.AddCurrency(600);
+                meta.AddCurrencyForDebug(600);
                 lines.Add($"preparedMetaCurrency={beforeCurrency}->{meta.State.AvailableCurrency}");
             }
 
@@ -493,7 +493,7 @@ public static class P0FeatureSurfacePlayModeVerifier
                 : null;
             BuildingSO building = catalog?.Buildings
                 .FirstOrDefault((candidate) => candidate != null && FacilityShopService.CanEnterBasicPurchase(candidate));
-            bool unlocked = runtime != null && building != null && runtime.UnlockState.UnlockBasicPurchase(building);
+            bool unlocked = runtime != null && building != null && runtime.UnlockStateForDebug.UnlockBasicPurchase(building);
             int offerCount = runtime != null ? runtime.CurrentBasicPurchaseOffers.Count : -1;
             lines.Add($"preparedBasicPurchase={unlocked || offerCount > 0}; building={(building != null ? building.name : "<none>")}; offers={offerCount}");
         }
@@ -731,7 +731,7 @@ public static class P0FeatureSurfacePlayModeVerifier
                 policyBefore = stockPolicies.GetOrCreate(controlItemId);
             }
 
-            research?.State.Projects.Complete(
+            research?.StateForDebug.Projects.Complete(
                 new ResearchProjectId("research:commerce:integration"));
             PrepareWarehouseContracts(contracts);
 

@@ -1,0 +1,5 @@
+result=PASS
+source=8e1be7a2f2478029678a90f0600a4ee4f3c327ea391bf7b0a70cbe95f4489fc8
+consoleIssues=0
+reportSha256=7fadbf5d8a10300f8d930f87bbc1b01ea7e003b02282a242d1864bb53e9a14f2
+backgroundNarrative=deferred-without-responses;not-tested

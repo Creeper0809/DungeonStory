@@ -23,6 +23,7 @@ public class UIManager : SerializedMonoBehaviour
     private IClimateQuery climate;
     private IPopulationHealthQuery populationHealth;
     private IDiseaseDefinitionCatalog diseaseDefinitions;
+    private IDungeonSettingsUi settingsUi;
 
     [Inject]
     public void Construct(
@@ -31,7 +32,8 @@ public class UIManager : SerializedMonoBehaviour
         IGameCalendar calendar,
         IClimateQuery climate,
         IPopulationHealthQuery populationHealth,
-        IDiseaseDefinitionCatalog diseaseDefinitions)
+        IDiseaseDefinitionCatalog diseaseDefinitions,
+        IDungeonSettingsUi settingsUi)
     {
         this.inputReader = inputReader ?? throw new ArgumentNullException(nameof(inputReader));
         this.sessionStateProvider = sessionStateProvider
@@ -42,6 +44,8 @@ public class UIManager : SerializedMonoBehaviour
             ?? throw new ArgumentNullException(nameof(populationHealth));
         this.diseaseDefinitions = diseaseDefinitions
             ?? throw new ArgumentNullException(nameof(diseaseDefinitions));
+        this.settingsUi = settingsUi
+            ?? throw new ArgumentNullException(nameof(settingsUi));
     }
 
     private void Start()
@@ -66,7 +70,8 @@ public class UIManager : SerializedMonoBehaviour
             return;
         }
 
-        if (inputReader.GetKeyDown(KeyCode.Escape))
+        if (!settingsUi.BlocksDismissInput
+            && inputReader.GetKeyDown(KeyCode.Escape))
         {
             ClosePopupPeek();
         }

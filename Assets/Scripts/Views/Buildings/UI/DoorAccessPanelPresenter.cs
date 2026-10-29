@@ -11,6 +11,7 @@ public interface IDoorAccessPanelPresenter
         Transform parent,
         Door door,
         TMP_FontAsset font,
+        Action<string> showFeedback,
         Action refresh);
 }
 
@@ -33,6 +34,7 @@ public sealed class DoorAccessPanelPresenter : IDoorAccessPanelPresenter
         Transform parent,
         Door door,
         TMP_FontAsset font,
+        Action<string> showFeedback,
         Action refresh)
     {
         List<GameObject> created = new List<GameObject>();
@@ -47,13 +49,24 @@ public sealed class DoorAccessPanelPresenter : IDoorAccessPanelPresenter
         created.Add(operationRow);
         AddButton(operationRow.transform, door.IsHeldOpen ? "자동 닫힘" : "열림 유지", font, () =>
         {
-            commands.SetHeldOpen(door, !door.IsHeldOpen);
+            bool heldOpen = !door.IsHeldOpen;
+            if (!commands.SetHeldOpen(door, heldOpen))
+            {
+                showFeedback?.Invoke(
+                    "문 상태를 변경할 수 없습니다. 문이 수동 조작을 받을 수 없거나 이전 변경 결과를 처리 중입니다.");
+                refresh?.Invoke();
+                return;
+            }
+
+            showFeedback?.Invoke(heldOpen
+                ? "문을 열림 유지로 변경했습니다."
+                : "문을 자동 닫힘으로 변경했습니다.");
             refresh?.Invoke();
         });
-        AddPresetRow(parent, door, font, refresh, created);
-        AddGroupToggles(parent, door, font, refresh, created);
-        AddCommandRow(parent, door, font, refresh, created);
-        AddIndividualRules(parent, door, font, refresh, created);
+        AddPresetRow(parent, door, font, showFeedback, refresh, created);
+        AddGroupToggles(parent, door, font, showFeedback, refresh, created);
+        AddCommandRow(parent, door, font, showFeedback, refresh, created);
+        AddIndividualRules(parent, door, font, showFeedback, refresh, created);
         return created;
     }
 
@@ -61,6 +74,7 @@ public sealed class DoorAccessPanelPresenter : IDoorAccessPanelPresenter
         Transform parent,
         Door door,
         TMP_FontAsset font,
+        Action<string> showFeedback,
         Action refresh,
         ICollection<GameObject> created)
     {
@@ -74,7 +88,14 @@ public sealed class DoorAccessPanelPresenter : IDoorAccessPanelPresenter
 
         void ApplyPreset(DoorAccessPreset preset)
         {
-            commands.ApplyPreset(door, preset);
+            if (!commands.ApplyPreset(door, preset))
+            {
+                showFeedback?.Invoke("문 권한 설정을 변경할 수 없습니다.");
+                refresh?.Invoke();
+                return;
+            }
+
+            showFeedback?.Invoke("문 권한 설정을 변경했습니다.");
             refresh?.Invoke();
         }
     }
@@ -83,6 +104,7 @@ public sealed class DoorAccessPanelPresenter : IDoorAccessPanelPresenter
         Transform parent,
         Door door,
         TMP_FontAsset font,
+        Action<string> showFeedback,
         Action refresh,
         ICollection<GameObject> created)
     {
@@ -107,7 +129,15 @@ public sealed class DoorAccessPanelPresenter : IDoorAccessPanelPresenter
                 bool initial = door.AccessPolicy.IsGroupAllowed(group);
                 AddToggle(row.transform, label, font, initial, value =>
                 {
-                    commands.SetGroupAllowed(door, group, value);
+                    if (!commands.SetGroupAllowed(door, group, value))
+                    {
+                        showFeedback?.Invoke(
+                            $"{label} 출입 권한을 변경할 수 없습니다.");
+                        refresh?.Invoke();
+                        return;
+                    }
+
+                    showFeedback?.Invoke($"{label} 출입 권한을 변경했습니다.");
                     refresh?.Invoke();
                 });
             }
@@ -118,20 +148,43 @@ public sealed class DoorAccessPanelPresenter : IDoorAccessPanelPresenter
         Transform parent,
         Door door,
         TMP_FontAsset font,
+        Action<string> showFeedback,
         Action refresh,
         ICollection<GameObject> created)
     {
         GameObject row = CreateRow(parent, "DoorAccessCommands", 42f);
         created.Add(row);
-        AddButton(row.transform, "권한 복사", font, () => commands.CopyPolicy(door));
+        AddButton(row.transform, "권한 복사", font, () =>
+        {
+            if (!commands.CopyPolicy(door))
+            {
+                showFeedback?.Invoke("복사할 문 권한이 준비되지 않았습니다.");
+                refresh?.Invoke();
+                return;
+            }
+
+            showFeedback?.Invoke("문 권한을 복사했습니다.");
+            refresh?.Invoke();
+        });
         AddButton(row.transform, "권한 붙여넣기", font, () =>
         {
-            commands.PastePolicy(door);
+            if (!commands.PastePolicy(door))
+            {
+                showFeedback?.Invoke(
+                    "문 권한을 붙여넣지 못했습니다. 먼저 다른 문에서 권한을 복사하거나 문 상태를 확인하세요.");
+                refresh?.Invoke();
+                return;
+            }
+
+            showFeedback?.Invoke("문 권한을 붙여넣었습니다.");
             refresh?.Invoke();
         });
         AddButton(row.transform, "같은 방 문에 적용", font, () =>
         {
-            commands.ApplyPolicyToRoomDoors(door);
+            int applied = commands.ApplyPolicyToRoomDoors(door);
+            showFeedback?.Invoke(applied > 0
+                ? $"같은 방의 문 {applied}개에 권한을 적용했습니다."
+                : "같은 방에 적용할 다른 문이 없습니다.");
             refresh?.Invoke();
         });
     }
@@ -140,6 +193,7 @@ public sealed class DoorAccessPanelPresenter : IDoorAccessPanelPresenter
         Transform parent,
         Door door,
         TMP_FontAsset font,
+        Action<string> showFeedback,
         Action refresh,
         ICollection<GameObject> created)
     {
@@ -181,28 +235,49 @@ public sealed class DoorAccessPanelPresenter : IDoorAccessPanelPresenter
             AddLabel(row.transform, entry.Value, font, 180f);
             AddToggle(row.transform, "개별 허용", font, rule == DoorAccessIndividualRule.Allow, value =>
             {
-                commands.SetIndividualRule(
-                    door,
-                    id,
-                    value ? DoorAccessIndividualRule.Allow : DoorAccessIndividualRule.GroupDefault);
+                if (!commands.SetIndividualRule(
+                        door,
+                        id,
+                        value ? DoorAccessIndividualRule.Allow : DoorAccessIndividualRule.GroupDefault))
+                {
+                    showFeedback?.Invoke($"{entry.Value}의 개별 권한을 변경할 수 없습니다.");
+                    refresh?.Invoke();
+                    return;
+                }
+
+                showFeedback?.Invoke($"{entry.Value}의 개별 권한을 변경했습니다.");
                 refresh?.Invoke();
             });
             AddToggle(row.transform, "개별 차단", font, rule == DoorAccessIndividualRule.Deny, value =>
             {
-                commands.SetIndividualRule(
-                    door,
-                    id,
-                    value ? DoorAccessIndividualRule.Deny : DoorAccessIndividualRule.GroupDefault);
+                if (!commands.SetIndividualRule(
+                        door,
+                        id,
+                        value ? DoorAccessIndividualRule.Deny : DoorAccessIndividualRule.GroupDefault))
+                {
+                    showFeedback?.Invoke($"{entry.Value}의 개별 권한을 변경할 수 없습니다.");
+                    refresh?.Invoke();
+                    return;
+                }
+
+                showFeedback?.Invoke($"{entry.Value}의 개별 권한을 변경했습니다.");
                 refresh?.Invoke();
             });
             if (rule != DoorAccessIndividualRule.GroupDefault)
             {
                 AddButton(row.transform, "예외 삭제", font, () =>
                 {
-                    commands.SetIndividualRule(
-                        door,
-                        id,
-                        DoorAccessIndividualRule.GroupDefault);
+                    if (!commands.SetIndividualRule(
+                            door,
+                            id,
+                            DoorAccessIndividualRule.GroupDefault))
+                    {
+                        showFeedback?.Invoke($"{entry.Value}의 개별 예외를 삭제할 수 없습니다.");
+                        refresh?.Invoke();
+                        return;
+                    }
+
+                    showFeedback?.Invoke($"{entry.Value}의 개별 예외를 삭제했습니다.");
                     refresh?.Invoke();
                 });
             }

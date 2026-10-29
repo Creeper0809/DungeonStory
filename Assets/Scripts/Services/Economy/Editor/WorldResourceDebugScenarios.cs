@@ -120,7 +120,7 @@ public static class WorldResourceDebugScenarios
             Require(
                 research != null,
                 "Research runtime is missing.");
-            research.State.Projects.Complete(
+            research.StateForDebug.Projects.Complete(
                 new ResearchProjectId("research:forestry:logging"));
 
             string outputCapacityEvidence = VerifyExactSourceAtomicPublication(

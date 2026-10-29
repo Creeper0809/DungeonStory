@@ -1,0 +1,4 @@
+result=PASS
+source=026275fdd7d571e5b165278b5b9dfac8ba9e88bef1c75cf5ac5fa9a26da645ca
+consoleErrors=0
+boundary=native controlled pause and start-rejection contracts

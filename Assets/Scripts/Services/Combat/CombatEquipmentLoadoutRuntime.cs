@@ -272,6 +272,9 @@ public sealed class CombatEquipmentLoadoutRuntime
         return created;
     }
 
+    public CharacterCombatLoadoutState GetOrCreateSnapshot(string characterId) =>
+        CloneLoadout(GetOrCreate(characterId));
+
     private static CharacterCombatLoadoutState CreateDefaultLoadout(
         string characterId)
     {

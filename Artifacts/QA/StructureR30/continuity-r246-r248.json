@@ -1,0 +1,37 @@
+{
+  "from": "r246r30",
+  "to": "r248r30",
+  "unchangedUnityInputs": 21762,
+  "changed": [
+    {
+      "path": "Assets/Scripts/Services/Character/Editor/V27CharacterPerformanceDebugScenarios.cs",
+      "old": "7fdd3d677dc000378486294e6e3c585a5f4f454973803fc0b675dd1a5d64c8cd",
+      "new": "2b179b62e2b9afd41b349155ec6bb40dcb1111879df8dd66c68ccb16760ef8e1"
+    },
+    {
+      "path": "Assets/Scripts/Views/Buildings/UI/Editor/DoorAccessPlayModeVerifier.cs",
+      "old": "00642e3c6ddeeff5a4025712ef1e0454c7fea828cce5ae3e038c766628fbe29e",
+      "new": "1237d2edad3494c5b5895b104cbade76e55e4e330862f2870cfc968464e2031c"
+    },
+    {
+      "path": "Assets/Scripts/Views/UI/Editor/P1P2FeatureSurfacePlayModeVerifier.cs",
+      "old": "89b56b2153dd5250770a5b4025d5ece4aa18addc5cd562fd8bf18fe24c49f539",
+      "new": "360ac2891888d8f5d618e7d1ee4bbef6fcb29b18836f75676e7c005c5d18d481"
+    },
+    {
+      "path": "ProjectSettings/PublishedContentIdentities.json",
+      "old": "4f22882fadb0b9411fe81c25baff3dab688e11d72607efa05a7168d6a0cbf3fb",
+      "new": "5d367a3562d0545d17508c52e3697a3ca14b107efb3bbaffe8005c0766d8db25"
+    }
+  ],
+  "productionAndAuthoredAssetBytesIdentical": true,
+  "identityBaseline": "exact reviewed Unity candidate; 3544 old assets and12510 fields preserved, six new assets/eighteen new fields",
+  "equivalentUnchangedNativeScopes": [
+    "fluid",
+    "combat-commands",
+    "exterior",
+    "transport-and-R02-selection",
+    "natural-grafts-defense-and-ammo-authoring"
+  ],
+  "scopeLimit": "Original native run labels and whole PASS/FAIL retained. Current source impact5 is separate and still pending."
+}

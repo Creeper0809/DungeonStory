@@ -18,14 +18,18 @@ public sealed class ResourceEconomyContentCatalog : IResourceEconomyContentCatal
     private readonly IReadOnlyDictionary<string, CraftMaterialDefinitionSO> materialsById;
     private readonly IReadOnlyDictionary<string, SubstanceDefinitionView> substancesById;
 
-    [Inject]
     public ResourceEconomyContentCatalog(IGameContentCatalog content)
+        : this(content, ProductionMassExplanationCapabilityRegistry.CreateDefault()) { }
+
+    [Inject]
+    public ResourceEconomyContentCatalog(IGameContentCatalog content,
+        ProductionMassExplanationCapabilityRegistry massExplanations)
         : this(
             (content ?? throw new ArgumentNullException(nameof(content)))
                 .Items.Definitions.OfType<ResourceItemDefinitionSO>(),
             content.GetAll<ProductionRecipeSO>(),
             content.GetAll<CropDefinitionSO>(),
-            content.GetAll<CraftMaterialDefinitionSO>())
+            content.GetAll<CraftMaterialDefinitionSO>(), massExplanations)
     {
     }
 
@@ -34,7 +38,17 @@ public sealed class ResourceEconomyContentCatalog : IResourceEconomyContentCatal
         IEnumerable<ProductionRecipeSO> recipeDefinitions,
         IEnumerable<CropDefinitionSO> cropDefinitions,
         IEnumerable<CraftMaterialDefinitionSO> materialDefinitions)
+        : this(itemDefinitions, recipeDefinitions, cropDefinitions, materialDefinitions,
+            ProductionMassExplanationCapabilityRegistry.CreateDefault()) { }
+
+    public ResourceEconomyContentCatalog(
+        IEnumerable<ResourceItemDefinitionSO> itemDefinitions,
+        IEnumerable<ProductionRecipeSO> recipeDefinitions,
+        IEnumerable<CropDefinitionSO> cropDefinitions,
+        IEnumerable<CraftMaterialDefinitionSO> materialDefinitions,
+        ProductionMassExplanationCapabilityRegistry massExplanationRegistry)
     {
+        if (massExplanationRegistry == null) throw new ArgumentNullException(nameof(massExplanationRegistry));
         items = Normalize(
             itemDefinitions,
             item => item.ItemId,
@@ -43,8 +57,6 @@ public sealed class ResourceEconomyContentCatalog : IResourceEconomyContentCatal
             recipeDefinitions,
             recipe => recipe.RecipeId,
             "production recipe");
-        ProductionMassExplanationCapabilityRegistry massExplanationRegistry =
-            ProductionMassExplanationCapabilityRegistry.CreateDefault();
         ProductionOutputCostAllocationCapabilityRegistry outputCostAllocationRegistry =
             ProductionOutputCostAllocationCapabilityRegistry.CreateDefault();
         foreach (ProductionRecipeSO recipe in recipes)
@@ -1098,6 +1110,13 @@ public sealed class ResourceUsageIndex :
         public IReadOnlyList<ProductionConsumerLink> ConsumerLinks => consumerLinks.Values
             .OrderBy(link => link.kind)
             .ThenBy(link => link.consumerId, StringComparer.Ordinal)
+            .Select(link => new ProductionConsumerLink
+            {
+                consumerId = link.consumerId,
+                kind = link.kind,
+                requiredResearchId = link.requiredResearchId,
+                displayName = link.displayName
+            })
             .ToArray();
 
         public void AddProducer(string id, string researchId)

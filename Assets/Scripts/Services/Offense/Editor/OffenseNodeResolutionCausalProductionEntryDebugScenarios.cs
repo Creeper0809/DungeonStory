@@ -265,7 +265,8 @@ public static class OffenseNodeResolutionCausalProductionEntryDebugScenarios
                     OffenseEditorTestDependencies.CreateEnemyEncounterFactory(equipment),
                     new EnemyTacticalDecisionService(new EnemyCombatContentCatalog(
                         new ResourceGameContentCatalog(new UnityGameContentRootLoader()))),
-                    new UnusedArrivalPort(), CharacterAiEditorTestDependencies.NeutralPerformance);
+                    new UnusedArrivalPort(), EditorItemCatalogFactory.CreateDefinitions(),
+                    CharacterAiEditorTestDependencies.NeutralPerformance);
                 var battleCalendar = new FixedCalendar();
                 battle.ConstructProficiencyProgression(
                     null,

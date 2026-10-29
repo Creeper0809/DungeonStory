@@ -218,19 +218,19 @@ public static class DungeonGameSaveDebugScenarios
                 && candidate.IsModularFacility()
                 && candidate.GetUnlockPhase() > 1);
             Require(researchUnlockBuilding != null, "No phase-gated modular building exists for the save test.");
-            research.State.UnlockBuilding(researchUnlockBuilding.id);
+            research.StateForDebug.UnlockBuilding(researchUnlockBuilding.id);
 
             BuildingSO building = catalog.Buildings.FirstOrDefault(candidate => candidate != null
                 && FacilityShopService.CanEnterBasicPurchase(candidate));
             Require(building != null, "No basic-purchase building exists for the save test.");
-            shop.UnlockState.UnlockBasicPurchaseById(building.id);
+            shop.UnlockStateForDebug.UnlockBasicPurchaseById(building.id);
 
             run.ActivateOperationVariable(
                 RunVariableIds.VisitingMerchant,
                 run.CurrentDay,
                 false);
-            meta.State.AddCurrency(19);
-            meta.State.SetUpgradeLevelForDebug(MetaUpgradeIds.CommerceSupplyNetwork, 2);
+            meta.AddCurrencyForDebug(19);
+            meta.SetUpgradeLevelForDebug(MetaUpgradeIds.CommerceSupplyNetwork, 2);
             const string CustomerMarker = "character:world:saveqa:919191";
             customers.ReplaceStateForDebug(new[]
             {

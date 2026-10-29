@@ -9,12 +9,19 @@ using UnityEngine;
 
 public static class R19ProgressionDebugScenarios
 {
+    public static void RunR30LivingMembershipFocused()
+    {
+        VerifyLivingCharacterMembership(new ResourceGameContentCatalog(new UnityGameContentRootLoader()));
+        Debug.Log("R30_LIVING_MEMBERSHIP=PASS");
+    }
+
     public static void RunAll()
     {
         var content = new ResourceGameContentCatalog(new UnityGameContentRootLoader());
         var catalog = new V20StoryContentCatalog(content);
         VerifyTemporal(catalog);
         VerifyFacilities(content, catalog);
+        VerifyLivingCharacterMembership(content);
         Debug.Log("R19_PROGRESSION=PASS; temporal-119-save-120-restore-retry; real-facility-projector; live-preflight; chapter-command; rejection-atomicity; restore");
     }
 
@@ -120,7 +127,108 @@ public static class R19ProgressionDebugScenarios
         }
     }
 
+    private static void VerifyLivingCharacterMembership(
+        ResourceGameContentCatalog content)
+    {
+        CharacterSO data = content.GetAll<CharacterSO>().First();
+        GameObject firstObject = CharacterAiPlanDebugFixtures.CreateActorObject(
+            "R19 living membership first");
+        GameObject secondObject = CharacterAiPlanDebugFixtures.CreateActorObject(
+            "R19 living membership second");
+        CharacterActor first = firstObject.GetComponent<CharacterActor>();
+        CharacterActor second = secondObject.GetComponent<CharacterActor>();
+        try
+        {
+            int[] traitIds = (data.traits ?? Array.Empty<CharacterTraitSO>())
+                .Where(trait => trait != null)
+                .Select(trait => trait.id)
+                .ToArray();
+            first.Initialization(data);
+            second.Initialization(data);
+            first.Progression.ApplyPreparedIdentity(
+                data.characterName,
+                "r19:living:first",
+                traitIds,
+                CharacterPotentialGrade.Ordinary,
+                generationSeed: 19001,
+                autoChooseDrafts: false);
+            second.Progression.ApplyPreparedIdentity(
+                data.characterName,
+                "r19:living:second",
+                traitIds,
+                CharacterPotentialGrade.Ordinary,
+                generationSeed: 19002,
+                autoChooseDrafts: false);
+            CharacterActor[] current = { first };
+            ICharacterWorldQuery characters = Port<ICharacterWorldQuery>(
+                (method, _) => method.Name == "get_Characters"
+                    ? current
+                    : throw new InvalidOperationException(
+                        "Unexpected character-world fixture call: "
+                        + method.Name));
+            var projector = new V20MilestoneWorldSnapshotProjector(
+                characters,
+                Port<IBuildingWorldQuery>((method, _) =>
+                    method.Name == "get_Buildings"
+                        ? Array.Empty<BuildableObject>()
+                        : 0),
+                Port<IStockQuery>((_, _) =>
+                    Array.Empty<WorldItemStackSnapshot>()),
+                new ProgressionSceneRuntimeReferences(null, null, null),
+                Port<IFactionCampaignQuery>((_, _) =>
+                    Array.Empty<FactionCampaignStateSaveData>()),
+                Port<IGameMoneyAccount>((_, _) => 0),
+                Port<IOffenseQuery>((_, _) => null),
+                Port<IKinshipQuery>((method, _) => method.Name == "GetGeneration"
+                    ? 1
+                    : throw new InvalidOperationException(
+                        "Unexpected kinship fixture call: " + method.Name)),
+                Port<ISettlementLaborAccountingService>((_, _) =>
+                    default(SettlementLaborAccountingSnapshot)),
+                Port<ISettlementAlertService>((_, _) =>
+                    default(SettlementAlertSnapshot)));
+
+            projector.Build(1);
+            IReadOnlyList<CharacterActor> exposed =
+                projector.LivingCharacters;
+            Require(exposed.Count == 1 && ReferenceEquals(exposed[0], first),
+                "Living-character fixture did not retain the actor command reference.");
+            RequireThrows<NotSupportedException>(
+                () => ((IList<CharacterActor>)exposed)[0] = second,
+                "Living-character membership accepted caller replacement.");
+            Require(projector.LivingCharacters.Count == 1
+                    && ReferenceEquals(projector.LivingCharacters[0], first),
+                "Caller replacement changed cached living membership.");
+
+            current = new[] { second };
+            projector.Build(2);
+            Require(projector.LivingCharacters.Count == 1
+                    && ReferenceEquals(projector.LivingCharacters[0], second),
+                "Fresh world capture did not replace living membership.");
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(firstObject);
+            UnityEngine.Object.DestroyImmediate(secondObject);
+        }
+    }
+
     private static bool SetOut(object[] args, bool result) { args[2] = string.Empty; return result; }
+    private static void RequireThrows<TException>(Action action, string message)
+        where TException : Exception
+    {
+        try
+        {
+            action();
+        }
+        catch (TException)
+        {
+            return;
+        }
+
+        throw new InvalidOperationException(message);
+    }
+
     private static T Port<T>(Func<MethodInfo, object[], object> invoke = null) where T : class
     {
         T value = DispatchProxy.Create<T, StrictPort>();

@@ -752,6 +752,12 @@ public static class V27CharacterPerformanceDebugScenarios
                 createdObjects,
                 scope.Container.Resolve<ICharacterPerformanceQuery>(),
                 formulas);
+            VerifyChargeCapabilityBoundaries(
+                scope,
+                narrative,
+                catalog,
+                createdObjects,
+                createdData);
         }
         finally
         {
@@ -1393,6 +1399,247 @@ public static class V27CharacterPerformanceDebugScenarios
             + $"formulas={formulas.Count}; wear=1; charge=70");
     }
 
+    private static void VerifyChargeCapabilityBoundaries(
+        DungeonRuntimeLifetimeScope scope,
+        ICharacterNarrativeCommand narrative,
+        GameDomainContentCatalogSO content,
+        ICollection<GameObject> createdObjects,
+        ICollection<CharacterSO> createdData)
+    {
+        CharacterSpeciesSO authoredGolem = content.GetAll<CharacterSpeciesSO>()
+            .Single(value => string.Equals(
+                value.speciesTag,
+                "Golem",
+                StringComparison.Ordinal));
+        CharacterSpeciesSO biological = content.GetAll<CharacterSpeciesSO>()
+            .Single(value => string.Equals(
+                value.speciesTag,
+                "Human",
+                StringComparison.Ordinal)
+                && value.needs?.UsesChargeInsteadOfFood != true);
+        CharacterSpeciesSO chargeSpecies = UnityEngine.Object.Instantiate(
+            authoredGolem);
+        chargeSpecies.hideFlags = HideFlags.HideAndDontSave;
+        chargeSpecies.speciesTag = "QaChargeConstruct";
+        chargeSpecies.displayName = "QA Charge Construct";
+        try
+        {
+            CharacterActor chargeActor = CreateSpeciesAuditActor(
+                scope,
+                narrative,
+                chargeSpecies.speciesTag,
+                createdObjects,
+                createdData,
+                chargeSpecies,
+                "Golem");
+            CharacterActor biologicalActor = CreateSpeciesAuditActor(
+                scope,
+                narrative,
+                biological.speciesTag,
+                createdObjects,
+                createdData);
+            CharacterSpeciesRuntime runtime = CreateChargeCapabilityRuntime(
+                scope,
+                new FixedSpeciesCatalog(chargeSpecies, biological));
+            CharacterId chargeActorId = CharacterPersistentIdentity.Require(
+                chargeActor);
+            CharacterId biologicalActorId = CharacterPersistentIdentity.Require(
+                biologicalActor);
+
+            Require(runtime.RecordCompletedWork(
+                    chargeActorId,
+                    "g12-capability-charge-work",
+                    BuiltInWorkTypeIds.Haul.Value,
+                    100f,
+                    out DomainFailure chargeWearFailure),
+                "Charge-capability work wear failed: "
+                + DescribeFailure(chargeWearFailure));
+            float expectedIntegrity = Mathf.Clamp(
+                100f - 2.5f * Mathf.Max(
+                    0f,
+                    chargeSpecies.needs.integrityWearMultiplier),
+                0f,
+                100f);
+            Require(runtime.TryGet(
+                    chargeActorId,
+                    out CharacterSpeciesRuntimeState chargeWear)
+                    && chargeWear.CompletedWorkIndex == 1
+                    && Mathf.Abs(chargeWear.Integrity - expectedIntegrity)
+                        <= .001f,
+                "A non-Golem charge species did not receive construct work wear.");
+
+            float biologicalHealth = biologicalActor.Stats.CurrentHealth;
+            runtime.DebugRunPhysiologyTick(biologicalActor, 1f);
+            Require(runtime.RecordCompletedWork(
+                    biologicalActorId,
+                    "g12-capability-biological-work",
+                    BuiltInWorkTypeIds.Haul.Value,
+                    100f,
+                    out DomainFailure biologicalWearFailure)
+                    && runtime.TryGet(
+                        biologicalActorId,
+                        out CharacterSpeciesRuntimeState biologicalState)
+                    && biologicalState.CompletedWorkIndex == 0
+                    && Mathf.Abs(biologicalState.Integrity - 100f) <= .001f
+                    && Mathf.Abs(biologicalState.Charge - 100f) <= .001f
+                    && Mathf.Approximately(
+                        biologicalActor.Stats.CurrentHealth,
+                        biologicalHealth),
+                "Biological species gained construct wear or discharge behavior: "
+                + DescribeFailure(biologicalWearFailure));
+
+            CharacterSpeciesRuntimeSaveData lowCharge = runtime.Capture();
+            CharacterSpeciesRuntimeRecordSaveData chargeRecord = lowCharge.characters
+                .Single(value => string.Equals(
+                    value.characterInstanceId,
+                    chargeActorId.Value,
+                    StringComparison.Ordinal));
+            chargeRecord.charge = .01f;
+            chargeRecord.dischargeEpisodeActive = false;
+            runtime.Restore(runtime.BuildRestore(lowCharge));
+            float healthBeforeDischarge = chargeActor.Stats.CurrentHealth;
+            runtime.DebugRunPhysiologyTick(chargeActor, 1f);
+            Require(runtime.TryGet(
+                    chargeActorId,
+                    out CharacterSpeciesRuntimeState discharged)
+                    && discharged.Charge <= .001f
+                    && discharged.DischargeEpisodeActive
+                    && chargeActor.Stats.CurrentHealth < healthBeforeDischarge,
+                "A non-Golem charge species did not follow charge discharge behavior.");
+
+            BuildingSO manaStorage = AssetDatabase.LoadAssetAtPath<BuildingSO>(
+                "Assets/Resources/SO/Building/Modular/M02.asset")
+                ?? AssetDatabase.LoadAssetAtPath<BuildingSO>(
+                    "Assets/Resources/SO/Building/Modular/M02_마력저장조.asset")
+                ?? throw new InvalidOperationException(
+                    "Mana storage asset is missing.");
+            GameObject facilityObject = new(
+                "Phase153 Charge Capability Recharge Facility");
+            createdObjects.Add(facilityObject);
+            BuildableObject facility = facilityObject.AddComponent<BuildableObject>();
+            scope.Container.InjectGameObject(facilityObject);
+            facility.Initialization(manaStorage, new Vector2Int(996, 997));
+
+            WorldItemRepository items = scope.Container.Resolve<WorldItemRepository>();
+            IStockQuery stock = scope.Container.Resolve<IStockQuery>();
+            string crystalStackId = items.AddEditorTestStack(
+                "resource:mana-crystal",
+                1,
+                WorldItemStackState.Loose);
+            try
+            {
+                Require(!runtime.IsRechargeAvailable(
+                        biologicalActor,
+                        facility,
+                        out _),
+                    "Biological species became a recharge candidate.");
+                Require(runtime.IsRechargeAvailable(
+                        chargeActor,
+                        facility,
+                        out string reason),
+                    "A non-Golem charge species was not a recharge candidate: "
+                    + reason);
+                Require(runtime.TryBeginRecharge(
+                        chargeActor,
+                        facility,
+                        out _,
+                        out DomainFailure beginFailure),
+                    "A non-Golem charge species could not begin recharge: "
+                    + DescribeFailure(beginFailure));
+                Require(runtime.TryApplyRechargeWork(
+                        chargeActor,
+                        facility,
+                        50f,
+                        out bool halfCompleted,
+                        out DomainFailure halfFailure)
+                        && !halfCompleted,
+                    "Charge-capability recharge completed before 100 WU: "
+                    + DescribeFailure(halfFailure));
+
+                CharacterSpeciesRuntimeSaveData midOrder = runtime.Capture();
+                CharacterSpeciesRuntimeSaveData invalidBiologicalOrder =
+                    JsonUtility.FromJson<CharacterSpeciesRuntimeSaveData>(
+                        JsonUtility.ToJson(midOrder));
+                invalidBiologicalOrder.characters.Single(value => string.Equals(
+                        value.characterInstanceId,
+                        chargeActorId.Value,
+                        StringComparison.Ordinal))
+                    .speciesDefinitionId = biological.speciesTag;
+                bool rejectedBiologicalOrder = false;
+                try
+                {
+                    _ = runtime.BuildRestore(invalidBiologicalOrder);
+                }
+                catch (InvalidOperationException)
+                {
+                    rejectedBiologicalOrder = true;
+                }
+                Require(rejectedBiologicalOrder,
+                    "Biological recharge order restore was not rejected.");
+
+                runtime.Restore(runtime.BuildRestore(midOrder));
+                Require(runtime.TryApplyRechargeWork(
+                        chargeActor,
+                        facility,
+                        50f,
+                        out bool completed,
+                        out DomainFailure completeFailure)
+                        && completed
+                        && runtime.TryGet(
+                            chargeActorId,
+                            out CharacterSpeciesRuntimeState charged)
+                        && Mathf.Abs(charged.Charge - 50f) <= .001f
+                        && charged.RechargeProgressWork <= .001f,
+                    "Non-Golem charge recharge did not survive restore and apply: "
+                    + DescribeFailure(completeFailure));
+            }
+            finally
+            {
+                runtime.CancelRecharge(chargeActorId);
+                if (stock.GetAllStacks().Any(value => string.Equals(
+                        value.StackId,
+                        crystalStackId,
+                        StringComparison.Ordinal)))
+                {
+                    items.RemoveEditorTestStack(crystalStackId);
+                }
+            }
+            Debug.Log(
+                "PHASE153_CHARGE_CAPABILITY_FOCUSED=PASS; alternate=discharge+wear+recharge+restore; biological=rejected");
+        }
+        finally
+        {
+            UnityEngine.Object.Destroy(chargeSpecies);
+        }
+    }
+
+    private static CharacterSpeciesRuntime CreateChargeCapabilityRuntime(
+        DungeonRuntimeLifetimeScope scope,
+        ICharacterSpeciesCatalog speciesCatalog)
+    {
+        return new CharacterSpeciesRuntime(
+            scope.Container.Resolve<ICharacterAiWorldRegistry>(),
+            speciesCatalog,
+            scope.Container.Resolve<ISpeciesIncidentHandlerRegistry>(),
+            scope.Container.Resolve<IGameClock>(),
+            scope.Container.Resolve<IGameEventBus>(),
+            new DungeonRuntimeAggregateRootStore(),
+            scope.Container.Resolve<IAnatomyHealthRuntime>(),
+            scope.Container.Resolve<IAnatomyProfileCatalog>(),
+            scope.Container.Resolve<CharacterPerformanceFormulaCatalog>(),
+            scope.Container.Resolve<IRunSeedProvider>(),
+            scope.Container.Resolve<IStockQuery>(),
+            scope.Container.Resolve<IItemReservationService>(),
+            scope.Container.Resolve<IAtomicItemConsumptionService>(),
+            scope.Container.Resolve<IWorldFilthQuery>(),
+            scope.Container.Resolve<IWorldWaterQuery>(),
+            scope.Container.Resolve<ICharacterBodyHealthMutationTransaction>(),
+            scope.Container.Resolve<IDomainFactPublisher>(),
+            scope.Container.Resolve<IDomainFactRecoveryPublisher>(),
+            scope.Container.Resolve<IGameCalendar>(),
+            scope.Container.Resolve<IPreparedPhysicalItemRelocationService>());
+    }
+
     private static int CountGolemUpkeepOutcomes(
         DungeonRuntimeLifetimeScope scope,
         string episodeKind = null)
@@ -1424,8 +1671,14 @@ public static class V27CharacterPerformanceDebugScenarios
         ICharacterNarrativeCommand narrative,
         string speciesTag,
         ICollection<GameObject> createdObjects,
-        ICollection<CharacterSO> createdData)
+        ICollection<CharacterSO> createdData,
+        CharacterSpeciesSO speciesOverride = null,
+        string authoredFixtureSpeciesTag = null)
     {
+        string fixtureSpeciesTag = string.IsNullOrWhiteSpace(
+            authoredFixtureSpeciesTag)
+            ? speciesTag
+            : authoredFixtureSpeciesTag;
         GameObject actorObject = CharacterAiPlanDebugFixtures.CreateActorObject(
             $"Phase153 {speciesTag} Audit Character");
         createdObjects.Add(actorObject);
@@ -1437,14 +1690,19 @@ public static class V27CharacterPerformanceDebugScenarios
         CharacterSO data = CharacterAiEditorTestDependencies.CreateCharacterFixtureData(
             CharacterType.NPC,
             $"Phase153 {speciesTag} Audit Character",
-            speciesTag);
+            fixtureSpeciesTag);
+        if (speciesOverride != null)
+        {
+            data.species = speciesOverride;
+            data.speciesTag = speciesTag;
+        }
         createdData.Add(data);
         CharacterActor actor = actorObject.GetComponent<CharacterActor>();
         actor.EnsureRuntimeState();
         actor.Identity.SetPersistentId(new GuidPersistentIdGenerator().NewCharacterId());
         narrative.Register(
             new CharacterId(actor.Identity.PersistentId),
-            new CharacterSpeciesId(speciesTag),
+            new CharacterSpeciesId(fixtureSpeciesTag),
             Array.Empty<string>(),
             Array.Empty<string>(),
             BuiltInCharacterProficiencyIds.All.Select(id =>
@@ -1460,6 +1718,22 @@ public static class V27CharacterPerformanceDebugScenarios
             speciesTag,
             "prepared");
         actor.RefreshAbilityCache();
+        if (speciesOverride != null)
+        {
+            // 새 종족은 이 시험의 카탈로그에 등록한다. 실제 프로필 생성 검증은 그대로 사용한다.
+            var profileContent = new ChargeFixtureContent(
+                scope.Container.Resolve<IGameContentCatalog>(), speciesOverride);
+            var factory = new CharacterRuntimeProfileFactory(profileContent);
+            FieldInfo factoryField = typeof(CharacterActor).GetField(
+                "runtimeProfileFactory", BindingFlags.Instance | BindingFlags.NonPublic)
+                ?? throw new MissingFieldException(nameof(CharacterActor), "runtimeProfileFactory");
+            factoryField.SetValue(actor, factory);
+            FieldInfo projectorField = typeof(CharacterProgression).GetField(
+                "profileProjector", BindingFlags.Instance | BindingFlags.NonPublic)
+                ?? throw new MissingFieldException(nameof(CharacterProgression), "profileProjector");
+            projectorField.SetValue(actor.Progression,
+                new CharacterProgressionProfileProjector(profileContent, factory));
+        }
         actor.Initialize(data);
         CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(actor.Progression).traitIds = new List<int>();
         actor.SetLifecycleState(CharacterLifecycleState.Active);
@@ -1476,6 +1750,61 @@ public static class V27CharacterPerformanceDebugScenarios
                 "ReconcilePublishedRegistration");
         reconcile.Invoke(bridge, null);
         return actor;
+    }
+
+    private sealed class ChargeFixtureContent : IGameContentCatalog
+    {
+        private readonly IGameContentCatalog source;
+        private readonly CharacterSpeciesSO species;
+        internal ChargeFixtureContent(IGameContentCatalog source, CharacterSpeciesSO species)
+        {
+            this.source = source;
+            this.species = species;
+            Require(!source.GetAll<CharacterSpeciesSO>().Any(value => value.DefinitionId.Equals(species.DefinitionId)),
+                "Alternate charge fixture must introduce a distinct registered species.");
+        }
+        public GameContentCatalogSO Root => source.Root;
+        public ItemDefinitionCatalogSO Items => source.Items;
+        public WorldInteractionPresentationCatalogSO WorldPresentation => source.WorldPresentation;
+        public CharacterSkillSystemSettingsSO CharacterSkillSettings => source.CharacterSkillSettings;
+        public GameMediaCatalogSO Media => source.Media;
+        public GameDomainContentCatalogSO Domain => source.Domain;
+        public IReadOnlyList<ServiceProcessSO> ServiceProcesses => source.ServiceProcesses;
+        public RoomEnvironmentSettingsSO RoomEnvironmentSettings => source.RoomEnvironmentSettings;
+        public IReadOnlyList<OffenseSiteArchetypeSO> SiteArchetypes => source.SiteArchetypes;
+        public IReadOnlyList<OffenseUrgentSiteDefinitionSO> UrgentSites => source.UrgentSites;
+        public IReadOnlyList<OffenseDecisionCardSO> DecisionCards => source.DecisionCards;
+        public IReadOnlyList<OffenseEncounterSO> Encounters => source.Encounters;
+        public IReadOnlyList<T> GetAll<T>() where T : ScriptableObject =>
+            typeof(T) == typeof(CharacterSpeciesSO)
+                ? source.GetAll<T>().Concat(new[] { (T)(ScriptableObject)species }).ToArray()
+                : source.GetAll<T>();
+        public T RequireSingle<T>() where T : ScriptableObject => GetAll<T>().Single();
+    }
+
+    private sealed class FixedSpeciesCatalog : ICharacterSpeciesCatalog
+    {
+        private readonly IReadOnlyList<CharacterSpeciesSO> all;
+        private readonly IReadOnlyDictionary<string, CharacterSpeciesSO> byTag;
+
+        internal FixedSpeciesCatalog(params CharacterSpeciesSO[] species)
+        {
+            all = (species ?? Array.Empty<CharacterSpeciesSO>())
+                .Where(value => value != null)
+                .ToArray();
+            byTag = all.ToDictionary(
+                value => value.speciesTag,
+                StringComparer.OrdinalIgnoreCase);
+        }
+
+        public IReadOnlyList<CharacterSpeciesSO> All => all;
+
+        public bool TryGet(
+            CharacterSpeciesId speciesId,
+            out CharacterSpeciesSO species)
+        {
+            return byTag.TryGetValue(speciesId.Value, out species);
+        }
     }
 
     [MenuItem("DungeonStory/Debug/V27/Begin Character Performance Consumer Audit")]

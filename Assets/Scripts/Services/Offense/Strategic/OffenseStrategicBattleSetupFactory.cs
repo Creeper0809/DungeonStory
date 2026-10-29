@@ -19,6 +19,10 @@ public static class OffenseStrategicBattleSetupFactory
 
     public static IReadOnlyList<OffenseBattleMemberDeckSeed> CreateMemberDecks(
         OffenseBattleSession session)
+        => CreateMemberDecks(session == null ? null : new OffenseBattleSnapshot(session));
+
+    public static IReadOnlyList<OffenseBattleMemberDeckSeed> CreateMemberDecks(
+        OffenseBattleSnapshot session)
     {
         if (session == null)
         {
@@ -45,6 +49,19 @@ public static class OffenseStrategicBattleSetupFactory
     public static IReadOnlyList<OffenseEnemyIntentStateData> CreateEnemyIntents(
         OffenseBattleSession session,
         int turnSequence = 0)
+        => session == null ? Array.Empty<OffenseEnemyIntentStateData>()
+            : CreateEnemyIntents(new OffenseBattleSnapshot(session), session.CreateStrategicEnemyCommand, turnSequence);
+
+    public static IReadOnlyList<OffenseEnemyIntentStateData> CreateEnemyIntents(
+        IOffenseBattleRuntime runtime,
+        int turnSequence = 0)
+        => runtime == null ? Array.Empty<OffenseEnemyIntentStateData>()
+            : CreateEnemyIntents(runtime.Session, runtime.CreateStrategicEnemyCommand, turnSequence);
+
+    private static IReadOnlyList<OffenseEnemyIntentStateData> CreateEnemyIntents(
+        OffenseBattleSnapshot session,
+        Func<string, long, OffenseBattleCommand> createCommand,
+        int turnSequence)
     {
         if (session == null)
         {
@@ -69,7 +86,7 @@ public static class OffenseStrategicBattleSetupFactory
             {
                 Enemy = enemy,
                 Index = index,
-                Command = session.CreateStrategicEnemyCommand(
+                Command = createCommand(
                     enemy.PersistentId,
                     session.LastProcessedCommandId + index + 1)
             })

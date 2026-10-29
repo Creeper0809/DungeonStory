@@ -53,7 +53,8 @@ public static class DungeonProgressionOffenseRegistration
             .As<IFacilityShopCatalog>()
             .As<IFacilityShopDefinitionCatalog>();
         builder.Register<FacilityShopUnlockStateService>(Lifetime.Singleton)
-            .As<IFacilityShopUnlockStateService>();
+            .As<IFacilityShopUnlockStateService>()
+            .As<IFacilityShopUnlockStateAuthority>();
         builder.Register<ResourceResearchProjectCatalog>(Lifetime.Singleton)
             .As<IResearchProjectCatalog>();
         builder.Register<ResearchRewardCatalog>(Lifetime.Singleton)
@@ -274,6 +275,7 @@ public static class DungeonProgressionOffenseRegistration
             .As<IDungeonRestoreTransactionParticipant>();
         builder.RegisterEntryPoint<OffenseBattleRuntime>(Lifetime.Singleton)
             .As<IOffenseBattleRuntime>()
+            .As<IOffenseBattleCompletionAuthority>()
             .As<IDungeonRestoreTransactionParticipant>();
         builder.Register<OffenseCommandResolutionAdapter>(Lifetime.Singleton)
             .As<IOffenseCommandResolutionAdapter>();

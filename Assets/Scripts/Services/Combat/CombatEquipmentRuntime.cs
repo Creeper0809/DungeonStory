@@ -1154,7 +1154,7 @@ public sealed class CombatEquipmentRuntime :
 
     public CharacterCombatLoadoutState GetOrCreateLoadout(string characterId)
     {
-        return loadoutRuntime.GetOrCreate(characterId);
+        return loadoutRuntime.GetOrCreateSnapshot(characterId);
     }
 
     public CharacterCombatLoadoutProfile GetActiveProfileSnapshot(string characterId)
