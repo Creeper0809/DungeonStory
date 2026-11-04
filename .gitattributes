@@ -750,3 +750,24 @@ Artifacts/QA/CleanupAudit-20261015-r1/** -text
 "tools/QA/run_isolated_unity_batch.ps1" -text
 "tools/QA/run_trained_model_integration.ps1" -text
 "tools/QA/verify_trained_lora_conversion.py" -text
+
+# Canonical tool paths for case-insensitive Windows checkouts.
+"tools/AI/fixtures/facility_singleton_schema.json" -text
+"tools/AI/prepare_r80_game_runtime.py" -text
+"tools/AI/r80_game_bridge.py" -text
+"tools/AI/test_r80_bubble_grammar.py" -text
+"tools/AI/test_r80_concurrency.py" -text
+"tools/AI/test_r80_finite_decision_grammar.py" -text
+"tools/AI/test_r80_game_bridge.py" -text
+"tools/AI/test_r80_history_envelope.py" -text
+"tools/AI/test_r80_history_grammar.py" -text
+"tools/AI/test_r80_name_grammar.py" -text
+"tools/AI/test_r80_persona_language.py" -text
+"tools/AI/test_r80_trait_proof_grammar.py" -text
+"tools/AI/test_r80_writing_contract.py" -text
+"tools/QA/IsolatedUnityLauncher.cs" -text
+"tools/QA/compare_r80_native_cache_policy.py" -text
+"tools/QA/prepare_trained_model_bundle.py" -text
+"tools/QA/run_isolated_unity_batch.ps1" -text
+"tools/QA/run_trained_model_integration.ps1" -text
+"tools/QA/verify_trained_lora_conversion.py" -text
