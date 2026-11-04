@@ -72,6 +72,14 @@ def main() -> None:
                 'Build scene GUID mismatch: ' + scene)
     lfs = json.loads(subprocess.check_output(['git', 'lfs', 'ls-files', '--json'], cwd=ROOT))
     lfs_files = lfs['files'] if isinstance(lfs, dict) else lfs
+    if lfs_files:
+        names = b'\0'.join(entry['name'].encode('utf-8') for entry in lfs_files) + b'\0'
+        attributes = subprocess.check_output(
+            ['git', '-c', 'core.ignorecase=false', 'check-attr', '-z', '--stdin', 'filter'],
+            cwd=ROOT, input=names).decode('utf-8').split('\0')
+        for offset in range(0, len(attributes) - 2, 3):
+            require(attributes[offset + 2] == 'lfs',
+                    'Case-sensitive LFS filter missing: ' + attributes[offset])
     for entry in lfs_files:
         path = ROOT / entry['name']
         require(path.is_file(), 'LFS file missing: ' + entry['name'])
