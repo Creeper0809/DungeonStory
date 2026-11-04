@@ -52,6 +52,115 @@ public static class V25NarrativeInferenceDebugScenarios
         Debug.Log("COMPACT_EQUIPMENT_TRANSPORT=PASS");
     }
 
+    public static void RunEvolutionHistoryAdmissionRetryScenario()
+    {
+        using var participant = new EquipmentChoiceParticipantFixture();
+        IGameContentCatalog content = new ResourceGameContentCatalog(new UnityGameContentRootLoader());
+        var equipment = CombatEquipmentEditorTestFactory.Create(
+            new ResourceCombatEquipmentCatalog(content),
+            new WorldItemRepository(new GuidPersistentIdGenerator(), new DungeonRuntimeAggregateRootStore()),
+            new CharacterCarryInventoryRegistry(),
+            researchProvider: EditorAllResearchRuntimeProvider.Instance,
+            materialCatalog: EmptyResourceEconomyContentCatalog.Instance,
+            evolutionModules: EmptyEvolutionModuleRegistry.Instance,
+            moduleCatalog: EmptyEquipmentModuleCatalog.Instance,
+            itemStackRuntime: UnavailableEquipmentPhysicalItemGateway.Instance,
+            calendar: new EditorFixedGameCalendar(137, 9));
+        CombatEquipmentInstance instance = equipment.CreateInstance("weapon:shortbow", CombatEquipmentQuality.Normal);
+        var node = new EvolutionNode
+        {
+            nodeId = "history-admission-node", effectId = "equipment:durability",
+            historical = true, mechanicallyUnlocked = true, narrativeReady = false,
+            legalCandidateEffectIds = new List<string> { "equipment:durability" }, selectedCandidateIndex = 0
+        };
+        var ledger = new UsageLedger();
+        for (int index = 0; index < 8; index++)
+            new UsageLedgerCompactor().Record(ledger, "combat:hit", index + 1f, participant.ActorId,
+                instance.instanceId, new[] { "history-admission-" + index },
+                historicalEvidenceKind: HistoricalEvidenceKind.RepeatedLongRangeHit, outcomeId: "hit");
+        EvolutionNarrativeRequestSnapshot frozen = EvolutionNarrativeRequestFactory.Create(
+            EvolutionNarrativeTargetKind.Equipment, instance.instanceId, node, "history-admission", ledger, 1);
+        frozen.attemptCount = 5; // 이전 실제 실패를 가진 저장 요청의 용량 재시도다.
+        Require(equipment.TryUpdateEvolutionState(instance.instanceId, new EquipmentEvolutionState
+        {
+            evolutionNodes = new List<EvolutionNode> { node },
+            narrativeRequests = new List<EvolutionNarrativeRequestSnapshot> { frozen }
+        }), "Could not seed a durable history request.");
+
+        var clock = new HistoryAdmissionClock();
+        var transport = new HistoryAdmissionRuntimeStub();
+        var runtime = new EvolutionHistoryNarrativeRuntime(participant.World, equipment,
+            new FacilityEvolutionStateComponentFactory(), new FixedEquipmentChoiceRuntimeProvider(transport), clock);
+        EvolutionNarrativeRequestSnapshot Current()
+        {
+            Require(equipment.TryGetInstance(instance.instanceId, out CombatEquipmentInstance current),
+                "History admission owner disappeared.");
+            Require(current.evolution.evolutionNodes.Single().mechanicallyUnlocked
+                    && !current.evolution.evolutionNodes.Single().narrativeReady,
+                "History admission changed an existing mechanical effect or fabricated prose.");
+            return current.evolution.narrativeRequests.Single();
+        }
+        runtime.Tick();
+        Require(transport.Submissions == 1 && Current().attemptCount == 5 && runtime.PendingCount == 1
+                && runtime.TryGetEvolutionHistoryAudit(frozen.requestKey, out NarrativeInferenceAuditRecord audit)
+                && audit.ValidationError == "Evolution history request was not accepted.",
+            "Busy history admission consumed a model attempt or lost the durable retry.");
+        clock.Time = 1f;
+        runtime.Tick();
+        Require(transport.Submissions == 1, "Busy history retried before its original backoff.");
+        clock.Time = 2.01f;
+        transport.Accept = true;
+        runtime.Tick();
+        Require(transport.Submissions == 2 && Current().attemptCount == 6 && !Current().completed,
+            "An accepted history request did not consume exactly one actual attempt.");
+        transport.Pending(new LocalLlmResult(LocalLlmRequestStatus.TimedOut,
+            string.Empty, "fixture timeout", string.Empty));
+        Require(Current().attemptCount == 6 && runtime.PendingCount == 1,
+            "An actual timeout was erased or retained a running reservation.");
+        clock.Time = 121f;
+        runtime.Tick();
+        Require(transport.Submissions == 2, "Actual timeout backoff was shortened.");
+        clock.Time = 122.1f;
+        runtime.Tick();
+        Require(transport.Submissions == 3 && Current().attemptCount == 7
+                && frozen.frozenCurrentEvents.Count > 0
+                && JToken.DeepEquals(JArray.FromObject(Current().frozenCurrentEvents),
+                    JArray.FromObject(frozen.frozenCurrentEvents)),
+            "History retry changed frozen evidence or did not retain actual attempt counting.");
+
+        NarrativePublicPromptEnvelope envelope = EvolutionNarrativePromptFormatter.BuildPromptEnvelope(
+            LocalLlmRequestProfiles.EvolutionHistoryLegacyV2.Id, frozen, "짧은 활",
+            new Dictionary<string, string> { [participant.ActorId] = "관찰자" });
+        JObject wire = JObject.Parse(Encoding.UTF8.GetString(DungeonStoryHostStructuredChatBackend.BuildRequestPayload(
+            "test", LocalLlmRequestProfiles.EvolutionHistoryLegacyV2,
+            LlmStaticSchemaCatalog.Require(LocalLlmRequestProfiles.EvolutionHistoryLegacyV2.Id), envelope.Prompt)));
+        string modelPrompt = (string)wire["messages"][1]["content"];
+        JObject lockedProperties = (JObject)wire["response_format"]["json_schema"]["schema"]["properties"];
+        Require(frozen.evidenceIds.Count == 8
+                && JToken.DeepEquals(lockedProperties["evidenceIds"]["const"], new JArray(frozen.evidenceIds))
+                && (int)lockedProperties["effectBudget"]["const"] == frozen.effectBudget,
+            "History generation did not bind every frozen evidence ID in order and the exact budget.");
+        foreach (string field in new[] { "requestKey", "targetPersistentId", "nodeId", "parentNodeId", "effectId" })
+            Require((string)lockedProperties[field]["const"] == (string)JObject.FromObject(frozen)[field],
+                "History generation changed the locked identity: " + field);
+        bool duplicateRejected = false;
+        try
+        {
+            DungeonStoryHostStructuredChatBackend.BuildRequestPayload("test",
+                LocalLlmRequestProfiles.EvolutionHistoryLegacyV2,
+                LlmStaticSchemaCatalog.Require(LocalLlmRequestProfiles.EvolutionHistoryLegacyV2.Id),
+                "requestKey=duplicate\n" + envelope.Prompt);
+        }
+        catch (InvalidOperationException) { duplicateRejected = true; }
+        Require(duplicateRejected, "History duplicate identity was silently selected.");
+        JObject encoded = JObject.Parse(modelPrompt.Split('\n').Single(line =>
+            line.StartsWith("{\"encoding\":\"repeated-public-text-v1\"", StringComparison.Ordinal)));
+        Require(JToken.DeepEquals(RestoreCompactPublicRowTablePayload(ExpandCompactPublicTextForTest(encoded)),
+                JObject.Parse(envelope.ModelInput.CanonicalPayload)),
+            "History transport changed its public facts, participants, counts or effect context.");
+        Debug.Log("EVOLUTION_HISTORY_ADMISSION_AND_TRANSPORT=PASS; model-calls=0");
+    }
+
     public static void RunFacilitySelectionIdentityTransportScenario()
     {
         VerifyFacilitySelectionIdentityTransport();
@@ -4401,7 +4510,7 @@ public static class V25NarrativeInferenceDebugScenarios
             "Persona accepted a model-owned facility tag.");
     }
 
-    private static void VerifyContextAwareScheduling()
+    internal static void VerifyContextAwareScheduling()
     {
         PrefixAffinityKey affinityA = new PrefixAffinityKey("schema", "A", "facts-a", 1, 1);
         PrefixAffinityKey affinityB = new PrefixAffinityKey("schema", "B", "facts-b", 1, 1);
@@ -4440,6 +4549,24 @@ public static class V25NarrativeInferenceDebugScenarios
             expiresAt: 0.8f));
         int deadline = ContextAwareLlmScheduler.FindNext(queue, 0.7f, affinityA, 0);
         Require(deadline == 2, "deadline-imminent request did not override affinity");
+
+        // Reproduce the observed 8B backlog without a model or elapsed waits.
+        // Later persistent arrivals must not keep an earlier MacroGoal waiting.
+        for (int arrival = 1; arrival <= 8; arrival++)
+        {
+            var backlog = new List<SchedulerFixture> {
+                new SchedulerFixture(20, 0f, affinityB, persistent: false, urgent: false, expiresAt: float.PositiveInfinity),
+                new SchedulerFixture(40, arrival, affinityA, persistent: true, urgent: false, expiresAt: float.PositiveInfinity)
+            };
+            Require(ContextAwareLlmScheduler.FindNext(backlog, arrival + 10f, affinityA, 0) == 0,
+                "persistent arrivals starved an older aged macro goal");
+        }
+        var agedWithDeadline = new List<SchedulerFixture> {
+            new SchedulerFixture(20, 0f, affinityB, persistent: false, urgent: false, expiresAt: float.PositiveInfinity),
+            new SchedulerFixture(1, 9.9f, affinityA, persistent: false, urgent: true, expiresAt: 10.1f)
+        };
+        Require(ContextAwareLlmScheduler.FindNext(agedWithDeadline, 10f, affinityA, 0) == 1,
+            "aged FIFO displaced an imminent deadline");
     }
 
     private static void VerifyTypedEquipmentEvidence()
@@ -5393,6 +5520,36 @@ public static class V25NarrativeInferenceDebugScenarios
         }
 
         public ILocalLlmRuntime GetRequiredRuntime() => runtime;
+    }
+
+    private sealed class HistoryAdmissionClock : DungeonStory.Foundation.IUiClock
+    {
+        public float Time { get; set; }
+        public float DeltaTime => 0f;
+    }
+
+    private sealed class HistoryAdmissionRuntimeStub : ILocalLlmRuntime, ICorrelatedEvolutionHistoryLlmRuntime
+    {
+        public bool Accept;
+        public int Submissions;
+        public Action<LocalLlmResult> Pending;
+        public bool GenerateEvolutionHistoryLegacyV2Async(string key, string prompt, Action<LocalLlmResult> callback)
+        {
+            Submissions++;
+            if (!Accept) return false;
+            Pending = callback;
+            return true;
+        }
+        public bool GenerateEvolutionHistoryAsync(string key, string prompt, Action<LocalLlmResult> callback) => false;
+        public void CancelEvolutionHistoryRequest(string key) { }
+        public bool GenerateCharacterSkillAsync(string prompt, Action<LocalLlmResult> callback) => false;
+        public bool GeneratePersonaAsync(string prompt, Action<LocalLlmResult> callback) => false;
+        public bool GenerateMacroGoalAsync(string prompt, Action<LocalLlmResult> callback) => false;
+        public bool GenerateMoodImpulseAsync(string prompt, Action<LocalLlmResult> callback) => false;
+        public bool GenerateSocialRumorAsync(string prompt, Action<LocalLlmResult> callback) => false;
+        public bool GenerateFacilityEvolutionAsync(string prompt, Action<LocalLlmResult> callback) => false;
+        public bool GenerateCharacterRecordAsync(string prompt, string original, Action<LocalLlmResult> callback) => false;
+        public bool GenerateBubbleLineAsync(string prompt, string original, Action<LocalLlmResult> callback) => false;
     }
 
     private sealed class EquipmentChoiceRuntimeStub :

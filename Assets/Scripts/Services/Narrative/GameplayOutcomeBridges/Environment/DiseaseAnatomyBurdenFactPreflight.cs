@@ -3,7 +3,7 @@ using System.Linq;
 using DungeonStory.Foundation;
 
 /// <summary>Joins pending body facts to their canonical observation without reapplying disease.</summary>
-public sealed class DiseaseAnatomyBurdenFactPreflight : IDungeonSavePreflightValidator, IDungeonCapturedSavePreflightValidator
+public sealed class DiseaseAnatomyBurdenFactPreflight : IDungeonSavePreflightValidator, IDungeonDetachedCapturedSavePreflightValidator
 {
     public void Validate(DungeonGameSaveData save, DungeonGameRestoreReport report) => Validate(
         DungeonSaveSectionPayload.ReadOrNew<PopulationHealthWorldSaveData>(save, PopulationHealthSaveSection.Id),

@@ -287,6 +287,9 @@ public sealed class CharacterRecordTemplateBank
             .Replace("{subject}", subject)
             .Replace("{work}", safeWork)
             .Replace("{workObject}", text.ApplyObjectParticle(safeWork))
+            // 기존 번역의 장소 목적격도 이름과 조사를 함께 처리한다.
+            .Replace("{place}를", text.ApplyObjectParticle(safePlace))
+            .Replace("{place}로", text.ApplyDirectionalParticle(safePlace))
             .Replace("{place}", safePlace)
             .Replace("{target}", safeTarget)
             .Replace("{targetObject}", text.ApplyObjectParticle(safeTarget));

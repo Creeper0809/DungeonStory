@@ -59,12 +59,26 @@ public sealed class SocialRumorPromptComposer
 
         builder.AppendLine("Speaker:");
         builder.AppendLine($"name: {SocialRumorUtility.GetActorLabel(speaker)}");
+        if (speaker != null && speaker.Identity != null && !string.IsNullOrWhiteSpace(speaker.Identity.PersistentId))
+        {
+            builder.AppendLine($"speakerCharacterId={speaker.Identity.PersistentId}");
+            builder.AppendLine($"speakerCharacterName={SocialRumorUtility.GetActorLabel(speaker)}");
+        }
         builder.AppendLine($"species: {(speaker != null ? speaker.SpeciesTag : string.Empty)}");
         builder.AppendLine($"role: {(speaker != null ? speaker.Role.ToString() : string.Empty)}");
         builder.AppendLine("Event:");
         builder.AppendLine($"tag: {entry.Tag}");
         builder.AppendLine($"count: {entry.Count}");
         builder.AppendLine($"message: {entry.OriginalMessage}");
+        if (entry.Activity != null)
+        {
+            builder.AppendLine($"eventKind: {entry.Activity.KindId}");
+            builder.AppendLine($"actionId: {entry.Activity.ActionId}");
+            builder.AppendLine($"outcome: {entry.Activity.OutcomeId}");
+            builder.AppendLine($"reasonCode: {entry.Activity.ReasonCode}");
+            builder.AppendLine($"place: {entry.Activity.PlaceName}");
+            builder.AppendLine($"facilityId: {entry.Activity.FacilityId}");
+        }
         builder.AppendLine("candidateFacilities:");
         AppendCandidateFacilities(builder, speaker, explicitFacility);
         builder.AppendLine("Example: {\"rumorType\":\"Recommendation\",\"targetType\":\"Facility\",\"targetFacilityId\":12,\"targetFacilityTag\":\"Rest\",\"targetCharacterId\":\"\",\"targetCharacterName\":\"\",\"sentiment\":0.6,\"summary\":\"rest facility visit was good\",\"spreadChance\":0.55,\"trustImpact\":0.05,\"validSeconds\":600}");
@@ -107,9 +121,15 @@ public sealed class SocialRumorPromptComposer
             $"{{\"rumorType\":\"{rumorTypeHint}\",\"targetType\":\"Facility\",\"targetFacilityId\":{facility.id},\"targetFacilityTag\":\"{facilityTag}\",\"targetCharacterId\":\"\",\"targetCharacterName\":\"\",\"sentiment\":{(sentiment >= 0f ? "0.75" : "-0.75")},\"summary\":\"short text\",\"spreadChance\":1.0,\"trustImpact\":0.1,\"validSeconds\":600}}");
         builder.AppendLine("Speaker:");
         builder.AppendLine($"name: {SocialRumorUtility.GetActorLabel(speaker)}");
+        if (speaker != null && speaker.Identity != null && !string.IsNullOrWhiteSpace(speaker.Identity.PersistentId))
+        {
+            builder.AppendLine($"speakerCharacterId={speaker.Identity.PersistentId}");
+            builder.AppendLine($"speakerCharacterName={SocialRumorUtility.GetActorLabel(speaker)}");
+        }
         builder.AppendLine($"species: {(speaker != null ? speaker.SpeciesTag : string.Empty)}");
         builder.AppendLine("Facility:");
         builder.AppendLine($"id: {facility.id}");
+        builder.AppendLine($"targetFacilityId={facility.id}");
         builder.AppendLine($"name: {SocialRumorUtility.GetFacilityLabel(facility)}");
         builder.AppendLine($"tag: {facilityTag}");
         builder.AppendLine("Experience:");
@@ -170,7 +190,7 @@ public sealed class SocialRumorPromptComposer
     {
         string label = SocialRumorUtility.GetFacilityLabel(building);
         string tag = SocialRumorUtility.GetFacilityTag(building);
-        builder.AppendLine($"- id={building.id}; name={label}; tag={tag}");
+        builder.AppendLine($"- id={building.id}; targetFacilityId={building.id}; name={label}; tag={tag}");
     }
 
     private static string Truncate(StringBuilder builder, int maxCharacters)

@@ -1,0 +1,23 @@
+{
+  "schema": "r80-model-parts-v1",
+  "modelFile": "DungeonStory-R80-8B-Q4_K_M.gguf",
+  "modelSha256": "2894ec5261b3a8352a375eb6319bbc8dd8c68c9b7b64fba255d51ce1bc2eb9b2",
+  "modelBytes": 5027783552,
+  "parts": [
+    {
+      "file": "DungeonStory-R80-8B-Q4_K_M.gguf.part001",
+      "bytes": 1800000000,
+      "sha256": "5d0302a30fd95d75eb8689226f82017d66a41e93c911e3c25c72e37ca47a1d33"
+    },
+    {
+      "file": "DungeonStory-R80-8B-Q4_K_M.gguf.part002",
+      "bytes": 1800000000,
+      "sha256": "8a97de2335e835e753ab13a6978b85f453231f1a6abe5282a4eab56dcb5218eb"
+    },
+    {
+      "file": "DungeonStory-R80-8B-Q4_K_M.gguf.part003",
+      "bytes": 1427783552,
+      "sha256": "2956e88731b1324b9f29944966e529fc1f019f7dd39f8806b264a048ecee1ccc"
+    }
+  ]
+}

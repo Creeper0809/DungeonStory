@@ -314,6 +314,46 @@ public struct MigratedOutcomeFixedBuffer16<T>
     };
 }
 
+// 작은 사건은 기존 값 버퍼를 사용하고, 큰 사건은 원장의 기존 상한 안에서만 확장한다.
+// 확장 배열은 추가할 때 복사하여 이미 만든 영수증의 내용을 바꾸지 않는다.
+public struct MigratedOutcomeSubjectBuffer<T>
+{
+    private MigratedOutcomeFixedBuffer16<T> inline;
+    private T[] overflow;
+    private readonly int maximumCount;
+
+    public MigratedOutcomeSubjectBuffer(int maximumCount)
+    {
+        this.maximumCount = maximumCount;
+        inline = default;
+        overflow = null;
+    }
+
+    public int Count => inline.Count + (overflow?.Length ?? 0);
+
+    public bool TryAdd(in T value)
+    {
+        if (Count >= maximumCount)
+            return false;
+        if (inline.Count < 16)
+            return inline.TryAdd(value);
+        int previousCount = overflow?.Length ?? 0;
+        var next = new T[previousCount + 1];
+        if (previousCount > 0)
+            Array.Copy(overflow, next, previousCount);
+        next[previousCount] = value;
+        overflow = next;
+        return true;
+    }
+
+    public T Get(int index)
+    {
+        if (index < 0 || index >= Count)
+            throw new ArgumentOutOfRangeException(nameof(index));
+        return index < inline.Count ? inline.Get(index) : overflow[index - inline.Count];
+    }
+}
+
 public readonly struct MigratedProducerOutcomePayload
 {
     internal MigratedProducerOutcomePayload(
@@ -322,9 +362,9 @@ public readonly struct MigratedProducerOutcomePayload
         int absoluteDay,
         GameplayOutcomeStatus status,
         long ownerRevision,
-        in MigratedOutcomeFixedBuffer16<GameplayOutcomeParticipant> participants,
+        in MigratedOutcomeSubjectBuffer<GameplayOutcomeParticipant> participants,
         in MigratedOutcomeFixedBuffer16<GameplayOutcomeMetric> metrics,
-        in MigratedOutcomeFixedBuffer16<GameplayOutcomeSubjectLink> subjects,
+        in MigratedOutcomeSubjectBuffer<GameplayOutcomeSubjectLink> subjects,
         in MigratedOutcomeFixedBuffer16<GameplayOutcomeTagId> tags,
         in MigratedOutcomeFixedBuffer16<GameplayOutcomeProvenanceReference> provenance,
         in MigratedOutcomeFixedBuffer16<GameplayOutcomeFact> facts,
@@ -351,9 +391,9 @@ public readonly struct MigratedProducerOutcomePayload
     public int AbsoluteDay { get; }
     public GameplayOutcomeStatus Status { get; }
     public long OwnerRevision { get; }
-    public MigratedOutcomeFixedBuffer16<GameplayOutcomeParticipant> Participants { get; }
+    public MigratedOutcomeSubjectBuffer<GameplayOutcomeParticipant> Participants { get; }
     public MigratedOutcomeFixedBuffer16<GameplayOutcomeMetric> Metrics { get; }
-    public MigratedOutcomeFixedBuffer16<GameplayOutcomeSubjectLink> Subjects { get; }
+    public MigratedOutcomeSubjectBuffer<GameplayOutcomeSubjectLink> Subjects { get; }
     public MigratedOutcomeFixedBuffer16<GameplayOutcomeTagId> Tags { get; }
     public MigratedOutcomeFixedBuffer16<GameplayOutcomeProvenanceReference> Provenance { get; }
     public MigratedOutcomeFixedBuffer16<GameplayOutcomeFact> Facts { get; }
@@ -368,9 +408,9 @@ public struct MigratedProducerOutcomePayloadBuilder
     private readonly int absoluteDay;
     private readonly GameplayOutcomeStatus status;
     private readonly long ownerRevision;
-    private MigratedOutcomeFixedBuffer16<GameplayOutcomeParticipant> participants;
+    private MigratedOutcomeSubjectBuffer<GameplayOutcomeParticipant> participants;
     private MigratedOutcomeFixedBuffer16<GameplayOutcomeMetric> metrics;
-    private MigratedOutcomeFixedBuffer16<GameplayOutcomeSubjectLink> subjects;
+    private MigratedOutcomeSubjectBuffer<GameplayOutcomeSubjectLink> subjects;
     private MigratedOutcomeFixedBuffer16<GameplayOutcomeTagId> tags;
     private MigratedOutcomeFixedBuffer16<GameplayOutcomeProvenanceReference> provenance;
     private MigratedOutcomeFixedBuffer16<GameplayOutcomeFact> facts;
@@ -389,9 +429,11 @@ public struct MigratedProducerOutcomePayloadBuilder
         this.absoluteDay = absoluteDay;
         this.status = status;
         this.ownerRevision = ownerRevision;
-        participants = default;
+        participants = new MigratedOutcomeSubjectBuffer<GameplayOutcomeParticipant>(
+            GameplayOutcomeBufferLimits.AbsoluteMaximumParticipantsPerOutcome);
         metrics = default;
-        subjects = default;
+        subjects = new MigratedOutcomeSubjectBuffer<GameplayOutcomeSubjectLink>(
+            GameplayOutcomeBufferLimits.AbsoluteMaximumSubjectsPerOutcome);
         tags = default;
         provenance = default;
         facts = default;

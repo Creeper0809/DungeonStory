@@ -7,7 +7,7 @@ using DungeonStory.Narrative.Korean;
 // Only the observer boundary understands the saved reference and canonical ledger.
 // Compare detached owners; preflight must not deliver records or repeat a drink.
 public sealed class CharacterWaterFactPreflight :
-    IDungeonSavePreflightValidator, IDungeonCapturedSavePreflightValidator
+    IDungeonSavePreflightValidator, IDungeonDetachedCapturedSavePreflightValidator
 {
     public void Validate(DungeonGameSaveData save, DungeonGameRestoreReport report) => Validate(
         DungeonSaveSectionPayload.ReadOrNew<DungeonDarkSurvivalSaveData>(save, DarkSurvivalSaveSection.Id),

@@ -7,7 +7,7 @@ using DungeonStory.Narrative.Korean;
 
 // Only the observer-side save boundary interprets native publication keys.
 public sealed class StockSupplyFactPreflight : IDungeonSavePreflightValidator,
-    IDungeonCapturedSavePreflightValidator, IDungeonSaveRegistryPreflightValidator
+    IDungeonDetachedCapturedSavePreflightValidator, IDungeonSaveRegistryPreflightValidator
 {
     public void Validate(DungeonGameSaveData save, DungeonGameRestoreReport report) =>
         Validate(save.sections.ToDictionary(row => row.sectionId, StringComparer.Ordinal), report);

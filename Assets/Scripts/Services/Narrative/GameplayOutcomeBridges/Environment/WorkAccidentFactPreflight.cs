@@ -3,7 +3,7 @@ using System.Linq;
 using DungeonStory.Foundation;
 using DungeonStory.Narrative.Korean;
 
-public sealed class WorkAccidentFactPreflight : IDungeonSavePreflightValidator, IDungeonCapturedSavePreflightValidator
+public sealed class WorkAccidentFactPreflight : IDungeonSavePreflightValidator, IDungeonDetachedCapturedSavePreflightValidator
 {
     public void Validate(DungeonGameSaveData save, DungeonGameRestoreReport report) => Validate(
         DungeonSaveSectionPayload.ReadOrNew<DungeonWorkOrderSaveData>(save, WorkOrdersSaveSection.Id),

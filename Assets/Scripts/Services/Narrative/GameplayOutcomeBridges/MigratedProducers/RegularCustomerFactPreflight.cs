@@ -9,7 +9,7 @@ using DungeonStory.Narrative.Korean;
 // from the frozen domain fact before a save can be restored.
 public sealed class RegularCustomerFactPreflight :
     IDungeonSavePreflightValidator,
-    IDungeonCapturedSavePreflightValidator,
+    IDungeonDetachedCapturedSavePreflightValidator,
     IDungeonSaveRegistryPreflightValidator
 {
     private static readonly HashSet<MigratedProducerOutcomeKind> AllowedKinds =

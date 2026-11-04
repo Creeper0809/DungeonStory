@@ -191,11 +191,11 @@ public static class InvasionLifecycleFactObservation
             data.runtimeId + ":front-collapse");
         return data.stage switch
         {
-            InvasionLifecycleStage.Breached => started,
+            InvasionLifecycleStage.Breached => started || collapsed,
             InvasionLifecycleStage.FacilityDamaged =>
-                started || breached || damaged,
+                started || breached || damaged || collapsed,
             InvasionLifecycleStage.FrontCollapsed =>
-                started || breached || damaged,
+                started || breached || damaged || collapsed,
             InvasionLifecycleStage.Resolved =>
                 started || breached || damaged || collapsed,
             _ => false

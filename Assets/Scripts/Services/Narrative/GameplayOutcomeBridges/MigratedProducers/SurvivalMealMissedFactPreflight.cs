@@ -7,7 +7,7 @@ using DungeonStory.Narrative.Korean;
 
 // Native identity and canonical payload checks belong to the observer, not survival.
 public sealed class SurvivalMealMissedFactPreflight :
-    IDungeonSavePreflightValidator, IDungeonCapturedSavePreflightValidator
+    IDungeonSavePreflightValidator, IDungeonDetachedCapturedSavePreflightValidator
 {
     public void Validate(DungeonGameSaveData save, DungeonGameRestoreReport report)
     {

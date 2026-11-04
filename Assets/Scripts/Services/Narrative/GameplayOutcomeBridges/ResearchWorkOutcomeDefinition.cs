@@ -585,9 +585,9 @@ public sealed class ResearchWorkOutcomeDescriptor : IGameplayOutcomeDescriptor
         bool completed)
     {
         if (!completed)
-            return outcome.AnchorCount == 0;
-        if (outcome.AnchorCount != 1
-            || outcome.GetAnchorSubject(0) != project)
+            return outcome.ProductionAnchorCount == 0;
+        if (outcome.ProductionAnchorCount != 1
+            || outcome.GetProductionAnchorSubject(0) != project)
         {
             return false;
         }
@@ -595,7 +595,7 @@ public sealed class ResearchWorkOutcomeDescriptor : IGameplayOutcomeDescriptor
             ResearchWorkOutcomeValidation.CompletionAnchor(
                 outcome.ResultKey,
                 project.Value);
-        return outcome.GetAnchor(0).Equals(expected);
+        return outcome.GetProductionAnchor(0).Equals(expected);
     }
 }
 

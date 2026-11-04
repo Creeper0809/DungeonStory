@@ -249,6 +249,7 @@ internal sealed class MemoryErasurePerspectiveProjector :
     }
 }
 
+// 생산 형태는 봉인 당시 근거로 검사한다. 이후 소유자의 pin 추가와 해제는 현재 근거만 바꾼다.
 public sealed class ApparelChangeOutcomeDescriptor : IGameplayOutcomeDescriptor
 {
     private static readonly INarrativePerspectiveProjector Projector =
@@ -278,7 +279,7 @@ public sealed class ApparelChangeOutcomeDescriptor : IGameplayOutcomeDescriptor
         && outcome.MetricCount == 2
         && outcome.SubjectCount == 1
         && outcome.TagCount == 1
-        && outcome.AnchorCount == 0
+        && outcome.ProductionAnchorCount == 0
             ? OutcomeValidationResult.Accepted
             : OutcomeValidationResult.Reject("apparel-change-shape-invalid");
 }
@@ -323,7 +324,7 @@ public sealed class ApparelPhysicalOutcomeDescriptor : IGameplayOutcomeDescripto
                 && outcome.MetricCount == 5
                 && outcome.SubjectCount == 3
                 && outcome.TagCount == 2)
-        && outcome.AnchorCount == 3
+        && outcome.ProductionAnchorCount == 3
             ? OutcomeValidationResult.Accepted
             : OutcomeValidationResult.Reject("apparel-physical-shape-invalid");
 }
@@ -362,7 +363,7 @@ public sealed class ProductQualityOutcomeDescriptor : IGameplayOutcomeDescriptor
         && outcome.MetricCount == 3
         && outcome.SubjectCount == 1
         && outcome.TagCount == 2
-        && outcome.AnchorCount == 1
+        && outcome.ProductionAnchorCount == 1
             ? OutcomeValidationResult.Accepted
             : OutcomeValidationResult.Reject("product-quality-shape-invalid");
 }
@@ -397,7 +398,7 @@ public sealed class AcquiredTraitInferenceOutcomeDescriptor :
         && outcome.MetricCount == 2
         && outcome.SubjectCount == 1
         && outcome.TagCount == 1
-        && outcome.AnchorCount == 3
+        && outcome.ProductionAnchorCount == 3
             ? OutcomeValidationResult.Accepted
             : OutcomeValidationResult.Reject(
                 "acquired-trait-inference-shape-invalid");
@@ -432,7 +433,7 @@ public sealed class MemoryErasureBossAwardOutcomeDescriptor :
         && outcome.MetricCount == 1
         && outcome.SubjectCount == 1
         && outcome.TagCount == 1
-        && outcome.AnchorCount == 1
+        && outcome.ProductionAnchorCount == 1
             ? OutcomeValidationResult.Accepted
             : OutcomeValidationResult.Reject(
                 "memory-erasure-boss-award-shape-invalid");
@@ -468,7 +469,7 @@ public sealed class AcquiredTraitReactionOutcomeDescriptor :
         && outcome.MetricCount == 1
         && outcome.SubjectCount == 1
         && outcome.TagCount == 1
-        && outcome.AnchorCount == 2
+        && outcome.ProductionAnchorCount == 2
             ? OutcomeValidationResult.Accepted
             : OutcomeValidationResult.Reject("trait-reaction-shape-invalid");
 }
@@ -506,7 +507,7 @@ public sealed class FacilityEvolutionOutcomeDescriptor : IGameplayOutcomeDescrip
         && outcome.MetricCount == 4
         && outcome.SubjectCount == 1
         && outcome.TagCount == 1
-        && outcome.InitialAnchorCount is 0 or 2
+        && outcome.ProductionAnchorCount is 0 or 2
             ? OutcomeValidationResult.Accepted
             : OutcomeValidationResult.Reject("facility-evolution-shape-invalid");
 }
@@ -544,7 +545,7 @@ public sealed class MemoryErasureOutcomeDescriptor : IGameplayOutcomeDescriptor
         && outcome.MetricCount == 4
         && outcome.SubjectCount == 1
         && outcome.TagCount == 1
-        && outcome.AnchorCount is 1 or 2
+        && outcome.ProductionAnchorCount is 1 or 2
             ? OutcomeValidationResult.Accepted
             : OutcomeValidationResult.Reject("memory-erasure-shape-invalid");
 }

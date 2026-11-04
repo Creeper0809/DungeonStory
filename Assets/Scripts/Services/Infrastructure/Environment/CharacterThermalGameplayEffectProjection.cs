@@ -7,6 +7,8 @@ using UnityEngine;
 /// </summary>
 public static class CharacterThermalGameplayEffectProjection
 {
+    private static readonly string[] ExposureFormulas =
+        { "performance:survival:cold-exposure", "performance:survival:heat-exposure" };
     public const string ComfortMinimumOffsetTarget =
         "environment:comfort-minimum-offset";
     public const string SafeMinimumOffsetTarget =
@@ -28,15 +30,8 @@ public static class CharacterThermalGameplayEffectProjection
         profile.safeMinimumOffset += actor.ProjectDetailedStat(
             SafeMinimumOffsetTarget,
             0f).Value;
-        profile.coldExposureMultiplier *= Mathf.Max(
-            0.05f,
-            performance.Evaluate(
-                actor,
-                "performance:survival:cold-exposure").Value);
-        profile.heatExposureMultiplier *= Mathf.Max(
-            0.05f,
-            performance.Evaluate(
-                actor,
-                "performance:survival:heat-exposure").Value);
+        var exposure = performance.EvaluateMany(actor, ExposureFormulas);
+        profile.coldExposureMultiplier *= Mathf.Max(0.05f, exposure[0].Value);
+        profile.heatExposureMultiplier *= Mathf.Max(0.05f, exposure[1].Value);
     }
 }

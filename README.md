@@ -4,20 +4,21 @@ Unity 게임 개발 저장소다. Windows x64와 Unity **6000.3.8f1**을 기준�
 
 ## 개발 시작
 
-Git과 Git LFS를 설치한 뒤 다음 순서로 받는다. 최신 파일만 받으려면 얕은 복제를 사용한다.
+Git, Git LFS와 Python 3.10 이상을 설치한 뒤 다음 순서로 받는다. 최신 파일만 받으려면 얕은 복제를 사용한다.
 
 ```powershell
 git lfs install
 git clone --depth 1 https://github.com/Creeper0809/DungeonStory.git
 cd DungeonStory
 git lfs pull
+python tools/Repository/restore_r80_model.py
 ```
 
 Unity Hub에서 이 폴더를 추가하고 6000.3.8f1로 연다. 첫 실행에서는 패키지 복원과 에셋 가져오기가 끝날 때까지 기다린다. 시작 씬은 `Assets/Scenes/TitleScene.unity`다.
 
 Git LFS는 모델, 플러그인, 폰트와 이미지의 실제 파일을 받는 데 필요하다. ZIP 대신 위 복제 방법을 사용한다. `Library`, IDE 솔루션과 사용자 설정은 Unity와 편집기가 다시 만든다.
 
-Python 3.10 이상이 있으면 편집기를 열기 전에 필수 파일을 검사할 수 있다.
+편집기를 열기 전에 필수 파일을 검사할 수 있다.
 
 ```powershell
 python tools/Repository/verify_checkout.py
@@ -31,7 +32,12 @@ python tools/Repository/verify_checkout.py
 - `Packages/`, `ProjectSettings/`: 고정 패키지와 Unity 프로젝트 설정
 - `tools/`, `.github/`: 개발 도구와 자동 검사
 - `docs/`, `docs_final/`, `wiki/`: 설계 문서, 생성 인덱스와 위키 소스
-- `Assets/StreamingAssets/DungeonStoryLlm/`: 현재 main의 Windows 로컬 모델과 실행 파일
+- `Assets/StreamingAssets/R80/`: 기본 R80 8B 모델과 Windows 실행 파일
+- `RuntimePackages/R80/`: 원본 모델 복원용 LFS 조각. Unity 빌드에는 포함되지 않음
+- `Assets/StreamingAssets/narrative-runtime.json`: 기본 모델 선택과 manifest 해시
+- `Assets/StreamingAssets/DungeonStoryLlm/`: 보존된 기존 1.7B 번들
+
+R80 모델은 GitHub의 파일당 2GB 제한 때문에 3개 조각으로 보관한다. 위 복원 명령은 원래 모델의 크기와 SHA-256을 확인하고 같은 파일로 복원한다. 이미 정상 복원된 모델은 재작성하지 않는다. 모델 조각과 실행 파일 약 6GB 외에 복원된 모델용 디스크 약 5GB가 필요하다. 기본 모델은 로컬 R60과 같은 R80이며 학습 후보를 배포 인증으로 표시하지 않는다.
 
 별도 모델 학습 저장소나 개인 컴퓨터의 소스 복사본은 프로젝트를 여는 데 필요하지 않다. 배포된 모델의 종류와 상태는 해당 폴더의 `manifest.json`을 따른다. 진행 중인 다른 브랜치의 모델이나 게임 변경이 자동으로 포함되지는 않는다.
 

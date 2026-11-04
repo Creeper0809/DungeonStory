@@ -8,7 +8,7 @@ using DungeonStory.Foundation.Facts;
 // remains authoritative in the physical combat-equipment component.
 public sealed class EquipmentModuleSelectedFactPreflight :
     IDungeonSavePreflightValidator,
-    IDungeonCapturedSavePreflightValidator
+    IDungeonDetachedCapturedSavePreflightValidator
 {
     public void Validate(DungeonGameSaveData save, DungeonGameRestoreReport report)
     {

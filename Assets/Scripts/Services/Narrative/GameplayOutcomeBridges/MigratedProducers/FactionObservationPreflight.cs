@@ -7,7 +7,7 @@ using DungeonStory.Infrastructure;
 using DungeonStory.Narrative.Korean;
 using UnityEngine;
 
-public sealed class FactionObservationPreflight : IDungeonSavePreflightValidator, IDungeonCapturedSavePreflightValidator
+public sealed class FactionObservationPreflight : IDungeonSavePreflightValidator, IDungeonDetachedCapturedSavePreflightValidator
 {
     public void Validate(DungeonGameSaveData save, DungeonGameRestoreReport report) => Validate(
         DungeonSaveSectionPayload.ReadOrNew<DungeonFactionSaveData>(save, FactionSaveSection.Id),

@@ -87,17 +87,35 @@ def main() -> None:
             pointer = stream.read(64).startswith(b'version https://git-lfs.github.com/spec/v1')
         require(not pointer, 'Run git lfs pull: ' + entry['name'])
         require(path.stat().st_size == entry['size'], 'LFS size mismatch: ' + entry['name'])
-    runtime = ROOT / 'Assets/StreamingAssets/DungeonStoryLlm'
-    manifest = json.loads((runtime / 'manifest.json').read_text(encoding='utf-8-sig'))
-    binaries = [(manifest['hostWindows'], manifest['hostWindowsSha256']),
-                (manifest['modelFile'], manifest['modelSha256'])]
-    binaries += [(row['file'], row['sha256']) for row in manifest['supportFiles']]
-    for name, expected in binaries:
-        require(bool(name) and Path(name).name == name, 'Unsafe/missing runtime filename')
-        path = runtime / name
-        require(path.is_file(), 'Runtime file missing: ' + name)
-        require(digest(path) == expected, 'Runtime hash mismatch: ' + name)
-    print(f'CHECKOUT=PASS; scenes={len(scenes)}; lfs={len(lfs_files)}; runtime={len(binaries)}; fixtures={len(fixtures)}')
+    streaming = ROOT / 'Assets/StreamingAssets'
+    runtimes = [streaming / 'DungeonStoryLlm']
+    activation = streaming / 'narrative-runtime.json'
+    if activation.is_file():
+        active = json.loads(activation.read_bytes())
+        relative = active.get('relativeRoot', '')
+        selected = (streaming / relative).resolve()
+        require(bool(relative) and not Path(relative).is_absolute()
+                and selected.is_relative_to(streaming.resolve()) and selected != streaming.resolve(),
+                'Unsafe active runtime root')
+        runtime = selected / 'DungeonStoryLlm'
+        require(digest(runtime / 'manifest.json') == active.get('manifestSha256'),
+                'Active runtime manifest hash mismatch')
+        runtimes.append(runtime)
+    checked_binaries = 0
+    for runtime in runtimes:
+        manifest = json.loads((runtime / 'manifest.json').read_bytes())
+        binaries = [(manifest['hostWindows'], manifest['hostWindowsSha256']),
+                    (manifest['modelFile'], manifest['modelSha256'])]
+        binaries += [(row['file'], row['sha256']) for row in manifest['supportFiles']]
+        for name, expected in binaries:
+            path = (runtime / name).resolve()
+            require(bool(name) and not Path(name).is_absolute()
+                    and path.is_relative_to(runtime.resolve()) and path != runtime.resolve(),
+                    'Unsafe/missing runtime filename')
+            require(path.is_file(), 'Runtime file missing; run restore_r80_model.py if needed: ' + name)
+            require(digest(path) == expected, 'Runtime hash mismatch: ' + name)
+        checked_binaries += len(binaries)
+    print(f'CHECKOUT=PASS; scenes={len(scenes)}; lfs={len(lfs_files)}; runtime={checked_binaries}; fixtures={len(fixtures)}')
     print('Scope: file completeness and integrity; Unity import/compilation/play not executed.')
 
 

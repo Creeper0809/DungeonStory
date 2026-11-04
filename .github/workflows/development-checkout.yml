@@ -36,4 +36,9 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - name: Test atomic model restoration
+        run: python -m unittest discover -s tools/Repository -p "test_*.py"
+      - name: Restore exact R80 model from verified LFS parts
+        run: python tools/Repository/restore_r80_model.py
+
       - run: python tools/Repository/verify_checkout.py

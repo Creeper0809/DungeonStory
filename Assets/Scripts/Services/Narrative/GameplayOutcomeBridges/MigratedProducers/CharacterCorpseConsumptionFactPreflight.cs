@@ -8,7 +8,7 @@ using DungeonStory.Narrative.Korean;
 // Saved gameplay facts retain no knowledge of ledger identities. This observer-side
 // join validates both atomic members before any live aggregate is changed.
 public sealed class CharacterCorpseConsumptionFactPreflight :
-    IDungeonSavePreflightValidator, IDungeonCapturedSavePreflightValidator
+    IDungeonSavePreflightValidator, IDungeonDetachedCapturedSavePreflightValidator
 {
     public void Validate(DungeonGameSaveData save, DungeonGameRestoreReport report) => Validate(
         DungeonSaveSectionPayload.ReadOrNew<DungeonDarkSurvivalSaveData>(save, DarkSurvivalSaveSection.Id),

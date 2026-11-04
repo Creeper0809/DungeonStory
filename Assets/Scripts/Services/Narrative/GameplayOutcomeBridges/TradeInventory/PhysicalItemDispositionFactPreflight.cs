@@ -6,7 +6,7 @@ using DungeonStory.Narrative.Korean;
 
 /// <summary>The observer, not the item owner, joins opaque saved publications to its ledger.</summary>
 public sealed class PhysicalItemDispositionFactPreflight :
-    IDungeonSavePreflightValidator, IDungeonCapturedSavePreflightValidator
+    IDungeonSavePreflightValidator, IDungeonDetachedCapturedSavePreflightValidator
 {
     public void Validate(DungeonGameSaveData saveData, DungeonGameRestoreReport report) => Validate(
         DungeonSaveSectionPayload.ReadOrNew<DungeonPhysicalItemSaveData>(saveData, PhysicalItemsSaveSection.Id),

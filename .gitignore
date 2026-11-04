@@ -165,3 +165,8 @@ __pycache__/
 /progress.md
 /.codex/
 *.slnx
+
+# R80 native Python extensions are required runtime files.
+!Assets/StreamingAssets/R80/DungeonStoryLlm/python/**/*.pyd
+# The exact model is restored from the tracked LFS parts before opening Unity.
+/Assets/StreamingAssets/R80/DungeonStoryLlm/DungeonStory-R80-8B-Q4_K_M.gguf

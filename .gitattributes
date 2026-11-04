@@ -225,3 +225,17 @@ Artifacts/QA/PlayProgression-20261022/** -text
 
 # This fixed legacy input is verified against its committed LF byte hash.
 Artifacts/QA/GameplayOutcomeLedgerPhase80FinalClosure-20260920-r6/final-closure.json text eol=lf
+
+# Active R80 runtime hashes bind original bytes on every platform.
+Assets/StreamingAssets/R80/** -text whitespace=cr-at-eol
+Assets/StreamingAssets/narrative-runtime.json -text whitespace=cr-at-eol
+*.pyd lfs
+*.gguf.part[0-9][0-9][0-9] lfs
+
+Artifacts/QA/R80PrototypePolish-20261028-r1/soak-polish-r5/unity-evidence/persistent-data/Saves/r80-extended-soak-checkpoint-1.json lfs
+
+Artifacts/QA/R80Latency-20261028-r1/soak-r17/unity-evidence/persistent-data/Saves/r80-extended-soak-final.json lfs
+
+Artifacts/QA/R80Integration-20261027-r1/play-r20/committed-world.json lfs
+
+RuntimePackages/R80/model-parts.json text eol=lf

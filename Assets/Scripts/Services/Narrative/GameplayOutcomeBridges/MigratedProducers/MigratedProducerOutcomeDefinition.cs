@@ -560,7 +560,7 @@ public sealed class MigratedProducerOutcomeAdapter :
     }
 
     private static bool ContainsParticipant(
-        MigratedOutcomeFixedBuffer16<GameplayOutcomeParticipant> participants,
+        MigratedOutcomeSubjectBuffer<GameplayOutcomeParticipant> participants,
         GameplayEntityId subjectId)
     {
         for (int index = 0; index < participants.Count; index++)

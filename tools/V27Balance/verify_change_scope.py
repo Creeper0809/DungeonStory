@@ -143,17 +143,31 @@ def configuration_snapshot(root: Path = ROOT) -> str:
     digest = hashlib.sha256()
     for relative in sorted(captured, key=lambda value: value.encode("utf-8")):
         path = captured[relative]
-        raw = path.read_bytes()
-        # Git's platform newline conversion also applies to extensionless LICENSE
-        # and differently-cased text extensions. Binary/opaque .bytes stay exact.
-        if path.suffix != ".bytes" and b"\0" not in raw:
-            try:
-                text = raw.decode("utf-8-sig", errors="strict")
-            except UnicodeDecodeError:
-                pass  # Binary identity is the original bytes, not replacement text.
+        # Match the Editor verifier: stream binary model inputs rather than
+        # allocating multi-gigabyte files. Every byte remains in the digest.
+        opaque = path.suffix == ".bytes"
+        with path.open("rb") as stream:
+            if not opaque:
+                while block := stream.read(64 * 1024):
+                    if b"\0" in block:
+                        opaque = True
+                        break
+            if opaque:
+                stream.seek(0)
+                file_digest = hashlib.sha256()
+                for block in iter(lambda: stream.read(1024 * 1024), b""):
+                    file_digest.update(block)
+                file_hash = file_digest.hexdigest()
             else:
-                raw = text.replace("\r\n", "\n").replace("\r", "\n").encode("utf-8")
-        digest.update(f"{relative}\n{hashlib.sha256(raw).hexdigest()}\n".encode("utf-8"))
+                raw = path.read_bytes()
+                try:
+                    text = raw.decode("utf-8-sig", errors="strict")
+                except UnicodeDecodeError:
+                    pass  # Non-UTF8 identity is the original byte sequence.
+                else:
+                    raw = text.replace("\r\n", "\n").replace("\r", "\n").encode("utf-8")
+                file_hash = hashlib.sha256(raw).hexdigest()
+        digest.update(f"{relative}\n{file_hash}\n".encode("utf-8"))
     return digest.hexdigest()
 
 

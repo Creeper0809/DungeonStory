@@ -306,7 +306,7 @@ public sealed class IdleSocialInteractionOutcomeDescriptor :
         && outcome.MetricCount == 8
         && outcome.SubjectCount == 2
         && outcome.TagCount == 2
-        && outcome.AnchorCount == 0
+        && outcome.ProductionAnchorCount == 0
         && outcome.ProvenanceCount == 1
             ? OutcomeValidationResult.Accepted
             : OutcomeValidationResult.Reject(

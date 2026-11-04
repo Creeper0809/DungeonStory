@@ -6,7 +6,7 @@ using DungeonStory.Foundation.Facts;
 using DungeonStory.Narrative.Korean;
 
 /// <summary>Only the observer joins the owner's opaque publication to native storage.</summary>
-public sealed class ConstructionWorkEndedFactPreflight : IDungeonSavePreflightValidator, IDungeonCapturedSavePreflightValidator
+public sealed class ConstructionWorkEndedFactPreflight : IDungeonSavePreflightValidator, IDungeonDetachedCapturedSavePreflightValidator
 {
     public void Validate(DungeonGameSaveData save, DungeonGameRestoreReport report)
     {

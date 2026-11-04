@@ -5,11 +5,13 @@ using DungeonStory.Characters;
 using DungeonStory.Foundation;
 using DungeonStory.Foundation.Facts;
 using UnityEngine;
+using Unity.Profiling;
 using VContainer;
 
 [DisallowMultipleComponent]
 public sealed class CharacterProgression : MonoBehaviour, ICharacterTraitInferenceAuthority
 {
+    private static readonly ProfilerMarker TraitCaptureMarker = new("AcquiredTrait.CaptureState");
     private const string PreparedOriginFactPrefix = "identity:prepared-origin:";
     private const string PreparedHistoryFactPrefix = "identity:prepared-history:";
     private const string PreparedIdentityEventGroup = "identity:prepared";
@@ -572,8 +574,12 @@ public sealed class CharacterProgression : MonoBehaviour, ICharacterTraitInferen
         else NotifyChangedWithoutAffectingCommittedState();
     }
 
+    internal object AcquiredTraitReadIdentity => acquiredTraitState?.ReadIdentity;
+    internal int AcquiredTraitReadRevision => acquiredTraitState?.revision ?? -1;
+
     public CharacterAcquiredTraitAggregateState CaptureAcquiredTraitState()
     {
+        using var sample = TraitCaptureMarker.Auto();
         RequireTraitStateAvailable();
         acquiredTraitState ??= new CharacterAcquiredTraitAggregateState();
         acquiredTraitState.EnsureCollections();

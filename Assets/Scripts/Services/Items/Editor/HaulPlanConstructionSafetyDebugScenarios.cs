@@ -1117,6 +1117,9 @@ public static class HaulPlanConstructionSafetyDebugScenarios
         public CharacterPerformanceSnapshot EvaluateWork(CharacterActor actor, WorkTypeId id, CharacterPerformanceResultChannel channel, CharacterPerformanceEvaluationContext context) =>
             original.EvaluateWork(actor, id, channel, context);
         public IReadOnlyList<CharacterPerformanceSnapshot> EvaluateDomain(CharacterActor actor, CharacterPerformanceFormulaDomain domain) => original.EvaluateDomain(actor, domain);
+        public IReadOnlyList<CharacterPerformanceSnapshot> EvaluateMany(CharacterActor actor,
+            IReadOnlyList<string> formulaIds, CharacterPerformanceEvaluationContext context = null) =>
+            formulaIds.Select(id => Apply(id, () => original.Evaluate(actor, id, context))).ToArray();
     }
 
     private static string VerifyAvailabilityRequiresReachableWarehouse()

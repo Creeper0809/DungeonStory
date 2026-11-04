@@ -231,7 +231,7 @@ MonoBehaviour:
     m_Localized: "{subject} {place}\uC5D0\uC11C {workObject} \uC2DC\uC791\uD588\uB2E4.\n{subject}
       \uC228\uC744 \uACE0\uB974\uACE0 {workObject} \uBD99\uC7A1\uC558\uB2E4.\n{subject}
       {place}\uB85C \uD5A5\uD574 {workObject} \uC2DC\uC791\uD588\uB2E4.\n{subject}
-      \uC18C\uB9E4\uB97C \uAC77\uACE0 {workObject} \uB4E4\uC5B4\uAC14\uB2E4."
+      \uC18C\uB9E4\uB97C \uAC77\uACE0 {workObject} \uC2DC\uC791\uD588\uB2E4."
     m_Metadata:
       m_Items: []
   - m_Id: 418730028
@@ -358,43 +358,43 @@ MonoBehaviour:
   - m_Id: 418730048
     m_Localized: "{subject} {place}\uC5D0\uC11C {workObject} \uC2DC\uC791\uD588\uB2E4.\n{subject}
       \uC228\uC744 \uACE0\uB974\uACE0 {workObject} \uBD99\uC7A1\uC558\uB2E4.\n{subject}
-      {place}\uB85C \uD5A5\uD574 {workObject} \uB4E4\uC5B4\uAC14\uB2E4."
+      {place}\uB85C \uD5A5\uD574 {workObject} \uC2DC\uC791\uD588\uB2E4."
     m_Metadata:
       m_Items: []
   - m_Id: 418730049
     m_Localized: "{subject} {place}\uC5D0\uC11C {workObject} \uC2DC\uC791\uD588\uB2E4.\n{subject}
       \uC228\uC744 \uACE0\uB974\uACE0 {workObject} \uBD99\uC7A1\uC558\uB2E4.\n{subject}
-      {place}\uB85C \uD5A5\uD574 {workObject} \uB4E4\uC5B4\uAC14\uB2E4."
+      {place}\uB85C \uD5A5\uD574 {workObject} \uC2DC\uC791\uD588\uB2E4."
     m_Metadata:
       m_Items: []
   - m_Id: 418730050
     m_Localized: "{subject} {place}\uC5D0\uC11C {workObject} \uC2DC\uC791\uD588\uB2E4.\n{subject}
       \uC228\uC744 \uACE0\uB974\uACE0 {workObject} \uBD99\uC7A1\uC558\uB2E4.\n{subject}
-      {place}\uB85C \uD5A5\uD574 {workObject} \uB4E4\uC5B4\uAC14\uB2E4."
+      {place}\uB85C \uD5A5\uD574 {workObject} \uC2DC\uC791\uD588\uB2E4."
     m_Metadata:
       m_Items: []
   - m_Id: 418730051
     m_Localized: "{subject} {place}\uC5D0\uC11C {workObject} \uC2DC\uC791\uD588\uB2E4.\n{subject}
       \uC228\uC744 \uACE0\uB974\uACE0 {workObject} \uBD99\uC7A1\uC558\uB2E4.\n{subject}
-      {place}\uB85C \uD5A5\uD574 {workObject} \uB4E4\uC5B4\uAC14\uB2E4."
+      {place}\uB85C \uD5A5\uD574 {workObject} \uC2DC\uC791\uD588\uB2E4."
     m_Metadata:
       m_Items: []
   - m_Id: 418730052
     m_Localized: "{subject} {place}\uC5D0\uC11C {workObject} \uC2DC\uC791\uD588\uB2E4.\n{subject}
       \uC228\uC744 \uACE0\uB974\uACE0 {workObject} \uBD99\uC7A1\uC558\uB2E4.\n{subject}
-      {place}\uB85C \uD5A5\uD574 {workObject} \uB4E4\uC5B4\uAC14\uB2E4."
+      {place}\uB85C \uD5A5\uD574 {workObject} \uC2DC\uC791\uD588\uB2E4."
     m_Metadata:
       m_Items: []
   - m_Id: 418730053
     m_Localized: "{subject} {place}\uC5D0\uC11C {workObject} \uC2DC\uC791\uD588\uB2E4.\n{subject}
       \uC228\uC744 \uACE0\uB974\uACE0 {workObject} \uBD99\uC7A1\uC558\uB2E4.\n{subject}
-      {place}\uB85C \uD5A5\uD574 {workObject} \uB4E4\uC5B4\uAC14\uB2E4."
+      {place}\uB85C \uD5A5\uD574 {workObject} \uC2DC\uC791\uD588\uB2E4."
     m_Metadata:
       m_Items: []
   - m_Id: 418730054
     m_Localized: "{subject} {place}\uC5D0\uC11C {workObject} \uC2DC\uC791\uD588\uB2E4.\n{subject}
       \uC228\uC744 \uACE0\uB974\uACE0 {workObject} \uBD99\uC7A1\uC558\uB2E4.\n{subject}
-      {place}\uB85C \uD5A5\uD574 {workObject} \uB4E4\uC5B4\uAC14\uB2E4."
+      {place}\uB85C \uD5A5\uD574 {workObject} \uC2DC\uC791\uD588\uB2E4."
     m_Metadata:
       m_Items: []
   - m_Id: 418730055
@@ -406,37 +406,37 @@ MonoBehaviour:
   - m_Id: 418730056
     m_Localized: "{subject} {place}\uC5D0\uC11C {workObject} \uC2DC\uC791\uD588\uB2E4.\n{subject}
       \uC228\uC744 \uACE0\uB974\uACE0 {workObject} \uBD99\uC7A1\uC558\uB2E4.\n{subject}
-      {place}\uB85C \uD5A5\uD574 {workObject} \uB4E4\uC5B4\uAC14\uB2E4."
+      {place}\uB85C \uD5A5\uD574 {workObject} \uC2DC\uC791\uD588\uB2E4."
     m_Metadata:
       m_Items: []
   - m_Id: 418730057
     m_Localized: "{subject} {place}\uC5D0\uC11C {workObject} \uC2DC\uC791\uD588\uB2E4.\n{subject}
       \uC228\uC744 \uACE0\uB974\uACE0 {workObject} \uBD99\uC7A1\uC558\uB2E4.\n{subject}
-      {place}\uB85C \uD5A5\uD574 {workObject} \uB4E4\uC5B4\uAC14\uB2E4."
+      {place}\uB85C \uD5A5\uD574 {workObject} \uC2DC\uC791\uD588\uB2E4."
     m_Metadata:
       m_Items: []
   - m_Id: 418730058
     m_Localized: "{subject} {place}\uC5D0\uC11C {workObject} \uC2DC\uC791\uD588\uB2E4.\n{subject}
       \uC228\uC744 \uACE0\uB974\uACE0 {workObject} \uBD99\uC7A1\uC558\uB2E4.\n{subject}
-      {place}\uB85C \uD5A5\uD574 {workObject} \uB4E4\uC5B4\uAC14\uB2E4."
+      {place}\uB85C \uD5A5\uD574 {workObject} \uC2DC\uC791\uD588\uB2E4."
     m_Metadata:
       m_Items: []
   - m_Id: 418730059
     m_Localized: "{subject} {place}\uC5D0\uC11C {workObject} \uC2DC\uC791\uD588\uB2E4.\n{subject}
       \uC228\uC744 \uACE0\uB974\uACE0 {workObject} \uBD99\uC7A1\uC558\uB2E4.\n{subject}
-      {place}\uB85C \uD5A5\uD574 {workObject} \uB4E4\uC5B4\uAC14\uB2E4."
+      {place}\uB85C \uD5A5\uD574 {workObject} \uC2DC\uC791\uD588\uB2E4."
     m_Metadata:
       m_Items: []
   - m_Id: 418730060
     m_Localized: "{subject} {place}\uC5D0\uC11C {workObject} \uC2DC\uC791\uD588\uB2E4.\n{subject}
       \uC228\uC744 \uACE0\uB974\uACE0 {workObject} \uBD99\uC7A1\uC558\uB2E4.\n{subject}
-      {place}\uB85C \uD5A5\uD574 {workObject} \uB4E4\uC5B4\uAC14\uB2E4."
+      {place}\uB85C \uD5A5\uD574 {workObject} \uC2DC\uC791\uD588\uB2E4."
     m_Metadata:
       m_Items: []
   - m_Id: 418730061
     m_Localized: "{subject} {place}\uC5D0\uC11C {workObject} \uC2DC\uC791\uD588\uB2E4.\n{subject}
       \uC228\uC744 \uACE0\uB974\uACE0 {workObject} \uBD99\uC7A1\uC558\uB2E4.\n{subject}
-      {place}\uB85C \uD5A5\uD574 {workObject} \uB4E4\uC5B4\uAC14\uB2E4."
+      {place}\uB85C \uD5A5\uD574 {workObject} \uC2DC\uC791\uD588\uB2E4."
     m_Metadata:
       m_Items: []
   - m_Id: 418730062

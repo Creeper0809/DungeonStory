@@ -3,7 +3,7 @@ using System.Linq;
 using DungeonStory.Foundation;
 
 /// <summary>Validates saved quality facts against canonical records without granting the craft owner ledger access.</summary>
-public sealed class CombatEquipmentQualityFactPreflight : IDungeonSavePreflightValidator, IDungeonCapturedSavePreflightValidator
+public sealed class CombatEquipmentQualityFactPreflight : IDungeonSavePreflightValidator, IDungeonDetachedCapturedSavePreflightValidator
 {
     public void Validate(DungeonGameSaveData save, DungeonGameRestoreReport report) => Validate(
         DungeonSaveSectionPayload.ReadOrNew<DungeonCombatEquipmentSaveData>(save, CombatEquipmentSaveSection.Id),

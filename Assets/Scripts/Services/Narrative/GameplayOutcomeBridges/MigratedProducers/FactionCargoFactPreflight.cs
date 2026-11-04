@@ -6,7 +6,7 @@ using DungeonStory.Foundation;
 using DungeonStory.Infrastructure;
 using DungeonStory.Narrative.Korean;
 
-public sealed class FactionCargoFactPreflight : IDungeonSavePreflightValidator, IDungeonCapturedSavePreflightValidator
+public sealed class FactionCargoFactPreflight : IDungeonSavePreflightValidator, IDungeonDetachedCapturedSavePreflightValidator
 {
     public void Validate(DungeonGameSaveData save, DungeonGameRestoreReport report) => Validate(
         DungeonSaveSectionPayload.ReadOrNew<DungeonFactionSaveData>(save, FactionSaveSection.Id),

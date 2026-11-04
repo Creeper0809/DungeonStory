@@ -12,7 +12,7 @@ using UnityEngine;
 /// </summary>
 public sealed class ProductionAcknowledgedOutputLifecycleSaveValidation :
     IDungeonSavePreflightValidator,
-    IDungeonCapturedSavePreflightValidator,
+    IDungeonDetachedCapturedSavePreflightValidator,
     IDungeonSaveRegistryPreflightValidator
 {
     private const string PreparedBatchPrefix = "production-output-batch:";

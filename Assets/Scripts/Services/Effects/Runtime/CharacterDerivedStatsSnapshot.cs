@@ -705,6 +705,15 @@ public sealed class CharacterDerivedStatsSnapshotProjector
         if (actor == null) throw new ArgumentNullException(nameof(actor));
         if (baseValues == null) throw new ArgumentNullException(nameof(baseValues));
         IGameplayEffectSource[] sources = CollectSources(actor).ToArray();
+        return ProjectCaptured(actor, baseValues, context, sources);
+    }
+
+    private CharacterDerivedStatsSnapshot ProjectCaptured(
+        CharacterActor actor,
+        IReadOnlyDictionary<string, float> baseValues,
+        GameplayEffectContext context,
+        IGameplayEffectSource[] sources)
+    {
         GameplayEffectContext effectiveContext = (context ?? new GameplayEffectContext())
             .WithConditions(extremeTraits.GetActiveConditionIds(actor, gameClock.Time));
         string revision = BuildRevisionKey(
@@ -734,6 +743,40 @@ public sealed class CharacterDerivedStatsSnapshotProjector
             cache.Clear();
         cache.Add(revision, snapshot);
         return snapshot;
+    }
+
+    // 한 번의 동기 조회만 소유한다. 전역 상태나 다음 호출에 입력을 남기지 않는다.
+    internal ReadProjection CreateReadProjection(CharacterActor actor) => new(this, actor);
+
+    internal sealed class ReadProjection
+    {
+        private readonly CharacterDerivedStatsSnapshotProjector owner;
+        private readonly CharacterActor actor;
+        private IGameplayEffectSource[] sources;
+
+        internal ReadProjection(CharacterDerivedStatsSnapshotProjector owner, CharacterActor actor)
+        { this.owner = owner; this.actor = actor ?? throw new ArgumentNullException(nameof(actor)); }
+
+        internal CharacterDerivedStatsSnapshot Project(
+            IReadOnlyDictionary<string, float> baseValues, GameplayEffectContext context = null)
+        {
+            if (baseValues == null) throw new ArgumentNullException(nameof(baseValues));
+            sources ??= owner.CollectSources(actor).ToArray();
+            return owner.ProjectCaptured(actor, baseValues, context, sources);
+        }
+
+        internal GameplayEffectProjectionResult ProjectValue(
+            string targetId, float baseValue, GameplayEffectContext context = null)
+        {
+            if (string.IsNullOrWhiteSpace(targetId))
+                throw new ArgumentException("Gameplay effect target id is required.", nameof(targetId));
+            if (float.IsNaN(baseValue) || float.IsInfinity(baseValue))
+                throw new ArgumentOutOfRangeException(nameof(baseValue));
+            string target = targetId.Trim();
+            var snapshot = Project(new Dictionary<string, float>(StringComparer.Ordinal)
+                { [target] = baseValue }, context);
+            return new GameplayEffectProjectionResult(snapshot.Get(target, baseValue), snapshot.Contributions);
+        }
     }
 
     public IReadOnlyList<IGameplayEffectSource> CollectSources(CharacterActor actor)

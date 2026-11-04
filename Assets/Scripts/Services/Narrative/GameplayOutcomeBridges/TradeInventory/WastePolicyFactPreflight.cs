@@ -4,7 +4,7 @@ using DungeonStory.Foundation;
 using DungeonStory.Narrative.Korean;
 
 // The observer owns native identity/hash checks. The policy owner stores only domain facts and opaque proofs.
-public sealed class WastePolicyFactPreflight : IDungeonSavePreflightValidator, IDungeonCapturedSavePreflightValidator
+public sealed class WastePolicyFactPreflight : IDungeonSavePreflightValidator, IDungeonDetachedCapturedSavePreflightValidator
 {
     public void Validate(DungeonGameSaveData save, DungeonGameRestoreReport report)
     {

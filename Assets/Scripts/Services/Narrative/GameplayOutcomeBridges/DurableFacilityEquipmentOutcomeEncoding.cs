@@ -78,7 +78,9 @@ internal static class DurableFacilityEquipmentOutcomeEncoding
                 MigratedProducerOutcomeIds.DetailFact,
                 canonicalEvidence)
         };
-        if (subjects.Count > 16 || facts.Count > 14)
+        if (subjects.Count > GameplayOutcomeBufferLimits.AbsoluteMaximumParticipantsPerOutcome
+            || subjects.Count > GameplayOutcomeBufferLimits.AbsoluteMaximumSubjectsPerOutcome
+            || facts.Count > 14)
         {
             throw new InvalidOperationException(
                 "Durable equipment outcome evidence exceeds fixed ledger capacity.");

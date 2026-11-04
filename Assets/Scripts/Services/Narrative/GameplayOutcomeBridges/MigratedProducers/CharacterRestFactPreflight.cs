@@ -4,7 +4,7 @@ using DungeonStory.Foundation;
 using DungeonStory.Foundation.Facts;
 using DungeonStory.Narrative.Korean;
 
-public sealed class CharacterRestFactPreflight : IDungeonSavePreflightValidator, IDungeonCapturedSavePreflightValidator
+public sealed class CharacterRestFactPreflight : IDungeonSavePreflightValidator, IDungeonDetachedCapturedSavePreflightValidator
 {
     public void Validate(DungeonGameSaveData save, DungeonGameRestoreReport report) => Validate(
         DungeonSaveSectionPayload.ReadOrNew<DungeonCharacterWorldSaveData>(save, CharacterWorldSaveSection.Id),

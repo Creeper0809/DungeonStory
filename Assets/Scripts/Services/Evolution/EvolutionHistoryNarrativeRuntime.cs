@@ -2051,6 +2051,7 @@ public sealed class EvolutionHistoryNarrativeRuntime :
             return;
         }
 
+        int attemptsBeforeAdmission = current.attemptCount;
         current.attemptCount++;
         PersistRequest(current);
         inFlight.Add(current.requestKey);
@@ -2073,13 +2074,18 @@ public sealed class EvolutionHistoryNarrativeRuntime :
                 candidatePacketHash));
         if (!accepted)
         {
+            // 처리 자리가 없어 접수되지 않은 경우는 실제 모델 시도가 아니다.
+            current.attemptCount = attemptsBeforeAdmission;
+            PersistRequest(current);
             inFlight.Remove(current.requestKey);
             RecordEvolutionHistoryAudit(
                 current,
                 false,
                 "Evolution history request was not accepted.",
                 candidatePacketHash);
-            ScheduleRetry(current, now);
+            // 기존 실제 실패의 대기 시간이 이미 지난 뒤 처리 자리만 부족한
+            // 경우다. 접수 거절로 같은 긴 실패 대기를 다시 부과하지 않는다.
+            retryAt[current.requestKey] = now + 2f;
         }
     }
 

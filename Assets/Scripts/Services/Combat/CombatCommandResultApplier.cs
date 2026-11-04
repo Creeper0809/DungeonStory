@@ -155,7 +155,7 @@ public sealed class CombatCommandResultApplier
                 bodyHealth.ApplyCombatResult(
                     target.Character,
                     appliedResult,
-                    $"직접 전투 명령: {attackerName}");
+                    $"{attackerName}의 공격");
                 if (appliedResult.AppliedDamage > 0f
                     && CharacterPersistentIdentity.TryGet(
                         target.Character,
@@ -219,7 +219,7 @@ public sealed class CombatCommandResultApplier
             reservedDamage,
             mechanicalMutation,
             CombatActionEvidenceData.CaptureUnknownRequest(result, damageType),
-            $"직접 전투 명령: {attackerName}",
+            $"{attackerName}의 공격",
             CharacterCommandOrigin.DirectPlayerOrder);
     }
 
@@ -246,7 +246,7 @@ public sealed class CombatCommandResultApplier
             reservedDamage,
             mechanicalMutation,
             evidence,
-            $"직접 전투 명령: {attackerName}",
+            $"{attackerName}의 공격",
             CharacterCommandOrigin.DirectPlayerOrder);
     }
 

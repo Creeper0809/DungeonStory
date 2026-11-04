@@ -224,6 +224,13 @@ public sealed class CharacterSummaryGrowthPresenter
         }
 
         builder.AppendLine("후천 특성");
+        int failedSkills = progression.Drafts.Count(draft => draft != null && !draft.permanentlyChosen
+            && draft.presentationState == CharacterSkillPresentationState.AwaitingNarrativeRetry);
+        int failedTraits = acquiredTraits.pendingRequests.Count(request => request != null
+            && request.presentationState is CharacterAcquiredTraitPresentationState.AwaitingNarrativeRetry
+                or CharacterAcquiredTraitPresentationState.ModuleSelectionAwaitingNarrativeRetry);
+        if (failedSkills + failedTraits > 0)
+            builder.AppendLine($"AI 생성 실패: 기술 {failedSkills}개, 후천 특성 {failedTraits}개. 미완성 효과는 적용하지 않았습니다.");
         if (activeTraits.Count == 0)
         {
             builder.AppendLine("- 활성 후천 특성 없음");
@@ -259,18 +266,21 @@ public sealed class CharacterSummaryGrowthPresenter
         CharacterAcquiredTraitInstanceState trait,
         string prefix)
     {
-        string evidence = trait.evidenceFactIds == null || trait.evidenceFactIds.Count == 0
-            ? "없음"
-            : string.Join(", ", trait.evidenceFactIds);
+        // 수식 특성은 생성 문장을 표시하고 내부 효과식은 원본 상태에 보존.
+        // 구버전 특성은 기존 description이 작성된 설명의 권위.
+        string description = trait.formulaVersion > 0
+            ? trait.narrativeFlavor
+            : trait.description;
         builder.Append(prefix)
             .Append(string.IsNullOrWhiteSpace(trait.displayName)
-                ? trait.instanceId
+                ? "특성 이름 없음"
                 : trait.displayName)
-            .Append(" · 이정표 ")
+            .Append(" / 이정표 ")
             .Append(trait.manifestationMilestone)
             .AppendLine();
-        builder.Append("  ").AppendLine(trait.description);
-        builder.Append("  근거: ").AppendLine(evidence);
+        builder.Append("  ").AppendLine(string.IsNullOrWhiteSpace(description)
+            ? "특성 설명이 저장되어 있지 않습니다."
+            : description);
     }
 
     private static CharacterSkillDraft GetCurrentActiveDraft(CharacterProgression progression)

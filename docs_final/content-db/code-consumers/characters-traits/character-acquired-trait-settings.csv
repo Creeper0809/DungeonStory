@@ -3,6 +3,7 @@ CharacterAcquiredTraitSettingsSO,content-type,,type-reference; save-restore-refe
 CharacterAcquiredTraitSettingsSO,content-type,,type-reference; save-restore-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/Core/CharacterAcquiredTraitInferenceService.cs
 CharacterAcquiredTraitSettingsSO,content-type,,type-reference; save-restore-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/Core/CharacterAcquiredTraitManifestationRuntime.cs
 CharacterAcquiredTraitSettingsSO,content-type,,type-reference; save-restore-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/Core/CharacterAcquiredTraitSpecialReaction.cs
+CharacterAcquiredTraitSettingsSO,content-type,,type-reference; save-restore-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/Core/CharacterAcquiredTraitState.cs
 CharacterAcquiredTraitSettingsSO,content-type,,type-reference; save-restore-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/Core/CharacterAcquiredTraitValidation.cs
 CharacterAcquiredTraitSettingsSO,content-type,,type-reference; save-restore-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/Core/CharacterProgression.cs
 CharacterAcquiredTraitSettingsSO,content-type,,type-reference; save-restore-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/Core/CharacterTraitInferenceAuthority.cs

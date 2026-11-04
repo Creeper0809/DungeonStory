@@ -325,7 +325,7 @@ public sealed class HeritableTraitAnalysisOutcomeDescriptor :
             || outcome.SubjectCount != 1
             || outcome.MetricCount != 4
             || outcome.TagCount != 1
-            || outcome.AnchorCount != 1
+            || outcome.ProductionAnchorCount != 1
             || outcome.FactCount != 6)
             return OutcomeValidationResult.Reject(
                 "heritable-trait-analysis-shape-invalid");
@@ -377,7 +377,7 @@ public sealed class HeritableTraitAnalysisOutcomeDescriptor :
         GameplayOutcomeFact physicalCommit = outcome.GetFact(3);
         GameplayOutcomeFact kitItem = outcome.GetFact(2);
         GameplayOutcomeFact sourceStacks = outcome.GetFact(4);
-        NarrativeEvidenceReference anchor = outcome.GetAnchor(0);
+        NarrativeEvidenceReference anchor = outcome.GetProductionAnchor(0);
         string physicalCanonical = string.Join(
             ";",
             "physical-v1",
@@ -387,7 +387,7 @@ public sealed class HeritableTraitAnalysisOutcomeDescriptor :
             outcome.GetMetric(3).Value.ToString(
                 "0",
                 CultureInfo.InvariantCulture));
-        if (outcome.GetAnchorSubject(0) != participant.EntityId
+        if (outcome.GetProductionAnchorSubject(0) != participant.EntityId
             || anchor.AnchorTypeId
                 != HeritableTraitAnalysisOutcomeIds.PhysicalEvidenceAnchor
             || !string.Equals(

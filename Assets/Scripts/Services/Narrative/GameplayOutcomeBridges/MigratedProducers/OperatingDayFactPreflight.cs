@@ -6,7 +6,7 @@ using DungeonStory.Infrastructure;
 using Newtonsoft.Json.Linq;
 using DungeonStory.Narrative.Korean;
 
-public sealed class OperatingDayFactPreflight : IDungeonSavePreflightValidator, IDungeonCapturedSavePreflightValidator
+public sealed class OperatingDayFactPreflight : IDungeonSavePreflightValidator, IDungeonDetachedCapturedSavePreflightValidator
 {
     public void Validate(DungeonGameSaveData save, DungeonGameRestoreReport report)
     {

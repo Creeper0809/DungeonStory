@@ -1351,10 +1351,8 @@ public sealed class ItemTransferService :
             || record.state is not (WorldItemStackState.Carried
                 or WorldItemStackState.InTransit)
             || !string.Equals(record.itemId, item.itemId, StringComparison.Ordinal)
-            || !string.Equals(
-                ItemStackSignature.Create(record.itemId, record.components),
-                ItemStackSignature.Create(item.itemId, item.components),
-                StringComparison.Ordinal)
+            || !TryResolveRecoveryComponents(record.components, item.components,
+                record.itemId, out List<ItemInstanceComponentSaveData> recoveryComponents)
             || string.IsNullOrWhiteSpace(item.ownerOperationId)
             || string.IsNullOrWhiteSpace(item.sourceStackId))
         {
@@ -1380,6 +1378,7 @@ public sealed class ItemTransferService :
             return 0;
         }
 
+        record.components = recoveryComponents;
         repository.Relocate(record, dropPosition);
         record.state = WorldItemStackState.Loose;
         record.aggregationCohortId = string.Empty;
@@ -1410,6 +1409,36 @@ public sealed class ItemTransferService :
         repository.MarkChanged();
         stackId = record.stackId;
         return item.quantity;
+    }
+
+    internal static bool TryResolveRecoveryComponents(
+        IReadOnlyList<ItemInstanceComponentSaveData> physical,
+        IReadOnlyList<ItemInstanceComponentSaveData> carried,
+        string itemId,
+        out List<ItemInstanceComponentSaveData> resolved)
+    {
+        resolved = null;
+        bool exact = string.Equals(ItemStackSignature.Create(itemId, physical),
+            ItemStackSignature.Create(itemId, carried), StringComparison.Ordinal);
+        if (!exact)
+        {
+            // The carrier advances food freshness while the physical carried
+            // record retains the pickup snapshot. At the physical handoff only
+            // monotone decay may reconcile that snapshot. All other components,
+            // including custody and equipment state, stay exact.
+            if (!FoodFreshnessComponentCodec.TryRead(physical, out double before, out bool preserved)
+                || !FoodFreshnessComponentCodec.TryRead(carried, out double after, out bool stillPreserved)
+                || after > before || preserved != stillPreserved
+                || !string.Equals(ItemStackSignature.Create(itemId,
+                        physical.Where(value => value?.componentTypeId != ItemInstanceComponentIds.Freshness)),
+                    ItemStackSignature.Create(itemId,
+                        carried.Where(value => value?.componentTypeId != ItemInstanceComponentIds.Freshness)),
+                    StringComparison.Ordinal))
+                return false;
+        }
+        resolved = (carried ?? Array.Empty<ItemInstanceComponentSaveData>())
+            .Where(value => value != null).Select(value => value.Clone()).ToList();
+        return true;
     }
 
     private bool ExactRouteRecoveryIntentMatches(

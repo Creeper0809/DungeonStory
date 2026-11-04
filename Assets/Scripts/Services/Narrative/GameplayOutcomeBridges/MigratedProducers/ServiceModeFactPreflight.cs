@@ -5,7 +5,7 @@ using DungeonStory.Narrative.Korean;
 using DungeonStory.ServiceRooms;
 
 /// <summary>Only the observer validates opaque mode publications against canonical log identities.</summary>
-public sealed class ServiceModeFactPreflight : IDungeonSavePreflightValidator, IDungeonCapturedSavePreflightValidator
+public sealed class ServiceModeFactPreflight : IDungeonSavePreflightValidator, IDungeonDetachedCapturedSavePreflightValidator
 {
     public void Validate(DungeonGameSaveData save, DungeonGameRestoreReport report) => Validate(
         DungeonSaveSectionPayload.ReadOrNew<ServiceRoomsSaveData>(save, ServiceRoomsSaveSection.Id),

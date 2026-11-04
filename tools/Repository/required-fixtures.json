@@ -101,6 +101,27 @@
       ]
     },
     {
+      "path": "Artifacts/QA/R80Integration-20261027-r1/play-r20/committed-world.json",
+      "consumers": [
+        "R60-fixed-save-regression-input"
+      ],
+      "sha256": "359fd294edb9173621a955cce3e5a52ecdebb152af68c9486e5e15fd47ed9c7f"
+    },
+    {
+      "path": "Artifacts/QA/R80Latency-20261028-r1/soak-r17/unity-evidence/persistent-data/Saves/r80-extended-soak-final.json",
+      "consumers": [
+        "R60-fixed-save-regression-input"
+      ],
+      "sha256": "5d0200731608c937656c1b7f7befd15a56bd95d43c8c7a3f7f04f55c41d741e9"
+    },
+    {
+      "path": "Artifacts/QA/R80PrototypePolish-20261028-r1/soak-polish-r5/unity-evidence/persistent-data/Saves/r80-extended-soak-checkpoint-1.json",
+      "consumers": [
+        "R60-fixed-save-regression-input"
+      ],
+      "sha256": "18faaa124a28558b56740c742db3606f2d7a3960dd63bd4b0bb0c1a788493425"
+    },
+    {
       "path": "Artifacts/QA/ability-haul-lifecycle-recovery-playmode.txt",
       "consumers": [
         "existing-editor-verifier-input"

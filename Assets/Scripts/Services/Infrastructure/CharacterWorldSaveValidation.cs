@@ -39,6 +39,8 @@ public static class CharacterWorldSaveValidation
         }
 
         string label = $"Character '{persistentId}'";
+        try { CustomerPersonaRuntime.ValidateSavedNarrative(actor.personaNarrative, actor.characterType); }
+        catch (ArgumentException exception) { report.AddError(label + ": " + exception.Message); }
         if (definition != null && definition.id != actor.dataId)
             report.AddError($"{label} skill definition does not match saved character data ID.");
         if (actor.lifecycleRevision < 0)

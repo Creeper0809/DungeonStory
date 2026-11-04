@@ -866,6 +866,8 @@ public readonly struct GameplayOutcomeReadView
     public int AnchorCount => page.AnchorCount;
     public int InitialSubjectCount => page.InitialSubjectCount;
     public int InitialAnchorCount => page.InitialAnchorCount;
+    // 작성 중에는 현재 근거가 생산 입력이고, 봉인 뒤에는 고정된 최초 근거가 생산 입력이다.
+    public int ProductionAnchorCount => page.HasImmutablePayloadDigest ? page.InitialAnchorCount : page.AnchorCount;
     public int ProvenanceCount => page.ProvenanceCount;
     public int FactCount => page.FactCount;
     public string ImmutablePayloadHash => page.MaterializeImmutablePayloadHash();
@@ -881,6 +883,10 @@ public readonly struct GameplayOutcomeReadView
         page.InitialAnchors[RequireIndex(index, page.InitialAnchorCount)].SubjectId;
     public NarrativeEvidenceReference GetInitialAnchor(int index) =>
         page.InitialAnchors[RequireIndex(index, page.InitialAnchorCount)].Reference;
+    public GameplayEntityId GetProductionAnchorSubject(int index) => page.HasImmutablePayloadDigest
+        ? GetInitialAnchorSubject(index) : GetAnchorSubject(index);
+    public NarrativeEvidenceReference GetProductionAnchor(int index) => page.HasImmutablePayloadDigest
+        ? GetInitialAnchor(index) : GetAnchor(index);
     public GameplayOutcomeProvenanceReference GetProvenance(int index) =>
         page.Provenance[RequireIndex(index, page.ProvenanceCount)];
     public GameplayOutcomeFact GetFact(int index) =>

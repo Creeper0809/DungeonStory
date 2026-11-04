@@ -4,7 +4,7 @@ using DungeonStory.Foundation;
 
 public sealed class MemoryErasureBossAwardFactPreflight :
     IDungeonSavePreflightValidator,
-    IDungeonCapturedSavePreflightValidator
+    IDungeonDetachedCapturedSavePreflightValidator
 {
     public void Validate(DungeonGameSaveData save, DungeonGameRestoreReport report)
     {

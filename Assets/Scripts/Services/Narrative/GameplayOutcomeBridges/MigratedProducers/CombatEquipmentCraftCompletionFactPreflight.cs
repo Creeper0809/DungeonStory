@@ -4,7 +4,7 @@ using DungeonStory.Foundation;
 using DungeonStory.Narrative.Korean;
 
 /// <summary>Canonical log joins belong to observation, not the equipment save owner.</summary>
-public sealed class CombatEquipmentCraftCompletionFactPreflight : IDungeonSavePreflightValidator, IDungeonCapturedSavePreflightValidator
+public sealed class CombatEquipmentCraftCompletionFactPreflight : IDungeonSavePreflightValidator, IDungeonDetachedCapturedSavePreflightValidator
 {
     public void Validate(DungeonGameSaveData save, DungeonGameRestoreReport report) => Validate(
         DungeonSaveSectionPayload.ReadOrNew<DungeonCombatEquipmentSaveData>(save, CombatEquipmentSaveSection.Id),

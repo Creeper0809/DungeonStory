@@ -4,7 +4,7 @@ using System.Linq;
 using DungeonStory.Foundation;
 
 /// <summary>Joins the single campaign truth observation to its canonical result without mutating live state.</summary>
-public sealed class OffenseTruthFactPreflight : IDungeonSavePreflightValidator, IDungeonCapturedSavePreflightValidator
+public sealed class OffenseTruthFactPreflight : IDungeonSavePreflightValidator, IDungeonDetachedCapturedSavePreflightValidator
 {
     public void Validate(DungeonGameSaveData save, DungeonGameRestoreReport report) => Validate(
         DungeonSaveSectionPayload.ReadOrNew<DungeonOffenseAggregateSaveData>(save, OffenseAggregateSaveSection.Id).campaign,

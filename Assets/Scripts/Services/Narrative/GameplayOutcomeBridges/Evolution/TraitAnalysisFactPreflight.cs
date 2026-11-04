@@ -4,7 +4,7 @@ using DungeonStory.Foundation;
 using Newtonsoft.Json.Linq;
 
 // The observer, never the analyzing gameplay owner, interprets native ledger identities.
-public sealed class TraitAnalysisFactPreflight : IDungeonSavePreflightValidator, IDungeonCapturedSavePreflightValidator
+public sealed class TraitAnalysisFactPreflight : IDungeonSavePreflightValidator, IDungeonDetachedCapturedSavePreflightValidator
 {
     public void Validate(DungeonGameSaveData save, DungeonGameRestoreReport report)
     {

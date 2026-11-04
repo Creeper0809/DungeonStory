@@ -4,7 +4,7 @@ using DungeonStory.Foundation;
 using Newtonsoft.Json.Linq;
 
 // Canonical log identities are interpreted at the observation/save boundary, never by gameplay.
-public sealed class CharacterAmbitionTransitionFactPreflight : IDungeonSavePreflightValidator, IDungeonCapturedSavePreflightValidator
+public sealed class CharacterAmbitionTransitionFactPreflight : IDungeonSavePreflightValidator, IDungeonDetachedCapturedSavePreflightValidator
 {
     public void Validate(DungeonGameSaveData save, DungeonGameRestoreReport report)
     {

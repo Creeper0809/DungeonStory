@@ -614,6 +614,20 @@ public class CharacterSpawner : BuildableObject,IInteractable
     /// </summary>
     public bool RetireVisitorForWorldRestore(
         CharacterActor actor,
+        out string failureReason) =>
+        RetireVisitorForWorldRestore(actor, false, out failureReason);
+
+    // Only the committed world-replacement owner supplies actors captured as
+    // terminal before candidate publication. Normal visitor cleanup still
+    // rejects an unexpectedly active Despawned actor.
+    internal bool RetireTerminalVisitorForWorldRestore(
+        CharacterActor actor,
+        out string failureReason) =>
+        RetireVisitorForWorldRestore(actor, true, out failureReason);
+
+    private bool RetireVisitorForWorldRestore(
+        CharacterActor actor,
+        bool terminalAtRestorePreparation,
         out string failureReason)
     {
         failureReason = string.Empty;
@@ -645,10 +659,11 @@ public class CharacterSpawner : BuildableObject,IInteractable
         {
             return true;
         }
-        if (actor.CurrentLifecycleState == CharacterLifecycleState.Despawned)
+        if ((actor.CurrentLifecycleState == CharacterLifecycleState.Despawned)
+            != terminalAtRestorePreparation)
         {
-            failureReason =
-                "restore retirement found an active Despawned customer: "
+            failureReason = "restore retirement customer lifecycle disagrees "
+                + "with its prepared terminal classification: "
                 + identity.PersistentId;
             return false;
         }

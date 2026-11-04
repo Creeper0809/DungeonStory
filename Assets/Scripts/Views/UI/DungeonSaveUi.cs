@@ -84,7 +84,7 @@ public sealed class DungeonSaveUiActionContext
     public IDungeonRestoreSafetyQuery RestoreSafety { get; }
 }
 
-public sealed class DungeonSaveUiController : IStartable, IDisposable
+public sealed class DungeonSaveUiController : IStartable, ITickable, IDisposable
 {
     private const string RuntimeRootName = "DungeonSaveRuntimeUI";
     private const float ConfirmationSeconds = 4f;
@@ -116,6 +116,8 @@ public sealed class DungeonSaveUiController : IStartable, IDisposable
     private bool wasPausedBeforeModal;
     private string pendingConfirmationKey = string.Empty;
     private float confirmationExpiresAt;
+    private IDungeonSaveOperation pendingSave;
+    private Action afterSave;
 
     public DungeonSaveUiController(
         DungeonSaveUiPresentationContext presentation,
@@ -149,8 +151,29 @@ public sealed class DungeonSaveUiController : IStartable, IDisposable
         RefreshSlots();
     }
 
+    public void Tick()
+    {
+        if (pendingSave == null || !pendingSave.IsCompleted) return;
+        if (afterSave != null && slotService.IsSaving) return;
+        IDungeonSaveOperation completed = pendingSave;
+        Action continuation = afterSave;
+        pendingSave = null;
+        afterSave = null;
+        RefreshSlots();
+        if (!completed.Succeeded)
+        {
+            SetStatus("저장하지 못했습니다: " + completed.Error, true);
+            return;
+        }
+        SetStatus("현재 진행을 저장했습니다.", false);
+        continuation?.Invoke();
+    }
+
     public void Dispose()
     {
+        try { slotService.CompletePendingSave(); }
+        catch (Exception exception) { Debug.LogError("Save UI shutdown failed: " + exception.Message); }
+        afterSave = null;
         RestorePauseState();
         if (menuButton != null)
         {
@@ -303,6 +326,7 @@ public sealed class DungeonSaveUiController : IStartable, IDisposable
 
     private void CloseModal()
     {
+        if (BlockWhileSaving()) return;
         if (restoreSafety.RequiresRecovery)
         {
             SetStatus(restoreSafety.RecoveryMessage, true);
@@ -320,6 +344,7 @@ public sealed class DungeonSaveUiController : IStartable, IDisposable
 
     private void ReturnToTitle()
     {
+        if (BlockWhileSaving()) return;
         bool recoveryRequired = restoreSafety.RequiresRecovery;
         if (!Confirm("return-title", recoveryRequired
                 ? "복원 오류가 발생한 월드를 저장하지 않고 타이틀로 돌아가려면 한 번 더 누르세요."
@@ -329,13 +354,16 @@ public sealed class DungeonSaveUiController : IStartable, IDisposable
         }
 
         if (!recoveryRequired && ownerRunManagerProvider.TryGetManager(out OwnerRunManager ownerManager)
-            && ownerManager.CurrentOwnerActor != null
-            && !saveCommandService.TryAutoSave(out string message))
+            && ownerManager.CurrentOwnerActor != null)
         {
-            SetStatus("타이틀로 돌아가기 전에 저장하지 못했습니다: " + message, true);
+            BeginUiSave(DungeonGameSaveSlotService.AutoSaveSlot, FinishReturnToTitle);
             return;
         }
+        FinishReturnToTitle();
+    }
 
+    private void FinishReturnToTitle()
+    {
         ClearConfirmation();
         RestorePauseState();
         if (!sceneNavigator.LoadTitle())
@@ -346,6 +374,7 @@ public sealed class DungeonSaveUiController : IStartable, IDisposable
 
     private void QuitGame()
     {
+        if (BlockWhileSaving()) return;
         bool recoveryRequired = restoreSafety.RequiresRecovery;
         if (!Confirm("quit", recoveryRequired
                 ? "복원 오류가 발생한 월드를 저장하지 않고 종료하려면 한 번 더 누르세요."
@@ -355,14 +384,17 @@ public sealed class DungeonSaveUiController : IStartable, IDisposable
         }
 
         if (!recoveryRequired && ownerRunManagerProvider.TryGetManager(out OwnerRunManager ownerManager)
-            && ownerManager.CurrentOwnerActor != null
-            && !saveCommandService.TryAutoSave(out string message))
+            && ownerManager.CurrentOwnerActor != null)
         {
-            SetStatus("종료 전에 저장하지 못했습니다: " + message, true);
+            BeginUiSave(DungeonGameSaveSlotService.AutoSaveSlot, FinishQuitGame);
             return;
         }
+        FinishQuitGame();
+    }
 
-        if (!recoveryRequired)
+    private void FinishQuitGame()
+    {
+        if (!restoreSafety.RequiresRecovery)
         {
             gameSpeedController.SetSpeed(1);
             gameSpeedController.SetPaused(false);
@@ -376,26 +408,37 @@ public sealed class DungeonSaveUiController : IStartable, IDisposable
 
     private void SaveSlot(string slotId)
     {
+        if (BlockWhileSaving()) return;
         if (slotService.HasSave(slotId) && !Confirm("save:" + slotId, "저장된 진행을 덮어쓰려면 저장을 한 번 더 누르세요."))
         {
             return;
         }
 
+        BeginUiSave(slotId);
+    }
+
+    private bool BlockWhileSaving()
+    {
+        if (!slotService.IsSaving && pendingSave == null) return false;
+        SetStatus("저장 중입니다. 완료될 때까지 기다려 주세요.", false);
+        return true;
+    }
+
+    private void BeginUiSave(string slotId, Action continuation = null)
+    {
         try
         {
-            slotService.Save(slotId);
+            pendingSave = slotService.BeginSave(slotId);
+            afterSave = continuation;
             ClearConfirmation();
-            RefreshSlots();
-            SetStatus("현재 진행을 저장했습니다.", false);
+            SetStatus("현재 진행을 저장하고 있습니다.", false);
         }
-        catch (Exception exception)
-        {
-            SetStatus("저장하지 못했습니다: " + exception.Message, true);
-        }
+        catch (Exception exception) { SetStatus("저장하지 못했습니다: " + exception.Message, true); }
     }
 
     private void LoadSlot(string slotId)
     {
+        if (BlockWhileSaving()) return;
         if (!slotService.TryLoad(slotId, out DungeonGameRestoreReport report))
         {
             string message = restoreSafety.RequiresRecovery
@@ -414,6 +457,7 @@ public sealed class DungeonSaveUiController : IStartable, IDisposable
 
     private void DeleteSlot(string slotId)
     {
+        if (BlockWhileSaving()) return;
         if (restoreSafety.RequiresRecovery)
         {
             SetStatus(restoreSafety.RecoveryMessage, true);

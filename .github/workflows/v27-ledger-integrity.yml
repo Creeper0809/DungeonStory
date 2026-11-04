@@ -80,6 +80,9 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Restore exact R80 model from verified LFS parts
+        run: python tools/Repository/restore_r80_model.py
+
       - name: Install pinned identity verifier dependency
         run: python -m pip install --disable-pip-version-check PyYAML==6.0.2
 

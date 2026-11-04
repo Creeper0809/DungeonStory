@@ -5,7 +5,7 @@ using UnityEngine;
 
 public sealed class WildlifeHaulCargoSaveValidation :
     IDungeonSavePreflightValidator,
-    IDungeonCapturedSavePreflightValidator,
+    IDungeonDetachedCapturedSavePreflightValidator,
     IDungeonSaveRegistryPreflightValidator
 {
     public void Validate(

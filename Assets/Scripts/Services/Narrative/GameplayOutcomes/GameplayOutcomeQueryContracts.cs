@@ -185,6 +185,9 @@ public sealed class GameplayOutcomeSnapshot
     public List<NarrativeEvidenceReferenceSnapshot> initialAnchors = new List<NarrativeEvidenceReferenceSnapshot>();
     public List<GameplayOutcomeProvenanceReferenceSnapshot> provenance = new List<GameplayOutcomeProvenanceReferenceSnapshot>();
     public List<GameplayOutcomeFactSnapshot> facts = new List<GameplayOutcomeFactSnapshot>();
+
+    // 원래 빈 목록을 만들지 않는다. 읽기 복사자는 모든 가변 목록을 따로 복사한다.
+    internal GameplayOutcomeSnapshot ShallowCopyForSaveRead() => (GameplayOutcomeSnapshot)MemberwiseClone();
 }
 
 [Serializable]

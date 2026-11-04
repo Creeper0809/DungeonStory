@@ -1,0 +1,274 @@
+{
+  "sourceModelManifestSha256": "049a2a19c0246c26238931df32e775e16643dfd0973817481eaf8607fc64ce93",
+  "originalDispatcherSha256": "f2a61a3b1ff721069b9b203aacc62c985cb90b58983efc61011a90fe0f126986",
+  "slices": [
+    {
+      "module": "aligned_language_view",
+      "sourceSha256": "d7a3b30b6f4e4a5be0c01c1c939563ee4eae4e2dd0d9e9af067412eef6a69469",
+      "runtimeSha256": "cdc693df85b1d743a6996b9db194f6521c61f92302582b699decaaa19626ffc6",
+      "retainedDefinitions": 3,
+      "retainedAstExact": true
+    },
+    {
+      "module": "audit_sft_token_lengths",
+      "sourceSha256": "e38e2f3f0aeef59df57919843bf2d1036c1f85d9dcb1a230d180ac476d97c86e",
+      "runtimeSha256": "97c2912f055b7a9b969b9db8592d827948b1b88ddbdf05acfd502d8e7bda67b5",
+      "retainedDefinitions": 2,
+      "retainedAstExact": true
+    },
+    {
+      "module": "balanced_staged_view",
+      "sourceSha256": "7538aa0d71c61cf492385e2eb50351284bbef9a3a357b4a237024c08221b882a",
+      "runtimeSha256": "e910e2aeb3aaa451b1fc4045cfe616160a5b156c0826fb9db06a96b6899c418b",
+      "retainedDefinitions": 1,
+      "retainedAstExact": true
+    },
+    {
+      "module": "behavior_auxiliary_grammar",
+      "sourceSha256": "d2f157ea1eece14be9c34e122e073417e176233d05d69da0a26402750e08065d",
+      "runtimeSha256": "40085043ee319445a71cedcaca92ab108684235e5337060c4d3c12d769ee3ab1",
+      "retainedDefinitions": 3,
+      "retainedAstExact": true
+    },
+    {
+      "module": "build_aligned_language_training",
+      "sourceSha256": "e15d96d41f95c730c3f0a89e24318aceef6041edb588733b65c67fa33b01511c",
+      "runtimeSha256": "98b70cd23f24fde81777f8ba13684203ec37e53ffa50f1e5ea78362832f076ae",
+      "retainedDefinitions": 5,
+      "retainedAstExact": true
+    },
+    {
+      "module": "candidate_cost_view",
+      "sourceSha256": "5ea88c24ebcabf3c28945193f49b4a3cfd98f80fcf38150fad4e57485c2ed83c",
+      "runtimeSha256": "b77535a5052851e0bd790efb4a86daba7b2f3549633043f5dc9f53958ae21da8",
+      "retainedDefinitions": 1,
+      "retainedAstExact": true
+    },
+    {
+      "module": "candidate_outcome_view",
+      "sourceSha256": "06a7cc85cd7810cd03bb376ade3bd0097bf39990868bdf961fc3c5c2af56b493",
+      "runtimeSha256": "d50762ce9d95bdea1e82cbc878c4cf79ec35f84278c8b3ebcf1892cf65be1c31",
+      "retainedDefinitions": 2,
+      "retainedAstExact": true
+    },
+    {
+      "module": "candidate_task_view",
+      "sourceSha256": "0f5aee17c8f4b2fe1a1fd41b28d875329f5d8711703d64cbd84920873b6076a5",
+      "runtimeSha256": "3cce8f2b36ea468de14a42487b81fbe2628e344349b870e6a3b19219a423d898",
+      "retainedDefinitions": 10,
+      "retainedAstExact": true
+    },
+    {
+      "module": "causal_continuation_view",
+      "sourceSha256": "f9653adf8710f700bcdb05f4667da370e7806a5d3372e104e35d0e74a5929801",
+      "runtimeSha256": "b42900a5d75858fb0eb96fe26a1cffe510089d8672f634b9f50f59d3cf0074d3",
+      "retainedDefinitions": 6,
+      "retainedAstExact": true
+    },
+    {
+      "module": "effect_bound_view",
+      "sourceSha256": "e0e95ab9c9e281ea59e5108a87ac72bd5743a0c0799254d8a881d6a775536a5c",
+      "runtimeSha256": "c292dce90706a7b031fdaa1d267cacf24b832894543b6a174952b89124a7de58",
+      "retainedDefinitions": 3,
+      "retainedAstExact": true
+    },
+    {
+      "module": "focused_auxiliary_view",
+      "sourceSha256": "02df0d1b0e79b05c41c09b976b81098116461eb3b99e91a6097e89d3ceed99c1",
+      "runtimeSha256": "c5bd3a2cd89c264b60cdfda8a1dbba8779ef2ff81e2bd742df2316ecff6fa53e",
+      "retainedDefinitions": 8,
+      "retainedAstExact": true
+    },
+    {
+      "module": "followup_scope_view",
+      "sourceSha256": "92d5f78e78cf71d92efbc4f451a4c5140dce557d2f952eafc92bea5c52df18c8",
+      "runtimeSha256": "791b7aea410d7dd1b34f8c764621623cb803ea8fa31b50bb0a0ee10cabd356db",
+      "retainedDefinitions": 3,
+      "retainedAstExact": true
+    },
+    {
+      "module": "formula_reviewer.mechanical_summary",
+      "sourceSha256": "fac3fc98d1eafb7f002efce1d45d9c0b2a717abf6413a658d93db53d34faeaa9",
+      "runtimeSha256": "1d5c949bffb4367d444215b5114109dc6fe7fe10afc6629433390f0f4156c328",
+      "retainedDefinitions": 1,
+      "retainedAstExact": true
+    },
+    {
+      "module": "gameplay_module_selection_package",
+      "sourceSha256": "cdb7d78cd230412cd0f47855d61c68aee90f69fcd9ad8c0b7900abde2578205d",
+      "runtimeSha256": "37d17f50f190cf222ca94aa0e73842aa01fafde76e9d0f702bb9b906fb03fce3",
+      "retainedDefinitions": 2,
+      "retainedAstExact": true
+    },
+    {
+      "module": "general_prototype_auxiliary_grammar",
+      "sourceSha256": "a447ea536a21a7ea0404230382328673b79ec9f92c55b5c7afa794878a560a1e",
+      "runtimeSha256": "c73ffacd92d024ffb8f6372941c5b4e6becbea56035562f5559bac65d0a9b3fa",
+      "retainedDefinitions": 5,
+      "retainedAstExact": true
+    },
+    {
+      "module": "legal_binding_view",
+      "sourceSha256": "f501c59f44c64a958228a3bc98d877727dabbac353d5fe3ff4f464e67d28c701",
+      "runtimeSha256": "fdc18808f06d64e4e4310414eb954f5c63e986d13d796b41c35665b52af5b37c",
+      "retainedDefinitions": 0,
+      "retainedAstExact": true
+    },
+    {
+      "module": "live_module_selection_contract",
+      "sourceSha256": "47d3cab591cbc5c8bb25dcff79935e2414b15face99c28fb301365d8debb15f1",
+      "runtimeSha256": "2f613203492a8c4183710fdfe22a70032e3d03482264fc912f2eb10186c11190",
+      "retainedDefinitions": 18,
+      "retainedAstExact": false,
+      "originalRuntimeSha256": "61e62477031b24cedd087ab4d0c06b5cdd3e8752f0b728cee9f509ab42dd7fde",
+      "gameAdapter": "explicit-one-to-three-candidate-cardinality@1",
+      "adaptedDefinitions": [
+        "_compact",
+        "inspect_wire"
+      ],
+      "semanticSelectionAlgorithmChanged": false
+    },
+    {
+      "module": "native_alignment_trial",
+      "sourceSha256": "7b20beaa513ac74e52dfa02f297bb08af49c9b9083354c0beb91ef1d2b69f48e",
+      "runtimeSha256": "e2538fc7277b0c707d8294347327732a0a92fbc89d81a49d249b3ef5dffea25e",
+      "retainedDefinitions": 1,
+      "retainedAstExact": true
+    },
+    {
+      "module": "natural_prototype_prose_view",
+      "sourceSha256": "4ed20b5b25e3239af9cafb43a06a21f55cc0ea405dcb8fb45a853bbcfed1af84",
+      "runtimeSha256": "d971af56c6d8bb64a25f4639e14bbfedfae68525667abefa450a4786e2cf324b",
+      "retainedDefinitions": 4,
+      "retainedAstExact": true
+    },
+    {
+      "module": "needs_auxiliary_view",
+      "sourceSha256": "bece8aa9b47461296b7a21d831bf5d54b83711b71407fe178105f653db4bc3dc",
+      "runtimeSha256": "04830fea1a05c67d7f9edf7bbdc890377d123139b737880e3bebb9448c01059f",
+      "retainedDefinitions": 4,
+      "retainedAstExact": true
+    },
+    {
+      "module": "numeric_free_prose_grammar",
+      "sourceSha256": "184fd66cca8087e759e58992be15ed888c2a3750e04f53c594b8f33c7ab85617",
+      "runtimeSha256": "4e2e84a11b1b1c321d3199884099d091b24678b7577a587b985fb3ee1f1711d3",
+      "retainedDefinitions": 4,
+      "retainedAstExact": true
+    },
+    {
+      "module": "outcome_native_trial",
+      "sourceSha256": "45e2aff81c38a832263bd3f37a3aa86c83f904db354a69048f0969eab9f3c374",
+      "runtimeSha256": "947848b45b5505d038d84eee5e1d8eb8975b6421132fc1695fc5127cb4fc4334",
+      "retainedDefinitions": 1,
+      "retainedAstExact": true
+    },
+    {
+      "module": "outcome_staged_view",
+      "sourceSha256": "3512c31aad7be69273736d192ecb76eb137fb42931cdf83cd22658489e5c259a",
+      "runtimeSha256": "48c21ba487b0ea93b9ebf75f9eb3fa0302702ec650d7360fe60ca78abbcc0eb3",
+      "retainedDefinitions": 6,
+      "retainedAstExact": true
+    },
+    {
+      "module": "practical_prototype_prose_view",
+      "sourceSha256": "f3887cf64c626115ef667a86a707287958c238aca6460a36c7816cab6aff01d3",
+      "runtimeSha256": "ead68fa16118463531292d3c32d2dd907acd8edd80631363b8f3b4c26e6f577c",
+      "retainedDefinitions": 7,
+      "retainedAstExact": true
+    },
+    {
+      "module": "prioritized_needs_view",
+      "sourceSha256": "7984a5730535240030bef41674b7594d574608baa680f0cf93c1ffab24f9c21c",
+      "runtimeSha256": "4a7e38dd211fbdf791c64ab4cd4d04ad7764b7b9eb6736aff5f2deb67067de51",
+      "retainedDefinitions": 2,
+      "retainedAstExact": true
+    },
+    {
+      "module": "prose_bounds_grammar",
+      "sourceSha256": "99147fb025bb5781a5b8f09cc08d5da5551258db0a61e418b07387b5f0a2cc06",
+      "runtimeSha256": "fd0e1561feda2974f8159bc20f61920b3d60634e1c0251507c0c204f4f00cbc7",
+      "retainedDefinitions": 11,
+      "retainedAstExact": true
+    },
+    {
+      "module": "public_schema_decoding",
+      "sourceSha256": "c7834b7e0b26c8b716438dfc3264566933923bcfee407930eb075fe2c38c022b",
+      "runtimeSha256": "123653297d2bdf85d7dd0788f106c01550ac7bc3d1bb8495fb5a9e1865597deb",
+      "retainedDefinitions": 4,
+      "retainedAstExact": true
+    },
+    {
+      "module": "public_task_projection",
+      "sourceSha256": "657c2a1483e14dfaba0643da796e1e3eb9e2799c4cc6563fba69b5ccf0e2a7a1",
+      "runtimeSha256": "a91b054097cad8e712b3c7a2590fa777fe9a06e6949b0b2d341b5ff99111f8c3",
+      "retainedDefinitions": 1,
+      "retainedAstExact": true
+    },
+    {
+      "module": "readable_prose_grammar",
+      "sourceSha256": "dab9f351530ca7e080ad4e78f46a4105612e6891cc9cef49d780650b25c3f7df",
+      "runtimeSha256": "4edbee1286aaf36631fad8ab07e4ccd578919e20cbbe0c3b65c3ea3e7b6a3471",
+      "retainedDefinitions": 3,
+      "retainedAstExact": true
+    },
+    {
+      "module": "readable_prose_view",
+      "sourceSha256": "9ad3eb1d910f378a9db7d44020efe2fd3bdbe798d65ec5c1c3fada100610ede3",
+      "runtimeSha256": "cfbf4e16a7dc142f9cb18023cf2b06c57f42efa09f6a1c99a8cdcf3e7c2f444e",
+      "retainedDefinitions": 2,
+      "retainedAstExact": true
+    },
+    {
+      "module": "scoped_auxiliary_view",
+      "sourceSha256": "b475b5e86d37b5ec5be78e12863ad4200e29340963b8277140d6f1c217af0ea3",
+      "runtimeSha256": "28b21987185c09a6c37b40b048a1446f216471623c5f6b38118e18a63b796838",
+      "retainedDefinitions": 3,
+      "retainedAstExact": true
+    },
+    {
+      "module": "single_decision_view",
+      "sourceSha256": "74e8189fd64e524b212c93729f22abbc8056ef7921845974cbf8902d69773166",
+      "runtimeSha256": "9a1fb4de4f5bf98827af6294d3c60a3b04abcabb9ef93d1eb95a725121234e46",
+      "retainedDefinitions": 10,
+      "retainedAstExact": true
+    },
+    {
+      "module": "strict_json",
+      "sourceSha256": "f79531de5793eb5c4446f77357bdfd5d5940c76726ac70d057b8fd62a37fea37",
+      "runtimeSha256": "d9d1e6c302a6822d1631ee99075500febecd400172dda9c0662dffed2efe7121",
+      "retainedDefinitions": 4,
+      "retainedAstExact": true
+    },
+    {
+      "module": "student_llama_inference",
+      "sourceSha256": "1ed2cb77b6a92591a1557897a6dd768781f2b72f1d980bb1cb1a8181c6f85b17",
+      "runtimeSha256": "b87afc23635341648206ee3e5b0b8c620e819d80f3ef040a7d08754e4940b802",
+      "retainedDefinitions": 2,
+      "retainedAstExact": true
+    },
+    {
+      "module": "subject_anchored_view",
+      "sourceSha256": "e6d483593610b237ea6d07a6326c328da16d6d1c53568e8ac5b49e2c15a7360a",
+      "runtimeSha256": "714deb5613487a8680009b2c3dd01b0c3271832329c6d6f75efe4ddee054e49e",
+      "retainedDefinitions": 1,
+      "retainedAstExact": true
+    },
+    {
+      "module": "subject_staged_view",
+      "sourceSha256": "e32025760aaa767d6f378e2f942244f2957589cf4a1207155b7cdaa7bb57ff23",
+      "runtimeSha256": "91b2755c452c264d0e34cd9d45f53fdf8eb1b1ee9697a2021298861926ba61d9",
+      "retainedDefinitions": 7,
+      "retainedAstExact": true
+    },
+    {
+      "module": "temporal_staged_view",
+      "sourceSha256": "50d18aa3b6b73287f22b7b3e50dfe71172b14697c025ae51380200fd094e528e",
+      "runtimeSha256": "8ab8862ef3c7d72c30cd9656851b0acdea9fb06702db2a029a324252ebfbcafc",
+      "retainedDefinitions": 1,
+      "retainedAstExact": true
+    }
+  ],
+  "dataIncluded": false,
+  "trainingEntryPointsInvoked": false
+}

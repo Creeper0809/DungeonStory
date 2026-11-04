@@ -2575,6 +2575,15 @@ public static class OffenseRewardDebugScenarios
             return Boost(inner.Evaluate(actor, formulaId, context), formulaId);
         }
 
+        public IReadOnlyList<CharacterPerformanceSnapshot> EvaluateMany(
+            CharacterActor actor, IReadOnlyList<string> formulaIds,
+            CharacterPerformanceEvaluationContext context = null)
+        {
+            var result = new List<CharacterPerformanceSnapshot>();
+            foreach (string id in formulaIds) result.Add(Evaluate(actor, id, context));
+            return result;
+        }
+
         public CharacterPerformanceSnapshot EvaluateWork(
             CharacterActor actor,
             WorkTypeId workTypeId,

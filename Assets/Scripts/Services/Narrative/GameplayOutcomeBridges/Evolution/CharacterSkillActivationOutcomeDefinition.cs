@@ -994,7 +994,7 @@ public sealed class CharacterSkillActivationOutcomeDescriptor :
             || outcome.SubjectCount != outcome.ParticipantCount
             || outcome.MetricCount != 6
             || outcome.TagCount != 2
-            || outcome.AnchorCount != 2
+            || outcome.ProductionAnchorCount != 2
             || outcome.ProvenanceCount != 2
             || outcome.FactCount <= baseCount)
         {

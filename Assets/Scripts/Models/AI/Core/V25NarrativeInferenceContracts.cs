@@ -968,6 +968,23 @@ public static class ContextAwareLlmScheduler
             return leftDeadline;
         }
 
+        // A completed inference can take seconds. Once requests are aged, serve
+        // the oldest first so an ongoing stream of persistent skill work cannot
+        // indefinitely starve earlier goals or social responses. Do not preempt
+        // running work, extend deadlines, or change admission/eviction ownership.
+        float leftAge = Math.Max(0f, now - candidate.EnqueuedAt);
+        float rightAge = Math.Max(0f, now - incumbent.EnqueuedAt);
+        bool leftAged = leftAge >= AgingThresholdSeconds;
+        bool rightAged = rightAge >= AgingThresholdSeconds;
+        if (leftAged != rightAged)
+        {
+            return leftAged;
+        }
+        if (leftAged && candidate.EnqueuedAt != incumbent.EnqueuedAt)
+        {
+            return candidate.EnqueuedAt < incumbent.EnqueuedAt;
+        }
+
         bool leftPersistent = left?.Persistent == true;
         bool rightPersistent = right?.Persistent == true;
         if (leftPersistent != rightPersistent)
@@ -981,15 +998,6 @@ public static class ContextAwareLlmScheduler
         if (leftAffinity != rightAffinity)
         {
             return leftAffinity;
-        }
-
-        float leftAge = Math.Max(0f, now - candidate.EnqueuedAt);
-        float rightAge = Math.Max(0f, now - incumbent.EnqueuedAt);
-        bool leftAged = leftAge >= AgingThresholdSeconds;
-        bool rightAged = rightAge >= AgingThresholdSeconds;
-        if (leftAged != rightAged)
-        {
-            return leftAged;
         }
 
         if (candidate.Priority != incumbent.Priority)

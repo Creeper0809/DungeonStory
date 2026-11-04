@@ -6,7 +6,7 @@ using DungeonStory.Foundation;
 using DungeonStory.Narrative.Korean;
 
 // Only the observer knows how an opaque publication joins the native ledger.
-public sealed class FacilityUseFactPreflight : IDungeonSavePreflightValidator, IDungeonCapturedSavePreflightValidator
+public sealed class FacilityUseFactPreflight : IDungeonSavePreflightValidator, IDungeonDetachedCapturedSavePreflightValidator
 {
     public void Validate(DungeonGameSaveData save, DungeonGameRestoreReport report) => Validate(
         DungeonSaveSectionPayload.ReadOrNew<ModularFacilityWorldSaveData>(save, ModularFacilityWorldSaveSection.Id),

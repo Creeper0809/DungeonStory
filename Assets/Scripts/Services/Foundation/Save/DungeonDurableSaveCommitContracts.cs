@@ -90,5 +90,6 @@ public interface IDungeonDurableSaveCommitCoordinator
 {
     DungeonDurableSaveCommitResult OnDurableSaveCommitted(
         string slotId,
-        string serializedByteDigest);
+        string serializedByteDigest,
+        bool allowCurrentRuntimeCollection = true);
 }

@@ -9,7 +9,7 @@ using DungeonStory.Narrative.Korean;
 // native identity before a current checkpoint can be restored.
 public sealed class OwnerRunCompletionFactPreflight :
     IDungeonSavePreflightValidator,
-    IDungeonCapturedSavePreflightValidator,
+    IDungeonDetachedCapturedSavePreflightValidator,
     IDungeonSaveRegistryPreflightValidator
 {
     public void Validate(

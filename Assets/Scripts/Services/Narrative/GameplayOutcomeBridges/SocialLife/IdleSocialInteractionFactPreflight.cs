@@ -4,7 +4,7 @@ using System.Linq;
 using DungeonStory.Foundation;
 
 /// <summary>Compare frozen historical effects with canonical output, never re-evaluate today's mood or relationships.</summary>
-public sealed class IdleSocialInteractionFactPreflight : IDungeonSavePreflightValidator, IDungeonCapturedSavePreflightValidator
+public sealed class IdleSocialInteractionFactPreflight : IDungeonSavePreflightValidator, IDungeonDetachedCapturedSavePreflightValidator
 {
     public void Validate(DungeonGameSaveData save, DungeonGameRestoreReport report) => Validate(
         DungeonSaveSectionPayload.ReadOrNew<IdleSocialInteractionPendingSaveData>(save, IdleSocialInteractionPendingSaveSection.Id),
