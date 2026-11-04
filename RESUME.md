@@ -5,7 +5,7 @@ This branch preserves the current local work without updating main or the active
 Clone the private companion repository next to this checkout:
 
 ```powershell
-gh repo clone Creeper0809/DungeonStoryNarrativeAI
+gh repo clone Creeper0809/DungeonStoryNarrativeAI -- --config core.longpaths=true
 cd DungeonStoryNarrativeAI
 python tools/resume/restore_workspace.py --environment
 ```
