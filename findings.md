@@ -1,4 +1,380 @@
+# R60 저장과 현재 원답 진단
+
+R59캡처와작업스레드검사가서로다른읽기메모를만들어같은큰JSON을다시파싱하는경로가있다. R60은메모를독립복사한새소유세션으로넘겨파싱재사용을보존한다. 실제전체8.105초중얼마를줄이는지는다음실측전확정하지않는다. 원토큰byte값과snapshot은가변공유하지않고strict scalar불변문자열만공유한다. 세션factory는한번만소비되고새thread가activation과dispose를소유한다.
+
+R59장비의공격력부담은선택된positive의분리불가능한부담으로원문프롬프트에명시됐다. separateDrawbacks빈값을기준으로자동오답처리하지않는다. 원답의3효과누락과영어혼용/생성지시반복은직접검토에별도보존했다. 모델예측/QA원문은TRAIN이나짧은답템플릿으로쓰지않는다.
+
+# R58 결과와 다음 행동
+
+현재 컴파일된 DLL에서도 불변함수참조12개/각행 Copy의 delegate 생성0을 확인했다. 할당 감소와 전체 저장시간은 별개다. 원31MB 입력의 실제 저장8.825초는 이전8.891초에서 실질 개선을 입증하지 못했고 복제marker도1.334초에서1.359초다. 저장 잔여를 해결하기 위해 현재 학습을 다시 끊고 작은 실험을 반복하지 않는다.
+
+기술 후보의 이동 효과 누락2개와 문장형 이름은 실제 최종 문구에서 확인했다. 고정 공개288은 현재 live trait owner 문맥과 계약이 다르므로 없는 바인딩을 만들어 연결하지 않는다. 동일한 reference protocol로 원R80과후보를비교하고 실제 C# 문맥은별도게임으로검증한다. 평가문장이나원답은TRAIN에사용하지않는다.
+
+# R58 불변 함수참조와 데이터 복사의 구분
+
+원실제compiled Copy(Ledger)는Func생성6개,Copy(Outcome)는8개를매호출새로만든다. 원본행마다재사용가능한불변정적함수참조를생성하는것이므로수치나필드복제와별개인불필요할당이다.12개의readonly Func를한번만만들고원래깊은복사를그대로호출한다. 캐시에장부/인물/가변DTO를보관하거나검사자에게공유하지않는다. 코드변경을역변환하면원R57텍스트와정확히같다.
+
+진단후보는별도assembly가internal shallow메서드에접근할수없어기존MemberwiseClone의열린delegate를사용했고그차이를명시했다. 생산본은원래internal호출을유지한다. A/B/A의할당은안정적으로27.53%줄었고시간은후보가두원군보다작았지만이값을전체게임저장속도로세지않는다. 현재sourcecompile/실제저장재시험은별도필수다. 첫MVID실패는현재최종단계DLL과이전compile단계DLL의실제식별자를구분해정정했으며검사를생략하지않았다.
+
+# R57 실제 판단과 남은 원인
+
+9명 전원 생성은 원래9명에 대한 실제 복구 증거다. 생성된10개 중 밤 작업 속도 증가만 가진2개가 낮 감속을 설명에 추가했다. 실제 drawbackCredit0/빈drawbackId/빈drawbackCapabilityIds와도 모순된다. 이 오류와 재사용 문구의 어색함은 LOCAL검토로 보존하며 응답을 바꾸거나 학습 답 템플릿으로 재사용하지 않는다. 생성 수락을 설명 품질 통과로 세지 않는다.
+
+단일 모델 ngram 가설은 실제 binary --help와 두 전체게임으로 시험했다. 동일 native입력7개 중 동일출력5개가 모두 느렸고 기술 서비스 중앙값도 개선되지 않아 미채택했다. 전체 실행 길이는 배경요청과 취소가 다른 workload 때문에 직접 성능비교가 아니다. 선택이 다른2개도 한요인 인과로 확정하지 않는다. 순차 후보의 previousCandidateNames/선택 유일성 계약을 버린 무조건 병렬화나 timeout 확대를 대안으로 넣지 않는다.
+
+원31MB입력과 현재저장 모두 restObservation0이다. R57 Save.ReadPayload1.931658초 중 독립복제1.333629초/토큰재생0.091197초이며 SourceMiss0.530305초는 최초복제와 중첩된다. 전체90개 capture-preflight 내부합계2.851838초/최대Apparel258.684ms다. 한 번의 계측값을 단일 인과로 확정하지 않는다. 원리더는 timing만 제거하면 원문 동일이고 scheduler는 이미8ms 예산으로 여러 검사를 묶는다. 존재하는 batching을 새 해결책으로 중복 구현하거나 빈 rest의 행검색을 최적화하지 않는다. 다음 후보는 typed오류와 독립 DTO를 보존하는 실제 복제 경계다.
+
+# R56 실제 수정 효과와 미완료 범위
+
+동일원31MB입력에서저장전체27.44%감소와stale조회75.27%감소를관측했고복원/상태보존을확인했다. 저장9.30초/restore9.20초는여전히남는다. 원9인물전원offer와1명새수락은입력창가설의실제회복증거지만8명첫생성이끝났다는증거가아니다.
+
+cache0는native ABA의일부짧은요청개선을전체게임일관개선으로승계하지않는다. 실제49/44wire중16distinct정확공통,fullqueue와취소가달라단순중앙값비교는인과속도개선이아니다. 같은context후속응답의선택차이도전체wire동일을확인하기전한요인효과로단정하지않는다. 복합효과/조건누락과문장형이름이남아미채택했다. 순차previousCandidateNames/choice유일성계약을생략한무조건병렬화도채택하지않는다.
+
+# R56 조회 재사용의 무효화와 실제 비교 경계
+
+성공한근거해결만 동일원장identity/revision과 동일특성aggregateidentity/revision/requestId에서 재사용한다. 매Tick의원owner/binding형태검사와calendar검사는남긴다. 복원시값과수정번호가같아도새root/aggregate는새opaque identity를갖는다. identity는oldworld를잡아두는참조가아니며저장하지않는다. 버전없는query는원전체조회유지,원장변경/owner변경/근거변경/취소와늦은callback은기존실패경계를유지한다. 실제Unity회귀로추가확인이필요하다.
+
+R55의원9인물은실제로4~5분야이력이있지만23exact+1legacy창이시설이력하나만남겼다. R56은기존선택/순서/정성조건을유지하고actual query의maximumCount로각분야대표자리를확보한다.9명CPU검사는통과했으나실제후보와모델수락은별도다. cache0 진단은공식같은engine에서RAM prompt cache를끄는것이며생산기본256유지/서비스8초불변/전체게임과사실검사결과전채택0이다.
+
+R56r1 실제실게임실패는모델응답이아닌host시작thread경계였다. LocalLlmRequestQueue는기존부터Task.Run에서TryStart를호출한다. Unity의isBatchMode를그안에서추가조회한것이원인이며BeforeSceneLoad에서값을캡처하고작업스레드는Volatile.Read로만읽도록수정했다. exact함수CPU회귀와실제Unity시작증거를구분한다. 기존r1의32PASS는새host수정의현재compile증거가아니다.
+
+# R54 현재 언어 품질의 직접 확인
+
+기술전송성공8개/후보16개원문을읽었다. response0011/S1의3효과중이동설명누락,0024/S2의조건부증폭누락과서술형이름,0017/S0의research시간비례조건누락을확인했다. 마지막은실제authored-prose-input의선택효과정의와대조했다. 전송성공/형식PASS를내용완성으로세지않고language-direct-review.md에원응답참조를보존한다. 평가내용의TRAIN참조나업로드0/원답수선0/현재학습품질해결주장0이다.
+
+# R55 복사 비용 가설의 실제 한계
+
+원R17저장27인물의실제컴파일Aggregate.Clone을88프레임상당/매인물2번/4752회호출했다. 값전건동일과가변목록격리를확인했고0.061351초/70,036,824B할당/peakRSS299,814,912B/최소RAM6,213,754,880B/exit0이다. 원파일/DLL전SHA동일이며Unity실행이나전체Tick비용증거는아니다. 복사만으로9초를설명하는가설은지지되지않는다. 실제stale근거query/다른Tick과validation내부중첩은R55원게임계측으로구분한다. clone-cost-r1/review.json 참조.
+
+# R54 실제 저장 시간의 분해
+
+동일R17 원저장 입력의90 capture-preflight 호출 내부 합계3.041860초,104 capture-section 합계1.027377초다. 전체저장은12.461286초이며88프레임의 VContainerUpdate 합계9.157772초는 호출 중첩을 포함하므로 이 값들을 더하지 않는다. 검사 사이에도 프레임 비용이 크다. CharacterProgression.CaptureAcquiredTraitState는 매번 전체 깊은 복사를 하며 특성 Tick의 두 stale 검사 모두 pending 개수를 보기 전에 호출한다. 이것은 비용 가설이고 실제 주원인 확정은 아직 아니다.
+
+원3입력 native cache256/0/256 비교는0에서 빨라졌지만 guard 선택이buff로 바뀌었다. 생산정책256과 원8초 경계는 유지하며 반복 warmed 입력3개를 일반플레이 개선으로 세지 않는다. R54 소문 서비스8.013초 실패/전체8.153초를 보존한다. 기술8성공 관측5.241~29.014초/중앙21.550초는 통제시험이며 일반p95가 아니다.
+
+## R55 특성 사전 거절의 원본 범위와 분야 분류 진단
+
+원R46의1458개NoOffer는9명이며000009가276/000010이265건이다. 000009의첫frame23064부터23616까지552프레임에276번의사전거절이있었다. 마지막원37,013,555B/SHA5972f7f4세계에는그인물의특성2개/processed milestone2개/pending0이남아있다. 최종상태는당시실패명령을그대로복원하는증거가아니다.
+
+마지막Unity컴파일의ResolveExactDomains를별도Mono에서실행했다. 원owner pending request52764440의23개실제binding중service.facility-visited/session-terminal5개는기존binding authority검사를통과했으나domain:service로부터캐릭터분야는0개였다. legacy동일이벤트의milestone감소도이control에서는0개다. 이는실제분류함수결과이며9명NoOffer의원인이나service를FacilityUse로일괄매핑해도된다는증거는아니다. 진단원문은TRAIN이나모델답템플릿에넣지않는다.
+
+원runtime은Progression.Changed로Dirty가된인물을재평가한다. 사전제출실패는PendingDispatch를만들지않아그객체의재시도시계도사용하지않는다. 다만과거diagnostic은Packet null일때명령ID도비었으므로동일입력의무한재시도인지확정할수없다. 다음은원37MB세계격리복원과현재필터별원인/실패상태미소비의직접관측이다. 후보선택/분야alias/예산/실패처리의생산변경은아직없다.
+
+추가가설은혼합근거창의분야보존이다. 공개상한24에exact최대23을먼저담으면legacy분야대표는1자리만남는다. 실제owner원pending도exact23개이고, 거절인물000009의최종legacy에는5분야가있다. 기존legacy선택기는분야별대표를보존하려하지만정확한실패당시창을회수한것은아니다. 따라서예산/분야태그를임의로완화하거나이최종상태만으로원인을확정하지않고원세계재현에서실제선택된창과8후보탈락수를먼저관측한다.
+
+## R54 실제 시작기록의 추가 조사와 동사 오류
+
+R53실제원문에는순찰지점로향해경비를들어갔다가남았다. 기존번역의{place}로고정suffix와workObject목적어에맞지않는들어갔다가원인이었다. 기존CharacterNarrativeTextQuery의locale/받침처리를재사용해방향조사에만ㄹ예외를적용하고renderer는장소단위로먼저확장한다. 기존한국어14시작변형의workObject뒤들어갔다만시작했다로바꿨다. 번역asset의다른entry/metadata와작업phase/사실/과거원답변경0이다. 기존장소fixture에실제두번역key의받침/모음/ㄹ6경계를추가했다. 새로운C#과실제경로검증은아직미완료다.
+
+## R54 저장 원장 복사와 native 소문 지연 진단
+
+원31,419,161B 저장의15,463,416자/3410행을 마지막컴파일 reader로 별도Mono에서 읽었다. 세션은활성화사이에도parse를재사용했고최초285.814ms/20copy181.636ms다. Unity프레임이나전체저장측정이아니다. 최초실패는AI host MVID를데이터Assembly-CSharp에잘못적용한검사였고원문을남겼다. 실제DTO와Foundation의각MVID를엄격검증해수정했다. metadata경고가있던r2와달리다음prototype은기존Sirenix plugin경로를해결해추가경고없이종료했다.
+
+GameplayOutcomeSnapshot의new생성은9빈목록을초기화한뒤바로복사목록으로덮었다. 별도prototype은얕은객체복사뒤같은9목록을모두깊게복사한다. 실제원장12복사씩A/B/A할당84,949,208/55,154,816/84,949,184B로약35.1%감소,시간101.553/85.407/91.577ms다. 기존compiled전필드/nullable fixture와원3410행의모든값/참조격리를통과했다. GC/동시학습/MonoCLI한계로전체저장개선률이나Unity속도를주장하지않는다. 이후R53실제종료뒤typed MemberwiseClone와9목록깊은복사를생산에반영했고현재R54재컴파일/전체저장재시험이남았다.
+
+R52의유일소문실패는queue0.0958초/service8.0394초,원1803token/입력잘림0이다. native유일cancel과caller취소의대응은taskID직접receipt없는추론이다. 동시긴선택4183token중4180prefill에5074ms/RAMcache교체32건을관측했지만단일원인확정0이다. 원3입력/문법/토큰/seed/상한을유지하는A/B/A256/0/256도구는live학습겹침을시작전거절했고실제GPU비교0이다. 원기한/검사/원답수선0을유지한다.
+
+## R53 장소 목적격 원문의 실제 오류
+
+새R52auxiliary-consumers 원활동기록에는응대지점를/순찰지점를이있다. 기존번역Template.GenericProgress/GenericCompleted/Facility가{place}뒤에를을고정했고renderer는장소를문자열치환만했다. 이미같은renderer의workObject/targetObject가쓰는locale-aware조사query로장소와기존목적격도함께처리한다. 원asset나원답의치환수선이아니며새원문생성경로만바뀐다. 새반환문장길이/성공조건/major사건제외와기존원문미변경경계는그대로다. 실제소스수정의검증은다음격리compile30과실게임이남아있다.
+
+이번통제profile성공요청의기술선택7건전체응답은7.458~30.535초다. queue와service를분리해review에보존했고normal gameplay p95로확대하지않는다. 소문1건은queue가아닌service8.039초에서기존timeout을넘었으므로그기준을연장하지않고원trace를후속진단에쓴다. 기존원장읽기session은프레임사이cache를유지하고DTOcopy를분리한다는원C#확인도유지하며같은기능을다시도입하지않는다.
+
+## R52 모델 응답 전 거절과 저장 검사 구간
+
+추가로같은R30원trace와원31MB저장을직접대조했다. 90검사가79프레임에걸쳤고검사사이6.030초는거의전부프레임경계였다. 의상원장은관측0건이며원장exact3410행/JSON15,463,416자다. 가장느린의상검사의292ms를다수의상이력의이차탐색탓으로보는가설은이입력에서맞지않는다. 첫원장역직렬화와뒤독립복사비용을분리해야한다. VContainerUpdate8.627초는다른marker/검사와겹치므로합산하지않는다. 검사를생략하거나전부worker로옮기는변경은채택하지않았다.
+
+R46의SubmissionRejected1458건은전부No authored benefit individually legal이었다. 반복진단event수이며고유모델요청수나오답률이아니다. 실제각인물의필터별탈락원인은원진단에없으므로모두정상거절또는모델품질실패로단정하지않는다. stale629건도owner213/evidence237/취소중복179로분리했고판정규칙은유지한다. 새진단은기존실패가확정된경로에서만동일필터순서의탈락수를센다. 수용되는후보와packet계산은원문그대로다.
+
+R30 trace의90capture검사bracket합계는3.091초,scheduled-write bracket은0.533초다. 저장전체11.625초/capture1.268초와겹침및Editor관찰비용이있어나머지를순수유휴나Player비용으로세지않는다. ReadSession은cache를프레임간유지하되가변DTO는독립복사한다. 종족검사에는persistence.BuildRestore,그외검사에는정의catalog 의존이있으므로전검사를background로옮기는변경은thread안전성검증전채택하지않았다.
+
+## 이전 R51 피해 원문과 주어 문법의 실제 실패
+
+원문을 문장형으로 바꾼 응답도 requiredSubject를 빠뜨렸다. 주어 prefix만 생성 전에 강제한 비교에서는 두 입력 모두 피해 수치를 생략했다. 자연스러운 문구나 주어 형식만으로 원 사실 보존을 보장할 수 없으므로 채택하지 않았다. R51 원답은 학습 자료로 옮기지 않는다. 다음 모델 자료 작업은 독립된 TRAIN만 사용한다.
+
+## R50 원문 생산자의 조사 오류와 출력 문법의 한계
+
+R49 문법은 원문 구절 사이를 닫아 단어 중간 삽입을 막았으나 모델이 마지막에 체력 저하를 덧붙였다. 필수 구절과 길이 통과는 사실/자연스러움 통과가 아니다. 이 문법은 미채택이며 원 decoder와 사실 검사를 유지했다.
+
+시설 파손 두 생산자는 이름과 무관하게 을을 붙였다. 기존 KoreanJosaFormatter의 목적격 조사로 새 원문을 교정하자 같은 R80이 간이침대를 파손했다를 생성했다. 원문은 고치되 과거 원답을 수정하는 경로를 만들지 않는다. 발음 불명 이름은 기존 formatter가 요구하는 중립형을 명시적으로 사용한다. 사건 종류/결과/대상/이유/수치와 효과 선택은 같다.
+
+실제 게임은 아직 피해 3.5: Arin의 공격의 보고서형 답을 거절했다. 다음 조사 대상은 이 원문의 생산자이며 정확한 수치와 원인 보존 규칙을 완화하지 않는다. 현재 작은 저장의 저장/복원 합계는 과거 대형 저장 성능 증거를 대체하지 않는다.
+
+## R48 작성 지시 충돌과 모델 사실 실패의 분리
+
+원규격24자와달리학습view SYSTEM의80자/4~10어절지시가중복됐다. caller schema의line.maxLength만읽어그옛지시를교정했고다른system/모든user내용과원schema를보존했다. 상한12/24/80및잘못된schema실패/원입력무변경회귀를추가했다.
+
+실제8회동일입력/schema/grammar비교에서Bubble의ItemStackMissing사건은양쪽모두빈손님같은부적합문장이있었고기록phase지시는지정을해제로바꿨다. 기록지시는되돌리고지시충돌교정만남겼으며언어품질/지연PASS가아니다. 원단일R80의선택경로/원validator는같다. 원Bubble public packet에는ActionId/TargetName/PlaceName/FactText일부가없고기계failure명만전달될수있다. 기존공개Activity필드와표현어휘를소유자에서확인하며없는사실을코드가채우지않는다.
+
+## R47 입력형식만 바꾸는 가설의 실제 반증
+
+현재6회native비교는원선택/전효과/조건/원규격을고정했다. 연구조건누락은양쪽동일이고reposition+conditional_amplify의후자도계속빠졌다. 수익후보명은끝조사를없애도차곡한결처럼어색했다. 세경우모두충분히개선하지못해생산미채택이다. 과거R80기술prose256행의고유명23/주효과work_speed0/research1/reposition2라는지도범위와현재실패를같이보되단일인과를확정하지않는다. R84기존추가512행은aux4종이며기술prose를보강한후보가아니므로그완료만으로이문제해결을기대하지않는다.
+
+## R46 실제 30분 결과와 성능 관측 범위
+
+원R80로실시간1800.592초를완주했지만게임시계는700.833초/4420frame이다. 그래픽없는격리Editor측정이므로Player렌더링FPS를환산하지않고다음짧은실제실행에서frame비용을계측한다. ProjectSettings.runInBackground는1이며원인을배경실행설정으로단정하지않는다. 최종18.748초는37MB동기저장과공식복원을합친시간이고기존R30의scheduled-save-only11.625초와직접비교하지않는다.
+
+원본6저장의현재인물에남은특성불변필드를103쌍대조했다. 선택/효과/원설명/근거/요청/수식/표현원본변경0/예기치않은손실0이다. 가변reactionStates와삭제상태5필드는권위상태변경과구분했다. 7timeout과실제기록1유지/1적용은모두원문에남겼다. 성공profile은transport/schema상태이며문장품질승인이아니다.
+
+## R80 실제 학습과 현재 문장 입력의 차이
+
+r46-soak-simulation-hold-r1/train-contract-audit.json은원R80 actual-training inputManifest와실제4096행pin동일을확인했다. 기술prose256전건은주효과와실제별도단점만펼친입력/명시분할이며103건의선택은여러이점을보존했다. 현재bridge는이분할을지우고모든부효과를48자안에요구한다. C#은플레이어기술description에원mechanicalDescription을사용하고모델문장은narrativeReason에보존한다. 이차이는설명역할에맞게대조할근거이며기준을낮추거나부효과선택을삭제할이유가아니다. 기록aux32건에는숫자사건과requiredExactPhrases가없고sourceEvent가문자열이어서현재구조화된수치/원인입력과차이가있다. 인과확정/추가학습/품질PASS는아니다. 현재soak중source변경0.
+
+## r46 정기 저장의 시계 hold와 지속 시험
+
+DungeonGameSaveSlotService.BeginSave는캡처직후원시계권위의HoldSimulation을소유하고완료/실패처리에서반납한다. 지속시험의매프레임양수시계assert가이정상pending구간을오류로판정했다. 기존AtScheduledSaveBoundary를해당관측앞에적용하되NaN/무한값은먼저거절하고idle뒤paused는계속거절한다. 원60초실패관측/생산LateTick/실제원시계와전체한도는유지한다.
+
+## r45 종료 자동 저장과 시험 수동 저장 경합
+
+MetaProfilePersistenceService는RunResultReady다음LateTick에서BeginSave를접수한다. 이전동기시험은죽음두프레임후곧바로또Save를호출해새비동기계약의IsSaving보호에걸렸다. 생산보호를낮추거나CompletePendingSave로숨기지않는다. 시험은실제완료한새autosave의원바이트digest와슬롯TryLoad/전체restore/죽은owner종료상태를검증한뒤원살아있는save로재개한다. 실패처리LateTick관측을위해busy해소후두프레임을기다리고원Error로그관측과60초한도를유지한다.
+
+## r44 선택 문법의 반복 분기 비용
+
+실제S2선택규격은2400개결정/근거쌍분기를약1MBJSON으로보냈다. 같은JSON상수의접두를분리한문자트리는약82KB이며원규격이정의한273147개구조화값전건과동일하다. 공백표기차이는이열거의대상밖이고원JSON의값과결정-증명관계를검증했다. 같은프롬프트의실제native시간은약44%감소했다. 두응답은전체동일하고한요청은선택이다르므로전체모델판단동일/품질승계를주장하지않는다. 기존설명단계는두방식모두일부부효과/조건을누락했다.
+
+R43단계순서변경은9공개문서의원값/규격동일을확인했지만생성된앞선이름의입력분리와키순서변경뒤실제선택이바뀌었다. 단순속도효과만채택하지않고원생산코드로복원했다.
+
+## r42 원문 활용 오거절과 native 진단의 한계
+
+R41 원문“저지하러 이동”의 모델원답“Yuna가 저지하러 이동했다.”는 원구절을보존하지만 ContainsCreativeDetail의임의안전어목록에이동이없어 unrelated situation으로거절됐다. 정확한원문독립명사에한정한하다활용인식으로고치고이동량부분일치/없는이동/추가치료를거절한다. 앞에서검사한인물이름의숫자나화재문자열도사건으로세던별도오판을본문검사로분리했다.
+
+형식과문체native진단은원주어/일부어미를개선해도원인/수치를빠뜨렸다. 가상예시경로는추가상황도저술해미채택이다. 문장출력수선/평가자료TRAIN사용/검사완화로문제를덮지않는다.
+
+## r41 C#기록 작성 입력의 중복 지시
+
+원v1은publicFacts.sourceEvent와원문구절외에인물/Persona/최근기록/대상/장소를영문originalCallerPrompt안에다시적었다. 새v2는같은기초값을기존허용키publicCharacterFacts와sourceEvent안에모두구조화한다. 모델이읽는입력은모든그값과원참조를보존하고옛중복서술지시/거절된초안만분리한다. 원wire는전부보관하며모델응답이나새사실을코드로완성하지않는다.
+
+## r40 기록 구절 제약의 권위와 범위
+
+C#는이미publicBindings에requiredSubject와requiredExactPhrases를고정해보냈지만이구절조건이native schema에는없어모델이숫자를빼거나이름을음역할수있었다. 단순원문구절을모든순서의GBNF제약으로교차하고그사이단어만모델이쓰게한다. 같은모델1호출이며새의미판정/원답조립/수선이아니다. 원사실구절/후속지시/기록근거필드는그대로다.
+
+## r39 상태기가 허용하는 붕괴 이후의 기록 부모
+
+InvasionIntruderExecutionCoordinator.RunInside는방어대기종료후시설파손을계속하고MarkDungeonBreached도외부붕괴후실제진입때발행될수있다. 저널은동일침입의직전게시를유일부모로관리하므로observer가collapsed부모를그두전이에서배제한것이불일치다. 다른종류/다른침입의부모는추가허용하지않고종결이후저널거절도유지한다.
+
+## r38 반복 전선 붕괴의 부모 판정 불일치
+
+InvasionFactPublicationRuntime은같은runtime의직전게시를정확한부모로정하고복수FrontCollapsed를별도owner revision으로보존한다. DefenseEngagementCombatRuntime은실패한방어대를완료/해제한뒤다음방어대가다시붕괴할수있다. observer의FrontCollapsed부모만started/breached/damaged로제한되어두번째붕괴에서게시준비가거절됐다. 같은침입의이전collapsed부모를지원하며foreign/Resolved부모는그대로거절한다. 상태쓰기/rollback/DTO/관측내용은바꾸지않는다.
+
+## r37 문맥 캐시와 최소길이 지시
+
+R35native-latency-summary.json에서초기3후보의선택prefill3558/3609/3692tokens과별도설명호출을확인했다. 같은slot에서선택과설명을번갈아보내접두재사용이끊긴다. 같은선택들을먼저처리하고설명을뒤에모으면긴공통접두를재사용할수있다. 이전후보의생성설명은판정사실이아니며모델의이전효과결정은전부보존한다. 실제품질과캐시감소는아직미증명이다.
+
+기록첫입력에는32자이상micro-story를요구하지만consumer는최대길이와사실만검사한다. 단순사건을늘리는이최소길이지시를제거하고원사실구절/숫자/허위결과검사는유지한다.
+
+## r36 숫자 어휘 처리와 원숫자 비교의 분리
+
+R35의 원숫자+이며가 새 상황 단어로 거절됐다. 기존 숫자검사는 source.IndexOf로 12.25에 들어 있는 2/12/25도 허용할 수 있었다. 새 비교는 전체 숫자토큰만 인정하며 이다/이며/이고는 일치한 원숫자에만 붙일 수 있다. 원구절 누락/허위 결과/다른 새어휘 검사는 유지한다. 거절된 원문을 정답 또는 학습자료로 사용하지 않는다.
+
+## r32 실제 지연과 범위
+
+시설단일생성은1211prompt/182decoded/native5.892187초/게임service6.340874초였다. 두단계시간초과를개선했으나대기21.984802초는남았고fresh표적시험이어서전체부하의동일감소율을보장하지않는다. 여섯필드전체는모델이직접출력했고전달문자열이원native와byte동일하며상태/공식복원에연결됐다.
+
+현재초기창작연구문장은선택된효과대신알림동작을추가했다. 연구GetManagementModuleTotal은Passive뿐아니라active buff도읽으므로단일NoOp서술만으로실효없다고단정하지않는다. 평가원문과LOCAL검토는TRAIN으로쓰지않는다.
+
+## 시설 고정 스키마와 기술 창작 경로의 구분
+
+FacilityFormulaEvolutionPresentationRuntime은일반모듈선택문구를쓰지만이번실제스키마에서는positiveModuleIds/evidenceFactIds각원소1/selectionId단일enum/drawback=[]라서선택자유도가없다. 이런원caller제약만읽고모든6필드를native에서한번생성하면별도선택JSON과설명JSON의왕복을줄일수있다. 필드를코드로채우지않고전체원JSON을모델이직접출력/검증한다. 복수값이있으면적용하지않는다.
+
+어색한연구설명은noOutcomes초기창작경로였다. 현재selectedEffects의원문은작업완료시간비례연구진척이고currentMechanics는Ally여서모델이주어/수신대상/연구진척을어색하게결합했다. 사건기술prose입력축소만으로그경로가해결됐다고세지않는다.
+
+## r31 생성전 입력의 중복과 문장 경계
+
+같은 기술 prose 문서가 selectedModules와 selectedPositiveEffects/selectedSeparateDrawbacks로 동일한 속성을 반복했다. 선택의 두 ID목록은원decision에이미있으므로 모든속성이동일한지확인한뒤뒤의복제목록만제거했다. selectedModules의 requiredEvidence와 중첩속성도유지한다. 생성지시는 수신대상과 변화상태 구분/조사/처음부터다른이름의명사구를명시한다. 평가원문을답예시나학습입력으로사용하지않는다. 지시개선은품질증명이아니며 실제시험이필요하다.
+
+## 실제 생성 지연과 이름 품질의 잔여
+
+시설은대기23.826초뒤서비스10.005초에서취소됐다. native선택stage는완료했고prose stage는토큰처리완료전이었다. 기술은서비스3.08~33.96초와대기최대34.01초가함께나타나대기만의문제가아니다. 현재실행기help가단일모델검증을쓰는ngram유형을지원하므로추가모델없이속도설정의실제효과를확인한다. 실제중복후보이름에불필요한문자나placeholder가붙는경향은유일성이름제약과학습분포의가설로만두며아직원인확정0이다.
+
+## 저장 시간과 게임 진행의 분리
+
+r29도검사활성3.262초와검사사이55.747초가분리됐다. 다음은게임진행과동시CPU경합을피하는명시적저장중정지다. 사용자의영속IsPaused를토글하면원래선호와겹친명령을잃으므로그방식은쓰지않는다. 기존물리시계owner의중첩hold만추가하고스케일명령은그owner가저장해마지막해제에반영한다. capture는hold전에끝내고UIclock은unscaled realtime을유지한다. 원120초와전체90검사를유지한실제r30에서저장11.625초/87frame/UI시계계속/게임시간증가0/선호보존을확인했다. 초기capture1.268초와복원8.960초는여전히남고,이수치는게임진행을잠시정지하는생산정책의결과다.
+
+## LFS 캐시 추가 정리 경계
+
+앞선QA정리와 달리 이번에는 .git/lfs/objects의 보존원본과 전체SHA가 동일한10개만 원본공유로 바꿨다. 분리된 이전물리사본과 보존모델의 정확한앞부분인 임시5개를 삭제대기폴더로 이동했다. 실제 .git/objects와 변경이력, index/refs/HEAD/config/기존index.lock은 유지했다. active Git이 관측되면 이동을멈추고종료후같은journal에서이어갔으며프로세스종료0이다.
+
+## QA 추가 정리 경계
+
+동일SHA의시험자료는원경로를유지하고보존원본의hard link로연결했다. 옛TrainedModelIntegration conversion-env와완성본의정확한prefix인실패다운로드만별도이동했다. 고유원답/실패/게임세이브는보존했으며Assets/Library/.git는정리대상이아니다. 옛변환환경재실행은삭제대기에서복원하거나기록된패키지로재설치가필요하다. 현재게임과학습환경은사용하지않는경로다.
+
+## r25 실제 성능의 제한과 동기 저장 경계
+
+새bool조회가cached ledgercopy를생략함은fixture카운터로증명됐으나실제전체roundtrip은17.7078초로r24 16.4326초보다길었다. Retail restore구간은.2385초로짧아졌고capture구간은.4153초로늘었다. capture전체validator4.245초/restore3.384초/sectioncapture1.230초여서단일부분개선이전체지연을해결하지못한다. 환경차이가있는한번의각실행으로단일인과나전반속도향상을주장하지않는다.
+
+현재slot Save/QuickSave/AutoSave는동기완료bool/문자열을호출자에게반환하며quitting도같은Save를호출한다. 단순async변환은완료의미/종료시미완료저장/ThreadStatic readscope수명과validator의live정의조회경계를바꾼다. 다음수정은단일save job의명령/실패/flush경계를확정해실제생산호출자까지연결해야하며UI의가짜즉시완료나검사생략으로대체하지않는다.
+
+## r25 빈 retail 관측의 typed검사와 mutable DTO 복사 분리
+
+Retail ValidatePending은pending0일때전체ledger 내용순회를원래하지않지만, 호출인자Read<T>가먼저15MB ledger의독립DTO를복사하고있었다. 검사없이조기반환하면잘못된nested숫자/nullable root/누락section과counter 오류순서가달라지므로그방식은쓰지않는다. 새bool shape조회는원전체typed Deserialize의성공snapshot을private상태로유지하면서null 여부만반환한다. 공개Deserialize와public ValidatePending의독립copy/실제canonical 검증은유지한다.
+
+비동기 Capture 전체를바로worker로옮기는것도현재validators의런타임/저작정의조회와원상태원자경계를보장하지못해채택하지않았다. 이번변경은mutable세계의새읽기권한이나validator 우회를추가하지않는한정복사비용감소다.
+
+## r24 strict scalar streaming의 실제 경계
+
+정상 object는 전체 token을 읽어 root 값을 하나만 보유하고 sibling object별 중복키를 검사한다. 특수/손상 구문은 기존 strict JObject 경로가 동일 예외를 내도록 한다. 42개 작은 경우와 3개 큰 경우의 원 참조 비교가 값/예외 종류/문구/경로/줄/열과 success-only memo를 검증했다. 실제 원장 읽기도 streaming2/DOM0/memo1을 썼다.
+
+같은 실제 저장 복원은16.4326초로 직전16.0961초보다 빠르지 않다. preflight는 감소했지만 disk-read .505초 등 다른 구간이 늘었다. 환경 변동을 배제한 전체 성능 개선은 아직 입증되지 않았다. r25 읽기 전용 조사에서 원저장의 apparel 관측0이라 관측별 index 재구성은 이번 시간의 원인이 아님을 확인했다. 첫 ledger DTO parse/copy와 필수 foreign producer 검사는 건너뛰지 않는다.
+
+## r23 raw character tree 재사용 범위
+
+원ValidateRetailPurchaseJson의엄격JObject/배열/retail field검사를private반환형helper로옮기고publicvoid호출계약은그대로둔다. RawPayload는반환된로컬root에서actors/profiles를읽어같은호출의두추가DOM파싱만제거한다. lifecycle별도검사/actorrest/skillpresence/profilevisitor검사의순서와문장은보존하며호출간root공유나검사성공캐시는추가하지않았다. 실제같은파일roundtrip16.096초와20회귀통과,section-preflight1.083초이나다른구간변동도있어.744초차이를전부한수정의인과로확정하지않는다.
+
+## r22 exact character read copy 판정
+
+70sealed DTO/672public serialized필드만typed copy하고36enum은값으로보존했다. 기존Clone의trim/null필터를재사용하지않아 검사권위를바꾸지않는다. 전체필드회귀는 production field-only codec의 JSON동일/모든nullable필드/특수float-double비트/공유가변참조없음/operation memo격리/손상입력두번거절을통과했다. 같은source 단독roundtrip16.84초는직전19.02초보다짧지만 여전히capture-preflight3.950초/restore-preflight3.859초/stage2.345초이므로 파일쓰기만비동기화해끝나는문제가아니다. 단일실측을일반지연보장으로쓰지않는다.
+
+## r22 반복 character DTO 역직렬화
+
+DungeonCharacterWorldSaveData는현재fast snapshot interface가없다. 기존WorldCharacterProfile/Growth/Reputation/Retail/Haul clone은 보정이나null삭제를하므로 save-read exact copy로연결하면 손상입력거절이바뀐다. r21 trace와 실제호출분기를 대조한 조사에서 characters.world 읽기는 capture12회/restore계열19회로집계됐고 약9.56M자 payload를 반복DTO화한다. 이는단계/소스기반집계이며 타입별런타임counter를직접계측한값으로과장하지 않는다. 새typedcopy가전체지연을없앤다고미리주장하지않고 동일저장비교로검증한다.
+
+## r21 저장복원 정상 capability 부재 로그
+
+r10에서는17.606초 전체만 기록했으므로 단계별원인을 확정하지 않았다. 원30MB r6계측은 파일I/O보다preflight/stage 비용이 크며 r10원로그에는 선택적AbilityWork 부재조회140회가stack과함께 반복된다. 해당복원직전 조회를 기존TryGetAbility로 바꾸고 두엄격오류 분기는 보존했다. 성능향상 수치는 아직없다. 최초LOCAL 역치환검사가 기존정상TryGet문장까지 치환해실패했으므로 metadata-first-attempt.json에보존하고 원before의 유일old문장1회치환==실제after로 검증했다. 생산소스 재수정0이다.
+
+## 2026-10-29 특성 pending과 기술 획득 원장 복원의 두 경계
+
+Exact binding의 salience는 운영일 consolidation에서 이산 갱신된다. 원 frozen pending은 더 이상 같은 근거로 해석되지 않으므로 progression 명령으로 그 요청만 정리하고 새 현재문맥을 만든다. 새 사실만 생긴 경우는 기존 요청을 유지한다. 실제 Arin/숫자이름 특성 적용이 성공했다. 이어 skill 획득 descriptor가 가변 retention anchor 개수를 생산 shape로 검사하는 충돌이 드러났다. 같은4개의 초기근거 hash/owner를 검증하고 현재 유지근거 owner 검사는 별도로 유지한다. 원30MB/실패파일과 모든 원답은 보존한다.
+
+# 최신 - 단일 모델 문장 후속과 특성 설명 표시
+
+추가 읽기 전용 저장 조사에서 GameWorldLineageSaveValidation은 같은 restore read scope에서 동일 장부의 strict JObject parse를 두 번 하며 약0.73초 중복이 남는 것을 확인했다. 최초 capture의0.77초는 단일 검사라 중복 제거로 줄지 않는다. typed DTO로 단순 대체하면 중복 JSON 속성 거절이 사라진다. 현재 전체70.59→21.55초 개선과 실패 계약을 유지하고, 더 큰 parser 변경은 이번 후보 회수/최종 게임 시험보다 우선하지 않는다. 남은 저장 시간을 즉시 저장으로 주장하지 않는다.
+
+초기 noOutcomes 기술은 현재3호출에서 한 응답에 모든 허용효과 선택과 설명을 함께 써, heal/cleanse를 고르고 guard 의미를 설명하거나 다른 후보의 대상이 섞였다. 같은 실제 R80의 원 선택을 고정한 짧은 설명 진단6건과 전체 경로 비교4건을 실행했다. 선택 단계는 전 공개사실을 유지하고 설명 단계만 이미 고른 효과의 원 meaning과 현재 X 원행으로 제한한다. 이는 설명용 명시 투영이며 전사실이 설명 입력에도 있다고 주장하지 않는다. 원판단/효과선택/기존 소비검사는 바꾸지 않는다. 신규 경로는 통제 중앙7.90초, 원3호출6.27초이고 최종 게임시간은 별도다. 일부 동사형 이름은 남겼다. 명사구 지시 추가 r2는 새 파손을 만들어 미채택하고 원 소스/출력을 보존했다. 출력 수선이나 최신 답 선별은 없다.
+
+특성 화면의 내부 효과식 표시는 원 narrativeFlavor 연결로 수정했고 compile-polish-r6 현재17회귀 PASS다. 원 state와 근거는 보존했다. 실제 신규 특성2개의 원응답/owner/저장 일치도 부분r5에서 확인했다. 소개문 문제는 프롬프트만으로 해결됐다고 하지 않는다. 현재 별도 R81 후보의 실제 학습은 NarrativeAI task77에서 진행 중이며 새 평가 전 게임 모델은 R80을 유지한다. 아래의 새 학습0 문장은 당시 진단 기록이다. 최종 연속 게임 시험은 미완료다.
+
+## 이전 - Persona 실제 언어 실패와 형식 제약의 구분
+
+soak-polish-r5의 단일 사실 선택 후 소개에도 어색한 별칭과 사실에 없는 해소 표현이 남았다. 같은 원입력의 문법 유무 비교에서 문법 없는 결과도 언어 오류를 내고 일부는 다른 필드명을 반환했다. 짧은 지시와 별도 가상 예시도 일관된 개선을 만들지 못했다. 따라서 문법만을 원인으로 단정하지 않으며 추가 focus 호출은 미채택했다. 모델 선택을 코드로 대체하거나 원답을 수정하지 않았다. 현재 bridge는 이전 lossless 공개입력 해독 경로로 되돌렸고 그 정확한 이전 해시를 대조했다. 새 학습은 아직 실행하지 않았다.
+
+## 고정 근거의 생산 단계와 실제 이름 예외
+
+Descriptor는최초봉인전에draft검사와봉인후publication/restore검사에공유된다. ProductionAnchorCount는내부HasImmutablePayloadDigest로이두상태를명시분리하고,값누락을추정하거나원답을수선하지않는다. 실제3개numeric authored effect거절은원래이름로웬3/레오2가들어간정상문장이었다. Pythonreference검사기기본숫자금지는유지하고게임publicContext의정확subject이름만추가권위로전달한다. 수치/퍼센트및부분이름/다른이름은계속거절하며실제원3응답의원값불변회귀PASS다.
+
+## R80 장부 DTO 소유자의 명시 복사
+
+실제장부13개DTO의164public필드를모두복사하는계약을장부소유자에만추가했다. 다른DTO는기존typed토큰경로를쓰고같은작업밖으로캐시를유지하지않는다. 전체필드비기본값과null/중첩목록/메트릭double을검사하는회귀PASS. 실제r6원본재생에서전체21.55초,단계별preflight는합계10.30초로줄었다. 기존전체검사와atomic파일커밋은변경하지않았다.
+
+## R80 actual save bottleneck and bounded read reuse
+
+save-profile-r4 actual roundtrip70.59s spent most time repeatedly parsing the same full ledger across capture/restore preflight validators; physical file writing was0.02s. The scoped memo stores reader tokens keyed by original string reference and DTO type, never mutable DTOs, and is discarded at operation end. Typed decimal/date/bytes, duplicate keys and failures retain original parsing semantics. This needs current fixture and actual replay verification. Trait name digit conflicts and single-effect proof mismatches are separate corrections; all original effect/fact guards remain. Initial party skills emit one complete candidate per call, with mechanics fields before prose and previous candidate uniqueness unchanged.
+
+## 새 R80 Goal의 확인된 실패 경계
+
+r17 연속 구간 AcquiredTraitModuleSelection 실패35건은 실제 이름에 숫자가 있는데 C# schema/consumer가 모든 숫자를 금지하는 충돌19건과, 모델이 선택한 효과의 requiredEvidence를 proof에 연결하지 못한16건으로 분리됐다. 숫자를 이름에서 삭제하거나 잘못된 근거를 답 뒤에서 바꾸지 않는다. 정확한 소유자 이름 예외와 원래의 기계 수치 금지를 함께 유지해야 한다.
+
+저장 원본의 ledger는15.575MB, character world는8.577MB이며 총 raw payload의89.07%다. 63.90초는 공식 Save+Restore 창이라 파일 쓰기 시간으로 단정하지 않는다. 기존 DungeonSaveEditorTrace와 section 경계를 이용해 실제 지배 단계를 확인한 뒤 수정한다. 상태, 로그, 원장이나 section을 버리는 최적화는 하지 않는다.
+
+## R80 응답성 마감 결정
+
+이력의 식별자와 순서 있는 전체 근거는 게임 소유자가 이미 결정한 정보이므로 모델 복사 대상에서 제외하고 원문3개만 생성한다. 원래 소유자 검사를 유지해 실제 적용과 복원으로 확인했다. 접수 불가와 실제 모델 실패를 구분해 기존 실패 횟수를 보존한다.
+
+초기 기술6단계의 공통 입력을 유지해 캐시가 재사용되도록 했다. 말풍선은 긴 문장 지시와 짧은 생성 제한의 충돌을 제거했으나, 모델 자체의 어색한 표현과 드문 미완성은 남는다. 이를 원답 수선이나 검사 완화로 숨기지 않고 프로토타입의 남은 품질 한계로 기록한다. 형식, 속도, 실제 상태 적용과 문장 품질을 구분한다. 상세 결과는 docs/dev/r80-responsiveness-goal-20261028.md다.
+
+## R80 짧은 생성 제한과 문장 지시 충돌
+
+r16은 길이만 줄이면 자연스러움이 유지된다는 가정을 통과하지 못했다. 원문 다수가 제한에 닿아 문장 중간에서 끝났고 원caller의4~10단어 지시도 추가 말을 요구했다. 후처리로 문장을 수선하지 않고 생산자와 system의 지시를 일치시키며, 목표8~16자보다 넉넉한24자 생성 공간을 둔다. 원래 게임consumer의80자 계약과 사실 입력 및 시간 제한은 유지한다. 형식과 속도 통과를 문장 품질 승인으로 세지 않는다.
+
+## R80 시설 진화 뒤 저장 거절 수정
+
+`soak-r3`는 약1376초에서 환경 피해로 직원이 사망할 때 운반 물품 반환이 거절됐다. 실제20분 저장에서 운반 음식의 신선도1530과 물리 Carried 기록1575/1620의 차이를 확인했다. 운반 재고가 정상적으로 감소시킨 신선도가 사망 반환 경로의 전체 성분 일치 검사에 걸렸다. 반환 전 typed handoff가 양쪽의 유효한 freshness 스키마, 동일 보존 처리, 단조 감소와 모든 비신선도 성분의 정확 일치를 검증하고 물리 상태에 반영한다. 스택 ID, 품목, 수량, 위치, custody와 목적지 intent 검사는 유지한다. 증가, 보존 처리 변경과 다른 성분 변경은 거절한다. 생명주기 전환 순서를 바꾸거나 물품을 삭제하지 않는다.
+
+`soak-r2`는 약786초에서 개조 후보 전건 부적합 예외로 중단됐다. 후보 생성은 예전 세 종류만 구성하고 새로 등록된 순수 운용 capability를 보지 않았다. 새 생성은 등록된 순수 시설 모듈도 동등하게 검사하며 같은 축 상쇄와 실제 소비자 검증은 유지한다. 생산 능력이 없는 서비스 역할의 Operate 소비자를 위해 순수 `facility:service-operations`를 별도 등록하고 기존 `facility:service`의 생산량 부담이나 확정 노드는 수정하지 않는다. 후보 수 UI는 실제 수를 표시한다. 실제 시험 실패를 30분 완료로 합산하지 않으며 수치 영향은 밸런스 기준서의 별도 기록을 따른다.
+
+실제 시설 이용과 AI 진화가 끝난 뒤 공식 저장이 `facility-use-cursor-rewound`로 거절됐다. GridFacilityEvolutionBuildingReplacer가 stable ID는 유지하면서 FacilityRuntimeState를 새 인스턴스에 옮기지 않은 것이 원인이다. 운영 상태의 기존 소유자 restore 경로로 커서, 승인 범위, 연료와 누적 이용 상태를 게시 전 복제한다. 이용 중인 coroutine과 점유 handle은 옮기지 않으므로 active use가 있으면 원본을 보존하고 명시적으로 거절한다. DTO와 save join 검증은 변경하지 않는다. 실제 진화 전후와 공식 저장 복원에서 커서 및 승인 범위를 다시 확인한다.
+
+그 뒤 실제 저장 복원에서 진화 시설 이름과 당일 정산 이름이 달라 후속 방문 알림이 실패했다. 정산 domain의 명시적 이름 전환 명령은 예상 원래 이름을 검증하고 현재 행의 표시명만 바꾼다. 방문 수, 금액, 재고, 만족도와 이미 확정된 보고서는 그대로다. adapter는 실제 canonical 시설의 완료된 진화 이름 계보가 현재 이름에 도달할 때만 이 명령을 호출한다. 완료 이벤트와 복원 후 첫 관련 사건에서 같은 검증을 적용해 수정 전 저장도 읽는다. 임의 RecordVisit 이름 변경 거절과 저장 형식은 유지한다. 원래 예외도 호출 경로까지 로그에 보존한다.
+
+## R80 활동 기록 표시와 저장 경계 수정
+
+CharacterLog가 생성 대기 ID를 Entries와 TryGetVisibleDisplayLine에서 제외했고 CharacterWorldSaveService가 같은 Entries를 저장했다. 모델 거절/취소/동기 거절 뒤 pending 해제가 빠져 사실 로그가 숨겨지고, 생성 대기 중 저장에서도 빠질 수 있었다. CharacterLog 원 목록과 stable entry ID가 단일 권위다. 현재 사실은 즉시 비공개 필터만 적용해 조회/저장하고, 유효한 새 문장만 기존 TryUpdateDisplayLine으로 바꾼다. 새 저장 필드/버전/대체 서사는 만들지 않는다. TryEndNarrativeDisplayWait는 exact ID와 예상 문자열이 같은 요청만 닫아 stale/중복이 새 상태를 바꾸지 않게 한다. 원 실패와 모티프/숫자/구절 검증은 그대로 유지한다.
+## R80 실제 전투에서 발견한 연결 오류 (2026-10-27)
+
+- `profiles-r3`의 실제 후천 특성 요청은 원 스키마에 필수 requestRef를 갖지만, 닫힌 판단 문법을 만들 때 그 상수 필드가 빠졌다. 생성 전 문법의 모든 판단에 호출자의 정확한 단일 값을 포함하도록 고쳤다. 선택 36개와 순서 및 효과별 근거 문법은 그대로이며 실패 원답은 계속 거절된다. 증거: `reference-regression-r1.json`.
+- `profiles-r4`의 새 부상 관측에는 명시된 후속 관측 범위가 없었다. 기존 R80 읽기 경로는 후속 범위가 있는 평가 입력을 전제로 모든 부담 읽기에 그 제한을 강제해 실패했다. 게임 입력이 후속 범위를 실제로 제공하면 원 제한을 유지하고, 제공하지 않은 새 관측은 원래 전체 인용 후보를 그대로 읽는다. 명시된 후속 지시만 있고 범위가 없으면 계속 실패한다. 근거 ID나 결과를 코드가 선택하지 않는다. 증거: `unscoped-reading-regression-r1.json`.
+- 첫 장비 대기 시점의 무피해는 발사체 지연으로 확정되지 않았다. 원 장부상 초반 30발이 모두 빗나갔으며 사용 숙련은 빗나간 공격에도 오른다. 조준 및 거리 조건과 실제 피해 검사를 분리했다. `profiles-r4/combat-damage.json`은 실제 명령으로 체력 10000에서 9964.829로 감소한 것을 보존한다. 이후 모델 실패로 전체 시험은 미완료다.
+
+## R80 확장 플레이 조사 (2026-10-27)
+
+- 현재 활성 AI 경로는 초기 능력과 후천 특성, 목표 제안, 사회적 소문 외에 기분 충동, 고객 성격, 활동 기록, 말풍선, 장비 진화와 시설 진화다. 예전 저장 상태의 EvolutionHistoryLegacyV2는 별도 경로로 남아 있다. MultiPerspective와 일부 LegacyV2에는 현재 생산 호출이 없어 직접 API 호출을 실제 게임 기능 검증으로 세지 않는다.
+- 기존 캠페인 capture-only 실행과 고정 응답 fixture는 R80 실제 응답 증거로 재사용하지 않는다. 기존 R80의 공식 저장 파일만 출처 해시를 남겨 복원하고 새 실제 응답과 권위 상태 반영을 확인한다.
+- 사용자가 다른 Ollama 모델의 메모리 해제를 허용했다. 확인된 qwen3.5:9b는 R80과 다른 모델이며 앱과 서비스는 종료하지 않았다. R80 시작 전 기존 8GiB RAM, 7GiB VRAM 검사를 유지한다.
+- 연속 플레이 전용 진입점만 30분 실시간 관측과 시작 및 종료 여유를 포함한 2400초 외부 한도를 갖는다. 내부 한도는 2280초이며 일반 실행의 900초 한도와 메모리 보호 및 비대화형 데스크톱 격리는 유지한다.
+
 # DungeonStory Current Findings
+
+## 특성 요약의 원 설명 연결
+
+현행 formula 특성은 description에 내부 효과식을 저장하고 생성된 설명을 narrativeFlavor에 별도 보존한다. 플레이어 요약은 앞 필드와 raw 근거 ID를 보여주고 있어 원래 생성된 문장이 빠졌다. 새 표시 경로는 formulaVersion으로 원 저장 표현을 구분해 생성 문장 또는 legacy 작성 설명을 그대로 읽고 내부 식과 근거는 상태에서 보존한다. 누락 문장은 명시적으로 알리며 다른 필드로 덮지 않는다. 실제 저장/판단/효과 계약과 모델 가중치는 바꾸지 않는다.
+
+## R80 종료 후 과거 저장 재개의 활성 참조 결박
+
+`soak-r9`의 정상 종료 저장/불러오기 자체는 성공했지만, 그 뒤 과거의 활성 체크포인트를 다시 읽을 때 대피 서비스가 같은 손님 ID를 중복으로 사전화했다. scene world 목록에는 이전 사망/퇴장 객체가 남아 있을 수 있으며 생존 canonical map과 다르다. 대피 복원은 기존 검사와 일치하게 활성 hierarchy, 생존, Active lifecycle인 객체만 인덱싱하고, 저장 후보에서 넘어온 owner/resident와 exact reference가 같은지 계속 검사한다. 활성 생존 인물이 둘이면 계속 실패한다. 생애/시체 기록을 삭제하거나 첫 참조를 선택하지 않는다.
+
+실제 후기 종료 저장은24954435B/SHA6d8a8209f55fd15a8d4aa435f0fe6c8b7ff4fe6ce08c7713fa691377383766f5로 고정했다. 새 실행 초반의 통제 손님 사망 뒤 이 원본을 공식 복원하고 실제 활성 seed를 다시 불러오는 경로를 검증하며, 이 준비는30분에서 제외한다. 순수 검사는 같은 ID의 사망/퇴장/비활성/Downed와 활성 생존 참조의 분리, 활성 중복 거절과 입력 불변을 다룬다.
+
+## R80 목표와 기분 요청의 중복 접수와 정상 거절
+
+`soak-r8`은 Unity 예외0, 실제25분 저장 복원5회를 통과했지만 약28분40초에 추가 QA 목표 요청이 queue-full로 거절돼 중단됐다. 용량64 및 host 실제단일slot의 정상 backpressure이며, 추가 probe가 ShouldRequest를 우회하고 false를 fatal로 만든 검증기 계약도 잘못됐다. 거절과 관측 대기436초는 품질 한계로 보존한다. 새 QA는 실제 ShouldRequest를 따르고 적격 여부, 접수 여부와 사유를 결과에 남기며 실제 MacroGoal 모델 성공은 여전히 필수다.
+
+생산자의 기존 actor별30초/20초 일정은 유지하되, 처리 중인 같은 인물의 같은 종류 요청을 다시 넣지 않는다. 서로 다른 인물/종류는 독립이며 callback 성공/실패/취소, 동기 거절이나 예외에서 정확한 예약을 해제한다. 기존 요청을 취소해 최신 답으로 바꾸거나 의미를 선택하지 않으며 queue 용량과 timeout을 늘리지 않는다. 적용된 목표/기분의 기존 해석도 유지한다.
+
+## R80 방문객 저장의 지원 경계와 설명 입력 보완
+
+V18은 방문객의 SpawningOutside/EnteringDungeon/ExitingDungeon 지속 이동 정보를 저장하지 않으므로 해당 상태를 의도적으로 거절한다. `soak-r5`는 그 일시 상태에서 정확히15분 저장을 호출해 중단됐다. 기존 통합 fixture처럼 실제 고객이 안정 상태가 된 같은 메인 프레임에서 공식 저장을 호출한다. 최대60초를 넘으면 실패하며 원래 전체 실행 한도, 5회 및 종료 복원, validator와 원답은 유지한다. 제품의 입출구 중 저장 지원 완료로 보고하지 않는다. 현재 저장 UI는 실패를 알리지만 메뉴가 일시정지하므로 이동을 재개한 뒤 재시도해야 한다.
+
+실제 Persona의 근거 없는 인과 표현과 SocialRumor의 작업 종료 사유를 시설 용도로 바꾼 원답은 보존했다. 새 입력은 실제 Activity의 kind/action/outcome/reason/place/facility를 복사하고 생성 전에 두 개념을 구분한다. 모델이 뜻을 고르는 단계와 기존 최종 검사는 그대로다. auxiliary 지시 함수 이외 bridge AST, 원 공개 schema와 단일 가중치는 불변이다. 개선 보장은 다음 실제 응답으로 따로 판단한다.
+
+## R80 영구 이탈과 심리 상태 소유권
+
+`soak-r4`의 20분 공식 저장이 월드에 없는 직원의 활성 심리 기록을 거절했다. 사망 경로는 이미 정리하지만 StaffDiscontent의 영구 이탈 명령에는 그 호출이 없었다. 영구 이탈의 staged 명령 안에서 동일 심리 소유자를 정리하고, commit 거절 시 직원 상태와 심리 snapshot을 함께 복원한다. 저장 검증기는 그대로 유지하며 Capture에서 누락 행을 지우지 않는다. 순수 성공/거절 표적 검사와 실제 월드 이탈 후 공식 저장 복원으로 구분 검증한다.
+
+## R80 실제 게임 연결에서 확정한 결정
+
+하나의 R80 체크포인트로 선택과 설명을 단계별 생성한다. 원 레시피37모듈의 원본은 보존하고, 현재 게임의 후보1~3개 및 양수 효과 상한1~3개를 읽는 두 parser 정의만 별도 provenance로 확장했다. 뜻을 대신 고르거나 출력 답을 수선하지 않는다. 로컬 참조와 유한 enum은 원래 허용 언어를 확인해 전달한다.
+
+시작 후보는 명시적인 detached preview이며 월드 획득 원장을 소비하지 않는다. 저장된 canonical actor는 기존 world publication 거래를 유지한다. 실제 선택/리롤/취소/커밋/복원으로 이 경계를 확인했다. 오래된 요청은 FIFO로 빈 슬롯을 받아 지속 기술 요청의 무한 기아를 막고, 임박 deadline과 실행 중 요청 소유권은 유지한다.
+
+실제 특성 입력은 평가용5120 예산보다 길 수 있었다. 이미 설정된8192 문맥 안에서 전체 응답 토큰과32토큰을 예약하고 입력을 자르지 않는다. 소문은 실제 화자 ID/이름과 제공된 시설 태그를 결박하며 배경 특성을 현재 사건으로 바꾸지 않도록 요청을 명시했다. 이름 조사도 생성 전에 일치시킨다. 이는 새 학습이나 원래 전체 품질 기준 통과 증거가 아니다.
+
+
+## R80 Play에서 드러난 시작 후보 상태 경계
+
+실제 R80 기술3후보 생성/정확ID전개/게임검증은 play-r8에서 성공했다. 선택 시 기존 preview에 월드 획득 publisher가 없어 거절된 P0를 확인했다. 시작 후보는 취소/리롤 가능한 초기상태 편집이며 실제 월드 획득이 아니다. 명시 ConfigurePreview 모드에서만 숨김/비활성 임시객체, revision0, 자기 서술근거와 world exact binding 없음 조건으로 임시 성장상태와 자기 근거사용만 원자적으로 바꾼다. 전역획득 journal과 world evidence는 소비하지 않는다. 최종 canonical actor는 기존 초기 snapshot 적용 경로로 만든다. 실제 생성/복원 actor와 population은 publication-required 모드를 유지하고 기존 reserve/commit/publish/rollback 거래를 그대로 사용한다. live 의존성 누락은 계속 실패한다. 실제 모델로 선택/skill reroll/full reroll/cancel-restart/journal 불변/최종 커밋/공식저장복원을 시험한다.
+
+
+## R80 실제 연결에서 확인한 경계
+
+R80 판단/서술은 하나의 체크포인트를 여러 단계로 호출하는 원레시피를 사용한다. 공개 참조를 실제 ID로 전개하는 기존 C# 처리는 무손실 transport라 계속 필요하다. 생성결과 수선/의미 재선택은 추가하지 않았다. R80 품질 재시도는1회로 고정한다. 실제 producer의 MacroGoal FUN 누락과 SocialRumor 시설ID 명시 누락도 원값 그대로 전달하도록 수정했다. Unity가 붙이는 .meta는 jsonschema 자원열거에 영향을 주므로 순수 Python 라이브러리를 zip으로 봉인했다. 실제8B 로딩과 Roslyn VM이 겹치면 메모리 보호가 발동해 compile-job 종료 뒤 Play-job을 여는 방식으로 해결했다. readiness Host는 기존 게임의 port 없는127.0.0.1도 정확히 허용한다. IsBundledModelStarting은 Task 완료가 아니라 scene 소유자가 결과를 게시할 때 종료되어야 한다.
+
+
+## R80 연동 경계 (2026-10-27)
+
+기존 StreamingAssets는1.7B base이며 별도V10 8B 시험root와 Host/Queue 연결이 준비돼 있다. R80은 LoRA별도적용이 아닌 merged Q4 단일파일이므로 V10 adapter필수 검사를 그대로 사용할 수 없다. R80의 평가된 입력투영과 생성전 후보/문자 제약까지 실제 게임 요청에 맞춰야 하며 파일 교체만으로 평가결과가 재현됐다고 주장하지 않는다. 기본모델/씬/사용자저장은 먼저 보존한다.
+
+
+## V10 로컬 시험 연결 결정 (2026-10-18)
+
+최종 실측: 4비트 기본 가중치 5,027,783,488bytes + F32 학습 LoRA 349,210,368bytes = 5,376,993,856bytes(약5.38GB). 공식 CUDA12.4 서버/DLL과 manifest를 포함한 시험 실행 묶음은 6,534,762,608bytes(약6.53GB)이며 게임 콘텐츠는 별도다. 작은 게임의 필수 동봉 용량으로는 부담이 있다. 현재 8B는 시험용이며 최종 게임 배포 크기로 확정하거나 기존 1.7B(약1.28GB, base-untrained)를 같은 품질의 학습본으로 취급하지 않는다. 작은 모델로 옮기려면 별도 학습/증류와 실제 품질·지연·메모리 평가가 필요하며 이번 준비 범위에서 시작하지 않는다.
+
+공식 quantized base는 Qwen/Qwen3-8B-GGUF revision 7c41481f57cb95916b40956ab2f0b139b296d974, SHA256 d98cdcbd03e17ce47681435b5150e34c1417f50b5c0019dd560e4882c5745785다. llama.cpp b10331 commit 7ba604f1cb61cd14898138e9abc0b4ff2601f180 변환기를 사용했고 변환 LoRA SHA256 b0bc81d4d6764c58c7a6f367ae22dfcf2814977f87a6a822ec893d628cc16a3d다. 36층/504 tensor 전부 원본 FP32 값과 bit-exact임을 실제 비교했다. 이는 변환 무결성 증거이지 양자화 모델 응답 품질·기본 BF16 가중치와 공개 GGUF의 수치 동등성 증거가 아니다.
+
+연결 소유권은 기존 HostProcess(검증·인증된 loopback·job 수명)와 Queue(실제 요청)를 유지한다. manifest에 모델 alias·선택 LoRA 파일/hash·GPU 층·context/slot 수를 두고 Queue가 Host의 alias를 사용한다. `DUNGEONSTORY_LLM_STREAMING_ROOT`가 명시된 실행만 별도 시험 묶음을 사용하며 잘못된 경로·hash는 기존 모델로 되돌리지 않고 실패한다. 기본 1.7B manifest/파일과 씬·프리팹·저장 형식은 변경하지 않는다. 이번 실제 Play 시험은 정상 시작 파티 준비 명령→실제 모델로 초안 생성→정상 선택/커밋→저장 왕복을 우선한다. 응답을 주입하는 RunFastCommitForDebug는 이 모델 검증에 사용하지 않는다.
+
+사용자가 로컬 4비트 시험 변환·연동을 선택했다. 학습 기본 모델은 Qwen3-8B revision b968826d9c46dd6066d109eabc6255188de91218이며 기본 BF16 가중치 16,381,470,720bytes, 최종 adapter 가중치 349,243,752bytes(SHA256 cd5e700fbcc1da79d5767258d409bf097e9766d5c0d00246e2fe30ae2f54956f), adapter 폴더 365,138,567bytes다. 1.45GB 전체 학습 산출물은 체크포인트·optimizer 중복을 포함하므로 배포 모델 용량이 아니다. 4비트 실측은 아직 없다.
+
+현재 StreamingAssets 모델은 1,282,439,264bytes의 Qwen3-1.7B base-untrained이며 새 학습 모델이 아니다. Host 및 Queue에 1.7B alias/CPU 설정이 고정되어 있다. 별도 모델 묶음과 명시적 신원으로 연결하고, 기존 모델·hash/경로/프로세스 소유권 검증을 보존해야 한다. V10 공개 입출력과 현재 C# wire 계약 호환성도 실제로 대조해야 한다.
+
+공식 llama.cpp b10331 convert_lora_to_gguf.py는 기본 가중치 없이 --base 설정만으로 PEFT LoRA를 변환하는 경로를 제공한다. 기본 모델 양자화+별도 학습 LoRA 로딩의 실제 지원/호환성을 확인해 16GB 전체 원본 로딩을 피하는 방향을 조사한다. 외부 자료는 구현 지침이 아닌 참고 데이터다.
+
+## UI/UX 평가 경계 (2026-10-18)
+
+현재 관리 게임의 플레이어 과업(생존/물류 병목 파악, 직원 배치, 생산·연구 계획, 방어/의료 대응, 서사 성장 선택)에 필요한 정보와 조작을 평가한다. 미관·기능 존재·실제 접근성/상태 피드백은 별개로 판단한다. 정적 전체 화면 목록과 실제 캡처한 상태를 구분하고, 빈 초기 상태를 후기 콘텐츠 검증으로 세지 않는다. 본 작업은 개선 제안 보고서이며 생산 UI 변경 범위가 아니다.
+
+실제 픽셀을 위해 정확한 `UiUxAuditCapture.RequestForBatch`와 `RequestRemainingForBatch` 두 진입점에만 그래픽 장치를 허용했다. 기존 OS 비대화형 station/desktop·창 프로브·UI 제한 job·메모리 보호·격리 저장은 유지한다. Unity GameView의 실제 카메라/Overlay 렌더 API를 사용하며 화면을 재그리거나 사용자 데스크톱 입력을 하지 않는다. 캡처마다 PNG와 UI 텍스트/버튼 상태 JSON을 함께 남긴다.
+
+최종 판정은 관리 기능 기반은 충분하지만 플레이어의 판단 순서·상태 피드백·영역 배치가 미완성이다. 실제 사건 4선택지/긴 본문, 시설 설명 겹침, 물품 12종 overflow, 경보 가림, 연구 초기 viewport를 확인했다. 직원 관리 버튼/본문 불일치는 통제 진입에서 관찰했으나 원인 및 통상 입력 재현은 후속 대상으로 남긴다. 공용 카드 callback 후 Refresh와 기존 결과 원장 paging은 존재하므로 결함으로 세지 않는다. [평가 보고서](docs/dev/ui-ux-audit-20261018.md)가 화면별 최종 권고를 소유한다.
 
 ## SO 모듈 확장 — 최종 설계 판정 (2026-10-17)
 
@@ -5377,3 +5753,76 @@ native-restock-current-r7에서 pending/no-path, selector reinjection, door-canc
 ### C3 batch boot boundary — 2026-10-17
 
 native-destructive-drain-current-r3은 Title/owner selection까지만 PASS하고 staff/draft 확정이 없는 준비 UI에서 Start를 기다려 실패했다. 실제 철거 기능 실패나 memory guard가 아니다. 새 isolated batch만 기존 Movement/whole-world와 같은 공식 fast-party command로 조립된 Gameplay를 사용하고, 수동 verification의 Title UI 경로는 유지한다. 실패 뒤 다른 준비 경로를 시도하는 fallback을 추가하지 않으며 batch 진입 경로를 고정한다.
+
+
+## R80 terminal 방문객 복원 중복 수정
+
+실제 soak-r10의 combat 중복 거절은 종료된 customer 장면 객체가 restore retirement 목록에서 빠져서 발생했다. candidate 준비 시 outgoing terminal exact references를 별도로 잡고 전체 commit 완료에서만 기존 registration 해제와 scoped pool 반환을 수행한다. 일반 visitor의 예상 밖 Despawned 거절은 유지한다. corpse 실물 권위는 item stack이며 life/body는 ID 기반 restored aggregate이므로 이전 actor를 남길 필요가 없다. soak-r11의 실제 late-terminal-reload-fixture.json에서 이전 GameObject 비활성, world/lifetime exact reference 부재, 동일 ID 새 생존객 하나와 후속 공식 Save/Load PASS를 확인했다. 원본 저장, 전투 중복 검사와 새 life/body 저장자료는 변경하지 않았다.
+
+
+## R80 지연 원인과 수정 계약 (2026-10-28)
+
+baseline soak-r11의 단일 native slot과 bridge 전체 request lock 아래에서 후보3개 기술은 평균16.64초/최장21.691초의6단계 생성이었다. 짧은 요청의 누적으로 queue232.5초, 말풍선30성공/641만료가 발생했다. 실제 model 자체뿐 아니라 admission부터 callback까지의 대기가 병목이다.
+
+동일 R80 가중치의 native2slot, 각12288context를 쓰되 request별Engine/profile/opener를 분리한다. 한 background와 한 interactive만 동시에 허용하고 짧은 lane에서 말풍선2회 뒤 persistent에양보한다. 원quality검사/후보수/원입력은보존하고 timeout/3초queue만료는늘리지않는다. 말풍선은실제화면가시성확인/인물별pending1/수명revision으로재사용된객체의oldcallback을차단한다. 각요청queue/service/end-to-end와실제표시를기록하며초기기동과soak admission을구분한다. 새CPU4 및기존19 경계검사PASS는실제속도증거아니다.
+
+
+첫R80Latency/soak-r1 실제측정은목표미달로보존종료했다. 두slot은실제동시추론했지만공유shortlane에성격/소문이몰리면말풍선도만료됐다. Bubble13.89초 outlier는native0.904초/HTTP1.92초뒤공식저장이mainthread콜백을12.3초지연한사례였다. 원timing은유지한다. 입력143trace의최대필요context8631이므로두번째수정은f16 KV/원모델을유지한3slot×10240으로설정했다. 미래입력fit보장은아니며overflow시기존명시거절을유지한다. 세lane은Bubble전용/일반짧은응답/다단계선택각1이다. loading구간을표시한전체timing과일반플레이timing을함께보고한다. raw지표를지우거나교체하지않는다. CPU24PASS뒤frozen-r2/compile-r2로이어간다.
+
+
+r2의실제복원후foreground적체가남아보존종료했다. 현재binary공식help의sharedKV모드를확인하고r3은total30720/f16같은용량에서4logicalslot(BG1/general2/Bubble1)을사용한다. request별10240검사와native--no-context-shift를유지해메모리부족을입력삭제로숨기지않는다. 동일판단/모델의스케줄/메모리할당수정이며입력fit과실제속도는다음native실행으로검증한다. CPU25PASS는속도PASS아니다.
+
+
+2026-10-28 R80 지연 r5: r4 장기 큐 누적과 retired Persona 연산을 확인했다. 요청 수명은 같은 persistent ID가 아니라 원래 CharacterActor와 풀 반환 revision으로 묶었다. 기존 무손실 public context 인코딩을 6개 짧은 응답에 적용하며 선택 프로필 입력은 바꾸지 않았다. 말풍선 용량 억제는 만료나 성공과 별도로 측정한다. compile-r5와 원본 압축 roundtrip 통과, 실제 속도는 soak-r5에서 검증 중.
+
+
+2026-10-28 R80 지연 재시도 원인: 동일 Skill wire 4완료와 1추가 시도가147.324초 service를 소모했다. Trait도 동일 proof 거절을 반복했다. 입력 수정 없는 반복을 멈추고 일시적 transport 실패는 기존 retry를 유지한다. 선택 전 Trait 실패에는 enum5를 추가해 원래 unresolved offer 검사와 실제 count를 보존한다. compile-r7의 실패를 보존하고 compile-r8의 직렬화 및 재시도 회귀로 검증했다. native 7ba604f1c 소스의 slot 순서 batch 처리에 따라 speech를 slot0에 배치했다.
+
+
+2026-10-28 R80 지연 r9 결정: 실제 r8 첫 checkpoint에서 완료 Persona7건이 복원 후 재생성됐다. v10 optional text/trace DTO로 완료 상태만 저장하며 null과 구형 누락은 재생성한다. 현재 graph 복사나 mechanics 저장 권위를 추가하지 않는다. speech는 대기 없는1건, 기존 quiet-reject 일반 요청은 running2+queued2 한도로 제한한다. 같은 프레임의 저장 처리에서도 UI clock이 흐르도록 수정했다. native KV는 변경하지 않았고 shared GPU 관측의 원인을 spill로 단정하지 않는다.
+
+## R80 지연 r11 결정
+
+- r10 날짜5의 spring-spore-rain 종료는 context16명과 faction/WorldFlag를 합쳐18subject다. 기존 central ledger는 작은 page32 및 absolute2048을 지원하지만 migrated adapter만16으로 막았다. context나 효과를 삭제하지 않고 adapter의 participant/subject 저장을 같은 기존 원장 한도에 맞춘다. inline16과 초과분 copy-on-write를 사용해 이전 receipt 불변을 보존한다. metric/fact/provenance 상한 및 원장 page 수는 바꾸지 않는다.
+- 실제 r10에서 길었던 Skill의 queue P95 약69초와 짧은 요청의 queue P95 약7.7초를 확인해 BG2, 일반1, speech1로 배정했다. 단일 R80, context12288, shared30720/f16 및 원timeout을 유지한다. 일반 best-effort는 queued 부채 없이1건만 접수하며 실제 거절 수를 계속 센다. 28개 Python 계약 검사는 통과했으나 실제 속도 판정은 새 장기 실행 결과로 한다.
+
+## R80 지연 r12 저장 검사 수정
+
+SpeciesActionFactPreflight는 같은 종족 첫 개체의 lastIncidentId를 authored IncidentId 대신 조회했다. 따라서 첫 Slime에 사고가 없고 두 번째 Slime에 정상 사고가 있는 저장을 소유자 BuildRestore는 허용하지만 join 검사는 오거절한다. join은 같은 ICharacterSpeciesPersistence.BuildRestore를 사용해 단일 정의 권위를 유지한다. 미지종족, 잘못된 사고ID, 음수마모 검사는 완화하지 않는다. R11 실패 최종행은 저장 전 거절로 원바이트가 없으므로 이 통제 재현과 실제 최종행 필드 확정을 구분한다. 재실패 진단은 시험 harness에서만 원species Capture를 보존한다. Golem 반올림이나 종족변경 가설은 이번 실제 Slime 증거로 확정하지 않았고 수정하지 않았다.
+
+## R80 지연 r13 최종 경계
+
+### 후속 Goal r14
+
+정적 schema의 evidenceIds 최대64만으로는 실제 소유자의 고정8개 전체 일치 계약을 강제하지 못했다. 생성 전 요청별 const를 사용하고 원 validator의 전배열/순서 검사는 그대로 둔다. 근거를 코드로 고르거나 응답 뒤에 보충하지 않는다.
+
+R13 초기기술native각단계는cache_n중앙46, 매번신규입력약3100token이었다. 다른 단계지시가 system앞쪽을바꿔긴공통caller뒤까지KV캐시가재사용되지않는다. 메인은원caller메시지prefix와단계system/user메시지를분리한다. 이전선택/이름제외/여섯모델호출은유지한다. 메시지순서에따른실제선택변화는검증대상이며사전불변을주장하지않는다. 동일schema 문법CPU cache는현재효과미측정으로선제추가하지않았다.
+
+EvolutionHistoryLegacyV2는 durable 이력 소유권과 원384token/10초 제한을 유지하면서 일반 짧은 응답 자리에서 처리한다. 접수되지 않은 용량 거절은 모델 시도가 아니므로 attempt를 원래 값으로 복구하고 기존 소유자 재시도를 남긴다. 실제 접수 뒤 timeout은 원시도 횟수와 backoff를 유지한다. 기존 compact 공개입력의 비어있지 않은 사건과 표 데이터를 실제 생산 payload와 왕복 대조했다. 실제 4transport성공/12timeout만으로 모든 이력 적용을 승인하지 않는다.
+
+이전232.5초는 대기 중 스냅샷, 이번59.04초는 완료 요청 최대이므로 같은 지표처럼 감소율을 계산하지 않는다. 같은 스냅샷 패턴으로 이번21.7초를 확인했으나 표본과 접수정책이 다르다. 성공 응답 분포와 접수 전 억제, timeout, 내용 거절, 퇴장 취소를 구분한다. 실제 30분과6공식복원 통과는 모델 문장 품질이나 수동 FPS의 증거가 아니다.
+
+최종 이력 적용은0/3이다. 실제 저장의facility.evolution 안instanceEvolution.narrativeRequests는모두completed=false이며표시이름/설명이비어있다. 대응node의narrativeReady=true만으로적용PASS를세지않는다. raw성공응답은고정evidence8개중1개만반환했고생산검사는전체배열과순서동일을요구해거절했다. 단순schema는64개이하배열을허용하므로transport성공과소유자적용이갈린다. 이형식과모델문제는응답수선/검사완화로덮지않고남은제한으로보고한다.
+
+
+## 2026-10-30 산출물 정리 경계
+
+원본 Artifacts의 논리 용량은 약48.1GiB로 오래된 JSON 세계 저장과 모델/빌드 사본이 누적됐다. 별도 작업의 LFS/hard-link 정리는 이미 기록돼 있어 논리 크기와 실제 확보 공간을 구분한다. r26/r2 및 R80 작업은 미완료이므로 진행 폴더 전체를 이번 삭제에서 제외한다. 현재 C#/실행 도구가 AuditRemediation의 특정 과거 경로를 직접 읽는 사례가 있으므로 폴더 전체를 무조건 지우지 않고 참조된 묶음을 보호한다.
+
+
+### 정리 중 발견한 보호 경계
+
+다른r26작업이ScheduledDungeonSavePlayModeObservation.cs를수정해첫원문동일성검사에서중단했고그시점삭제0이었다. 최신추적/미추적게임코드4150개의실제Artifacts참조를다시읽어삭제대상과충돌0을확인했다. 이후500디렉터리마다참조를재검사했고모두PASS였다. 추가모델9개는QA밖동일FileID/hard link 원본을확인했지만실제삭제명령이자동승인정책에거절됐다. 구체사유반환이없었으며다른명령으로우회하지않고보호했다.
+
+## 2026-10-30 내부 과거 산출물 삭제 범위
+
+현재 코드와 도구, 문서의 정확한 파일 참조 및 다른 파이프라인의 입력 참조를 확인했다. Artifacts의 Git 추적3399개와 명시적 입력, 최신 실행16목적 및 진행 중인 R80 r36 이후 기록을 보호한다. 과거 R80 반복 실행 payload, 재생성 가능한 중간 컴파일 바이너리와 과거 그래프, 2026-09-19 Player 빌드, 2026-09-20 캠페인 이전 반복만 삭제한다. 과거 요약과 실패 판정은 남기고 최신 결과로 바꾸지 않는다. Player에 들어 있던 1.7B 모델은 Assets의 원본과 SHA256 동일을 확인했다. 이전 정책 거절 대상 모델 별칭9개는 재시도하지 않는다. 삭제 계획과 보호 핀은 외부 qa-retention/nested-cleanup-plan.json에 있으며 현재 참조 보호 검사를 통과했다.
+
+
+### 내부 정리 최종 보관 경계
+
+R50으로 대체된 일부 대형 중간 스냅샷과 RequiredStructureGoal의 추가 컴파일 바이너리348개/759426010B도 참조를 대조해 정리했다. 최신 장기 실행r46, 현재 전체 게임r50과 원문 비교r51, 코드가 읽는 이전 저장은 보존했다. NTFS FileID 기준 Artifacts 논리20.295GiB/중복 경로 제외14.063GiB/다른 경로와 공유하지 않는 파일7.422GiB이며 실제 할당 클러스터 측정과 구분한다. 외부 임시 정리기록 삭제를 포함한 마지막 명령은 자동승인 검토가 실행 전에 blocked by policy로 거절했다. 구체 사유가 없어 삭제는 재시도하지 않았으며, 별도의 읽기 전용 최종 검증과 프로젝트 기록 갱신만 수행했다.
+
+## R59 검사 실행 경계 결정
+
+실제 R58 저장에서90검사 자체2.851초와검사 사이 프레임 간격3.179초가 관측됐다. 일부 검사는 앞선 공유 report를 읽으므로 재정렬하지 않는다. 순차 작업 스레드와 원위치 main handoff를 사용하며 원검사 본문은 그대로다. `r59-save-latency-decision.json`에 측정과 한계를 기록했다.

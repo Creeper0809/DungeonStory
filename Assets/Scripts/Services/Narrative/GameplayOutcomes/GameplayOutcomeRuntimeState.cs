@@ -144,6 +144,8 @@ internal sealed class GameplayOutcomeCompactedDelta
 
 internal sealed class GameplayOutcomeLedgerRuntimeState
 {
+    public readonly object ReadIdentity = new();
+
     public GameplayOutcomeLedgerRuntimeState(
         GameplayOutcomeRunId runId,
         long worldEpoch,

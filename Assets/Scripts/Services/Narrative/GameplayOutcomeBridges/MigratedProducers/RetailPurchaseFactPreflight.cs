@@ -7,7 +7,7 @@ using DungeonStory.Narrative.Korean;
 // The purchase owner retains only opaque observation proof. Native identity and
 // canonical payload validation are owned by this save-side observer adapter.
 public sealed class RetailPurchaseFactPreflight : IDungeonSavePreflightValidator,
-    IDungeonCapturedSavePreflightValidator, IDungeonSaveRegistryPreflightValidator
+    IDungeonDetachedCapturedSavePreflightValidator, IDungeonSaveRegistryPreflightValidator
 {
     public void Validate(DungeonGameSaveData save, DungeonGameRestoreReport report) =>
         Validate(save.sections.ToDictionary(row => row.sectionId, StringComparer.Ordinal), report);
@@ -22,8 +22,19 @@ public sealed class RetailPurchaseFactPreflight : IDungeonSavePreflightValidator
                 throw new InvalidOperationException("retail-observation-character-section-missing");
             CharacterWorldSaveSection.ValidateRetailPurchaseJson(section.payloadJson);
             var characters = DungeonSaveJson.Deserialize<DungeonCharacterWorldSaveData>(section.payloadJson);
-            ValidatePending(characters, Read<GameplayOutcomeLedgerSaveData>(sections, GameplayOutcomeLedgerSaveSection.Id, GameplayOutcomeLedgerSaveData.CurrentVersion),
-                Read<DungeonMigratedProducerOutcomeSaveData>(sections, MigratedProducerOutcomeSaveSection.Id, DungeonMigratedProducerOutcomeSaveData.CurrentVersion));
+            var ledgerSection = ReadSection(sections, GameplayOutcomeLedgerSaveSection.Id, GameplayOutcomeLedgerSaveData.CurrentVersion);
+            bool ledgerShape = DungeonSaveJson.HasNonNullRootFields<GameplayOutcomeLedgerSaveData>(ledgerSection.payloadJson,
+                nameof(GameplayOutcomeLedgerSaveData.outbox), nameof(GameplayOutcomeLedgerSaveData.exactOutcomes), nameof(GameplayOutcomeLedgerSaveData.tombstones));
+            var counterSection = ReadSection(sections, MigratedProducerOutcomeSaveSection.Id, DungeonMigratedProducerOutcomeSaveData.CurrentVersion);
+            bool counterShape = DungeonSaveJson.HasNonNullRootFields<DungeonMigratedProducerOutcomeSaveData>(counterSection.payloadJson,
+                nameof(DungeonMigratedProducerOutcomeSaveData.owners));
+            if (characters?.actors == null || !ledgerShape || !counterShape)
+                throw new InvalidOperationException("retail-observation-state-missing");
+            var pending = CollectPending(characters);
+            if (pending.Count == 0) return;
+            ValidatePublishedPending(pending,
+                DungeonSaveJson.Deserialize<GameplayOutcomeLedgerSaveData>(ledgerSection.payloadJson),
+                DungeonSaveJson.Deserialize<DungeonMigratedProducerOutcomeSaveData>(counterSection.payloadJson));
         }
         catch (Exception error) when (error is ArgumentException or InvalidOperationException or OverflowException or Newtonsoft.Json.JsonException)
         { report.AddError("retail-observation-save-join:" + error.Message); }
@@ -35,6 +46,13 @@ public sealed class RetailPurchaseFactPreflight : IDungeonSavePreflightValidator
         if (characters?.actors == null || incoming?.outbox == null || incoming.exactOutcomes == null
             || incoming.tombstones == null || counters?.owners == null)
             throw new InvalidOperationException("retail-observation-state-missing");
+        var pending = CollectPending(characters);
+        if (pending.Count == 0) return;
+        ValidatePublishedPending(pending, incoming, counters);
+    }
+
+    private static List<RetailPurchaseRecoverySaveData> CollectPending(DungeonCharacterWorldSaveData characters)
+    {
         var pending = new List<RetailPurchaseRecoverySaveData>();
         var operations = new HashSet<string>(StringComparer.Ordinal);
         foreach (var actor in characters.actors)
@@ -48,7 +66,12 @@ public sealed class RetailPurchaseFactPreflight : IDungeonSavePreflightValidator
                 row.Validate(); pending.Add(row);
             }
         }
-        if (pending.Count == 0) return;
+        return pending;
+    }
+
+    private static void ValidatePublishedPending(List<RetailPurchaseRecoverySaveData> pending,
+        GameplayOutcomeLedgerSaveData incoming, DungeonMigratedProducerOutcomeSaveData counters)
+    {
         const MigratedProducerOutcomeKind kind = MigratedProducerOutcomeKind.BuildingRetailPurchaseCommitResult;
         string producer = MigratedProducerOutcomeCatalog.Get(kind).ProducerId;
         var canonical = new Dictionary<string, GameplayOutcomeTombstoneSnapshot>(StringComparer.Ordinal);
@@ -109,11 +132,11 @@ public sealed class RetailPurchaseFactPreflight : IDungeonSavePreflightValidator
         }
     }
 
-    private static T Read<T>(IReadOnlyDictionary<string, DungeonSaveSectionEnvelope> sections, string id, int version) where T : class
+    private static DungeonSaveSectionEnvelope ReadSection(IReadOnlyDictionary<string, DungeonSaveSectionEnvelope> sections, string id, int version)
     {
         if (!sections.TryGetValue(id, out var section) || section == null || section.sectionVersion != version)
             throw new InvalidOperationException("retail-observation-section-missing:" + id);
-        return DungeonSaveJson.Deserialize<T>(section.payloadJson);
+        return section;
     }
 
     private static GameplayOutcomeTombstoneSnapshot RetiredCopy(GameplayOutcomeSnapshot row)

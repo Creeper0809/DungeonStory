@@ -44,7 +44,8 @@ public sealed class DungeonDurableSaveCommitCoordinator :
 
     public DungeonDurableSaveCommitResult OnDurableSaveCommitted(
         string slotId,
-        string serializedByteDigest)
+        string serializedByteDigest,
+        bool allowCurrentRuntimeCollection = true)
     {
         DungeonDurableSaveCommitContext context;
         try
@@ -57,6 +58,14 @@ public sealed class DungeonDurableSaveCommitCoordinator :
         {
             return Corruption(PipelineParticipantId, exception.Message);
         }
+
+        // 분할 저장 뒤의 현재 월드는 저장본보다 앞설 수 있다. 아직 저장되지 않은
+        // 영수증을 수거하지 않고 다음 동기 최종 저장까지 원본을 보존한다.
+        if (!allowCurrentRuntimeCollection)
+            return new DungeonDurableSaveCommitResult(
+                DungeonDurableSaveCommitStatus.Deferred,
+                PipelineParticipantId,
+                "Snapshot is durable; live receipt collection is deferred until a synchronous save.");
 
         foreach (IDungeonDurableSaveCommitParticipant participant in
                  participants)

@@ -148,10 +148,10 @@ public sealed class CharacterWorldSaveSection :
 
     protected override void ValidateRawPayload(string payloadJson)
     {
-        ValidateRetailPurchaseJson(payloadJson);
+        var root = ParseAndValidateRetailPurchaseJson(payloadJson);
         DungeonStrictJsonShape.RequireObjectArrayNonNegativeInt64Fields(
             SectionId, payloadJson, "actors", "lifecycleRevision");
-        var actors = (Newtonsoft.Json.Linq.JArray)Newtonsoft.Json.Linq.JObject.Parse(payloadJson)["actors"];
+        var actors = (Newtonsoft.Json.Linq.JArray)root["actors"];
         foreach (var actor in actors)
         {
             var rest = actor["restObservation"];
@@ -163,7 +163,6 @@ public sealed class CharacterWorldSaveSection :
                 && value["observationPending"]?.Type != Newtonsoft.Json.Linq.JTokenType.Boolean)
                 throw new InvalidOperationException("characters.world skill observation presence is missing.");
         }
-        var root = Newtonsoft.Json.Linq.JObject.Parse(payloadJson);
         if (root["populationProfiles"] is not Newtonsoft.Json.Linq.JArray profiles)
             throw new InvalidOperationException("characters.world population profiles missing.");
         foreach (var profile in profiles)
@@ -200,12 +199,20 @@ public sealed class CharacterWorldSaveSection :
 
     public static void ValidateRetailPurchaseJson(string json)
     {
+        ParseAndValidateRetailPurchaseJson(json);
+    }
+
+    // 한 검사 안에서는 이미 엄격하게 읽은 트리를 그대로 조회한다.
+    // 호출 사이에 공유하거나 불량 입력을 보정하지 않는다.
+    private static Newtonsoft.Json.Linq.JObject ParseAndValidateRetailPurchaseJson(string json)
+    {
         var root = Newtonsoft.Json.Linq.JObject.Parse(json, new Newtonsoft.Json.Linq.JsonLoadSettings
         { DuplicatePropertyNameHandling = Newtonsoft.Json.Linq.DuplicatePropertyNameHandling.Error });
         if (root["actors"] is not Newtonsoft.Json.Linq.JArray actors)
             throw new InvalidOperationException("characters.world actors missing.");
         foreach (var actor in actors)
             ValidateRestShape(actor["pendingRetailPurchases"], typeof(List<RetailPurchaseRecoverySaveData>));
+        return root;
     }
 
     protected override void NormalizeRestorePayload(

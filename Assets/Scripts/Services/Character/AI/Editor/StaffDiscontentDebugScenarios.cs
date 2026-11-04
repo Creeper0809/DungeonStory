@@ -1200,7 +1200,8 @@ public static partial class StaffDiscontentDebugScenarios
                 standings,
                 publisher,
                 facts,
-                Clock);
+                Clock,
+                new GriefTraumaRuntime(RootStore));
         }
 
         public StaffDiscontentRuntime Runtime { get; }

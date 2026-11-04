@@ -52,6 +52,313 @@ public static class V20ContentResolutionRecoveryDebugScenarios
         Debug.Log("B112_CONTENT_OBSERVERS=PASS");
     }
 
+    public static void VerifyLargeContextForBatch()
+    {
+        Require(Application.isBatchMode,
+            "Large content context verification requires isolated batch execution.");
+        VerifySubjectBufferSnapshotIsolation();
+
+        const int participantCount = 16;
+        string[] participantIds = CreateLargeContextParticipantIds(
+            participantCount);
+        using var content = new FixtureContent();
+        var grants = new SharedGrantState();
+        RecoverySaveBundle saved;
+        GameplayOutcomeId outcomeId;
+        string exactBeforeRestore;
+
+        using (var source = new Fixture(content, grants))
+        {
+            ContentResolutionFact fact = CreateLargeContextFact(
+                participantIds,
+                "qa:v20-large-context-spore-rain");
+            Require(source.Journal.TryReserve(
+                    fact,
+                    out DomainFactLease lease,
+                    out string reservationFailure),
+                "Large content context reservation failed: "
+                + reservationFailure);
+            DomainFactDelivery delivery = source.Journal.Publish(lease, fact);
+            Require(delivery.Completed,
+                "Large content context did not commit through its observer: "
+                + delivery.Detail);
+
+            GameplayOutcomeReplayIdentity identity =
+                MigratedProducerOutcomeE2EAssertions.RequireExact(
+                    source.Outcomes,
+                    MigratedProducerOutcomeKind.V20ResolvedEventResult,
+                    source.Probe);
+            Require(source.Outcomes.Ledger.TryGetExact(
+                    identity.OutcomeId,
+                    out GameplayOutcomeSnapshot exact),
+                "Large content context did not retain its exact ledger row.");
+            RequireLargeContextOutcome(exact, participantIds);
+            outcomeId = identity.OutcomeId;
+            exactBeforeRestore = JsonUtility.ToJson(exact);
+
+            VerifyLargeContextCapacityRejection(source);
+            saved = source.CaptureRoundTrip();
+        }
+
+        using (var restored = new Fixture(content, grants, saved))
+        {
+            Require(restored.Outcomes.Ledger.TryGetExact(
+                    outcomeId,
+                    out GameplayOutcomeSnapshot exact),
+                "Restored large content context lost its exact ledger row.");
+            RequireLargeContextOutcome(exact, participantIds);
+            Require(string.Equals(
+                    JsonUtility.ToJson(exact),
+                    exactBeforeRestore,
+                    StringComparison.Ordinal),
+                "Save and restore changed the large context receipt.");
+        }
+
+        Debug.Log("V20_LARGE_CONTENT_CONTEXT=PASS; subjects=18; cap=2048");
+    }
+
+    private static void VerifySubjectBufferSnapshotIsolation()
+    {
+        var builder = new MigratedProducerOutcomePayloadBuilder(
+            new GameplayResultKey(
+                "qa-v20-large-context",
+                new GameplayOperationId("qa-v20-large-context-snapshot"),
+                1,
+                0),
+            new GameplayOutcomeTypeId("qa-v20-large-context"),
+            AbsoluteDay,
+            GameplayOutcomeStatus.Succeeded,
+            1);
+        for (int index = 0; index < 17; index++)
+        {
+            GameplayEntityId entityId = new(
+                MigratedProducerOutcomeIds.CharacterKind,
+                "snapshot-subject-" + index.ToString("D2"));
+            Require(builder.AddParticipant(new GameplayOutcomeParticipant(
+                        entityId,
+                        MigratedProducerOutcomeIds.ActorRole,
+                        GameplayParticipationKind.Direct,
+                        true,
+                        default))
+                    && builder.AddSubject(new GameplayOutcomeSubjectLink(
+                        entityId,
+                        1f,
+                        NarrativeMemoryTier.Recent,
+                        false,
+                        false,
+                        0)),
+                "Subject buffer did not enter its overflow path.");
+        }
+
+        MigratedProducerOutcomeReceipt snapshot = builder.Build();
+        GameplayEntityId finalEntityId = new(
+            MigratedProducerOutcomeIds.CharacterKind,
+            "snapshot-subject-17");
+        Require(builder.AddParticipant(new GameplayOutcomeParticipant(
+                    finalEntityId,
+                    MigratedProducerOutcomeIds.ActorRole,
+                    GameplayParticipationKind.Direct,
+                    true,
+                    default))
+                && builder.AddSubject(new GameplayOutcomeSubjectLink(
+                    finalEntityId,
+                    1f,
+                    NarrativeMemoryTier.Recent,
+                    false,
+                    false,
+                    0)),
+            "Subject buffer did not accept its bounded final subject.");
+        MigratedProducerOutcomeReceipt current = builder.Build();
+        Require(snapshot.Payload.Participants.Count == 17
+                && snapshot.Payload.Subjects.Count == 17
+                && current.Payload.Participants.Count == 18
+                && current.Payload.Subjects.Count == 18
+                && string.Equals(
+                    snapshot.Payload.Participants.Get(16).EntityId.Value,
+                    "snapshot-subject-16",
+                    StringComparison.Ordinal)
+                && string.Equals(
+                    current.Payload.Subjects.Get(17).SubjectId.Value,
+                    "snapshot-subject-17",
+                    StringComparison.Ordinal),
+            "Adding an overflow subject changed an earlier built receipt.");
+    }
+
+    private static void VerifyLargeContextCapacityRejection(Fixture fixture)
+    {
+        int boundedSubjectCount = Math.Min(
+            GameplayOutcomeBufferLimits.AbsoluteMaximumParticipantsPerOutcome,
+            GameplayOutcomeBufferLimits.AbsoluteMaximumSubjectsPerOutcome);
+        ContentResolutionFact oversized = CreateLargeContextFact(
+            CreateLargeContextParticipantIds(boundedSubjectCount - 1),
+            "qa:v20-large-context-capacity-rejection");
+        MigratedProducerOutcomeKind kind =
+            MigratedProducerOutcomeKind.V20ResolvedEventResult;
+        string ledgerBefore = JsonUtility.ToJson(
+            fixture.Outcomes.Ledger.CaptureGameplayOutcomes());
+        string transactionBefore = JsonUtility.ToJson(
+            fixture.Outcomes.Transaction.Capture());
+        string journalBefore = JsonUtility.ToJson(fixture.Journal.Capture());
+        int reservationsBefore = fixture.Probe.ReservationCount(kind);
+        int commitAttemptsBefore = fixture.Probe.CommitAttemptCount(kind);
+        int commitsBefore = fixture.Probe.CommitCount(kind);
+
+        bool rejected = false;
+        try
+        {
+            bool reserved = fixture.Journal.TryReserve(
+                oversized,
+                out DomainFactLease lease,
+                out string failure);
+            if (reserved)
+                fixture.Journal.Cancel(lease);
+            rejected = !reserved && failure.Contains(
+                "capacity",
+                StringComparison.OrdinalIgnoreCase);
+        }
+        catch (InvalidOperationException exception)
+        {
+            rejected = exception.Message.StartsWith(
+                "V20 resolved-event evidence exceeds fixed ledger capacity:",
+                StringComparison.Ordinal);
+        }
+
+        Require(rejected,
+            "A content context above the central ledger subject cap was not rejected.");
+        Require(string.Equals(
+                    ledgerBefore,
+                    JsonUtility.ToJson(
+                        fixture.Outcomes.Ledger.CaptureGameplayOutcomes()),
+                    StringComparison.Ordinal)
+                && string.Equals(
+                    transactionBefore,
+                    JsonUtility.ToJson(
+                        fixture.Outcomes.Transaction.Capture()),
+                    StringComparison.Ordinal)
+                && string.Equals(
+                    journalBefore,
+                    JsonUtility.ToJson(fixture.Journal.Capture()),
+                    StringComparison.Ordinal)
+                && fixture.Probe.ReservationCount(kind) == reservationsBefore
+                && fixture.Probe.CommitAttemptCount(kind)
+                    == commitAttemptsBefore
+                && fixture.Probe.CommitCount(kind) == commitsBefore,
+            "An oversized content context changed state before rejection.");
+    }
+
+    private static ContentResolutionFact CreateLargeContextFact(
+        IReadOnlyList<string> participantIds,
+        string operationId)
+    {
+        const string definitionId = "seasonal:spring-spore-rain";
+        const string targetId = "resolved:seasonal:spring-spore-rain";
+        var effect = new V20ContentEffect
+        {
+            kind = V20ContentEffectKind.WorldFlag,
+            targetId = targetId,
+            amount = 1f,
+            durationDays = 0
+        };
+        var application = new V20EffectApplicationEvidence
+        {
+            effectIndex = 0,
+            targetId = targetId,
+            status = V20EffectApplicationStatus.Applied,
+            requestedAmount = 1f,
+            appliedAmount = 1f,
+            beforeValue = "false",
+            afterValue = "true",
+            semantic = "world-flag"
+        };
+        return new ContentResolutionFact(new ContentResolutionFactData
+        {
+            operationId = operationId,
+            absoluteDay = AbsoluteDay,
+            resolutionIndex = 0,
+            resolution = new V20ResolvedEventRecoverySaveData
+            {
+                definitionId = definitionId,
+                resolutionId = "completed",
+                effects = new List<V20ContentEffect> { effect },
+                participantCharacterIds = participantIds.ToList(),
+                contextFactionId = "faction:dungeon:harpy",
+                terminalEffectKinds = new List<V20ContentEffectKind>(),
+                occurrenceInstanceId =
+                    "event:1:seasonal:spring-spore-rain:A7C7F297",
+                applications = new List<V20EffectApplicationEvidence>
+                {
+                    application
+                }
+            },
+            stateBeforeFingerprint = "spore-rain-before",
+            stateAfterFingerprint = "spore-rain-after"
+        });
+    }
+
+    private static string[] CreateLargeContextParticipantIds(int count) =>
+        Enumerable.Range(1, count)
+            .Select(index => "character:spore-rain:" + index.ToString("D4"))
+            .ToArray();
+
+    private static void RequireLargeContextOutcome(
+        GameplayOutcomeSnapshot exact,
+        IReadOnlyCollection<string> participantIds)
+    {
+        const string factionId = "faction:dungeon:harpy";
+        const string targetId = "resolved:seasonal:spring-spore-rain";
+        string[] expectedIds = participantIds
+            .Concat(new[] { factionId, targetId })
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToArray();
+        string[] actualParticipantIds = exact.participants
+            .Select(value => value.entityId)
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToArray();
+        string[] actualSubjectIds = exact.subjects
+            .Select(value => value.entityId)
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToArray();
+        Require(actualParticipantIds.SequenceEqual(expectedIds)
+                && actualSubjectIds.SequenceEqual(expectedIds),
+            "Large content context did not preserve all actor, faction and flag IDs.");
+
+        Require(exact.metrics.Count == 1
+                && string.Equals(exact.metrics[0].metricId,
+                    MigratedProducerOutcomeIds.AmountMetric.Value,
+                    StringComparison.Ordinal)
+                && exact.metrics[0].value == 1d
+                && string.Equals(exact.metrics[0].unitId,
+                    MigratedProducerOutcomeIds.PointUnit.Value,
+                    StringComparison.Ordinal)
+                && string.Equals(exact.metrics[0].referenceId,
+                    targetId,
+                    StringComparison.Ordinal),
+            "Large content context changed its world-flag metric.");
+
+        var facts = exact.facts.ToDictionary(
+            value => value.factId,
+            value => value.value,
+            StringComparer.Ordinal);
+        Require(exact.facts.Count == 10
+                && string.Equals(facts[MigratedProducerOutcomeIds.IdentityFact.Value],
+                    "seasonal:spring-spore-rain", StringComparison.Ordinal)
+                && string.Equals(facts[MigratedProducerOutcomeIds.ActionFact.Value],
+                    "completed", StringComparison.Ordinal)
+                && string.Equals(facts[MigratedProducerOutcomeIds.OccurrenceFact.Value],
+                    "event:1:seasonal:spring-spore-rain:A7C7F297",
+                    StringComparison.Ordinal)
+                && facts[MigratedProducerOutcomeIds.EffectFact.Value].Contains(
+                    "kind=WorldFlag; target=" + targetId + "; amount=1",
+                    StringComparison.Ordinal)
+                && facts[MigratedProducerOutcomeIds.EffectApplicationFact.Value]
+                    .Contains(
+                        "target=" + targetId
+                        + "; status=applied; requested=1; applied=1",
+                        StringComparison.Ordinal)
+                && facts.ContainsKey(MigratedProducerOutcomeIds.SummaryFact.Value),
+            "Large content context changed its fact evidence.");
+    }
+
     private static void RunDurableReceiptBoundaries()
     {
         using var content = new FixtureContent();

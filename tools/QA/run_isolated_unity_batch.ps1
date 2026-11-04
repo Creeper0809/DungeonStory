@@ -119,6 +119,17 @@ param(
     [string]$SourceV9AuthoringProfile
 )
 $ErrorActionPreference = 'Stop'
+if ($ExecuteMethod -in @('TrainedNarrativeModelPlayModeVerifier.RequestForBatch','R80ExtendedPlayModeVerifier.RequestProfilesForBatch','R80ExtendedPlayModeVerifier.RequestSoakForBatch','R80ExtendedPlayModeVerifier.RequestHistoryRecoveryForBatch', 'R80ExtendedPlayModeVerifier.RequestSaveProfileForBatch', 'R80ExtendedPlayModeVerifier.RequestTraitAnchorRecoveryForBatch', 'R80ExtendedPlayModeVerifier.RequestSkillAnchorRecoveryForBatch')) {
+    $qaTrainedModelParameters = @('ExecuteMethod','OutputDirectory','Mode','UnityExecutable','SerializedStartup')
+    if ($Mode -ne 'play' -or @($PSBoundParameters.Keys | Where-Object { $_ -notin $qaTrainedModelParameters }).Count -ne 0) {
+        throw 'Trained model test requires its exact isolated PlayMode entry without selectors or resume inputs.'
+    }
+    $qaTrainedRoot = $env:DUNGEONSTORY_LLM_STREAMING_ROOT
+    if ([string]::IsNullOrWhiteSpace($qaTrainedRoot) -or -not [IO.Path]::IsPathRooted($qaTrainedRoot) -or
+        -not (Test-Path -LiteralPath (Join-Path $qaTrainedRoot 'DungeonStoryLlm\manifest.json') -PathType Leaf)) {
+        throw 'Explicit trained model bundle manifest is required.'
+    }
+}
 if ($ExecuteMethod -eq 'V20CampaignDebugScenarios.RequestWim044IsolatedBatch') {
     $qaCareerAllowedParameters = @('ExecuteMethod', 'OutputDirectory', 'Mode', 'UnityExecutable')
     if ($Mode -ne 'play' -or @($PSBoundParameters.Keys | Where-Object {
@@ -175,6 +186,12 @@ if ($ExecuteMethod -in @('ArchitectureRefactorVerificationBatch.RunCore', 'Archi
         throw 'Architecture verification requires its dedicated edit-mode entry without selectors or resume inputs.'
     }
 }
+if ($ExecuteMethod -in @('UiUxAuditCapture.RequestForBatch', 'UiUxAuditCapture.RequestRemainingForBatch')) {
+    $qaUiCaptureParameters = @('ExecuteMethod','OutputDirectory','Mode','UnityExecutable','SerializedStartup')
+    if ($Mode -ne 'play' -or @($PSBoundParameters.Keys | Where-Object { $_ -notin $qaUiCaptureParameters }).Count -ne 0) {
+        throw 'UI capture accepts only its dedicated isolated PlayMode entry without selectors.'
+    }
+}
 if ($PSBoundParameters.ContainsKey('SerializedStartup')) {
     $qaSerializedSelectors = @($PSBoundParameters.GetEnumerator() | Where-Object {
         $_.Key -ne 'SerializedStartup' -and
@@ -188,6 +205,7 @@ if ($PSBoundParameters.ContainsKey('SerializedStartup')) {
         $ExecuteMethod -eq 'DungeonFullWorldRoundTripPlayModeFacade.RequestIsolatedBatch'
     $qaSerializedCropEntry = $Mode -eq 'edit' -and $qaSerializedSelectors.Count -eq 0 -and
         $ExecuteMethod -in @('EnvironmentCropProductionEntryDebugScenarios.RunCropCommandObserversFromBatch',
+            'TrainedNarrativeModelPlayModeVerifier.CompileForBatch',
             'EnvironmentCropProductionEntryDebugScenarios.RunCropAndFastingObserversFromBatch',
             'ResearchWorkObserverDebugScenarios.RunFromBatch',
             'RemainingPresentationObserverDebugScenarios.RunForBatch',
@@ -207,7 +225,7 @@ if ($PSBoundParameters.ContainsKey('SerializedStartup')) {
     $qaSerializedMovementOwnership = $Mode -eq 'play' -and $qaSerializedSelectors.Count -eq 0 -and
         $ExecuteMethod -in @('MovementOwnershipDebugScenarios.RequestActualContainerForBatch', 'MovementOwnershipDebugScenarios.RequestDestinationlessForBatch', 'MovementOwnershipDebugScenarios.RequestDeprivationForBatch', 'MovementOwnershipDebugScenarios.RequestPrimitiveForBatch', 'MovementOwnershipDebugScenarios.RequestRestockForBatch', 'MovementOwnershipDebugScenarios.RequestMedicalTransferForBatch', 'MovementOwnershipDebugScenarios.RequestWorkAccidentForBatch', 'MovementOwnershipDebugScenarios.RequestFactionReinforcementForBatch', 'MovementOwnershipDebugScenarios.RequestSkillTargetingForBatch')
     $qaSerializedNarrativeContextLifetime = $Mode -eq 'play' -and $qaSerializedSelectors.Count -eq 0 -and
-        $ExecuteMethod -eq 'NarrativeContextLifetimeDebugScenarios.RequestActualContainerForBatch'
+        $ExecuteMethod -in @('NarrativeContextLifetimeDebugScenarios.RequestActualContainerForBatch', 'UiUxAuditCapture.RequestForBatch', 'UiUxAuditCapture.RequestRemainingForBatch', 'TrainedNarrativeModelPlayModeVerifier.RequestForBatch', 'R80ExtendedPlayModeVerifier.RequestProfilesForBatch', 'R80ExtendedPlayModeVerifier.RequestSoakForBatch', 'R80ExtendedPlayModeVerifier.RequestHistoryRecoveryForBatch', 'R80ExtendedPlayModeVerifier.RequestSaveProfileForBatch', 'R80ExtendedPlayModeVerifier.RequestTraitAnchorRecoveryForBatch', 'R80ExtendedPlayModeVerifier.RequestSkillAnchorRecoveryForBatch')
     $qaSerializedDestructiveDrain = $Mode -eq 'play' -and $qaSerializedSelectors.Count -eq 0 -and
         $ExecuteMethod -eq 'PhysicalItemLogisticsPlayModeVerifier.RequestDestructiveDrainPreparedOutputForBatch'
     $qaSerializedArchitectureCore = $Mode -eq 'edit' -and $qaSerializedSelectors.Count -eq 0 -and
@@ -376,7 +394,10 @@ for ($qaCursor = [IO.DirectoryInfo]::new([IO.Path]::GetDirectoryName($qaOutput))
 }
 if ($ExecuteMethod -notmatch '^[A-Za-z_][A-Za-z0-9_.]+$') { throw 'Invalid execute method.' }
 if ($Mode -ne 'edit' -and $ExecuteMethod -notin @(
+        'TrainedNarrativeModelPlayModeVerifier.RequestForBatch', 'R80ExtendedPlayModeVerifier.RequestProfilesForBatch', 'R80ExtendedPlayModeVerifier.RequestSoakForBatch', 'R80ExtendedPlayModeVerifier.RequestHistoryRecoveryForBatch', 'R80ExtendedPlayModeVerifier.RequestSaveProfileForBatch', 'R80ExtendedPlayModeVerifier.RequestTraitAnchorRecoveryForBatch', 'R80ExtendedPlayModeVerifier.RequestSkillAnchorRecoveryForBatch',
         'DungeonFullWorldRoundTripPlayModeFacade.RequestIsolatedBatch',
+        'UiUxAuditCapture.RequestForBatch',
+        'UiUxAuditCapture.RequestRemainingForBatch',
         'ObserverCompositionClosureDebugScenarios.RequestActualContainerForBatch',
         'GameWorldLineageDebugScenarios.RequestActualContainerForBatch',
         'GameWorldLineageDebugScenarios.RequestCharacterRestoreLifetimeForBatch',

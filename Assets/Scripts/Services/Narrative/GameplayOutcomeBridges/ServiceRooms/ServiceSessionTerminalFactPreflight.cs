@@ -5,7 +5,7 @@ using DungeonStory.Narrative.Korean;
 using DungeonStory.ServiceRooms;
 
 /// <summary>Canonical log comparison belongs to the observer, not the service owner.</summary>
-public sealed class ServiceSessionTerminalFactPreflight : IDungeonSavePreflightValidator, IDungeonCapturedSavePreflightValidator
+public sealed class ServiceSessionTerminalFactPreflight : IDungeonSavePreflightValidator, IDungeonDetachedCapturedSavePreflightValidator
 {
     public void Validate(DungeonGameSaveData save, DungeonGameRestoreReport report) => Validate(
         DungeonSaveSectionPayload.ReadOrNew<ServiceRoomsSaveData>(save, ServiceRoomsSaveSection.Id),

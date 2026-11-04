@@ -5,7 +5,7 @@ using DungeonStory.Foundation;
 using DungeonStory.Foundation.Facts;
 using DungeonStory.Narrative.Korean;
 
-public sealed class PrimitiveSurvivalFactPreflight : IDungeonSavePreflightValidator, IDungeonCapturedSavePreflightValidator
+public sealed class PrimitiveSurvivalFactPreflight : IDungeonSavePreflightValidator, IDungeonDetachedCapturedSavePreflightValidator
 {
     public void Validate(DungeonGameSaveData save, DungeonGameRestoreReport report)
     {

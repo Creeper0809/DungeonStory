@@ -8,7 +8,7 @@ using DungeonStory.Narrative.Korean;
 using Newtonsoft.Json.Linq;
 
 /// <summary>The observer, not the fire simulation, joins saved facts to native recording identities.</summary>
-public sealed class EnvironmentalFireActionFactPreflight : IDungeonSavePreflightValidator, IDungeonCapturedSavePreflightValidator
+public sealed class EnvironmentalFireActionFactPreflight : IDungeonSavePreflightValidator, IDungeonDetachedCapturedSavePreflightValidator
 {
     public void Validate(DungeonGameSaveData save, DungeonGameRestoreReport report)
     {

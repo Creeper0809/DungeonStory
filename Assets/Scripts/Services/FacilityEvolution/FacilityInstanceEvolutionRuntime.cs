@@ -1148,7 +1148,7 @@ public sealed class FacilityInstanceEvolutionRuntime : IFacilityEvolutionRuntime
         string catalystFamily = CatalystFamilies[
             random.NextInt(0, CatalystFamilies.Length)];
 
-        FacilityGenerationCandidate[] generated =
+        List<FacilityGenerationCandidate> generated = new()
         {
             CreateCandidate(
                 state,
@@ -1181,6 +1181,19 @@ public sealed class FacilityInstanceEvolutionRuntime : IFacilityEvolutionRuntime
                 catalystProgressionLevel,
                 new EvolutionModuleActivationRule())
         };
+        // Pure authored operations are peers, not an emergency replacement for
+        // rejected offers. Their concrete consumers decide eligibility below.
+        // Keep the old offers/IDs and committed module definitions unchanged.
+        foreach (EvolutionModuleDefinition module in moduleRegistry.All.Where(value =>
+                     value.IsPositiveModule && value.Burdens.Count == 0
+                     && value.ModuleId.StartsWith("facility:", StringComparison.Ordinal))
+                     .OrderBy(value => value.ModuleId, StringComparer.Ordinal))
+        {
+            if (generated.Any(value => value.benefitModuleId == module.ModuleId)) continue;
+            generated.Add(CreateCandidate(state, historyHash,
+                FacilityGenerationCandidateKind.PrimaryRole, nextGeneration,
+                module.ModuleId, string.Empty, string.Empty, 0, module.ActivationRule));
+        }
         List<FacilityGenerationCandidate> eligible = new();
         List<string> rejectedReasons = new();
         foreach (FacilityGenerationCandidate candidate in generated)
@@ -1197,7 +1210,8 @@ public sealed class FacilityInstanceEvolutionRuntime : IFacilityEvolutionRuntime
         }
         if (eligible.Count == 0)
             throw new InvalidOperationException(
-                "Facility generation has no eligible candidates: "
+                "Facility generation has no eligible candidates for " + state.facilityPersistentId
+                + " (definition=" + facility.BuildingData.id + "): "
                 + string.Join("; ", rejectedReasons
                     .Where(value => !string.IsNullOrWhiteSpace(value))
                     .Distinct(StringComparer.Ordinal)));

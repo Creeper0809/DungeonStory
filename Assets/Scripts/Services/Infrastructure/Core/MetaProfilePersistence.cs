@@ -114,6 +114,7 @@ public sealed class MetaProfilePersistenceService :
     private IDisposable upgradeSubscription;
     private bool started;
     private bool finalRunSavePending;
+    private IDungeonSaveOperation finalRunSave;
 
     public MetaProfilePersistenceService(
         IMetaProfileStore store,
@@ -147,6 +148,12 @@ public sealed class MetaProfilePersistenceService :
             return;
         }
 
+        try
+        {
+            slotService.CompletePendingSave();
+            if (finalRunSavePending) slotService.Save(AutoSaveSlot);
+        }
+        catch (Exception exception) { Debug.LogError("Final run autosave failed during shutdown: " + exception.Message); }
         runResultSubscription?.Dispose();
         runResultSubscription = null;
         upgradeSubscription?.Dispose();
@@ -166,12 +173,18 @@ public sealed class MetaProfilePersistenceService :
 
     public void LateTick()
     {
-        if (!started || !finalRunSavePending)
+        if (finalRunSave != null && finalRunSave.IsCompleted)
+        {
+            if (!finalRunSave.Succeeded)
+                Debug.LogError("Final run autosave failed: " + finalRunSave.Error);
+            finalRunSave = null;
+        }
+        if (!started || !finalRunSavePending || slotService.IsSaving)
             return;
         finalRunSavePending = false;
         try
         {
-            slotService.Save(AutoSaveSlot);
+            finalRunSave = slotService.BeginSave(AutoSaveSlot);
         }
         catch (Exception exception)
         {

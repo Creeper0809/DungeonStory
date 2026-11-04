@@ -1,4 +1,5 @@
 using DungeonStory.Infrastructure;
+using DungeonStory.Foundation;
 using VContainer;
 using VContainer.Unity;
 
@@ -128,7 +129,10 @@ public static class DungeonSaveRegistration
             .As<IDungeonDurableSaveCommitParticipant>();
         builder.Register<DungeonDurableSaveCommitCoordinator>(Lifetime.Singleton)
             .As<IDungeonDurableSaveCommitCoordinator>();
-        builder.Register<DungeonSceneNavigator>(Lifetime.Singleton)
+        builder.Register<DungeonSceneNavigator>(resolver => new DungeonSceneNavigator(
+                resolver.Resolve<IGameTimeScaleController>(),
+                resolver.Resolve<IUiClock>(),
+                resolver.Resolve<IDungeonGameSaveSlotService>()), Lifetime.Singleton)
             .AsSelf()
             .As<IDungeonSceneNavigator>();
         builder.Register<DungeonGameSaveSlotService>(Lifetime.Singleton)

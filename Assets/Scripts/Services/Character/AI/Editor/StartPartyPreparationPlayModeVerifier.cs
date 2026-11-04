@@ -2647,6 +2647,11 @@ public sealed class StartPartyOwnerTraitUpgradeFocusedRunner : MonoBehaviour
     private sealed class FixtureDungeonGameSaveSlotService :
         IDungeonGameSaveSlotService
     {
+        public bool IsSaving => false;
+        public IDungeonSaveOperation BeginSave(string slotId, bool prettyPrint = false)
+            => throw new NotSupportedException("Preparation fixture does not schedule saves.");
+        public void AdvanceSave() { }
+        public void CompletePendingSave() { }
         private readonly List<string> deletedSlotIds = new();
 
         public IReadOnlyList<string> DeletedSlotIds => deletedSlotIds;

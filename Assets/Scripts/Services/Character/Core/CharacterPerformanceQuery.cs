@@ -23,6 +23,10 @@ public interface ICharacterPerformanceQuery
     IReadOnlyList<CharacterPerformanceSnapshot> EvaluateDomain(
         CharacterActor actor,
         CharacterPerformanceFormulaDomain domain);
+    IReadOnlyList<CharacterPerformanceSnapshot> EvaluateMany(
+        CharacterActor actor,
+        IReadOnlyList<string> formulaIds,
+        CharacterPerformanceEvaluationContext context = null);
 }
 
 public interface ICharacterGameplayEffectValueQuery
@@ -159,7 +163,10 @@ public sealed class CharacterPerformanceQuery :
     }
 
     public CharacterFunctionalCapacitySnapshot GetFunctionalCapacities(
-        CharacterActor actor)
+        CharacterActor actor) => GetFunctionalCapacities(actor, null);
+
+    private CharacterFunctionalCapacitySnapshot GetFunctionalCapacities(
+        CharacterActor actor, CharacterDerivedStatsSnapshotProjector.ReadProjection read)
     {
         using var sample = FunctionalCapacitiesMarker.Auto();
         if (actor == null) throw new ArgumentNullException(nameof(actor));
@@ -257,7 +264,8 @@ public sealed class CharacterPerformanceQuery :
         // All capacities share one immutable source/context snapshot for this
         // query. Recollecting it per target repeats anatomy/equipment/trait
         // projections without observing any intervening owner command.
-        CharacterDerivedStatsSnapshot projection = gameplayEffects.Project(actor, baseValues);
+        CharacterDerivedStatsSnapshot projection = read == null
+            ? gameplayEffects.Project(actor, baseValues) : read.Project(baseValues);
         foreach (var capacity in pending)
         {
             string targetId = CharacterFunctionalCapacityIds.GetStableId(capacity.Id);
@@ -316,6 +324,15 @@ public sealed class CharacterPerformanceQuery :
             throw new ArgumentOutOfRangeException(nameof(contextFactor));
         CharacterPerformanceFormulaDefinitionSO formula = formulas.Require(formulaId);
         CharacterFunctionalCapacitySnapshot capacities = GetFunctionalCapacities(actor);
+        return EvaluateResolved(actor, formula, context, capacities, null);
+    }
+
+    private CharacterPerformanceSnapshot EvaluateResolved(
+        CharacterActor actor, CharacterPerformanceFormulaDefinitionSO formula,
+        CharacterPerformanceEvaluationContext context, CharacterFunctionalCapacitySnapshot capacities,
+        CharacterDerivedStatsSnapshotProjector.ReadProjection read)
+    {
+        float contextFactor = context.ContextFactor;
         List<CharacterPerformanceContributionTrace> trace = new();
         float weightedTotal = 0f;
         float totalWeight = 0f;
@@ -357,7 +374,12 @@ public sealed class CharacterPerformanceQuery :
                     bottleneckCap,
                     0.25f + 0.75f * capacity.Value);
             }
-            trace.AddRange(capacity.Contributions);
+            trace.AddRange(read == null ? capacity.Contributions : capacity.Contributions.Select(value =>
+                new CharacterPerformanceContributionTrace
+                {
+                    SourceKind = value.SourceKind, SourceId = value.SourceId, TargetId = value.TargetId,
+                    AuthoredValue = value.AuthoredValue, AppliedValue = value.AppliedValue, Detail = value.Detail
+                }));
         }
 
         if (totalWeight <= 0f)
@@ -397,11 +419,9 @@ public sealed class CharacterPerformanceQuery :
         float effectFactor = 1f;
         if (!string.IsNullOrWhiteSpace(formula.GameplayEffectTargetId))
         {
-            GameplayEffectProjectionResult effect = gameplayEffects.ProjectValue(
-                actor,
-                formula.GameplayEffectTargetId,
-                1f,
-                context.GameplayEffectContext);
+            GameplayEffectProjectionResult effect = read == null
+                ? gameplayEffects.ProjectValue(actor, formula.GameplayEffectTargetId, 1f, context.GameplayEffectContext)
+                : read.ProjectValue(formula.GameplayEffectTargetId, 1f, context.GameplayEffectContext);
             effectFactor = effect.Value;
             trace.AddRange(effect.Contributions.Select(value =>
                 new CharacterPerformanceContributionTrace
@@ -453,10 +473,32 @@ public sealed class CharacterPerformanceQuery :
 
     public IReadOnlyList<CharacterPerformanceSnapshot> EvaluateDomain(
         CharacterActor actor,
-        CharacterPerformanceFormulaDomain domain) => formulas.All
+        CharacterPerformanceFormulaDomain domain) => EvaluateMany(actor, formulas.All
         .Where(value => value.Domain == domain)
-        .Select(value => Evaluate(actor, value.FormulaId))
-        .ToArray();
+        .Select(value => value.FormulaId).ToArray());
+
+    public IReadOnlyList<CharacterPerformanceSnapshot> EvaluateMany(
+        CharacterActor actor, IReadOnlyList<string> formulaIds,
+        CharacterPerformanceEvaluationContext context = null)
+    {
+        if (formulaIds == null) throw new ArgumentNullException(nameof(formulaIds));
+        if (formulaIds.Count == 0) return Array.Empty<CharacterPerformanceSnapshot>();
+        if (actor == null) throw new ArgumentNullException(nameof(actor));
+        context ??= new CharacterPerformanceEvaluationContext();
+        float contextFactor = context.ContextFactor;
+        if (float.IsNaN(contextFactor) || float.IsInfinity(contextFactor) || contextFactor < 0f)
+            throw new ArgumentOutOfRangeException(nameof(contextFactor));
+        var read = gameplayEffects.CreateReadProjection(actor);
+        CharacterFunctionalCapacitySnapshot capacities = null;
+        var results = new CharacterPerformanceSnapshot[formulaIds.Count];
+        for (int index = 0; index < formulaIds.Count; index++)
+        {
+            var formula = formulas.Require(formulaIds[index]);
+            capacities ??= GetFunctionalCapacities(actor, read);
+            results[index] = EvaluateResolved(actor, formula, context, capacities, read);
+        }
+        return results;
+    }
 
     public GameplayEffectProjectionResult ProjectGameplayEffectValue(
         CharacterActor actor,

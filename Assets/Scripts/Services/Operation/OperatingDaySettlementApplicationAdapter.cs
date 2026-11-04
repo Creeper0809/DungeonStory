@@ -84,6 +84,7 @@ public class OperatingDaySettlementApplicationAdapter : MonoBehaviour
     private IDisposable facilityStockConsumedSubscription;
     private IDisposable facilityCrimeSubscription;
     private IDisposable facilityRestockSubscription;
+    private IDisposable facilityEvolutionSubscription;
     private IDisposable operatingDayStartedSubscription;
     private IDisposable operatingDayEndedSubscription;
     private IDisposable eventAlertLoggedSubscription;
@@ -375,6 +376,7 @@ public class OperatingDaySettlementApplicationAdapter : MonoBehaviour
             mood = value;
         }
         string facilityId = RequireFacilityId(eventType.facility);
+        RefreshEvolvedFacilityDisplayIdentity(eventType.facility);
         RequireDomain().RecordVisit(
             facilityId,
             GetFacilityName(eventType.facility),
@@ -385,6 +387,7 @@ public class OperatingDaySettlementApplicationAdapter : MonoBehaviour
     public void OnTriggerEvent(FacilityRevenueEvent eventType)
     {
         string facilityId = RequireFacilityId(eventType.facility);
+        RefreshEvolvedFacilityDisplayIdentity(eventType.facility);
         RequireDomain().RecordRevenue(
             facilityId,
             GetFacilityName(eventType.facility),
@@ -394,6 +397,7 @@ public class OperatingDaySettlementApplicationAdapter : MonoBehaviour
     public void OnTriggerEvent(FacilityStockConsumedEvent eventType)
     {
         string facilityId = RequireFacilityId(eventType.facility);
+        RefreshEvolvedFacilityDisplayIdentity(eventType.facility);
         RequireDomain().RecordStockConsumed(
             facilityId,
             GetFacilityName(eventType.facility),
@@ -429,6 +433,33 @@ public class OperatingDaySettlementApplicationAdapter : MonoBehaviour
         }
     }
 
+    public void OnTriggerEvent(FacilityEvolutionCompletedEvent eventType)
+    {
+        if (eventType.result.Success)
+            RefreshEvolvedFacilityDisplayIdentity(eventType.result.ResultBuilding);
+    }
+
+    private void RefreshEvolvedFacilityDisplayIdentity(BuildableObject facility)
+    {
+        var evolution = facility != null ? facility.GetComponent<FacilityEvolutionStateComponent>() : null;
+        if (evolution == null || evolution.EvolutionHistory.Count == 0) return;
+        string id = RequireFacilityId(facility);
+        var detail = RequireDomain().Capture().Ledger.FacilityDetails.FirstOrDefault(value => value.FacilityId == id);
+        string currentName = GetFacilityName(facility).Trim();
+        if (detail == null || detail.FacilityName == currentName) return;
+        if (facility.isDestroy || !RequireBuildingQuery().Buildings.Any(value => ReferenceEquals(value, facility))
+            || evolution.CurrentFacilityId != facility.BuildingData.id.ToString())
+            throw new InvalidOperationException("Facility display transition requires the canonical evolved world owner.");
+        // Replaying the saved, completed name chain also handles a pre-fix save.
+        // An arbitrary visit or asset rename cannot authorize this transition.
+        string reached = detail.FacilityName;
+        foreach (var entry in evolution.EvolutionHistory.OrderBy(value => value.sequence))
+            if (entry.fromFacility?.Trim() == reached) reached = entry.toFacility?.Trim();
+        if (reached != currentName)
+            throw new InvalidOperationException("Facility display transition is not backed by its completed evolution history.");
+        RequireDomain().RebindFacilityDisplayName(id, detail.FacilityName, currentName);
+    }
+
     protected virtual void OnEnable()
     {
         SubscribeToScopedEvents();
@@ -442,6 +473,7 @@ public class OperatingDaySettlementApplicationAdapter : MonoBehaviour
         DisposeSubscription(ref facilityStockConsumedSubscription);
         DisposeSubscription(ref facilityCrimeSubscription);
         DisposeSubscription(ref facilityRestockSubscription);
+        DisposeSubscription(ref facilityEvolutionSubscription);
         DisposeSubscription(ref operatingDayStartedSubscription);
         DisposeSubscription(ref operatingDayEndedSubscription);
         DisposeSubscription(ref eventAlertLoggedSubscription);
@@ -466,6 +498,8 @@ public class OperatingDaySettlementApplicationAdapter : MonoBehaviour
             gameEventBus.Subscribe<FacilityCrimeEvent>(OnTriggerEvent);
         facilityRestockSubscription ??=
             gameEventBus.Subscribe<FacilityRestockEvent>(OnTriggerEvent);
+        facilityEvolutionSubscription ??=
+            gameEventBus.Subscribe<FacilityEvolutionCompletedEvent>(OnTriggerEvent);
         operatingDayStartedSubscription ??=
             gameEventBus.Subscribe<OperatingDayStartedEvent>(OnTriggerEvent);
         operatingDayEndedSubscription ??=

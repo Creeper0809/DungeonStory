@@ -7,6 +7,8 @@ using UnityEngine.Scripting.APIUpdating;
 public interface IDungeonGameSaveService
 {
     DungeonGameSaveData Capture();
+    IDungeonGameSaveCapture BeginCapture();
+    // detached DTO 전용이다. 파일 worker에서도 호출하므로 live Unity 상태를 읽지 않는다.
     string ToJson(DungeonGameSaveData saveData, bool prettyPrint = false);
     DungeonGameSaveData FromJson(string json);
     bool TryRestore(DungeonGameSaveData saveData, out DungeonGameRestoreReport report);
@@ -15,11 +17,22 @@ public interface IDungeonGameSaveService
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public interface IDungeonGameSaveSlotService
 {
+    bool IsSaving { get; }
+    IDungeonSaveOperation BeginSave(string slotId, bool prettyPrint = false);
+    void AdvanceSave();
+    void CompletePendingSave();
     string Save(string slotId, bool prettyPrint = false);
     bool TryLoad(string slotId, out DungeonGameRestoreReport report);
     bool HasSave(string slotId);
     IReadOnlyList<DungeonSaveSlotInfo> GetSlots();
     bool Delete(string slotId);
+}
+
+public interface IDungeonGameSaveCapture : IDisposable
+{
+    bool IsCompleted { get; }
+    DungeonGameSaveData Result { get; }
+    void Advance();
 }
 
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]

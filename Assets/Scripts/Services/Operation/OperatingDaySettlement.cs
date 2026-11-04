@@ -703,7 +703,7 @@ public sealed class BuildingVisitEventPublisher : IBuildingVisitEventPort
             && exception is not StackOverflowException
             && exception is not AccessViolationException)
         {
-            Debug.LogError(label + ":" + exception.GetType().Name);
+            Debug.LogError(label + ":" + exception);
         }
     }
 }

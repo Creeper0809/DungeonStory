@@ -20,8 +20,9 @@ public sealed class GameplayOutcomePerspectiveCacheSnapshot
 }
 
 [Serializable]
-public sealed class GameplayOutcomeLedgerSaveData
+public sealed class GameplayOutcomeLedgerSaveData : IDungeonSaveReadSnapshot
 {
+    object IDungeonSaveReadSnapshot.CopyForSaveRead() => GameplayOutcomeSaveReadCopy.Copy(this);
     public const int CurrentVersion = 1;
     public int version = CurrentVersion;
     public string runId = string.Empty;

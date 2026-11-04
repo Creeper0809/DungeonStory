@@ -22,12 +22,17 @@ public sealed class LocalLlmRequestProfile
         bool canBeEvictedForQueuePressure = false,
         float maxQueueAgeSeconds = 0f,
         bool logFailureWarnings = false,
-        int maxOutputTokens = 256)
+        int maxOutputTokens = 256,
+        bool interactive = false,
+        int dedicatedConcurrencyLimit = 0,
+        bool waitForOrdinaryLane = false)
     {
         if (string.IsNullOrWhiteSpace(id))
         {
             throw new ArgumentException("A local LLM request profile requires a stable id.", nameof(id));
         }
+        if (dedicatedConcurrencyLimit < 0)
+            throw new ArgumentOutOfRangeException(nameof(dedicatedConcurrencyLimit));
 
         Id = id.Trim();
         Priority = priority;
@@ -37,6 +42,9 @@ public sealed class LocalLlmRequestProfile
         MaxQueueAgeSeconds = Mathf.Max(0f, maxQueueAgeSeconds);
         LogFailureWarnings = logFailureWarnings;
         MaxOutputTokens = Mathf.Max(64, maxOutputTokens);
+        Interactive = interactive;
+        DedicatedConcurrencyLimit = dedicatedConcurrencyLimit;
+        WaitForOrdinaryLane = waitForOrdinaryLane;
     }
 
     public string Id { get; }
@@ -47,6 +55,9 @@ public sealed class LocalLlmRequestProfile
     public float MaxQueueAgeSeconds { get; }
     public bool LogFailureWarnings { get; }
     public int MaxOutputTokens { get; }
+    public bool Interactive { get; }
+    public int DedicatedConcurrencyLimit { get; }
+    public bool WaitForOrdinaryLane { get; }
 
     public LocalLlmRequestProfile WithMaxQueueAge(float maxQueueAgeSeconds)
     {
@@ -58,7 +69,10 @@ public sealed class LocalLlmRequestProfile
             CanBeEvictedForQueuePressure,
             maxQueueAgeSeconds,
             LogFailureWarnings,
-            MaxOutputTokens);
+            MaxOutputTokens,
+            Interactive,
+            DedicatedConcurrencyLimit,
+            WaitForOrdinaryLane);
     }
 }
 
@@ -86,15 +100,17 @@ public static class LocalLlmRequestProfiles
         queueFullBehavior: LocalLlmQueueFullBehavior.Fail,
         logFailureWarnings: false,
         maxOutputTokens: 768);
-    public static readonly LocalLlmRequestProfile Persona = new LocalLlmRequestProfile("Persona", 30);
+    public static readonly LocalLlmRequestProfile Persona = new LocalLlmRequestProfile("Persona", 30, interactive: true);
     public static readonly LocalLlmRequestProfile MacroGoal = new LocalLlmRequestProfile(
         "MacroGoal",
         20,
-        queueFullBehavior: LocalLlmQueueFullBehavior.RejectQuietly);
+        queueFullBehavior: LocalLlmQueueFullBehavior.RejectQuietly,
+        interactive: true);
     public static readonly LocalLlmRequestProfile MoodImpulse = new LocalLlmRequestProfile(
         "MoodImpulse",
         18,
-        queueFullBehavior: LocalLlmQueueFullBehavior.RejectQuietly);
+        queueFullBehavior: LocalLlmQueueFullBehavior.RejectQuietly,
+        interactive: true);
     public static readonly LocalLlmRequestProfile FacilityEvolution = new LocalLlmRequestProfile(
         "FacilityEvolution",
         16,
@@ -124,7 +140,8 @@ public static class LocalLlmRequestProfiles
         temperature: 0.65f,
         queueFullBehavior: LocalLlmQueueFullBehavior.RejectQuietly,
         logFailureWarnings: false,
-        maxOutputTokens: 384);
+        maxOutputTokens: 384,
+        interactive: true);
     public static readonly LocalLlmRequestProfile EquipmentChoiceLegacyV2 = new LocalLlmRequestProfile(
         "EquipmentChoiceLegacyV2",
         17,
@@ -152,7 +169,8 @@ public static class LocalLlmRequestProfiles
         temperature: 0.35f,
         queueFullBehavior: LocalLlmQueueFullBehavior.RejectQuietly,
         logFailureWarnings: false,
-        maxOutputTokens: 512);
+        maxOutputTokens: 512,
+        dedicatedConcurrencyLimit: 1);
     public static readonly LocalLlmRequestProfile AcquiredTraitLegacyV2 = new LocalLlmRequestProfile(
         "AcquiredTraitLegacyV2",
         17,
@@ -164,12 +182,15 @@ public static class LocalLlmRequestProfiles
         "SocialRumor",
         15,
         queueFullBehavior: LocalLlmQueueFullBehavior.RejectQuietly,
-        maxOutputTokens: 384);
+        maxOutputTokens: 384,
+        interactive: true);
     public static readonly LocalLlmRequestProfile CharacterRecord = new LocalLlmRequestProfile(
         "CharacterRecord",
         12,
         temperature: 0.7f,
-        queueFullBehavior: LocalLlmQueueFullBehavior.RejectQuietly);
+        queueFullBehavior: LocalLlmQueueFullBehavior.RejectQuietly,
+        interactive: true,
+        waitForOrdinaryLane: true);
     public static readonly LocalLlmRequestProfile MultiPerspective = new LocalLlmRequestProfile(
         "MultiPerspective",
         18,
@@ -182,7 +203,8 @@ public static class LocalLlmRequestProfiles
         10,
         queueFullBehavior: LocalLlmQueueFullBehavior.Drop,
         canBeEvictedForQueuePressure: true,
-        maxQueueAgeSeconds: 3f);
+        maxQueueAgeSeconds: 3f,
+        interactive: true);
 }
 
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
@@ -206,6 +228,15 @@ public interface ILocalLlmRuntime
     bool GenerateFacilityEvolutionAsync(string prompt, Action<LocalLlmResult> callback);
     bool GenerateCharacterRecordAsync(string prompt, string originalText, Action<LocalLlmResult> callback);
     bool GenerateBubbleLineAsync(string prompt, string originalText, Action<LocalLlmResult> callback);
+}
+
+// Short-lived scene requests must stop when their original owner is retired.
+// Durable choice/outbox requests keep their existing correlation contracts.
+public interface ILocalLlmTransientRequestRuntime
+{
+    bool CanAdmitRealtime { get; }
+    bool GenerateTransientAsync(string profileId, string prompt, string originalText,
+        Func<bool> ownerIsAlive, Action<LocalLlmResult> callback);
 }
 
 public enum LocalLlmRuntimeReadinessState
@@ -425,7 +456,8 @@ public readonly struct LocalLlmResult
         string error,
         string originalText,
         NarrativeGenerationTrace narrativeTrace = null,
-        string rawModelContent = null)
+        string rawModelContent = null,
+        bool requiresInputChange = false)
     {
         Status = status;
         Content = content ?? string.Empty;
@@ -433,6 +465,7 @@ public readonly struct LocalLlmResult
         OriginalText = originalText ?? string.Empty;
         NarrativeTrace = narrativeTrace;
         RawModelContent = rawModelContent ?? string.Empty;
+        RequiresInputChange = requiresInputChange;
     }
 
     public LocalLlmRequestStatus Status { get; }
@@ -441,6 +474,7 @@ public readonly struct LocalLlmResult
     public string OriginalText { get; }
     public NarrativeGenerationTrace NarrativeTrace { get; }
     public string RawModelContent { get; }
+    public bool RequiresInputChange { get; }
     public bool IsSuccess => Status == LocalLlmRequestStatus.Succeeded;
     public bool IsCancelled => Status == LocalLlmRequestStatus.Cancelled;
 }

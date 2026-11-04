@@ -6,11 +6,18 @@ using DungeonStory.Narrative.Korean;
 /// <summary>Only observers interpret canonical receipt identities and payloads.</summary>
 public sealed class SpeciesActionFactPreflight : IDungeonSavePreflightValidator, IDungeonCapturedSavePreflightValidator
 {
+    private readonly ICharacterSpeciesPersistence persistence;
+
+    public SpeciesActionFactPreflight(ICharacterSpeciesPersistence persistence)
+    {
+        this.persistence = persistence ?? throw new ArgumentNullException(nameof(persistence));
+    }
+
     public void Validate(DungeonGameSaveData save, DungeonGameRestoreReport report) => Validate(
         DungeonSaveSectionPayload.ReadOrNew<CharacterSpeciesRuntimeSaveData>(save, SpeciesRuntimeSaveSection.Id),
         DungeonSaveSectionPayload.ReadOrNew<GameplayOutcomeLedgerSaveData>(save, GameplayOutcomeLedgerSaveSection.Id), report);
 
-    internal static void Validate(CharacterSpeciesRuntimeSaveData source, GameplayOutcomeLedgerSaveData incoming,
+    internal void Validate(CharacterSpeciesRuntimeSaveData source, GameplayOutcomeLedgerSaveData incoming,
         DungeonGameRestoreReport report)
     {
         try
@@ -18,10 +25,9 @@ public sealed class SpeciesActionFactPreflight : IDungeonSavePreflightValidator,
             if (source?.characters == null || source.pendingObservations == null
                 || incoming?.outbox == null || incoming.exactOutcomes == null || incoming.tombstones == null)
                 throw new InvalidOperationException("species-observation-save-shape-invalid");
-            // The section separately checks authored species. Reuse owner state
-            // validation here without taking a second content-state authority.
-            CharacterSpeciesStateCodec.BuildRestore(source, 0f, id => source.characters
-                .FirstOrDefault(value => value != null && value.speciesDefinitionId == id.Value)?.lastIncidentId);
+            // 같은 종족이라도 개체별 사건 이력은 다르다. 첫 개체의 이력으로
+            // 종족 정의를 대신하지 않고 실제 소유자의 정의 검증을 재사용한다.
+            persistence.BuildRestore(source);
             if (source.pendingObservations.Count == 0) return;
             var josa = new KoreanJosaFormatter();
             var registry = new GameplayOutcomeRegistry(new IGameplayOutcomeDescriptor[]

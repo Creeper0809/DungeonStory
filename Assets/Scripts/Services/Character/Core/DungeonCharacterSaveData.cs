@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 
 [Serializable]
-public sealed class DungeonCharacterWorldSaveData
+public sealed class DungeonCharacterWorldSaveData : IDungeonSaveReadSnapshot
 {
     public List<DungeonCharacterSaveData> actors =
         new List<DungeonCharacterSaveData>();
@@ -10,6 +10,8 @@ public sealed class DungeonCharacterWorldSaveData
         new List<WorldCharacterProfile>();
     public GlobalFacilityReputationSnapshot globalFacilityReputation =
         new GlobalFacilityReputationSnapshot();
+
+    public object CopyForSaveRead() => DungeonCharacterSaveReadCopy.Copy(this);
 }
 
 [Serializable]
@@ -59,11 +61,36 @@ public sealed class DungeonCharacterSaveData
     public CharacterAcquiredTraitAggregateState acquiredTraits;
     public CharacterSocialMemorySnapshot socialMemory =
         new CharacterSocialMemorySnapshot();
+    // Optional v10 extension. Missing means no completed generated Persona.
+    public DungeonCharacterPersonaNarrativeSaveData personaNarrative;
     public CharacterExpeditionRecoveryState expeditionRecovery =
         new CharacterExpeditionRecoveryState();
     public CharacterCarryInventorySaveData carryInventory =
         new CharacterCarryInventorySaveData();
     public HaulDeliveryIntentSaveData haulDeliveryIntent;
+}
+
+[Serializable]
+public sealed class DungeonCharacterPersonaNarrativeSaveData
+{
+    public string personaName = string.Empty;
+    public string flavorText = string.Empty;
+    public NarrativeGenerationTrace narrativeTrace;
+
+    public DungeonCharacterPersonaNarrativeSaveData Clone() => new()
+    {
+        personaName = personaName,
+        flavorText = flavorText,
+        narrativeTrace = narrativeTrace == null ? null : new NarrativeGenerationTrace
+        {
+            schemaId = narrativeTrace.schemaId, schemaVersion = narrativeTrace.schemaVersion,
+            schemaHash = narrativeTrace.schemaHash, cultureStyleId = narrativeTrace.cultureStyleId,
+            usedMotifIds = narrativeTrace.usedMotifIds == null ? null : (string[])narrativeTrace.usedMotifIds.Clone(),
+            usedCharacterFactIds = narrativeTrace.usedCharacterFactIds == null ? null : (string[])narrativeTrace.usedCharacterFactIds.Clone(),
+            verdict = narrativeTrace.verdict, retryCount = narrativeTrace.retryCount,
+            usedFallback = narrativeTrace.usedFallback
+        }
+    };
 }
 
 public enum RetailPurchaseRecoveryPhase

@@ -5,11 +5,13 @@ using DungeonStory.Characters;
 using DungeonStory.Foundation;
 using DungeonStory.Foundation.Facts;
 using UnityEngine;
+using Unity.Profiling;
 using VContainer;
 
 [DisallowMultipleComponent]
 public sealed class CharacterProgression : MonoBehaviour, ICharacterTraitInferenceAuthority
 {
+    private static readonly ProfilerMarker TraitCaptureMarker = new("AcquiredTrait.CaptureState");
     private const string PreparedOriginFactPrefix = "identity:prepared-origin:";
     private const string PreparedHistoryFactPrefix = "identity:prepared-history:";
     private const string PreparedIdentityEventGroup = "identity:prepared";
@@ -37,6 +39,7 @@ public sealed class CharacterProgression : MonoBehaviour, ICharacterTraitInferen
     private IDomainFactPublisher facts;
     private CharacterSkillAcquisitionPublicationRuntime skillAcquisitions;
     private bool acquisitionRollbackPending;
+    private bool isDetachedPreparationPreview;
     private CharacterTraitInferenceTransaction traitInference;
     private CharacterTraitInferenceTransaction TraitInference =>
         traitInference ??= new CharacterTraitInferenceTransaction(this);
@@ -148,6 +151,7 @@ public sealed class CharacterProgression : MonoBehaviour, ICharacterTraitInferen
         this.facts = facts;
         this.skillAcquisitions = skillAcquisitions;
         this.sessionStateProvider = sessionStateProvider;
+        isDetachedPreparationPreview = false;
         CompleteConfigurationIfReady();
     }
 
@@ -167,6 +171,7 @@ public sealed class CharacterProgression : MonoBehaviour, ICharacterTraitInferen
         this.profileProjector = profileProjector
             ?? throw new ArgumentNullException(nameof(profileProjector));
         levelEvents = gameEventBus ?? throw new ArgumentNullException(nameof(gameEventBus));
+        isDetachedPreparationPreview = false;
         CompleteConfigurationIfReady();
     }
 
@@ -175,12 +180,23 @@ public sealed class CharacterProgression : MonoBehaviour, ICharacterTraitInferen
         ICharacterSkillSystemSettingsProvider settingsProvider,
         CharacterProgressionProfileProjector profileProjector)
     {
+        ConfigurePreparationServices(generationService, settingsProvider, profileProjector,
+            detachedPreview: true);
+    }
+
+    private void ConfigurePreparationServices(
+        ICharacterSkillGenerationService generationService,
+        ICharacterSkillSystemSettingsProvider settingsProvider,
+        CharacterProgressionProfileProjector profileProjector,
+        bool detachedPreview)
+    {
         this.generationService = generationService
             ?? throw new ArgumentNullException(nameof(generationService));
         this.settingsProvider = settingsProvider
             ?? throw new ArgumentNullException(nameof(settingsProvider));
         this.profileProjector = profileProjector
             ?? throw new ArgumentNullException(nameof(profileProjector));
+        isDetachedPreparationPreview = detachedPreview;
         CompleteConfigurationIfReady();
     }
 
@@ -203,7 +219,8 @@ public sealed class CharacterProgression : MonoBehaviour, ICharacterTraitInferen
             ?? throw new ArgumentNullException(nameof(skillAcquisitions));
         this.sessionStateProvider = sessionStateProvider
             ?? throw new ArgumentNullException(nameof(sessionStateProvider));
-        ConfigurePreview(generationService, settingsProvider, profileProjector);
+        ConfigurePreparationServices(generationService, settingsProvider, profileProjector,
+            detachedPreview: false);
     }
 
     public static int GetExperienceRequired(int currentLevel)
@@ -527,8 +544,12 @@ public sealed class CharacterProgression : MonoBehaviour, ICharacterTraitInferen
         else NotifyChangedWithoutAffectingCommittedState();
     }
 
+    internal object AcquiredTraitReadIdentity => acquiredTraitState?.ReadIdentity;
+    internal int AcquiredTraitReadRevision => acquiredTraitState?.revision ?? -1;
+
     public CharacterAcquiredTraitAggregateState CaptureAcquiredTraitState()
     {
+        using var sample = TraitCaptureMarker.Auto();
         RequireTraitStateAvailable();
         acquiredTraitState ??= new CharacterAcquiredTraitAggregateState();
         acquiredTraitState.EnsureCollections();
@@ -1290,6 +1311,7 @@ public sealed class CharacterProgression : MonoBehaviour, ICharacterTraitInferen
         foreach (CharacterSkillDraft draft in GrowthState.drafts.Where(item => item != null
             && !item.IsInvalidated()
             && !item.isReady
+            && item.presentationState != CharacterSkillPresentationState.AwaitingNarrativeRetry
             && !item.permanentlyChosen))
         {
             generationService.RequestDraft(this, draft);
@@ -1486,6 +1508,38 @@ public sealed class CharacterProgression : MonoBehaviour, ICharacterTraitInferen
                 return false;
             }
             selected.Add(fact);
+        }
+        if (isDetachedPreparationPreview)
+        {
+            // Starting-party choices edit a disposable initial-state snapshot,
+            // not a registered world's acquisition history. Reroll/cancel must
+            // discard them without publishing facts or consuming world evidence.
+            if (actor == null || actor.gameObject.activeInHierarchy
+                || (actor.gameObject.hideFlags & HideFlags.HideAndDontSave) != HideFlags.HideAndDontSave
+                || exactIds.Count != 0 || GrowthState.skillAcquisitionRevision != 0
+                || this.facts != null || skillAcquisitions != null)
+            {
+                error = "Detached preparation can only choose initial skills from its own authored facts.";
+                return false;
+            }
+            CharacterGrowthState beforePreview = GrowthState.Clone();
+            int[] beforePreviewUses = selected.Select(value => value.influenceUseCount).ToArray();
+            try
+            {
+                foreach (CharacterNarrativeFact fact in selected) fact.influenceUseCount++;
+                ownerCommit();
+                return true;
+            }
+            catch (Exception exception) when (exception is not OutOfMemoryException
+                && exception is not StackOverflowException && exception is not AccessViolationException)
+            {
+                growthState = beforePreview;
+                for (int index = 0; index < selected.Count; index++)
+                    selected[index].influenceUseCount = beforePreviewUses[index];
+                RebuildLegacySkillViews();
+                error = "Initial skill choice rolled back: " + exception.Message;
+                return false;
+            }
         }
         long beforeAcquisitionRevision = GrowthState.skillAcquisitionRevision;
         if (beforeAcquisitionRevision == long.MaxValue)

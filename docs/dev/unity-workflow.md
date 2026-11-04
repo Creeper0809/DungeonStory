@@ -33,6 +33,12 @@ Unity 사전 검사·읽기 전용 Editor 명령도 Unity 실행으로 취급한
 
 ## 실행과 복구
 
+### 학습 V10 로컬 4비트 시험 준비 (2026-10-18)
+
+`TrainedNarrativeModelPlayModeVerifier.RequestForBatch`는 추가 selector/resume 없는 전용 `play` entry다. `-SerializedStartup`을 허용하며 기존 비대화형 station/desktop·창 프로브·UI 제한 job·메모리 보호를 그대로 사용한다. 실행 자체는 사용자 요청으로 보류되어 현재 이 entry의 Unity 컴파일/Play PASS는 없다.
+
+`Tools/QA/run_trained_model_integration.ps1 -BundleRoot <절대 runtime 폴더> -OutputDirectory <새 Artifacts/QA 절대경로>`는 이 설정의 안전 예산으로 RAM8GiB/VRAM7GiB를 먼저 확인한다. 앱을 종료하거나 보호 기준을 낮추지 않는다. 지정 모델 root는 해당 자식 실행에만 전달되고 원래 환경변수는 복원한다. 기본 StreamingAssets의 1.7B 모델과 씬/프리팹은 변경하지 않는다. 검증기는 정상 파티 준비→실제 기술 생성→선택/커밋→공식 저장 복원에 한정하며 네 가지 학습 profile 전체·자연 사건·장기 게임 플레이 증거가 아니다. 실제 요청의 원문/응답은 create-only QA 기록에만 남기며 학습·사람 승인으로 사용하지 않는다.
+
 C1 입력/targeting 경계는 `-Mode play -SerializedStartup -ExecuteMethod MovementOwnershipDebugScenarios.RequestSkillTargetingForBatch`로 검증한다. selector/resume 없는 정확한 entry만 허용한다. 실제 GameplayScene 준비 직원과 기존 직원 관리 UI의 Button pointer event, 자동 Play Update/OnDisable, production GraphicRaycaster/UI 차단 및 camera/collider/PhysicsWorldPointerRaycaster를 연결한다. 입력은 검사용 IPlayerInputReader이며 사용자 장치·포커스를 조작하지 않는다. 로컬 실제 skill transaction/observer로 무효 대상 재시도·하나의 cooldown/buff/outcome·중복/취소 무효과를 확인하고 공식 baseline world를 복원한다. pending skill 영수증의 공식 전체 월드 복원을 뜻하지 않는다. 실행별 create-only `skill-targeting-actual.txt`와 baseline JSON을 남긴다.
 
 C5 노동/도구 경계는 `-Mode edit -ExecuteMethod ArchitectureRefactorVerificationBatch.RunCaptivityLabor`로 검증한다. 기존 내부 배치의 검증용 저장 루트와 create-only `captivity-labor-boundary.txt`를 사용한다. 실제 native actor/work·물리 repository/spawner·batch disposition에 통제 배송 요청을 연결해 허용 임계값/실패 원복, 도구 할당 ACK 후 종결 실패의 JSON 재시도, 노동 권한/타입/수명, 근무 시 마모와 파손 도구 반납 실패/무중복 재시도를 확인한다. 원 D09 전환6·shared care owner5·노역 outbox/도구 정의 검사도 유지하며 과거 고정 보고서를 덮어쓰지 않는다. 자연 운반/직원 AI나 pending labor의 공식 전체 월드 복원을 주장하지 않는다.
@@ -45,6 +51,7 @@ C9 특수 능력 경계는 `-Mode edit -ExecuteMethod ArchitectureRefactorVerifi
 - 제공 런처 `Tools/QA/IsolatedUnityLauncher.cs`는 별도 비대화형 window station과 desktop을 만들고 `CreateProcessW`의 `STARTUPINFO.lpDesktop`에 그 대상을 명시한다. Unity를 정지 상태로 생성해 UI 제한·kill-on-close job에 넣은 뒤 실행하며, 자식 프로세스까지 함께 관리한다. `SwitchDesktop`이나 사용자 창 활성화 API를 호출하지 않는다. Windows 작업 보기의 가상 데스크톱 전환으로 대체하지 않는다.
 - 별도 데스크톱을 쓸 수 없으면 이미 허용·구성된 비대화형 세션 또는 VM을 사용한다. 계정·서비스·원격 환경을 임의로 새로 만들거나 현재 사용자 데스크톱 실행으로 폴백하지 않는다.
 - 격리 환경에서도 `-batchmode -nographics`, 명시적 프로젝트/로그 경로, 단일 실행, 격리 저장 경로를 유지한다. 창 숨김 설정은 계속 사용하되 포커스 안전성의 근거로 내세우지 않는다.
+- 실제 UI 스크린샷을 요청받은 감사에 한해 `UiUxAuditCapture.RequestForBatch`와 `UiUxAuditCapture.RequestRemainingForBatch`는 `-Mode play -SerializedStartup`으로 같은 OS 격리 안에서 D3D11 그래픽 렌더링을 허용한다. 이 두 exact entry만 `-nographics`를 제외하고 나머지 entry는 기존 규칙을 유지한다. 순수 guard·native 자체 검사·비대화형 station/desktop 창 프로브·메모리 보호·격리 저장을 그대로 통과해야 한다. Game View는 포커스를 요청하지 않고 고정 해상도와 실제 Screen 크기 일치를 검사한다. PNG는 D3D 좌표 방향만 정규화하며 UI를 재구성하지 않는다. `RequestRemainingForBatch`는 초기 타이틀/관리 탭의 반복을 줄이고 추가 상세/통제 fixture를 촬영한다. 두 entry의 이미지와 console error를 별도로 판정하고 촬영 완료를 게임 기능 전체 PASS로 보고하지 않는다.
 - 실행 전 런처가 대상 데스크톱을 명시하고 현재 입력 데스크톱을 사용하지 않는지 확인한다. 순수 검사 후 OS가 비대화형 station임을 확인한 프로브에서만 창 생성·종료를 시험하고, 통과한 동일 격리 경로에서 Unity를 검증한다. 일반 시작뿐 아니라 PlayMode 전환·도메인 리로드·오류 창·종료 경계도 검증 대상이다. 현재 사용자 데스크톱에 미검증 프로세스를 띄우는 시험은 금지한다.
 - **2026-09-26 검증:** 비대화형 station/desktop 자식의 실제 창 생성·종료, Unity 컴파일·원장 core 회귀, 공식 전체 월드 81-section 저장 왕복·실제 자동저장이 통과했다. 최신 `u3-isolated-campaign-r7`은 실제 GameplayScene 훈련 4회·레벨 1→5→공식 world 복원→fresh owner/pending→동일 요청 wire 재생까지 PASS했다. 통합 `u3-exact-json-integration-r1`은 142/142 PASS다. 첫 통제 production interaction의 요청 증거이며 전체 장기 학습 파이프라인이나 오류 창 등 모든 UI 경계까지 전수 검증했다는 뜻은 아니다. 실행별 소스 해시·증거와 실패 이력은 `progress.md`를 따른다.
 - 진입점은 아래 `run_isolated_unity_batch.ps1`이다. 호출마다 현재 런처를 새 `.launcher` 폴더에 컴파일하고 순수 검사·소스/바이너리 해시를 남긴다. 숨김 실행만 하던 `run_hidden_unity_batch.ps1`은 명시 오류로 차단되어 있다. 격리 생성/프로브 실패 시 Unity는 시작하지 않으며 대화형 실행으로 돌아가지 않는다.

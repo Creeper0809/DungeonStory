@@ -11,7 +11,7 @@ using UnityEngine;
 public sealed class SurgeryMaterialTerminalCrossAggregateSaveValidation :
     IDungeonSavePreflightValidator,
     IDungeonSaveRegistryPreflightValidator,
-    IDungeonCapturedSavePreflightValidator
+    IDungeonDetachedCapturedSavePreflightValidator
 {
     public void Validate(
         DungeonGameSaveData saveData,

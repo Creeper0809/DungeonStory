@@ -167,7 +167,7 @@ public sealed class CharacterRitualFastingOutcomeDescriptor : IGameplayOutcomeDe
         if (outcome.OutcomeTypeId != OutcomeTypeId || outcome.Status != GameplayOutcomeStatus.Succeeded
             || outcome.OwnerRevision <= 0 || outcome.ParticipantCount != 1 || outcome.SubjectCount != 1
             || outcome.MetricCount != 4 || outcome.FactCount != 8 || outcome.TagCount != 1
-            || outcome.AnchorCount != 0 || outcome.ProvenanceCount != 2)
+            || outcome.ProductionAnchorCount != 0 || outcome.ProvenanceCount != 2)
             return OutcomeValidationResult.Reject("ritual-fast-shape-invalid");
         GameplayOutcomeParticipant actor = outcome.GetParticipant(0);
         if (!actor.EntityId.Kind.Equals(CharacterRitualFastingOutcomeIds.Character)

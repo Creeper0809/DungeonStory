@@ -28,6 +28,13 @@ public sealed class DungeonStoryLlmHostManifest
     public DungeonStoryLlmHostSupportFile[] supportFiles = Array.Empty<DungeonStoryLlmHostSupportFile>();
     public string modelFile = "DungeonStory-Qwen3-1.7B-Q4_K_M.gguf";
     public string modelSha256 = string.Empty;
+    public string modelAlias = "DungeonStory-Qwen3-1.7B-Q4_K_M";
+    public string adapterFile = string.Empty;
+    public string adapterSha256 = string.Empty;
+    public int gpuLayers;
+    public int contextSize = 8192;
+    public int parallelSlots = 2;
+    public int sharedContextTokens;
     public long maximumModelBytes = 1500000000L;
     public string modelVersion = string.Empty;
     public bool releaseCertified;
@@ -47,7 +54,45 @@ public sealed class DungeonStoryLlmHostSupportFile
 /// </summary>
 public sealed class DungeonStoryLlmHostProcess : IDisposable
 {
+    public const string R80BackendKind = "R80StagedServer";
+
+    [Serializable]
+    private sealed class ActiveRuntime
+    {
+        public string relativeRoot;
+        public string manifestSha256;
+    }
+
+    // A separate activation record preserves the original 1.7B manifest and
+    // weights. Invalid activation fails explicitly, without switching models.
+    public static string ResolveDefaultRoot(string streamingAssetsPath)
+    {
+        string activation = Path.Combine(streamingAssetsPath, "narrative-runtime.json");
+        if (!File.Exists(activation)) return streamingAssetsPath;
+        ActiveRuntime active = JsonUtility.FromJson<ActiveRuntime>(File.ReadAllText(activation));
+        string boundary = Path.GetFullPath(streamingAssetsPath).TrimEnd(
+            Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) + Path.DirectorySeparatorChar;
+        if (active == null || string.IsNullOrWhiteSpace(active.relativeRoot)
+            || Path.IsPathRooted(active.relativeRoot))
+            throw new InvalidOperationException("Active narrative runtime requires a relative bundle root.");
+        string selected = Path.GetFullPath(Path.Combine(streamingAssetsPath, active.relativeRoot));
+        string manifest = Path.Combine(selected, "DungeonStoryLlm", "manifest.json");
+        if (!selected.StartsWith(boundary, StringComparison.OrdinalIgnoreCase)
+            || !File.Exists(manifest) || string.IsNullOrWhiteSpace(active.manifestSha256)
+            || !HashMatches(manifest, active.manifestSha256))
+            throw new InvalidOperationException("Active narrative runtime failed path or manifest validation.");
+        return selected;
+    }
+
     private const int LogCapacityBytes = 1024 * 1024;
+    private static int editorBatchDiagnosticScope;
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+    private static void CaptureNativeDiagnosticScope()
+    {
+        // Unity 실행 정보는 주 스레드에서만 읽고, host 작업 스레드는 이 값만 참조한다.
+        Volatile.Write(ref editorBatchDiagnosticScope, Application.isEditor && Application.isBatchMode ? 1 : 0);
+    }
     private readonly object logGate = new object();
     private readonly Queue<byte> logRing = new Queue<byte>(LogCapacityBytes);
     private readonly CancellationTokenSource lifetimeCancellation =
@@ -70,6 +115,8 @@ public sealed class DungeonStoryLlmHostProcess : IDisposable
     public string Endpoint { get; private set; } = string.Empty;
     public string SessionToken { get; private set; } = string.Empty;
     public string ModelVersion { get; private set; } = string.Empty;
+    public string ModelAlias { get; private set; } = string.Empty;
+    public int ParallelSlots { get; private set; } = 2;
     public string BackendKind { get; private set; } = string.Empty;
     public string TrainingState { get; private set; } = string.Empty;
     public bool ReleaseCertified { get; private set; }
@@ -111,6 +158,11 @@ public sealed class DungeonStoryLlmHostProcess : IDisposable
     private bool TryStartInternal(string streamingAssetsPath, out string error)
     {
         error = string.Empty;
+        if (string.IsNullOrWhiteSpace(streamingAssetsPath) || !Path.IsPathRooted(streamingAssetsPath))
+        {
+            error = "Narrative model configuration requires an absolute streaming-assets root.";
+            return false;
+        }
         string root = Path.Combine(
             streamingAssetsPath ?? string.Empty,
             "DungeonStoryLlm");
@@ -124,8 +176,8 @@ public sealed class DungeonStoryLlmHostProcess : IDisposable
         DungeonStoryLlmHostManifest manifest;
         try
         {
-            manifest = JsonUtility.FromJson<DungeonStoryLlmHostManifest>(
-                File.ReadAllText(manifestPath, Encoding.UTF8));
+            manifest = new DungeonStoryLlmHostManifest();
+            JsonUtility.FromJsonOverwrite(File.ReadAllText(manifestPath, Encoding.UTF8), manifest);
         }
         catch (Exception exception)
         {
@@ -147,13 +199,14 @@ public sealed class DungeonStoryLlmHostProcess : IDisposable
             return false;
         }
 
-        bool llamaCppServer = string.Equals(
+        bool stagedR80 = string.Equals(manifest.hostKind, R80BackendKind, StringComparison.Ordinal);
+        bool llamaCppServer = stagedR80 || string.Equals(
             manifest.hostKind?.Trim(),
             "LlamaCppServer",
             StringComparison.OrdinalIgnoreCase);
         if (llamaCppServer && !windows)
         {
-            error = "The mounted base model currently has a Windows CPU host only; deterministic prose remains active.";
+            error = "The mounted llama.cpp inference bundle requires Windows; deterministic prose remains active.";
             return false;
         }
 
@@ -180,6 +233,37 @@ public sealed class DungeonStoryLlmHostProcess : IDisposable
         string normalizedRoot = Path.GetFullPath(root)
             .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
             + Path.DirectorySeparatorChar;
+        if (!Path.GetFullPath(executablePath).StartsWith(normalizedRoot, StringComparison.OrdinalIgnoreCase)
+            || !Path.GetFullPath(modelPath).StartsWith(normalizedRoot, StringComparison.OrdinalIgnoreCase)
+            || string.IsNullOrWhiteSpace(manifest.modelAlias)
+            || manifest.modelAlias.Length > 128
+            || Array.Exists(manifest.modelAlias.ToCharArray(), char.IsControl)
+            || manifest.gpuLayers < 0 || manifest.gpuLayers > 99
+            || manifest.contextSize < 2048 || manifest.contextSize > 32768
+            || manifest.parallelSlots < 1 || manifest.parallelSlots > (stagedR80 ? 4 : 2)
+            || manifest.sharedContextTokens < 0
+            || manifest.sharedContextTokens > 32768
+            || (manifest.sharedContextTokens > 0 && (!stagedR80 || manifest.sharedContextTokens < manifest.contextSize))
+            || (stagedR80 && manifest.parallelSlots == 4 && manifest.sharedContextTokens == 0))
+        {
+            error = "Narrative host paths or inference settings are invalid.";
+            return false;
+        }
+        string adapterPath = string.Empty;
+        if (!string.IsNullOrWhiteSpace(manifest.adapterFile)
+            || !string.IsNullOrWhiteSpace(manifest.adapterSha256))
+        {
+            adapterPath = Path.GetFullPath(Path.Combine(root, manifest.adapterFile ?? string.Empty));
+            if (!llamaCppServer || string.IsNullOrWhiteSpace(manifest.adapterFile)
+                || !adapterPath.StartsWith(normalizedRoot, StringComparison.OrdinalIgnoreCase)
+                || !File.Exists(adapterPath) || new FileInfo(adapterPath).Length <= 0
+                || string.IsNullOrWhiteSpace(manifest.adapterSha256)
+                || !HashMatches(adapterPath, manifest.adapterSha256))
+            {
+                error = "Narrative adapter failed path or SHA-256 validation.";
+                return false;
+            }
+        }
         foreach (DungeonStoryLlmHostSupportFile support in
                  manifest.supportFiles ?? Array.Empty<DungeonStoryLlmHostSupportFile>())
         {
@@ -207,6 +291,8 @@ public sealed class DungeonStoryLlmHostProcess : IDisposable
         int port = ReserveLoopbackPort();
         SessionToken = CreateToken(32);
         ModelVersion = manifest.modelVersion?.Trim() ?? string.Empty;
+        ModelAlias = manifest.modelAlias.Trim();
+        ParallelSlots = manifest.parallelSlots;
         BackendKind = manifest.hostKind?.Trim() ?? string.Empty;
         TrainingState = manifest.trainingState?.Trim() ?? string.Empty;
         ReleaseCertified = manifest.releaseCertified;
@@ -217,24 +303,50 @@ public sealed class DungeonStoryLlmHostProcess : IDisposable
             commonArguments = string.Join(" ", new[]
             {
                 "--model", Quote(modelPath),
-                "--alias", Quote("DungeonStory-Qwen3-1.7B-Q4_K_M"),
+                "--alias", Quote(ModelAlias),
                 "--host", "127.0.0.1",
                 "--port", port.ToString(CultureInfo.InvariantCulture),
                 "--api-key", Quote(SessionToken),
-                "--ctx-size", "8192",
-                "--parallel", "2",
+                "--ctx-size", (manifest.sharedContextTokens > 0 ? manifest.sharedContextTokens
+                    : stagedR80 ? checked(manifest.contextSize * manifest.parallelSlots)
+                    : manifest.contextSize).ToString(CultureInfo.InvariantCulture),
+                "--parallel", manifest.parallelSlots.ToString(CultureInfo.InvariantCulture),
                 "--threads", workerThreads.ToString(CultureInfo.InvariantCulture),
                 "--threads-batch", workerThreads.ToString(CultureInfo.InvariantCulture),
-                "--gpu-layers", "0",
+                "--gpu-layers", manifest.gpuLayers.ToString(CultureInfo.InvariantCulture),
                 "--reasoning", "off",
                 "--reasoning-budget", "0",
                 "--cache-prompt",
-                "--cache-ram", "256",
-                "--batch-size", "512",
+                "--cache-ram", ReadNativePromptCacheMiB(
+                    Environment.GetEnvironmentVariable("DUNGEONSTORY_R80_CACHE_DIAGNOSTIC")).ToString(CultureInfo.InvariantCulture),
+                "--batch-size", stagedR80 && manifest.sharedContextTokens > 0 ? "256" : "512",
                 "--ubatch-size", "128",
                 "--no-warmup",
                 "--no-webui"
             });
+            string speculativeArguments = ReadNativeSpeculativeArguments(
+                Environment.GetEnvironmentVariable("DUNGEONSTORY_R80_SPEC_DIAGNOSTIC"));
+            if (speculativeArguments.Length > 0 && !stagedR80)
+                throw new InvalidOperationException("Single-model decoding diagnostics require the exact R80 checkpoint.");
+            commonArguments += speculativeArguments;
+            if (!string.IsNullOrEmpty(adapterPath)) commonArguments += " --lora " + Quote(adapterPath);
+            if (stagedR80)
+            {
+                if (!string.IsNullOrEmpty(adapterPath)
+                    || manifest.modelSha256 != "2894ec5261b3a8352a375eb6319bbc8dd8c68c9b7b64fba255d51ce1bc2eb9b2"
+                    || manifest.trainingState != "r80-single-checkpoint-prototype")
+                    throw new InvalidOperationException("R80 requires its exact merged single checkpoint.");
+                string traceRoot = Environment.GetEnvironmentVariable("DUNGEONSTORY_R80_TRACE_ROOT");
+                if (string.IsNullOrWhiteSpace(traceRoot))
+                    traceRoot = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                        "DungeonStory", "R80RuntimeLogs");
+                commonArguments = "-B " + Quote(Path.Combine(root, "r80_game_bridge.py"))
+                    + " --engine " + Quote(Path.Combine(root, "llama-server.exe"))
+                    + " --trace-dir " + Quote(Path.Combine(traceRoot, Guid.NewGuid().ToString("N")))
+                    + " --request-context-size " + manifest.contextSize.ToString(CultureInfo.InvariantCulture)
+                    + " " + commonArguments
+                    + (manifest.sharedContextTokens > 0 ? " --kv-unified --no-context-shift" : string.Empty);
+            }
         }
         else
         {
@@ -290,6 +402,9 @@ public sealed class DungeonStoryLlmHostProcess : IDisposable
                     SessionToken,
                     TimeSpan.FromSeconds(45)))
             {
+                if (!IsRunning)
+                    throw new InvalidOperationException(
+                        "Bundled narrative host exited before readiness, exit code " + process.ExitCode + ".");
                 throw new TimeoutException("Bundled llama.cpp host did not become ready within 45 seconds.");
             }
             if (heartbeatStream != null)
@@ -473,6 +588,65 @@ public sealed class DungeonStoryLlmHostProcess : IDisposable
             return false;
         }
     }
+
+    private static int ReadNativePromptCacheMiB(string diagnostic) =>
+        ParseNativePromptCacheMiB(diagnostic, Volatile.Read(ref editorBatchDiagnosticScope) == 1);
+
+    private static int ParseNativePromptCacheMiB(string diagnostic, bool isolatedEditorBatch)
+    {
+        if (string.IsNullOrEmpty(diagnostic)) return 256;
+        if (isolatedEditorBatch && diagnostic == "0") return 0;
+        throw new InvalidOperationException("Native cache diagnostics require an explicit isolated Editor batch.");
+    }
+
+    private static string ReadNativeSpeculativeArguments(string diagnostic) =>
+        ParseNativeSpeculativeArguments(diagnostic, Volatile.Read(ref editorBatchDiagnosticScope) == 1);
+
+    private static string ParseNativeSpeculativeArguments(string diagnostic, bool isolatedEditorBatch)
+    {
+        if (string.IsNullOrEmpty(diagnostic)) return string.Empty;
+        if (isolatedEditorBatch && diagnostic == "ngram-simple")
+            return " --spec-type ngram-simple --spec-draft-n-max 8 --spec-ngram-simple-size-m 8";
+        throw new InvalidOperationException("Only explicit single-model ngram diagnostics are allowed in Editor batch mode.");
+    }
+
+#if UNITY_EDITOR
+    public static void VerifyNativeSingleModelSpeculativeScopeForBatch()
+    {
+        if (!Application.isBatchMode) throw new InvalidOperationException("Batch verification required.");
+        CaptureNativeDiagnosticScope();
+        const string expected = " --spec-type ngram-simple --spec-draft-n-max 8 --spec-ngram-simple-size-m 8";
+        if (Task.Run(() => ReadNativeSpeculativeArguments(null)).GetAwaiter().GetResult() != string.Empty
+            || Task.Run(() => ReadNativeSpeculativeArguments("ngram-simple")).GetAwaiter().GetResult() != expected)
+            throw new InvalidOperationException("Single-model decoding defaults or worker-safe scope changed.");
+        foreach (var test in new[] { (value: "ngram-simple", allowed: false), (value: "draft", allowed: true) })
+        {
+            bool rejected = false;
+            try { ParseNativeSpeculativeArguments(test.value, test.allowed); }
+            catch (InvalidOperationException) { rejected = true; }
+            if (!rejected) throw new InvalidOperationException("Unsupported or second-model diagnostic was accepted.");
+        }
+    }
+
+    public static void VerifyNativeCacheDiagnosticScopeForBatch()
+    {
+        if (!Application.isBatchMode
+            || ParseNativePromptCacheMiB(null, false) != 256
+            || ParseNativePromptCacheMiB("0", true) != 0)
+            throw new InvalidOperationException("Native cache default or private diagnostic scope changed.");
+        CaptureNativeDiagnosticScope();
+        if (Task.Run(() => ReadNativePromptCacheMiB(null)).GetAwaiter().GetResult() != 256
+            || Task.Run(() => ReadNativePromptCacheMiB("0")).GetAwaiter().GetResult() != 0)
+            throw new InvalidOperationException("Native cache settings cannot be read safely from the host worker.");
+        foreach (var test in new[] { (value: "0", allowed: false), (value: "128", allowed: true) })
+        {
+            bool rejected = false;
+            try { ParseNativePromptCacheMiB(test.value, test.allowed); }
+            catch (InvalidOperationException) { rejected = true; }
+            if (!rejected) throw new InvalidOperationException("Invalid native cache override was accepted.");
+        }
+    }
+#endif
 
     private static int ReserveLoopbackPort()
     {

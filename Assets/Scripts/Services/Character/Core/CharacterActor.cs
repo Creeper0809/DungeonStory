@@ -97,6 +97,8 @@ public class CharacterActor : SerializedMonoBehaviour,
     public CharacterStats Stats => characterStats;
     public CharacterAbilityCache AbilityCache => abilityCache;
     public CharacterLifecycle Lifecycle => lifecycle;
+    // Pool reuse must not let a prior scene request bind to the next occupant.
+    public long NarrativeRequestRevision { get; private set; }
     public CharacterLog LogComponent => characterLog;
     public CharacterBlackboard Blackboard => blackboard;
     public CustomerPersonaRuntime PersonaRuntime => personaRuntime;
@@ -417,6 +419,7 @@ public class CharacterActor : SerializedMonoBehaviour,
 
     private void OnDisable()
     {
+        NarrativeRequestRevision = checked(NarrativeRequestRevision + 1);
         ReleaseTransientAiOwnership("character-game-object-disabled");
         lifecycleCoordinator.OnDisabled(
             this,
@@ -454,6 +457,7 @@ public class CharacterActor : SerializedMonoBehaviour,
 
     internal void PrepareForWorldRestoreRetirement()
     {
+        NarrativeRequestRevision = checked(NarrativeRequestRevision + 1);
         retiringForWorldRestore = true;
         // Unity destruction is deferred. Once replacement authorities are
         // committed, all queries must stop seeing this outgoing scene actor.

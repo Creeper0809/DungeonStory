@@ -18,6 +18,7 @@ using VContainer;
 public sealed class LocalLlmRequestQueue :
     SerializedMonoBehaviour,
     ILocalLlmRuntime,
+    ILocalLlmTransientRequestRuntime,
     ILocalLlmRuntimeReadiness,
     ILocalLlmAcceptedRequestCompletionOwner,
     ICorrelatedCharacterSkillLlmRuntime,
@@ -53,6 +54,7 @@ public sealed class LocalLlmRequestQueue :
     [FormerlySerializedAs("droppedBubbleCount")]
     [SerializeField, ReadOnly] private int droppedEphemeralRequestCount;
     [SerializeField, ReadOnly] private int timeoutCount;
+    [SerializeField, ReadOnly] private int latencyAdmissionRejectedCount;
     [SerializeField, ReadOnly] private string lastError;
     [SerializeField, ReadOnly] private string lastCompletionDiagnostic;
     [SerializeField, ReadOnly] private StructuredOutputCapability structuredOutputCapability;
@@ -75,6 +77,9 @@ public sealed class LocalLlmRequestQueue :
     private bool isolatedAutomaticDispatchEnabled = true;
     private Action<LocalLlmCapturedRequest> isolatedRequestCaptureObserver;
     private Func<LocalLlmCapturedRequest, string> isolatedTestResponseProvider;
+    // Observation after the real callback. This never replaces responses or dispatch.
+    public event Action<string, string, LocalLlmResult> ActualRequestCompletedForDiagnostics;
+    public event Action<string, string, LocalLlmResult, float, float, float> ActualRequestTimingForDiagnostics;
 #endif
 
     public int QueuedCount => requests.QueuedCount;
@@ -82,6 +87,7 @@ public sealed class LocalLlmRequestQueue :
     public int DroppedEphemeralRequestCount => droppedEphemeralRequestCount;
     public int DroppedBubbleCount => droppedEphemeralRequestCount;
     public int TimeoutCount => timeoutCount;
+    public int LatencyAdmissionRejectedCount => latencyAdmissionRejectedCount;
     public int MaxQueueSize => maxQueueSize;
     public string LastError => lastError;
     public string LastCompletionDiagnostic => lastCompletionDiagnostic;
@@ -93,7 +99,9 @@ public sealed class LocalLlmRequestQueue :
         lastNarrativeQualityVerdict;
     public bool HasConfiguredEndpoint => !string.IsNullOrWhiteSpace(endpointUrl)
         && !string.IsNullOrWhiteSpace(modelName);
-    public bool IsBundledModelStarting => hostStartupTask != null && !hostStartupTask.IsCompleted;
+    // Completion on the worker thread is not publication to the scene owner.
+    // Keep "starting" until PublishHostStartupIfReady consumes the result.
+    public bool IsBundledModelStarting => hostStartupTask != null;
     public bool IsBundledModelRunning => localHost?.IsRunning == true;
     public string BundledModelVersion => localHost?.ModelVersion ?? string.Empty;
     public string BundledModelTrainingState => localHost?.TrainingState ?? string.Empty;
@@ -409,11 +417,17 @@ public sealed class LocalLlmRequestQueue :
         }
 #endif
         structuredBackend = new DungeonStoryHostStructuredChatBackend(
-            () => localHost?.SessionToken ?? string.Empty);
+            () => localHost?.SessionToken ?? string.Empty,
+            () => localHost?.BackendKind == DungeonStoryLlmHostProcess.R80BackendKind);
         endpointUrl = string.Empty;
-        string streamingAssetsPath = Application.streamingAssetsPath;
+        // Explicit local-model opt-in. An invalid override fails closed in the
+        // host; it must never silently run the old bundled base model instead.
+        string configuredRoot = Environment.GetEnvironmentVariable("DUNGEONSTORY_LLM_STREAMING_ROOT");
+        string defaultStreamingAssetsPath = Application.streamingAssetsPath;
         hostStartupTask = Task.Run(() =>
         {
+            string streamingAssetsPath = string.IsNullOrWhiteSpace(configuredRoot)
+                ? DungeonStoryLlmHostProcess.ResolveDefaultRoot(defaultStreamingAssetsPath) : configuredRoot;
             bool started = DungeonStoryLlmHostProcess.TryStart(
                 streamingAssetsPath,
                 out DungeonStoryLlmHostProcess host,
@@ -518,6 +532,7 @@ public sealed class LocalLlmRequestQueue :
 
         droppedEphemeralRequestCount = 0;
         timeoutCount = 0;
+        latencyAdmissionRejectedCount = 0;
         lastError = string.Empty;
         lastCompletionDiagnostic = string.Empty;
         suppressWarningLogsForDebug = false;
@@ -526,6 +541,13 @@ public sealed class LocalLlmRequestQueue :
 
     private void Update()
     {
+        foreach (LocalLlmQueuedRequest retired in requests.TakeRetired())
+        {
+            retired.Abort();
+            Complete(retired, new LocalLlmResult(LocalLlmRequestStatus.Cancelled,
+                string.Empty, "Original scene request owner was retired.", retired.OriginalText),
+                logFailure: false);
+        }
         PublishHostStartupIfReady();
         if (localHost != null && !localHost.IsRunning)
         {
@@ -550,7 +572,13 @@ public sealed class LocalLlmRequestQueue :
             // Do not fail them merely because model hashing/loading is still in progress.
             return;
         }
-        while (requests.TryBeginNext(Now, maxConcurrentRequests, out LocalLlmQueuedRequest request))
+        // The bundled R80 manifest owns its validated lane topology and GPU
+        // capacity. The Inspector cap remains the contract for other hosts.
+        int activeSlots = localHost?.BackendKind == DungeonStoryLlmHostProcess.R80BackendKind
+            ? localHost.ParallelSlots
+            : Math.Min(maxConcurrentRequests, localHost?.ParallelSlots ?? maxConcurrentRequests);
+        while (requests.TryBeginNext(Now, activeSlots, out LocalLlmQueuedRequest request,
+            separateInteractiveLane: localHost?.BackendKind == DungeonStoryLlmHostProcess.R80BackendKind))
             StartExecution(request);
     }
 
@@ -601,7 +629,7 @@ public sealed class LocalLlmRequestQueue :
 
         localHost = result.Host;
         endpointUrl = localHost.Endpoint;
-        modelName = "DungeonStory-Qwen3-1.7B-Q4_K_M";
+        modelName = localHost.ModelAlias;
     }
 
     private readonly struct HostStartupResult
@@ -1051,6 +1079,28 @@ public sealed class LocalLlmRequestQueue :
             callback);
     }
 
+    public bool CanAdmitRealtime => !isSuspended && isActiveAndEnabled
+        && hostStartupTask == null && HasConfiguredEndpoint && requests.CanAdmitRealtime();
+
+    public bool GenerateTransientAsync(string profileId, string prompt, string originalText,
+        Func<bool> ownerIsAlive, Action<LocalLlmResult> callback)
+    {
+        if (ownerIsAlive == null) throw new ArgumentNullException(nameof(ownerIsAlive));
+        if (!ownerIsAlive()) return false;
+        (LocalLlmRequestProfile profile, float timeout) = profileId switch
+        {
+            "Persona" => (LocalLlmRequestProfiles.Persona, personaTimeoutSeconds),
+            "MacroGoal" => (LocalLlmRequestProfiles.MacroGoal, macroGoalTimeoutSeconds),
+            "MoodImpulse" => (LocalLlmRequestProfiles.MoodImpulse, moodImpulseTimeoutSeconds),
+            "SocialRumor" => (LocalLlmRequestProfiles.SocialRumor, socialRumorTimeoutSeconds),
+            "CharacterRecord" => (LocalLlmRequestProfiles.CharacterRecord, characterRecordTimeoutSeconds),
+            "BubbleLine" => (LocalLlmRequestProfiles.BubbleLine.WithMaxQueueAge(bubbleMaxQueueAgeSeconds), bubbleTimeoutSeconds),
+            _ => throw new ArgumentException("Only scene-owned short response profiles are supported.", nameof(profileId))
+        };
+        if (profile.MaxQueueAgeSeconds > 0f && !CanAdmitRealtime) return false;
+        return Enqueue(profile, prompt, originalText, timeout, callback, ownerIsAlive: ownerIsAlive);
+    }
+
     public bool Enqueue(
         LocalLlmRequestProfile profile,
         string prompt,
@@ -1058,7 +1108,8 @@ public sealed class LocalLlmRequestQueue :
         float timeoutSeconds,
         Action<LocalLlmResult> callback,
         string correlationId = "",
-        NarrativeSchedulingMetadata scheduling = null)
+        NarrativeSchedulingMetadata scheduling = null,
+        Func<bool> ownerIsAlive = null)
     {
         string profileId = profile != null ? profile.Id : "Unknown";
         if (isSuspended || !isActiveAndEnabled)
@@ -1075,6 +1126,17 @@ public sealed class LocalLlmRequestQueue :
                 string.Empty,
                 "Local LLM request profile is null.",
                 originalText));
+            return false;
+        }
+
+        // 일반 짧은 응답은 사용 중이면 접수를 거절. 기록만 기존 응답 뒤에 1건 대기 가능.
+        if (localHost?.BackendKind == DungeonStoryLlmHostProcess.R80BackendKind
+            && profile.Interactive && profile.MaxQueueAgeSeconds <= 0f
+            && profile.QueueFullBehavior == LocalLlmQueueFullBehavior.RejectQuietly
+            && !requests.CanAdmitOrdinaryProfile(profile))
+        {
+            latencyAdmissionRejectedCount++;
+            lastError = $"{profileId}: Skipped - short-response capacity is busy.";
             return false;
         }
 
@@ -1105,7 +1167,8 @@ public sealed class LocalLlmRequestQueue :
             Now,
             correlationId,
             scheduling,
-            callback));
+            callback,
+            ownerIsAlive: ownerIsAlive));
     }
 
     private bool AdmitRequest(LocalLlmQueuedRequest request)
@@ -1191,7 +1254,8 @@ public sealed class LocalLlmRequestQueue :
             lastSchemaId = schema.ProfileId;
             lastSchemaVersion = schema.Version;
             lastSchemaHash = schema.Hash;
-            int maximumAttempts = schema.PersistentNarrative ? 2 : 1;
+            int maximumAttempts = schema.PersistentNarrative
+                && localHost?.BackendKind != DungeonStoryLlmHostProcess.R80BackendKind ? 2 : 1;
             string activePrompt = request.Prompt;
             for (int attempt = 0; attempt < maximumAttempts; attempt++)
             {
@@ -1232,6 +1296,11 @@ public sealed class LocalLlmRequestQueue :
                     || webRequest.result == UnityWebRequest.Result.ProtocolError
                     || webRequest.result == UnityWebRequest.Result.DataProcessingError)
                 {
+                    string rejectionReason = string.Empty;
+                    bool inputRejected = webRequest.responseCode == 422
+                        && localHost?.BackendKind == DungeonStoryLlmHostProcess.R80BackendKind
+                        && DungeonStoryHostStructuredChatBackend.TryReadInputRejection(
+                            webRequest.downloadHandler.text, out rejectionReason);
                     structuredOutputCapability = StructuredOutputCapability.Unavailable;
                     LocalLlmRequestStatus status = webRequest.error != null
                         && webRequest.error.IndexOf("timed out", StringComparison.OrdinalIgnoreCase) >= 0
@@ -1240,8 +1309,10 @@ public sealed class LocalLlmRequestQueue :
                     Complete(request, new LocalLlmResult(
                         status,
                         string.Empty,
-                        webRequest.error,
-                        request.OriginalText));
+                        inputRejected ? rejectionReason : webRequest.error,
+                        request.OriginalText,
+                        rawModelContent: inputRejected ? webRequest.downloadHandler.text : null,
+                        requiresInputChange: inputRejected));
                     yield break;
                 }
 
@@ -1260,6 +1331,8 @@ public sealed class LocalLlmRequestQueue :
                 }
 
                 string rawModelContent = content;
+                // Reference expansion is a lossless transport operation, not
+                // another model decision. R80 returns those same public refs.
                 if (structuredBackend is DungeonStoryHostStructuredChatBackend
                     && !DungeonStoryHostStructuredChatBackend.TryResolveModelContent(
                         request.Profile, activePrompt, content, out content, out string resolutionError))
@@ -1591,6 +1664,19 @@ public sealed class LocalLlmRequestQueue :
         }
 
         InvokeCallbackSafely(callback, result);
+#if UNITY_EDITOR
+        try
+        {
+            float completedAt = Now;
+            float queueSeconds = (request.StartedAt >= 0f ? request.StartedAt : completedAt) - request.EnqueuedAt;
+            float serviceSeconds = request.StartedAt < 0f ? 0f : completedAt - request.StartedAt;
+            ActualRequestTimingForDiagnostics?.Invoke(request.Profile.Id, request.CorrelationId,
+                result, Mathf.Max(0f, queueSeconds), Mathf.Max(0f, serviceSeconds),
+                Mathf.Max(0f, completedAt - request.EnqueuedAt));
+            ActualRequestCompletedForDiagnostics?.Invoke(request.Profile.Id, request.CorrelationId, result);
+        }
+        catch (Exception exception) { Debug.LogException(exception, this); }
+#endif
     }
 
     private void InvokeCallbackSafely(Action<LocalLlmResult> callback, LocalLlmResult result)

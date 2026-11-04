@@ -28,6 +28,27 @@ public sealed class CharacterTraitInferencePublicationSaveSection :
 
     private static void ValidateShape(JToken token, Type type)
     {
+        if (type == typeof(CharacterAcquiredTraitPresentationOriginState))
+        {
+            // 구저장에 없던 선택적 출처만 허용한다. v1의 필수 필드는 원 shape 검사다.
+            if (token == null || token.Type == JTokenType.Null) return;
+            if (token is JObject origin && origin["version"]?.Type == JTokenType.Integer
+                && (int)origin["version"] == 0)
+            {
+                if (origin["registeredRevision"]?.Type != JTokenType.Integer
+                    || (int)origin["registeredRevision"] != 0
+                    || origin["evidenceFactIds"] is not JArray evidence || evidence.Count != 0
+                    || origin["ownerBinding"] == null || origin["publicContext"] == null)
+                    throw new InvalidOperationException("trait-inference-empty-origin-invalid");
+                if (origin["ownerBinding"].Type != JTokenType.Null)
+                    ValidateShape(origin["ownerBinding"], typeof(CharacterNarrativeRequestOwnerBinding));
+                if (origin["publicContext"].Type != JTokenType.Null)
+                    ValidateShape(origin["publicContext"], typeof(NarrativePublicContextMaterialSnapshot));
+                if (origin.ToObject<CharacterAcquiredTraitPresentationOriginState>().HasData)
+                    throw new InvalidOperationException("trait-inference-empty-origin-has-data");
+                return;
+            }
+        }
         if (token == null) throw new InvalidOperationException("trait-inference-json-field-missing:" + type.Name);
         bool valid;
         if (type == typeof(string)) valid = token.Type == JTokenType.String;

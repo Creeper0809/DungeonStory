@@ -176,7 +176,8 @@ public readonly struct MigratedProducerOutcomeDetails
     public bool SummaryFirst { get; }
     public bool IsValid => Subjects != null
         && Subjects.Length > 0
-        && Subjects.Length <= 16
+        && Subjects.Length <= GameplayOutcomeBufferLimits.AbsoluteMaximumParticipantsPerOutcome
+        && Subjects.Length <= GameplayOutcomeBufferLimits.AbsoluteMaximumSubjectsPerOutcome
         && Metrics != null
         && Metrics.Length <= 16
         && Facts != null
@@ -656,9 +657,11 @@ public sealed class MigratedProducerOutcomeRuntime :
             || identity.Length > MaximumOwnerIdentityLength
             || absoluteDay < 0
             || !Enum.IsDefined(typeof(GameplayOutcomeStatus), status)
-            || participantCount <= 0 || participantCount > 16
+            || participantCount <= 0
+            || participantCount > GameplayOutcomeBufferLimits.AbsoluteMaximumParticipantsPerOutcome
             || metricCount < 0 || metricCount > 16
             || subjectCount <= 0 || subjectCount > participantCount
+            || subjectCount > GameplayOutcomeBufferLimits.AbsoluteMaximumSubjectsPerOutcome
             || additionalFactCount < 0 || additionalFactCount > 14
             || additionalProvenanceCount < 0 || additionalProvenanceCount > 15)
         {

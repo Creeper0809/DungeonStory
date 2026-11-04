@@ -4,7 +4,7 @@ using System.Linq;
 using DungeonStory.Foundation;
 using DungeonStory.Narrative.Korean;
 
-public sealed class SocialRitualFactPreflight : IDungeonSavePreflightValidator, IDungeonCapturedSavePreflightValidator
+public sealed class SocialRitualFactPreflight : IDungeonSavePreflightValidator, IDungeonDetachedCapturedSavePreflightValidator
 {
     public void Validate(DungeonGameSaveData save, DungeonGameRestoreReport report)
     {

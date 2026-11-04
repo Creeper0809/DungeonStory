@@ -5,7 +5,7 @@ using DungeonStory.Narrative.Korean;
 
 /// <summary>Only this observer boundary joins frozen production facts to the canonical ledger.</summary>
 public sealed class CertifiedSeedFactPreflight :
-    IDungeonSavePreflightValidator, IDungeonCapturedSavePreflightValidator
+    IDungeonSavePreflightValidator, IDungeonDetachedCapturedSavePreflightValidator
 {
     public void Validate(DungeonGameSaveData save, DungeonGameRestoreReport report) => Validate(
         DungeonSaveSectionPayload.ReadOrNew<CertifiedSeedWorldSaveData>(save, CertifiedSeedSaveSection.Id),

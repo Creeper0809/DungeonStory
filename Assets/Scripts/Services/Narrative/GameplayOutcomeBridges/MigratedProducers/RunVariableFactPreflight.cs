@@ -6,7 +6,7 @@ using DungeonStory.Narrative.Korean;
 
 // Only this observer-side boundary interprets the owner's opaque publication key.
 public sealed class RunVariableFactPreflight : IDungeonSavePreflightValidator,
-    IDungeonCapturedSavePreflightValidator, IDungeonSaveRegistryPreflightValidator
+    IDungeonDetachedCapturedSavePreflightValidator, IDungeonSaveRegistryPreflightValidator
 {
     public void Validate(DungeonGameSaveData save, DungeonGameRestoreReport report) =>
         Validate(save.sections.ToDictionary(row => row.sectionId, StringComparer.Ordinal), report);

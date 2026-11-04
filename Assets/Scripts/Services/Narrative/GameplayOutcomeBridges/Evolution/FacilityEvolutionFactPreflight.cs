@@ -3,7 +3,7 @@ using System.Linq;
 using DungeonStory.Foundation;
 
 // Native publication identities belong to the observer's detached save join, not the evolution owner.
-public sealed class FacilityEvolutionFactPreflight : IDungeonSavePreflightValidator, IDungeonCapturedSavePreflightValidator
+public sealed class FacilityEvolutionFactPreflight : IDungeonSavePreflightValidator, IDungeonDetachedCapturedSavePreflightValidator
 {
     public void Validate(DungeonGameSaveData save, DungeonGameRestoreReport report)
     {

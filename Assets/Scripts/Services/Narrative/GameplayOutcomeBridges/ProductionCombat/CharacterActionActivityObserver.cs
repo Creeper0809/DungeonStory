@@ -35,7 +35,7 @@ public sealed class CharacterActionActivityObserver : IInitializable, IDisposabl
             sentiment: -0.8f, bubbleEligible: true),
         CharacterMacroActionTransition.FacilityVandalized => CharacterActivityEvent.Facility(
             CharacterActivityKinds.Combat, CharacterActivityOutcomes.Damaged,
-            $"{BuildingLabel(value.Facility)}을 파손했다", value.Facility,
+            CharacterActivityFormatter.FacilityDamage(BuildingLabel(value.Facility)), value.Facility,
             actionId: "macro:vandalize", reasonCode: value.Reason, value: 1f, bubbleEligible: true),
         _ => throw new ArgumentOutOfRangeException(nameof(value))
     };

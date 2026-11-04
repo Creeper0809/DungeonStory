@@ -188,13 +188,10 @@ public class CharacterLog : SerializedMonoBehaviour
         SetDisplayPending(entryId, deferDisplay || wasPending);
         OnLogAdded?.Invoke(entry);
 
-        if (deferDisplay)
+        if (deferDisplay || wasPending)
         {
-            narrativeService.RequestNarrative(this, entry);
-        }
-        else if (wasPending)
-        {
-            narrativeService?.RequestNarrative(this, entry);
+            if (narrativeService == null || !narrativeService.RequestNarrative(this, entry))
+                TryEndNarrativeDisplayWait(entry.EntryId, entry.DisplayLine);
         }
     }
 
@@ -234,6 +231,19 @@ public class CharacterLog : SerializedMonoBehaviour
         }
 
         return trimmed.Substring(0, marker).TrimEnd();
+    }
+
+    public bool TryEndNarrativeDisplayWait(int entryId, string expectedLine)
+    {
+        EnsureLog();
+        int index = logEntryIds.IndexOf(entryId);
+        if (index < 0 || index >= log.Count
+            || !string.Equals(log[index], expectedLine, StringComparison.Ordinal)
+            || !pendingDisplayEntryIds.Remove(entryId)) return false;
+        // 기존 사실 문자열은 바꾸지 않고 끝난 생성 요청의 표시 대기만 닫는다.
+        visibleEntriesDirty = true;
+        OnLogDisplayChanged?.Invoke();
+        return true;
     }
 
     public bool TryUpdateDisplayLine(int entryId, string expectedLine, string displayLine)
@@ -288,7 +298,7 @@ public class CharacterLog : SerializedMonoBehaviour
         int index = logEntryIds.IndexOf(entryId);
         if (index < 0
             || index >= log.Count
-            || pendingDisplayEntryIds.Contains(entryId))
+            || hiddenEntryIds.Contains(entryId))
         {
             return false;
         }
@@ -359,8 +369,9 @@ public class CharacterLog : SerializedMonoBehaviour
         visibleEntries.Clear();
         for (int i = 0; i < log.Count; i++)
         {
-            if (!pendingDisplayEntryIds.Contains(logEntryIds[i])
-                && !hiddenEntryIds.Contains(logEntryIds[i]))
+            // 사실은 즉시 조회와 저장에 포함한다. 생성 대기는 사실을 숨기는
+            // 조건이 아니며, 검증된 새 문장만 원 소유자의 명령으로 교체한다.
+            if (!hiddenEntryIds.Contains(logEntryIds[i]))
             {
                 visibleEntries.Add(log[i]);
             }

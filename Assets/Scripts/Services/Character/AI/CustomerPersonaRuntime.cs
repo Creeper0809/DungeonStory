@@ -86,6 +86,12 @@ public static class CustomerPersonaPromptBuilder
         }
 
         CharacterSO data = actor.Identity.Data;
+        NarrativePublicEntity subject = publicMaterial.Entities.Single(value =>
+            string.Equals(value.EntityId, publicMaterial.SubjectId, StringComparison.Ordinal));
+        if (subject.Kind != NarrativePublicEntityKind.Character
+            || string.IsNullOrWhiteSpace(subject.DisplayName)
+            || subject.DisplayName.IndexOfAny(new[] { '\r', '\n' }) >= 0)
+            throw new InvalidOperationException("Persona authoring requires its exact public character name.");
         StringBuilder builder = new();
         builder.AppendLine("Generate a compact customer persona for DungeonStory.");
         builder.AppendLine("Return exactly one JSON object and no other text.");
@@ -93,7 +99,7 @@ public static class CustomerPersonaPromptBuilder
         builder.AppendLine("Do not output multipliers, numeric mechanics, facility tags, or any extra key. Existing C# authored mechanics remain authoritative.");
         builder.AppendLine("Required JSON shape:");
         builder.AppendLine("{\"personaName\":\"string\",\"flavorText\":\"string\"}");
-        builder.AppendLine($"name: {data.characterName}");
+        builder.AppendLine($"name: {subject.DisplayName}");
         builder.AppendLine($"species: {data.SpeciesTag}");
         builder.AppendLine($"role: {actor.Role}");
         return NarrativePublicPromptEnvelope.Create(builder.ToString(), publicMaterial);
@@ -117,6 +123,7 @@ public sealed class CustomerPersonaRuntime : SerializedMonoBehaviour
     private NarrativeRequestContextBuilder requestContexts;
     private string activeRequestKey = string.Empty;
     private string activeCandidatePacketHash = string.Empty;
+    private long requestRevision;
 
     public CustomerPersonaData Persona => persona ??= new CustomerPersonaData();
     public bool HasGeneratedPersona => hasGeneratedPersona;
@@ -139,6 +146,73 @@ public sealed class CustomerPersonaRuntime : SerializedMonoBehaviour
     private void Awake()
     {
         Bind(GetComponent<CharacterActor>());
+    }
+
+    private void OnDisable() => ResetGeneratedNarrative();
+
+    private void ResetGeneratedNarrative()
+    {
+        requestRevision++;
+        personaRequestInProgress = false;
+        hasGeneratedPersona = false;
+        Persona.traitName = string.Empty;
+        Persona.flavorText = string.Empty;
+        Persona.narrativeTrace = null;
+    }
+
+    public DungeonCharacterPersonaNarrativeSaveData CaptureGeneratedNarrative()
+    {
+        if (!hasGeneratedPersona || personaRequestInProgress) return null;
+        var saved = new DungeonCharacterPersonaNarrativeSaveData
+        {
+            personaName = Persona.traitName, flavorText = Persona.flavorText,
+            narrativeTrace = Persona.narrativeTrace
+        };
+        ValidateSavedNarrative(saved, actor.characterType);
+        return saved.Clone();
+    }
+
+    public static void ValidateSavedNarrative(DungeonCharacterPersonaNarrativeSaveData source,
+        CharacterType characterType)
+    {
+        if (source == null) return;
+        if (characterType != CharacterType.Customer
+            || string.IsNullOrWhiteSpace(source.personaName) || source.personaName.Length > 40
+            || string.IsNullOrWhiteSpace(source.flavorText) || source.flavorText.Length > 180)
+            throw new ArgumentException("Saved Persona requires a customer and complete bounded prose.");
+        NarrativeGenerationTrace trace = source.narrativeTrace;
+        if (trace != null && (trace.schemaId != LocalLlmRequestProfiles.Persona.Id || trace.schemaVersion < 1
+            || trace.schemaHash?.Length != 64 || !trace.schemaHash.All(Uri.IsHexDigit)
+            || trace.cultureStyleId == null || trace.usedMotifIds == null || trace.usedCharacterFactIds == null
+            || trace.usedMotifIds.Any(string.IsNullOrWhiteSpace) || trace.usedCharacterFactIds.Any(string.IsNullOrWhiteSpace)
+            || !Enum.IsDefined(typeof(NarrativeQualityVerdict), trace.verdict)
+            || trace.verdict == NarrativeQualityVerdict.HardReject || trace.retryCount < 0))
+            throw new ArgumentException("Saved Persona narrative trace is incomplete or rejected.");
+    }
+
+    public void RestoreGeneratedNarrative(DungeonCharacterPersonaNarrativeSaveData source)
+    {
+        if (actor == null) Bind(GetComponent<CharacterActor>());
+        if (actor == null) throw new InvalidOperationException("Persona restore lost its actor.");
+        ValidateSavedNarrative(source, actor.characterType);
+        DungeonCharacterPersonaNarrativeSaveData saved = source?.Clone();
+        CustomerPersonaData rules = Persona;
+        // Validate and clone before any mutation. Only prose comes from the DTO.
+        var restored = saved == null ? null : new CustomerPersonaData
+        {
+            traitName = saved.personaName, flavorText = saved.flavorText,
+            narrativeTrace = saved.narrativeTrace,
+            selfCareMultiplier = rules.selfCareMultiplier, curiosityMultiplier = rules.curiosityMultiplier,
+            shoppingMultiplier = rules.shoppingMultiplier, patienceMultiplier = rules.patienceMultiplier,
+            hungerCurveMultiplier = rules.hungerCurveMultiplier, funCurveMultiplier = rules.funCurveMultiplier,
+            moodCurveMultiplier = rules.moodCurveMultiplier,
+            preferredFacilityTags = rules.preferredFacilityTags?.ToArray() ?? Array.Empty<string>()
+        };
+        if (restored != null && !ValidatePersona(restored, out string error))
+            throw new InvalidOperationException("Persona restore rejected authored rules: " + error);
+        ResetGeneratedNarrative();
+        if (restored != null) ApplyGeneratedPersona(restored);
+        lastError = string.Empty;
     }
 
     public void Bind(CharacterActor owner)
@@ -186,7 +260,12 @@ public sealed class CustomerPersonaRuntime : SerializedMonoBehaviour
         }
 
         personaRequestInProgress = true;
-        bool accepted = queue.GeneratePersonaAsync(lastPrompt, OnPersonaResult);
+        long revision = ++requestRevision;
+        bool accepted = CharacterSceneLlmRequests.Generate(queue, "Persona",
+            lastPrompt, string.Empty, this, result =>
+            {
+                if (this != null && revision == requestRevision) OnPersonaResult(result);
+            }, () => this != null && revision == requestRevision);
         if (!accepted)
         {
             personaRequestInProgress = false;

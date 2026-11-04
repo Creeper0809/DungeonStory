@@ -14,6 +14,9 @@ public interface ICharacterLogNarrativeService
 
 public sealed class CharacterLogNarrativeService : ICharacterLogNarrativeService
 {
+    public int OriginalDisplayRetainedCount { get; private set; }
+    public int RejectedOriginalDisplayCount { get; private set; }
+    public string LastRetainedOriginalLine { get; private set; } = string.Empty;
     public const int MaxLineCharacters =
         CharacterRecordNarrativeRules.MaxLineCharacters;
     private const int MaxPendingRequestsPerCharacter = 3;
@@ -44,7 +47,7 @@ public sealed class CharacterLogNarrativeService : ICharacterLogNarrativeService
         "시작", "나서", "나섰", "착수", "마치", "마무리", "끝내", "돌아오", "복귀",
         "정리", "이어", "향하", "들어가", "시도", "멈추", "포기", "못하", "실패",
         "부족", "모자", "찾", "도착", "완료", "향해", "향했", "옮기", "옮겼",
-        "움직", "몰두",
+        "움직", "몰두", "입었", "받", "확인", "겪었",
         "매달", "힘쓰", "챙기", "살피", "준비", "끝맺", "매듭", "막히", "막혔",
         "막혀", "중단", "마쳤", "끝냈", "돌아왔", "들어갔", "멈췄", "챙겼",
         "살폈", "힘썼"
@@ -145,9 +148,10 @@ public sealed class CharacterLogNarrativeService : ICharacterLogNarrativeService
         LastError = string.Empty;
         pendingRequestsByLog[logId] = pendingCount + 1;
 
-        bool accepted = runtime.GenerateCharacterRecordAsync(
+        bool accepted = CharacterSceneLlmRequests.Generate(runtime, "CharacterRecord",
             prompt,
             entry.OriginalMessage,
+            characterLog,
             result => OnNarrativeResult(characterLog, logId, entry, requiredSubject, result, 0));
         if (!accepted)
         {
@@ -226,13 +230,11 @@ public sealed class CharacterLogNarrativeService : ICharacterLogNarrativeService
         StringBuilder builder = new StringBuilder(1200);
         builder.AppendLine("Rewrite one DungeonStory character activity record in natural Korean.");
         builder.AppendLine("Return exactly one compact JSON object: {\"line\":\"...\"}. No markdown and no extra keys.");
-        builder.AppendLine($"Write one compact third-person micro-story between 32 and {MaxLineCharacters} Korean characters.");
+        builder.AppendLine($"Write one short complete third-person record at most {MaxLineCharacters} Korean characters, with no minimum length.");
+        builder.AppendLine("Do not lengthen a simple event with definitions, repeated facts, or an extra setup clause.");
         builder.AppendLine("Keep every concrete action, place, target, success, failure, and result from the source event.");
-        builder.AppendLine("Add exactly one small, harmless situation around the event so it reads like an anecdote, not a task summary.");
-        builder.AppendLine("You may invent only the character's fleeting behavior, minor near-misstep, quirky reaction, or light comic beat.");
-        builder.AppendLine("Build a tiny event-and-reaction beat: something happens, the character reacts, then the source action continues.");
-        builder.AppendLine("Use one short situation clause and one core event clause. Do not chain extra explanations.");
-        builder.AppendLine("A lone mood adverb, a pleasant expression, or merely deciding/intending to act does not count as a situation.");
+        builder.AppendLine("A simple faithful sentence is sufficient. Do not add a comic incident or recovery that the event does not report.");
+        builder.AppendLine("Let the supplied persona influence wording only. Keep the actual event and outcome unchanged.");
         builder.AppendLine("Do not invent any new prop, decoration, sound source, smell source, customer, or facility feature.");
         builder.AppendLine("Let the persona shape that moment, and respect the species anatomy; do not assume incompatible clothes or body parts.");
         builder.AppendLine("Do not invent gameplay consequences: rewards, losses, injuries, damage, combat, permanent changes, new numbers, or named people.");
@@ -251,7 +253,6 @@ public sealed class CharacterLogNarrativeService : ICharacterLogNarrativeService
         builder.AppendLine("Avoid generic stiff filler such as 업무, 활동, 자신의, 수행, and 진행되었습니다.");
         builder.AppendLine($"styleSeed: {styleSeed}");
         builder.AppendLine($"styleBrief: {styleBrief}");
-        builder.AppendLine($"situationBrief: {GetSituationBrief(styleSeed, text)}");
         builder.AppendLine($"sentenceShape: {sentenceShape}");
         builder.AppendLine("Character:");
         builder.AppendLine($"name: {name}");
@@ -266,20 +267,22 @@ public sealed class CharacterLogNarrativeService : ICharacterLogNarrativeService
         builder.AppendLine($"place: {entry.Activity?.PlaceName}");
         builder.AppendLine($"outcome: {entry.Activity?.OutcomeId}");
         builder.AppendLine($"reasonCode: {entry.Activity?.ReasonCode}");
-        builder.AppendLine($"value: {entry.Activity?.Value:0.###}");
+        builder.AppendLine($"value: {entry.Activity?.Value:R}");
         builder.AppendLine($"quantity: {entry.Activity?.Quantity}");
         builder.AppendLine("Source event:");
         builder.AppendLine($"tag: {entry.Tag}");
         builder.AppendLine($"message: {entry.OriginalMessage}");
         builder.AppendLine($"requiredAnchorWords: {string.Join(", ", ExtractRequiredAnchors(entry.OriginalMessage))}");
         builder.AppendLine("Recent visible records to avoid repeating their phrasing:");
-        AppendRecentLines(builder, characterLog, entry.DisplayLine);
+        StringBuilder recentRecords = new StringBuilder();
+        AppendRecentLines(recentRecords, characterLog, entry.DisplayLine);
+        builder.Append(recentRecords);
         return requestContexts.ForActor(
                 LocalLlmRequestProfiles.CharacterRecord.Id,
                 actor,
                 requireCharacterFact: true,
                 requireMotif: true)
-            .AppendToPrompt(builder.ToString());
+            .AppendToPrompt(WrapEventPrompt(builder.ToString(), entry, requiredSubject, actor, recentRecords.ToString()));
     }
 
     public static bool TryParseNarrativeLine(
@@ -348,7 +351,14 @@ public sealed class CharacterLogNarrativeService : ICharacterLogNarrativeService
             }
         }
 
-        int internalSentenceEnd = normalized.IndexOfAny(new[] { '.', '!', '?' });
+        int internalSentenceEnd = -1;
+        for (int i = 0; i < normalized.Length; i++)
+        {
+            char character = normalized[i];
+            if (character == '.' && i > 0 && i + 1 < normalized.Length
+                && char.IsDigit(normalized[i - 1]) && char.IsDigit(normalized[i + 1])) continue;
+            if (character is '.' or '!' or '?') { internalSentenceEnd = i; break; }
+        }
         if (internalSentenceEnd >= 0 && internalSentenceEnd != normalized.Length - 1)
         {
             error = "Character record line must be exactly one sentence.";
@@ -383,12 +393,12 @@ public sealed class CharacterLogNarrativeService : ICharacterLogNarrativeService
             return false;
         }
 
-        if (!ContainsNoInventedConsequences(normalized, originalLine, out error))
+        if (!ContainsNoInventedConsequences(normalized, originalLine, requiredSubject, out error))
         {
             return false;
         }
 
-        if (!ContainsCreativeDetail(normalized, originalLine, requiredSubject, out error))
+        if (!ContainsCreativeDetail(normalized, originalLine, requiredSubject, out error, requireCreativeBeat: false))
         {
             return false;
         }
@@ -422,6 +432,7 @@ public sealed class CharacterLogNarrativeService : ICharacterLogNarrativeService
         LastResponse = result.Content;
         if (result.IsCancelled)
         {
+            RetainOriginalDisplay(characterLog, entry, cancelled: true);
             LastError = string.Empty;
             return;
         }
@@ -429,7 +440,8 @@ public sealed class CharacterLogNarrativeService : ICharacterLogNarrativeService
         if (!result.IsSuccess)
         {
             LastError = $"{result.Status}: {result.Error}";
-            TryApplyControlledFallback(characterLog, entry, requiredSubject);
+            if (!TryApplyControlledFallback(characterLog, entry, requiredSubject))
+                RetainOriginalDisplay(characterLog, entry);
             return;
         }
 
@@ -459,6 +471,7 @@ public sealed class CharacterLogNarrativeService : ICharacterLogNarrativeService
             }
 
             LastError = error;
+            RetainOriginalDisplay(characterLog, entry);
             return;
         }
 
@@ -474,11 +487,22 @@ public sealed class CharacterLogNarrativeService : ICharacterLogNarrativeService
                 line))
         {
             LastError = "Character record response became stale before it could be applied.";
+            RetainOriginalDisplay(characterLog, entry);
             return;
         }
 
         AppliedCount++;
         LastError = string.Empty;
+    }
+
+    private void RetainOriginalDisplay(CharacterLog characterLog, CharacterLogEntry entry, bool cancelled = false)
+    {
+        if (characterLog != null && characterLog.TryEndNarrativeDisplayWait(entry.EntryId, entry.DisplayLine))
+        {
+            OriginalDisplayRetainedCount++;
+            if (!cancelled) RejectedOriginalDisplayCount++;
+            LastRetainedOriginalLine = entry.DisplayLine;
+        }
     }
 
     private bool TryRequestCorrection(
@@ -508,9 +532,10 @@ public sealed class CharacterLogNarrativeService : ICharacterLogNarrativeService
         LastPrompt = prompt;
         LastError = $"Retrying rejected character record: {rejectionReason}";
         pendingRequestsByLog[logId] = GetPendingCount(logId) + 1;
-        bool accepted = runtime.GenerateCharacterRecordAsync(
+        bool accepted = CharacterSceneLlmRequests.Generate(runtime, "CharacterRecord",
             prompt,
             entry.OriginalMessage,
+            characterLog,
             result => OnNarrativeResult(
                 characterLog,
                 logId,
@@ -604,8 +629,7 @@ public sealed class CharacterLogNarrativeService : ICharacterLogNarrativeService
         }
         builder.AppendLine("Do not use bullets, middle dots, labels, commas with a trailing place, or formal -습니다 endings.");
         builder.AppendLine("Do not use internet slang, memes, or vague filler such as 뇌피셜 or 흔쾌한 생각.");
-        builder.AppendLine("Add exactly one harmless micro-situation from the character's own behavior: a near-misstep, quirky reaction, or comic recovery.");
-        builder.AppendLine("It must include a small event and reaction before or during the source action; one emotion adjective is not enough.");
+        builder.AppendLine("A simple faithful sentence is sufficient. Do not invent a comic incident or recovery.");
         builder.AppendLine($"Keep the complete line at or below {MaxLineCharacters} Korean characters with only one setup clause.");
         builder.AppendLine("Do not turn a source start into a plan, decision, intention, or future action.");
         builder.AppendLine("Do not invent a prop, decoration, music, smell source, customer, or new facility feature.");
@@ -614,11 +638,10 @@ public sealed class CharacterLogNarrativeService : ICharacterLogNarrativeService
         builder.AppendLine($"Persona trait: {(persona != null ? persona.traitName : "unknown")}");
         builder.AppendLine($"Persona flavor: {(persona != null ? persona.flavorText : "unknown")}");
         builder.AppendLine($"Keep this rhythm and verb family: {GetStyleBrief(styleSeed, text)}");
-        builder.AppendLine($"Create this kind of harmless moment: {GetSituationBrief(styleSeed, text)}");
         builder.AppendLine($"Use this sentence shape with the source phrases: {sentenceShape}");
         if (!string.IsNullOrWhiteSpace(groundedExample))
         {
-            builder.AppendLine($"Grounded base only; add the required harmless moment and do not return it unchanged: {groundedExample}");
+            builder.AppendLine($"Faithful wording example: {groundedExample}");
         }
         builder.AppendLine($"Rejected response: {rejectedResponse}");
         return requestContexts.ForActor(
@@ -626,7 +649,38 @@ public sealed class CharacterLogNarrativeService : ICharacterLogNarrativeService
                 actor,
                 requireCharacterFact: true,
                 requireMotif: true)
-            .AppendToPrompt(builder.ToString());
+            .AppendToPrompt(WrapEventPrompt(builder.ToString(), entry, requiredSubject, actor, string.Empty, rejectionReason));
+    }
+
+    private static string WrapEventPrompt(string original, CharacterLogEntry entry, string requiredSubject,
+        CharacterActor actor, string recentRecords, string rejectionReason = null)
+    {
+        CustomerPersonaData persona = actor != null && actor.PersonaRuntime != null ? actor.PersonaRuntime.Persona : null;
+        return Newtonsoft.Json.JsonConvert.SerializeObject(new {
+            recordPromptVersion = 2,
+            profile = LocalLlmRequestProfiles.CharacterRecord.Id,
+            publicFacts = new {
+                publicCharacterFacts = new {
+                    name = !string.IsNullOrEmpty(requiredSubject) && requiredSubject.Length > 1
+                        ? requiredSubject.Substring(0, requiredSubject.Length - 1) : requiredSubject ?? string.Empty,
+                    species = actor != null && !string.IsNullOrWhiteSpace(actor.SpeciesTag) ? actor.SpeciesTag : "unknown",
+                    role = actor != null ? actor.Role.ToString() : "unknown",
+                    personaTrait = !string.IsNullOrWhiteSpace(persona?.traitName) ? persona.traitName : "unknown",
+                    personaFlavor = !string.IsNullOrWhiteSpace(persona?.flavorText) ? persona.flavorText : "unknown",
+                    recentVisibleRecords = recentRecords
+                },
+                sourceEvent = new {
+                    message = entry.OriginalMessage, tag = entry.Tag,
+                    eventKind = entry.Activity?.KindId, outcome = entry.Activity?.OutcomeId,
+                    actionId = entry.Activity?.ActionId, target = entry.Activity?.TargetName, place = entry.Activity?.PlaceName,
+                    reasonCode = entry.Activity?.ReasonCode, amount = entry.Activity?.Value,
+                    quantity = entry.Activity?.Quantity
+                }
+            },
+            publicBindings = new { requiredSubject, requiredExactPhrases = ExtractRequiredPhrases(entry.OriginalMessage) },
+            writingFeedback = rejectionReason ?? string.Empty,
+            originalCallerPrompt = original
+        });
     }
 
     public static string BuildControlledFallbackLine(
@@ -739,7 +793,7 @@ public sealed class CharacterLogNarrativeService : ICharacterLogNarrativeService
         HashSet<string> seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         for (int i = 0; i < tokens.Length; i++)
         {
-            string token = Regex.Replace(tokens[i], @"[^\p{L}\p{N}_]", string.Empty);
+            string token = NormalizeNarrativeToken(tokens[i]);
             token = StripKoreanParticle(token);
             if (token.Length < 2 || NarrativeStopWords.Contains(token) || !seen.Add(token))
             {
@@ -786,6 +840,19 @@ public sealed class CharacterLogNarrativeService : ICharacterLogNarrativeService
         }
 
         return phrases;
+    }
+
+    private static string NormalizeNarrativeToken(string value)
+    {
+        StringBuilder normalized = new StringBuilder(value.Length);
+        for (int i = 0; i < value.Length; i++)
+        {
+            char character = value[i];
+            if (char.IsLetterOrDigit(character) || character == '_'
+                || character == '.' && i > 0 && i + 1 < value.Length
+                    && char.IsDigit(value[i - 1]) && char.IsDigit(value[i + 1])) normalized.Append(character);
+        }
+        return normalized.ToString();
     }
 
     private static bool PreservesSourceMeaning(string line, string source, out string error)
@@ -866,13 +933,14 @@ public sealed class CharacterLogNarrativeService : ICharacterLogNarrativeService
         string line,
         string source,
         string requiredSubject,
-        out string error)
+        out string error,
+        bool requireCreativeBeat = true)
     {
         int creativeTokenCount = 0;
         string[] tokens = Regex.Split(line, @"[\s·:;,/\\()\[\]{}<>→-]+");
         for (int i = 0; i < tokens.Length; i++)
         {
-            string token = Regex.Replace(tokens[i], @"[^\p{L}\p{N}_]", string.Empty);
+            string token = NormalizeNarrativeToken(tokens[i]);
             token = StripKoreanParticle(token);
             if (token.Length < 2
                 || source.IndexOf(token, StringComparison.OrdinalIgnoreCase) >= 0
@@ -881,6 +949,8 @@ public sealed class CharacterLogNarrativeService : ICharacterLogNarrativeService
                 || NarrativeStopWords.Contains(token)
                 || SafeNarrativeWords.Contains(token)
                 || StartsWithAny(token, SafeNarrativeVerbStems)
+                || IsExactSourceNumberPredicate(token, source)
+                || IsExactSourceActionPredicate(token, source)
                 || (source.Contains("새", StringComparison.Ordinal) && token.StartsWith("새", StringComparison.Ordinal)))
             {
                 continue;
@@ -895,6 +965,7 @@ public sealed class CharacterLogNarrativeService : ICharacterLogNarrativeService
             creativeTokenCount++;
         }
 
+        if (!requireCreativeBeat) { error = string.Empty; return true; }
         bool hasEventReactionBeat = ContainsAny(
             line,
             "다가",
@@ -944,12 +1015,16 @@ public sealed class CharacterLogNarrativeService : ICharacterLogNarrativeService
         return false;
     }
 
-    private static bool ContainsNoInventedConsequences(string line, string source, out string error)
+    private static bool ContainsNoInventedConsequences(string line, string source, string requiredSubject, out string error)
     {
+        // 앞에서 정확히 검사한 인물 이름은 새 사건이나 수치가 아니다.
+        string prefix = string.IsNullOrWhiteSpace(requiredSubject) ? string.Empty : requiredSubject.Trim() + " ";
+        string body = prefix.Length > 0 && line.StartsWith(prefix, StringComparison.Ordinal)
+            ? line.Substring(prefix.Length) : line;
         for (int i = 0; i < ForbiddenInventedConsequences.Length; i++)
         {
             string consequence = ForbiddenInventedConsequences[i];
-            if (line.IndexOf(consequence, StringComparison.OrdinalIgnoreCase) < 0
+            if (body.IndexOf(consequence, StringComparison.OrdinalIgnoreCase) < 0
                 || source.IndexOf(consequence, StringComparison.OrdinalIgnoreCase) >= 0)
             {
                 continue;
@@ -959,10 +1034,15 @@ public sealed class CharacterLogNarrativeService : ICharacterLogNarrativeService
             return false;
         }
 
-        MatchCollection numbers = Regex.Matches(line, @"\d+(?:[.,]\d+)?");
+        HashSet<string> sourceNumbers = new HashSet<string>(StringComparer.Ordinal);
+        foreach (Match number in Regex.Matches(source ?? string.Empty, @"\d+(?:[.,]\d+)?"))
+        {
+            sourceNumbers.Add(number.Value);
+        }
+        MatchCollection numbers = Regex.Matches(body, @"\d+(?:[.,]\d+)?");
         for (int i = 0; i < numbers.Count; i++)
         {
-            if (source.IndexOf(numbers[i].Value, StringComparison.Ordinal) >= 0)
+            if (sourceNumbers.Contains(numbers[i].Value))
             {
                 continue;
             }
@@ -973,6 +1053,30 @@ public sealed class CharacterLogNarrativeService : ICharacterLogNarrativeService
 
         error = string.Empty;
         return true;
+    }
+
+    private static bool IsExactSourceNumberPredicate(string token, string source)
+    {
+        Match predicate = Regex.Match(token, @"^(\d+(?:[.,]\d+)?)(?:이다|이며|이고)$");
+        if (!predicate.Success) return false;
+        foreach (Match number in Regex.Matches(source ?? string.Empty, @"\d+(?:[.,]\d+)?"))
+        {
+            if (string.Equals(number.Value, predicate.Groups[1].Value, StringComparison.Ordinal)) return true;
+        }
+        return false;
+    }
+
+    private static bool IsExactSourceActionPredicate(string token, string source)
+    {
+        // 원문에 독립된 행동 명사가 있을 때만 같은 명사의 활용을 인정한다.
+        Match predicate = Regex.Match(token, @"^([가-힣]{2,})(?:했다|했고|했으며|한다|하고|하며|하였다|하였고|하였으며)$");
+        if (!predicate.Success) return false;
+        foreach (Match word in Regex.Matches(source ?? string.Empty, @"[가-힣]+"))
+        {
+            if (string.Equals(StripKoreanParticle(word.Value), predicate.Groups[1].Value, StringComparison.Ordinal))
+                return true;
+        }
+        return false;
     }
 
     private static string StripKoreanParticle(string token)
@@ -1222,6 +1326,7 @@ public sealed class CharacterLogNarrativeService : ICharacterLogNarrativeService
 
     private static bool HasFinalConsonant(char value)
     {
+        if ("nNmMlL".IndexOf(value) >= 0) return true;
         return value >= '\uAC00'
             && value <= '\uD7A3'
             && (value - '\uAC00') % 28 != 0;

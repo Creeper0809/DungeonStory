@@ -6,7 +6,7 @@ using DungeonStory.Foundation.Facts;
 
 public sealed class ApparelPhysicalCompletedFactPreflight :
     IDungeonSavePreflightValidator,
-    IDungeonCapturedSavePreflightValidator
+    IDungeonDetachedCapturedSavePreflightValidator
 {
     public void Validate(DungeonGameSaveData save, DungeonGameRestoreReport report)
     {

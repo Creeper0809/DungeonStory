@@ -23,6 +23,7 @@ internal sealed class LocalLlmRequestState
     private readonly HashSet<LocalLlmQueuedRequest> running = new();
     private PrefixAffinityKey affinity;
     private int affinityBurst;
+    private int ephemeralBurst;
 
     internal int QueuedCount => queued.Count;
     internal int RunningCount => running.Count;
@@ -68,13 +69,20 @@ internal sealed class LocalLlmRequestState
         return index < 0 ? string.Empty : queued[index].Profile.Id;
     }
 
-    internal bool TryBeginNext(float now, int maximumRunning, out LocalLlmQueuedRequest request)
+    internal bool TryBeginNext(float now, int maximumRunning, out LocalLlmQueuedRequest request,
+        bool separateInteractiveLane = false)
     {
         request = null;
         if (running.Count >= Math.Max(1, maximumRunning)) return false;
-        int index = ContextAwareLlmScheduler.FindNext(queued, now, affinity, affinityBurst);
+        int index = separateInteractiveLane && maximumRunning >= 3
+            ? FindDedicatedLaneIndex(now, maximumRunning)
+            : separateInteractiveLane && maximumRunning == 2
+                ? FindResponsiveIndex(now)
+                : ContextAwareLlmScheduler.FindNext(queued, now, affinity, affinityBurst);
         if (index < 0 || !ContextAwareLlmScheduler.CanDispatch(queued[index], now, queued.Count)) return false;
         request = BeginAt(index);
+        if (request.Profile.Interactive)
+            ephemeralBurst = request.Profile.MaxQueueAgeSeconds > 0f ? ephemeralBurst + 1 : 0;
         if (request.Scheduling != null && request.Scheduling.AffinityKey == affinity)
             affinityBurst++;
         else
@@ -83,6 +91,44 @@ internal sealed class LocalLlmRequestState
             affinityBurst = 1;
         }
         return true;
+    }
+
+    private static int Lane(LocalLlmQueuedRequest request) => !request.Profile.Interactive ? 0
+        : request.Profile.MaxQueueAgeSeconds > 0f ? 2 : 1;
+
+    private int FindDedicatedLaneIndex(float now, int maximumLaneCount)
+    {
+        // Ephemeral speech, ordinary short responses and multi-stage choices
+        // own separate capacity. Two durable generators serve choices before
+        // their owner changes; neither consumes the realtime speech position.
+        var available = queued.Where(value => running.Count(active => Lane(active) == Lane(value))
+            < (Lane(value) == 0 && maximumLaneCount >= 4 ? 2 : 1)
+            && (value.Profile.DedicatedConcurrencyLimit == 0
+                || running.Count(active => active.Profile.Id == value.Profile.Id)
+                    < value.Profile.DedicatedConcurrencyLimit)).ToList();
+        int index = ContextAwareLlmScheduler.FindNext(available, now, affinity, affinityBurst);
+        return index < 0 ? -1 : queued.IndexOf(available[index]);
+    }
+
+    // One background generation can never consume the short-response slot.
+    // Each lane remains single-flight, including until cancellation finally completes.
+    private int FindResponsiveIndex(float now)
+    {
+        bool interactiveBusy = running.Any(value => value.Profile.Interactive);
+        bool backgroundBusy = running.Any(value => !value.Profile.Interactive);
+        var available = queued.Where(value => value.Profile.Interactive
+            ? !interactiveBusy : !backgroundBusy).ToList();
+        if (available.Count == 0) return -1;
+        var ephemeral = available.Where(value => value.Profile.MaxQueueAgeSeconds > 0f)
+            .OrderBy(value => value.EnqueuedAt).FirstOrDefault();
+        bool persistentWaiting = available.Any(value => value.Profile.Interactive
+            && value.Profile.MaxQueueAgeSeconds <= 0f);
+        if (ephemeral != null && (ephemeralBurst < 2 || !persistentWaiting))
+            return queued.IndexOf(ephemeral);
+        if (ephemeral != null && persistentWaiting)
+            available.RemoveAll(value => value.Profile.MaxQueueAgeSeconds > 0f);
+        int index = ContextAwareLlmScheduler.FindNext(available, now, affinity, affinityBurst);
+        return index < 0 ? -1 : queued.IndexOf(available[index]);
     }
 
     // The explicit isolated target uses normal execution without competing with unrelated captures.
@@ -132,6 +178,31 @@ internal sealed class LocalLlmRequestState
         return expired;
     }
 
+    internal bool CanAdmitRealtime() => queued.Concat(running).Count(request =>
+        !request.IsCompleted && request.Profile.MaxQueueAgeSeconds > 0f) == 0;
+
+    internal bool CanAdmitOrdinary(int maximumPending) => queued.Concat(running).Count(request =>
+        !request.IsCompleted && request.Profile.Interactive
+            && request.Profile.MaxQueueAgeSeconds <= 0f) < Math.Max(1, maximumPending);
+
+    internal bool CanAdmitOrdinaryProfile(LocalLlmRequestProfile profile)
+    {
+        if (profile == null) throw new ArgumentNullException(nameof(profile));
+        if (!profile.WaitForOrdinaryLane) return CanAdmitOrdinary(1);
+        // 현재 일반 응답 1건 뒤에 기록 1건만 대기. 같은 종류의 중복 대기는 받지 않음.
+        return CanAdmitOrdinary(2) && !queued.Concat(running).Any(request =>
+            !request.IsCompleted && string.Equals(request.Profile.Id, profile.Id, StringComparison.Ordinal));
+    }
+
+    internal IReadOnlyList<LocalLlmQueuedRequest> TakeRetired()
+    {
+        var retired = queued.Concat(running).Where(request =>
+            !request.IsCompleted && !request.OwnerIsAlive).Distinct().ToArray();
+        queued.RemoveAll(request => retired.Contains(request));
+        // Execution finally owns running-slot release, including after Abort.
+        return retired;
+    }
+
     internal IReadOnlyList<LocalLlmQueuedRequest> CapturePending() => queued.Concat(running).Distinct().ToArray();
 
     internal void Clear()
@@ -140,6 +211,7 @@ internal sealed class LocalLlmRequestState
         running.Clear();
         affinity = default;
         affinityBurst = 0;
+        ephemeralBurst = 0;
     }
 
     private int FindEvictionIndex()
@@ -172,7 +244,8 @@ internal sealed class LocalLlmQueuedRequest : IContextAwareLlmRequest
         NarrativeSchedulingMetadata scheduling,
         Action<LocalLlmResult> callback,
         bool isEquipmentChoice = false,
-        int candidateCount = 0)
+        int candidateCount = 0,
+        Func<bool> ownerIsAlive = null)
     {
         Profile = profile ?? throw new ArgumentNullException(nameof(profile));
         Prompt = prompt ?? throw new ArgumentNullException(nameof(prompt));
@@ -188,6 +261,7 @@ internal sealed class LocalLlmQueuedRequest : IContextAwareLlmRequest
         Callback = callback;
         IsEquipmentChoice = isEquipmentChoice;
         CandidateCount = candidateCount;
+        this.ownerIsAlive = ownerIsAlive;
     }
 
     public LocalLlmRequestProfile Profile { get; }
@@ -199,6 +273,8 @@ internal sealed class LocalLlmQueuedRequest : IContextAwareLlmRequest
     public NarrativeSchedulingMetadata Scheduling { get; }
     public bool IsEquipmentChoice { get; }
     public int CandidateCount { get; }
+    private readonly Func<bool> ownerIsAlive;
+    internal bool OwnerIsAlive => ownerIsAlive?.Invoke() ?? true;
     int IContextAwareLlmRequest.Priority => Profile.Priority;
     public float StartedAt { get; private set; } = -1f;
     private Action<LocalLlmResult> Callback { get; set; }

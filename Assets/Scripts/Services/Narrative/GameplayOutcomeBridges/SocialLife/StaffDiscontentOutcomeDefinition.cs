@@ -643,7 +643,7 @@ public sealed class StaffDiscontentOutcomeDescriptor :
         && outcome.MetricCount == 13
         && outcome.SubjectCount == outcome.ParticipantCount
         && outcome.TagCount == 3
-        && outcome.AnchorCount == 0
+        && outcome.ProductionAnchorCount == 0
         && outcome.ProvenanceCount == 2
             ? OutcomeValidationResult.Accepted
             : OutcomeValidationResult.Reject(

@@ -31,6 +31,8 @@ public class StaffDiscontentRuntime : MonoBehaviour
     private bool commandActive;
     private float nextPublicationRetry;
     private IGameCalendar calendar;
+    private IGriefTraumaService grief;
+    private IPsychosocialPersistence psychosocial;
     private IDisposable operatingDayEndedSubscription;
 
     public StaffDiscontentState State => state;
@@ -46,7 +48,8 @@ public class StaffDiscontentRuntime : MonoBehaviour
         ICharacterSettlementStandingQuery settlementStandings,
         IDomainFactStagingPublisher facts,
         IDomainFactRecoveryPublisher recovery,
-        IGameCalendar calendar)
+        IGameCalendar calendar,
+        IGriefTraumaService grief)
     {
         this.characterWorldQuery = characterWorldQuery
             ?? throw new ArgumentNullException(nameof(characterWorldQuery));
@@ -59,6 +62,9 @@ public class StaffDiscontentRuntime : MonoBehaviour
         publications = new StaffDiscontentPublicationRuntime(facts, recovery);
         this.calendar = calendar
             ?? throw new ArgumentNullException(nameof(calendar));
+        this.grief = grief ?? throw new ArgumentNullException(nameof(grief));
+        psychosocial = grief as IPsychosocialPersistence
+            ?? throw new ArgumentException("Staff departure requires the psychosocial owner's restore contract.", nameof(grief));
         SubscribeToScopedEvents();
     }
 
@@ -104,7 +110,10 @@ public class StaffDiscontentRuntime : MonoBehaviour
                 if (!publications.TryStage(data, out stage, out string failure))
                     throw new InvalidOperationException("staff-discontent-transition-prepare:" + failure);
                 if (outcome == StaffDiscontentOutcome.PermanentDeparture)
+                {
                     staff.Lifecycle?.SetLifecycleState(CharacterLifecycleState.Despawned);
+                    grief.RetireAfterDeparture(CharacterPersistentIdentity.Require(staff));
+                }
                 var delivery = publications.CommitApplied(state, data, stage);
                 preserveApplied = delivery.MayBeCommitted;
                 if (!preserveApplied) throw new InvalidOperationException("staff-discontent-transition-rejected:" + delivery.Detail);
@@ -415,7 +424,12 @@ public class StaffDiscontentRuntime : MonoBehaviour
         long responseRevision = state.OutcomeRevision, transitionRevision = state.TransitionRevision;
         var response = state.ResponseObservation;
         var transition = state.TransitionObservation;
-        return () => state.Restore(records, responseRevision, transitionRevision, response, transition);
+        var psychologicalState = psychosocial.Capture();
+        return () =>
+        {
+            state.Restore(records, responseRevision, transitionRevision, response, transition);
+            psychosocial.PublishRestore(psychosocial.PrepareRestore(psychologicalState));
+        };
     }
     private void ValidateCapture()
     { if (commandActive) throw new InvalidOperationException("staff-discontent-command-active"); }

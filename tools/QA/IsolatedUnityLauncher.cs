@@ -84,9 +84,10 @@ internal static class IsolatedUnityLauncher
                 bool fullSkillReplay = mode == "campaign"
                     && method == "DungeonFullWorldRoundTripPlayModeFacade.RequestIsolatedBatch"
                     && Environment.GetEnvironmentVariable("DUNGEONSTORY_SOURCE_V9_SKILL_REPLAY") == "1";
-                // Only this measured whole-chain replay needs its 1800s game
-                // guard plus startup/compile allowance; other runs stay at 900s.
-                int code = isolated.Run(exe, preparedUnityArguments, project, fullSkillReplay ? 1920 : 900);
+                // Exact long runs include their bounded simulation and startup allowance.
+                // The 30-minute R80 entry has a 2280s inner guard; other entries keep their prior budget.
+                bool r80Soak = mode == "play" && method == "R80ExtendedPlayModeVerifier.RequestSoakForBatch";
+                int code = isolated.Run(exe, preparedUnityArguments, project, r80Soak ? 2400 : fullSkillReplay ? 1920 : 900);
                 WriteNew(Path.Combine(output, "launcher-exit.txt"), "unityExit=" + code + "\nnoninteractiveStation=true\n");
                 return code;
             }
@@ -270,7 +271,16 @@ internal static class IsolatedUnityLauncher
     }
     private static bool IsOwnedPlayEntry(string method)
     {
-        return method == "DungeonFullWorldRoundTripPlayModeFacade.RequestIsolatedBatch"
+        return method == "R80ExtendedPlayModeVerifier.RequestProfilesForBatch"
+            || method == "R80ExtendedPlayModeVerifier.RequestSoakForBatch"
+            || method == "R80ExtendedPlayModeVerifier.RequestHistoryRecoveryForBatch"
+            || method == "R80ExtendedPlayModeVerifier.RequestSaveProfileForBatch"
+            || method == "R80ExtendedPlayModeVerifier.RequestTraitAnchorRecoveryForBatch"
+            || method == "R80ExtendedPlayModeVerifier.RequestSkillAnchorRecoveryForBatch"
+            || method == "TrainedNarrativeModelPlayModeVerifier.RequestForBatch"
+            || method == "DungeonFullWorldRoundTripPlayModeFacade.RequestIsolatedBatch"
+            || method == "UiUxAuditCapture.RequestForBatch"
+            || method == "UiUxAuditCapture.RequestRemainingForBatch"
             || method == "ObserverCompositionClosureDebugScenarios.RequestActualContainerForBatch"
             || method == "GameWorldLineageDebugScenarios.RequestActualContainerForBatch"
             || method == "GameWorldLineageDebugScenarios.RequestCharacterRestoreLifetimeForBatch"
@@ -311,6 +321,17 @@ internal static class IsolatedUnityLauncher
     }
     private static string[] BuildUnityArguments(string project, string method, string evidenceRoot, string mode, string startupProfile)
     {
+        bool uiCapture = method == "UiUxAuditCapture.RequestForBatch" || method == "UiUxAuditCapture.RequestRemainingForBatch";
+        Require((method != "R80ExtendedPlayModeVerifier.RequestProfilesForBatch"
+                && method != "R80ExtendedPlayModeVerifier.RequestSoakForBatch"
+                && method != "R80ExtendedPlayModeVerifier.RequestHistoryRecoveryForBatch"
+                && method != "R80ExtendedPlayModeVerifier.RequestSaveProfileForBatch"
+                && method != "R80ExtendedPlayModeVerifier.RequestTraitAnchorRecoveryForBatch"
+                && method != "R80ExtendedPlayModeVerifier.RequestSkillAnchorRecoveryForBatch") || mode == "play",
+            "Extended R80 requires its exact play-mode entry.");
+        Require(method != "TrainedNarrativeModelPlayModeVerifier.RequestForBatch" || mode == "play",
+            "Trained model test requires its dedicated PlayMode entry.");
+        Require(!uiCapture || mode == "play", "UI capture requires its dedicated isolated PlayMode entry.");
         Require(method != "V20CampaignDebugScenarios.RequestWim044IsolatedBatch" || mode == "play",
             "WIM044 requires its dedicated PlayMode entry.");
         Require(method != "ObserverCompositionClosureDebugScenarios.RequestActualContainerForBatch" || mode == "play",
@@ -357,7 +378,8 @@ internal static class IsolatedUnityLauncher
             "Architecture verification requires its dedicated edit-mode entry.");
         Require(startupProfile == null || startupProfile == "serial-import-job1", "Unknown startup resource profile.");
         if (startupProfile != null)
-            Require((mode == "edit" && (method == "FacilityShopPurchaseT01DebugScenarios.RunFromBatch"
+            Require((mode == "edit" && (method == "TrainedNarrativeModelPlayModeVerifier.CompileForBatch"
+                || method == "FacilityShopPurchaseT01DebugScenarios.RunFromBatch"
                 || method == "FacilityWishlistProcurementCausalProductionEntryDebugScenarios.RunT02FromBatch"
                 || method == "EnvironmentCropProductionEntryDebugScenarios.RunCropCommandObserversFromBatch"
                 || method == "EnvironmentCropProductionEntryDebugScenarios.RunCropAndFastingObserversFromBatch"
@@ -380,6 +402,13 @@ internal static class IsolatedUnityLauncher
                 || method == "V25NarrativeInferenceDebugScenarios.RunSkillNarrativeEvidenceBatch"
                 || method == "MigratedProducerEconomyServiceEntryE2EDebugScenarios.RunFacilityUseObserverBatch"))
                 || (mode == "play" && (method == "DungeonFullWorldRoundTripPlayModeFacade.RequestIsolatedBatch"
+                    || method == "TrainedNarrativeModelPlayModeVerifier.RequestForBatch"
+                    || method == "R80ExtendedPlayModeVerifier.RequestProfilesForBatch"
+                    || method == "R80ExtendedPlayModeVerifier.RequestSoakForBatch"
+                    || method == "R80ExtendedPlayModeVerifier.RequestHistoryRecoveryForBatch"
+            || method == "R80ExtendedPlayModeVerifier.RequestSaveProfileForBatch"
+            || method == "R80ExtendedPlayModeVerifier.RequestTraitAnchorRecoveryForBatch"
+            || method == "R80ExtendedPlayModeVerifier.RequestSkillAnchorRecoveryForBatch"
                     || method == "ObserverCompositionClosureDebugScenarios.RequestActualContainerForBatch"
                     || method == "GameWorldLineageDebugScenarios.RequestActualContainerForBatch"
                     || method == "GameWorldLineageDebugScenarios.RequestCharacterRestoreLifetimeForBatch"
@@ -394,13 +423,22 @@ internal static class IsolatedUnityLauncher
                     || method == "MovementOwnershipDebugScenarios.RequestFactionReinforcementForBatch"
                     || method == "MovementOwnershipDebugScenarios.RequestSkillTargetingForBatch"
                     || method == "PhysicalItemLogisticsPlayModeVerifier.RequestDestructiveDrainPreparedOutputForBatch"
-                    || method == "NarrativeContextLifetimeDebugScenarios.RequestActualContainerForBatch")),
+                    || method == "NarrativeContextLifetimeDebugScenarios.RequestActualContainerForBatch"
+                    || method == "UiUxAuditCapture.RequestForBatch"
+                    || method == "UiUxAuditCapture.RequestRemainingForBatch")),
                 "Serialized startup requires a dedicated supported edit or owned whole-world PlayMode entry.");
         var arguments = new System.Collections.Generic.List<string>
         {
             "-batchmode", "-nographics", "-projectPath", project, "-executeMethod", method,
             "-logFile", Path.Combine(evidenceRoot, "unity.log")
         };
+        // Actual UI pixels require a graphics device. This exact entry still runs
+        // inside the same noninteractive station/desktop, probe and restricted job.
+        if (uiCapture)
+        {
+            arguments.Remove("-nographics");
+            arguments.AddRange(new[] { "-force-d3d11", "-screen-width", "1920", "-screen-height", "1080" });
+        }
         if (method == "DefenseEngagementPlayModeVerifier.StartWim048Batch")
         {
             arguments.Add("-wim048Report");
@@ -414,6 +452,19 @@ internal static class IsolatedUnityLauncher
     }
     private static int SelfTest()
     {
+        const string uiEntry = "UiUxAuditCapture.RequestForBatch";
+        Require(IsOwnedPlayEntry(uiEntry) && !IsOwnedPlayEntry(uiEntry + "Unexpected"), "UI capture entry guard failed.");
+        string[] uiArguments = BuildUnityArguments("C:\\project", uiEntry, "C:\\project\\Artifacts\\QA\\ui", "play", "serial-import-job1");
+        Require(uiArguments.Contains("-batchmode") && uiArguments.Contains("-force-d3d11")
+            && !uiArguments.Contains("-nographics") && !uiArguments.Contains("-quit"), "UI capture graphics profile failed.");
+        bool uiWrongModeRejected = false;
+        try { BuildUnityArguments("C:\\project", uiEntry, "C:\\project\\Artifacts\\QA\\ui", "edit", null); }
+        catch (InvalidOperationException) { uiWrongModeRejected = true; }
+        Require(uiWrongModeRejected, "UI capture accepted edit mode.");
+        const string uiRemaining = "UiUxAuditCapture.RequestRemainingForBatch";
+        Require(IsOwnedPlayEntry(uiRemaining) && !IsOwnedPlayEntry(uiRemaining + "Unexpected"), "UI remaining entry guard failed.");
+        string[] remainingArguments = BuildUnityArguments("C:\\project", uiRemaining, "C:\\project\\Artifacts\\QA\\ui", "play", "serial-import-job1");
+        Require(remainingArguments.Contains("-force-d3d11") && !remainingArguments.Contains("-nographics"), "UI remaining graphics profile failed.");
         Require(Quote("") == "\"\"", "Empty argument quoting failed.");
         Require(Quote("a b") == "\"a b\"", "Space quoting failed.");
         Require(Quote("x\\") == "\"x\\\\\"", "Trailing slash quoting failed.");
@@ -430,6 +481,17 @@ internal static class IsolatedUnityLauncher
         Require(!IsOwnedPlayEntry("UnknownVerifier.RunHaulBatch"), "Foreign PlayMode entry accepted.");
         Require(IsOwnedPlayEntry("ObserverCompositionClosureDebugScenarios.RequestActualContainerForBatch"), "Composition PlayMode entry rejected.");
         Require(!IsOwnedPlayEntry("ObserverCompositionClosureDebugScenarios.RequestActualContainerForBatchUnexpected"), "Prefixed composition entry accepted.");
+        foreach (string extended in new[] { "R80ExtendedPlayModeVerifier.RequestProfilesForBatch", "R80ExtendedPlayModeVerifier.RequestSoakForBatch", "R80ExtendedPlayModeVerifier.RequestHistoryRecoveryForBatch", "R80ExtendedPlayModeVerifier.RequestSaveProfileForBatch", "R80ExtendedPlayModeVerifier.RequestTraitAnchorRecoveryForBatch", "R80ExtendedPlayModeVerifier.RequestSkillAnchorRecoveryForBatch" })
+        {
+            Require(IsOwnedPlayEntry(extended) && !IsOwnedPlayEntry(extended + "Unexpected"), "Exact extended R80 entry guard failed.");
+            Require(!BuildUnityArguments("C:\\qa", extended, "C:\\qa", "play", "serial-import-job1").Contains("-quit"), "Extended R80 lost owned Play lifetime.");
+            bool extendedRejected = false;
+            try { BuildUnityArguments("C:\\qa", extended, "C:\\qa", "edit", null); }
+            catch (InvalidOperationException) { extendedRejected = true; }
+            Require(extendedRejected, "Extended R80 accepted edit mode.");
+        }
+        Require(IsOwnedPlayEntry("TrainedNarrativeModelPlayModeVerifier.RequestForBatch"), "Trained model PlayMode entry rejected.");
+        Require(!IsOwnedPlayEntry("TrainedNarrativeModelPlayModeVerifier.RequestForBatchUnexpected"), "Prefixed trained model entry accepted.");
         Require(IsOwnedPlayEntry("GameWorldLineageDebugScenarios.RequestActualContainerForBatch"), "Game-world lineage PlayMode entry rejected.");
         Require(IsOwnedPlayEntry("GameWorldLineageDebugScenarios.RequestCharacterRestoreLifetimeForBatch"), "Character restore lifetime PlayMode entry rejected.");
         Require(IsOwnedPlayEntry("GameWorldLineageDebugScenarios.RequestRestoreOutcomeForBatch"), "Restore outcome PlayMode entry rejected.");

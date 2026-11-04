@@ -10,7 +10,7 @@ using UnityEngine;
 using UnityEngine.Networking;
 
 /// <summary>
-/// Protocol adapter for the bundled CPU-only llama.cpp server. It intentionally
+/// Protocol adapter for the owned local llama.cpp runtime. It intentionally
 /// does not implement Ollama's API; the game only talks to its authenticated
 /// loopback process and keeps all gameplay authority in C#.
 /// </summary>
@@ -39,10 +39,13 @@ public sealed class DungeonStoryHostStructuredChatBackend :
         "markdown, invented ids, or extra keys. Copy only ids explicitly supplied by the request.";
 
     private readonly Func<string> sessionTokenProvider;
+    private readonly Func<bool> r80RecipeProvider;
 
-    public DungeonStoryHostStructuredChatBackend(Func<string> sessionTokenProvider = null)
+    public DungeonStoryHostStructuredChatBackend(Func<string> sessionTokenProvider = null,
+        Func<bool> r80RecipeProvider = null)
     {
         this.sessionTokenProvider = sessionTokenProvider;
+        this.r80RecipeProvider = r80RecipeProvider;
     }
 
     public string ResolveEndpoint(string configuredEndpoint)
@@ -80,6 +83,12 @@ public sealed class DungeonStoryHostStructuredChatBackend :
         }
 
         byte[] payload = BuildRequestPayload(model, profile, schema, prompt);
+        if (r80RecipeProvider?.Invoke() == true)
+        {
+            JObject wire = JObject.Parse(Encoding.UTF8.GetString(payload));
+            wire["dungeonstory_profile"] = profile.Id;
+            payload = Encoding.UTF8.GetBytes(wire.ToString(Formatting.None));
+        }
 
         UnityWebRequest request = new UnityWebRequest(endpoint, "POST")
         {
@@ -128,6 +137,8 @@ public sealed class DungeonStoryHostStructuredChatBackend :
         JObject skillTable = null;
         string modelPrompt = compactEquipmentContext
             ? NarrativeRequestContext.ToCompactEvolutionModelPrompt(prompt)
+            : profile.Interactive
+            ? NarrativeRequestContext.ToCompactEvolutionModelPrompt(prompt)
             : compactPublicContext
             ? NarrativeRequestContext.ToCompactTraitModelPrompt(prompt)
             : suppressThinking
@@ -139,6 +150,9 @@ public sealed class DungeonStoryHostStructuredChatBackend :
         }
         byte[] requestSchema = compactPublicContext
             ? BuildTraitSelectionRequestSchema(schema, prompt)
+            : profile.Id == LocalLlmRequestProfiles.EvolutionHistoryLegacyV2.Id
+                ? BuildHistoryRequestSchema(schema, prompt)
+            : profile.Id == LocalLlmRequestProfiles.BubbleLine.Id ? BuildBubbleRequestSchema(schema)
             : facilityModuleSelection ? BuildFacilitySelectionRequestSchema(schema, prompt)
             : compactEquipmentContext ? BuildEquipmentSelectionRequestSchema(schema)
             : suppressThinking ? BuildSkillSelectionRequestSchema(schema, skillTable, prompt) : schema.Utf8Bytes;
@@ -146,7 +160,9 @@ public sealed class DungeonStoryHostStructuredChatBackend :
         prefix.Append("{\"model\":");
         AppendJsonString(prefix, model ?? string.Empty);
         prefix.Append(",\"stream\":false,\"cache_prompt\":true,\"messages\":[{\"role\":\"system\",\"content\":");
-        AppendJsonString(prefix, SystemInstruction);
+        AppendJsonString(prefix, profile.Id == LocalLlmRequestProfiles.BubbleLine.Id
+            ? SystemInstruction + " 말풍선은 8~16자를 목표로, 공백과 문장부호를 포함해 최대 24자 안에서 완결된 짧고 자연스러운 한국어 한 문장으로 쓴다. 상황을 길게 설명하지 말고 한마디 반응만 말한다. 한자나 외국어를 섞지 않는다."
+            : SystemInstruction);
         prefix.Append("},{\"role\":\"user\",\"content\":");
         AppendJsonString(prefix, modelPrompt ?? string.Empty);
         prefix.Append("}],\"chat_template_kwargs\":{\"enable_thinking\":false},");
@@ -191,6 +207,23 @@ public sealed class DungeonStoryHostStructuredChatBackend :
         catch (Exception failure) { error = failure.Message; return false; }
     }
 
+    public static bool TryReadInputRejection(string response, out string reason)
+    {
+        reason = string.Empty;
+        try
+        {
+            JObject body = JObject.Parse(response ?? string.Empty);
+            if (body["requiresInputChange"]?.Type != JTokenType.Boolean
+                || !body.Value<bool>("requiresInputChange")
+                || body["error"] is not JObject detail
+                || detail["message"]?.Type != JTokenType.String)
+                return false;
+            reason = (string)detail["message"];
+            return !string.IsNullOrWhiteSpace(reason);
+        }
+        catch (JsonException) { return false; }
+    }
+
     private static byte[] BuildSkillSelectionRequestSchema(LlmStaticSchemaDefinition schema, JObject table, string prompt)
     {
         // The bundled converter supports fixed tuple items, not contains/if.
@@ -228,6 +261,55 @@ public sealed class DungeonStoryHostStructuredChatBackend :
         candidates["maxItems"] = tuple.Count;
         candidates["items"] = tuple;
         candidates["additionalItems"] = false;
+        return Encoding.UTF8.GetBytes(narrowed.ToString(Formatting.None));
+    }
+
+    private static byte[] BuildBubbleRequestSchema(LlmStaticSchemaDefinition schema)
+    {
+        JObject narrowed = JObject.Parse(Encoding.UTF8.GetString(schema.Utf8Bytes));
+        JObject line = (JObject)narrowed["properties"]["line"];
+        // 생성 단계에서만 짧은 반응을 요구한다. 원문이나 완성된 응답은 자르지 않는다.
+        line["maxLength"] = Math.Min(24, (int)line["maxLength"]);
+        return Encoding.UTF8.GetBytes(narrowed.ToString(Formatting.None));
+    }
+
+    private static byte[] BuildHistoryRequestSchema(LlmStaticSchemaDefinition schema, string prompt)
+    {
+        int contextStart = (prompt ?? string.Empty).IndexOf(
+            NarrativeRequestContext.BeginMarker, StringComparison.Ordinal);
+        string header = contextStart < 0 ? prompt ?? string.Empty : prompt.Substring(0, contextStart);
+        string[] lines = header.Split('\n').Select(value => value.TrimEnd('\r')).ToArray();
+        string Exact(string key)
+        {
+            string[] matches = lines.Where(value => value.StartsWith(key + "=", StringComparison.Ordinal)).ToArray();
+            if (matches.Length != 1)
+                throw new InvalidOperationException("History request requires one exact " + key + " header.");
+            string value = matches[0].Substring(key.Length + 1);
+            if (value != value.Trim())
+                throw new InvalidOperationException("History identity must be canonical: " + key);
+            return value;
+        }
+        JObject narrowed = JObject.Parse(Encoding.UTF8.GetString(schema.Utf8Bytes));
+        JObject properties = (JObject)narrowed["properties"];
+        foreach (string key in new[] { "requestKey", "targetPersistentId", "nodeId", "parentNodeId", "effectId" })
+        {
+            string value = Exact(key);
+            if (key != "parentNodeId" && string.IsNullOrWhiteSpace(value))
+                throw new InvalidOperationException("History identity is empty: " + key);
+            properties[key]["const"] = value;
+        }
+        if (!int.TryParse(Exact("effectBudget"), NumberStyles.None, CultureInfo.InvariantCulture, out int budget)
+            || budget < 0)
+            throw new InvalidOperationException("History effect budget must be a nonnegative integer.");
+        properties["effectBudget"]["const"] = budget;
+        string rawEvidence = Exact("evidenceIds");
+        string[] evidence = rawEvidence.Length == 0 ? Array.Empty<string>() : rawEvidence.Split(',');
+        if (evidence.Length > (int)properties["evidenceIds"]["maxItems"]
+            || evidence.Any(value => string.IsNullOrWhiteSpace(value) || value != value.Trim()))
+            throw new InvalidOperationException("History evidence must match the bounded frozen list.");
+        // These fields are fixed by the owner before inference. This narrows
+        // generation to that snapshot, never selects evidence or repairs output.
+        properties["evidenceIds"]["const"] = new JArray(evidence);
         return Encoding.UTF8.GetBytes(narrowed.ToString(Formatting.None));
     }
 
@@ -298,9 +380,8 @@ public sealed class DungeonStoryHostStructuredChatBackend :
 
         JObject narrowed = JObject.Parse(Encoding.UTF8.GetString(schema.Utf8Bytes));
         JObject properties = (JObject)narrowed["properties"];
-        // Trait currently rejects only ASCII/fullwidth digits in its DTO.
-        // Do not silently change that gameplay acceptance contract here.
-        UseJsonSafeProseGrammar(properties, excludeUnicodeDigits: false);
+        // 숫자는 실제 주체의 정확한 이름 안에서만 허용한다. 효과 수치는 계속 거절한다.
+        UseJsonSafeProseGrammar(properties, ReadSkillCharacterName(prompt, required: false), excludeUnicodeDigits: false);
         properties["selectionId"]["enum"] = new JArray(selectionId);
         properties["positiveModuleIds"]["minItems"] = 1;
         properties["positiveModuleIds"]["maxItems"] = 1;

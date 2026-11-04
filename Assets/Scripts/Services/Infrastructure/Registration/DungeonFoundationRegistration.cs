@@ -18,7 +18,7 @@ public static class DungeonFoundationRegistration
         builder.Register<UnityUiClock>(Lifetime.Singleton)
             .As<IUiClock>();
         builder.Register<UnityGameTimeScaleController>(Lifetime.Singleton)
-            .As<IGameTimeScaleController>();
+            .As<IGameTimeScaleController>().As<IGameTimeScalePauseAuthority>();
         builder.Register(
                 resolver => new RandomStreamProvider(
                     resolver.Resolve<DungeonRuntimeAggregateRootStore>()),

@@ -1174,6 +1174,8 @@ public sealed class CharacterWorldSaveService :
 
         List<CharacterActor> existingStaff = FindExistingStaff();
         List<CharacterActor> existingVisitors = FindExistingTransientVisitors();
+        List<CharacterActor> existingTerminalVisitors =
+            FindExistingTransientVisitors(terminalOnly: true);
         List<CharacterRestoreCandidate> candidates =
             new List<CharacterRestoreCandidate>();
         Dictionary<string, CharacterActor> candidateActorsById =
@@ -1275,6 +1277,7 @@ public sealed class CharacterWorldSaveService :
                     candidateLegacyActorIds,
                     existingStaff,
                     existingVisitors,
+                    existingTerminalVisitors,
                     ownerManager,
                     characterPopulationService.BuildRestoreCandidate(
                         canonicalProfiles),
@@ -1493,7 +1496,8 @@ public sealed class CharacterWorldSaveService :
             oldStaff.gameObject.SetActive(false);
         }
 
-        if (candidate.ExistingVisitors.Count > 0)
+        if (candidate.ExistingVisitors.Count > 0
+            || candidate.ExistingTerminalVisitors.Count > 0)
         {
             if (!characterSpawnerProvider.TryGetSpawner(
                     out CharacterSpawner spawner)
@@ -1514,6 +1518,22 @@ public sealed class CharacterWorldSaveService :
                     throw new InvalidOperationException(
                         $"Transient customer restore retirement failed for "
                         + $"'{visitor?.Identity?.PersistentId}': "
+                        + retirementFailure);
+                }
+            }
+
+            // These exact scene references belonged to the outgoing world.
+            // Their death/body history is owned by the restored aggregates,
+            // not by retaining an old same-ID actor in the scene registries.
+            foreach (CharacterActor visitor in candidate.ExistingTerminalVisitors)
+            {
+                PrepareForWorldRetirement(new[] { visitor }, restoredActors: null);
+                if (!spawner.RetireTerminalVisitorForWorldRestore(
+                        visitor,
+                        out string retirementFailure))
+                {
+                    throw new InvalidOperationException(
+                        "Terminal customer restore retirement failed: "
                         + retirementFailure);
                 }
             }
@@ -1616,6 +1636,7 @@ public sealed class CharacterWorldSaveService :
             displayName = identity.DisplayName,
             characterType = identity.CharacterType,
             role = identity.Role,
+            personaNarrative = actor.PersonaRuntime?.CaptureGeneratedNarrative(),
             gridX = gridPosition.x,
             gridY = gridPosition.y,
             societyResponseMovementOperationId =
@@ -1718,15 +1739,15 @@ public sealed class CharacterWorldSaveService :
             .ToList();
     }
 
-    private List<CharacterActor> FindExistingTransientVisitors()
+    private List<CharacterActor> FindExistingTransientVisitors(bool terminalOnly = false)
     {
         return CharacterActorCollection
             .DistinctByGameObject(characterLifetimeQuery.AllCharacters)
             .Where(actor => actor != null
                 && actor.gameObject.activeInHierarchy
                 && !actor.IsOwner
-                && actor.CurrentLifecycleState
-                    != CharacterLifecycleState.Despawned
+                && (actor.CurrentLifecycleState == CharacterLifecycleState.Despawned)
+                    == terminalOnly
                 && actor.Identity != null
                 && actor.Identity.Data != null
                 && actor.Identity.CharacterType == CharacterType.Customer)
@@ -1791,7 +1812,7 @@ public sealed class CharacterWorldSaveService :
             source.societyResponseMovementDestinationX,
             source.societyResponseMovementDestinationY,
             source.societyResponseMovementReceiptId);
-        AbilityWork work = actor.GetAbility<AbilityWork>();
+        actor.TryGetAbility(out AbilityWork work);
         bool requiresStaffWork = !source.isOwner
             && source.characterType == CharacterType.NPC;
         if (requiresStaffWork && work == null)
@@ -1854,6 +1875,7 @@ public sealed class CharacterWorldSaveService :
             source.acquiredTraits));
         CharacterCarryInventory.Ensure(actor).Restore(source.carryInventory);
         actor.SocialMemory?.RestoreSnapshot(source.socialMemory);
+        actor.PersonaRuntime?.RestoreGeneratedNarrative(source.personaNarrative);
         actor.LogComponent?.RestoreVisibleEntries(source.recentLogEntries);
 
         // Stats depend on the restored progression profile and can also be
@@ -1913,6 +1935,7 @@ public sealed class CharacterWorldSaveService :
             IReadOnlyDictionary<string, string> legacyActorIds,
             IReadOnlyList<CharacterActor> existingStaff,
             IReadOnlyList<CharacterActor> existingVisitors,
+            IReadOnlyList<CharacterActor> existingTerminalVisitors,
             OwnerRunManager ownerManager,
             CharacterPopulationRestoreCandidate populationCandidate,
             GlobalFacilityReputationRestoreCandidate reputationCandidate)
@@ -1927,6 +1950,8 @@ public sealed class CharacterWorldSaveService :
                 ?? throw new ArgumentNullException(nameof(existingStaff));
             ExistingVisitors = existingVisitors
                 ?? throw new ArgumentNullException(nameof(existingVisitors));
+            ExistingTerminalVisitors = existingTerminalVisitors
+                ?? throw new ArgumentNullException(nameof(existingTerminalVisitors));
             OwnerManager = ownerManager;
             PopulationCandidate = populationCandidate
                 ?? throw new ArgumentNullException(nameof(populationCandidate));
@@ -1945,6 +1970,7 @@ public sealed class CharacterWorldSaveService :
         public IReadOnlyDictionary<string, string> LegacyActorIds { get; }
         public IReadOnlyList<CharacterActor> ExistingStaff { get; }
         public IReadOnlyList<CharacterActor> ExistingVisitors { get; }
+        public IReadOnlyList<CharacterActor> ExistingTerminalVisitors { get; }
         public OwnerRunManager OwnerManager { get; }
         public CharacterPopulationRestoreCandidate PopulationCandidate { get; }
         public GlobalFacilityReputationRestoreCandidate ReputationCandidate { get; }

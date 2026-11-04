@@ -1051,6 +1051,15 @@ internal static class CharacterAiEditorTestDependencies
             formulaId,
             context?.ContextFactor ?? 1f);
 
+        public IReadOnlyList<CharacterPerformanceSnapshot> EvaluateMany(
+            CharacterActor actor, IReadOnlyList<string> formulaIds,
+            CharacterPerformanceEvaluationContext context = null)
+        {
+            var result = new List<CharacterPerformanceSnapshot>();
+            foreach (string id in formulaIds) result.Add(Evaluate(actor, id, context));
+            return result;
+        }
+
         public CharacterPerformanceSnapshot EvaluateWork(
             CharacterActor actor,
             WorkTypeId workTypeId,
@@ -1346,14 +1355,16 @@ internal static class CharacterAiEditorTestDependencies
             return;
         _ = StaffDiscontentPresentation.Value;
         DomainFactDispatcher facts = CreateStaffDiscontentTransitionFacts();
+        var rootStore = new DungeonRuntimeAggregateRootStore();
         runtime.Construct(
             WorldRegistry,
             GameEvents,
-            new DungeonRuntimeAggregateRootStore(),
+            rootStore,
             SettlementStandings,
             facts,
             facts,
-            GameCalendar);
+            GameCalendar,
+            new GriefTraumaRuntime(rootStore));
     }
 
     public static void Inject(BlueprintResearchRuntime runtime)
@@ -1384,14 +1395,16 @@ internal static class CharacterAiEditorTestDependencies
             return;
         _ = StaffDiscontentPresentation.Value;
         DomainFactDispatcher facts = CreateStaffDiscontentTransitionFacts();
+        var rootStore = new DungeonRuntimeAggregateRootStore();
         runtime.Construct(
             WorldRegistry,
             GameEvents,
-            new DungeonRuntimeAggregateRootStore(),
+            rootStore,
             SettlementStandings,
             facts,
             facts,
-            GameCalendar);
+            GameCalendar,
+            new GriefTraumaRuntime(rootStore));
     }
 
     private static DomainFactDispatcher CreateStaffDiscontentTransitionFacts()

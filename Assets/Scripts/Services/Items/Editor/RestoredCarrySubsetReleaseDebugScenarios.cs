@@ -8,7 +8,7 @@ using DungeonStory.Foundation;
 using UnityEditor;
 using UnityEngine;
 
-public static class RestoredCarrySubsetReleaseDebugScenarios
+public static partial class RestoredCarrySubsetReleaseDebugScenarios
 {
     private const string ItemId = "item:buffer";
     private const string ActorId = "character:qa:restored-carry-release";

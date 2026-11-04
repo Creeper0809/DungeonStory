@@ -5,7 +5,7 @@ using DungeonStory.Foundation;
 // Publication identities remain an observation/save concern; gameplay owns only the frozen fact.
 public sealed class CharacterTraitInferredFactPreflight :
     IDungeonSavePreflightValidator,
-    IDungeonCapturedSavePreflightValidator
+    IDungeonDetachedCapturedSavePreflightValidator
 {
     public void Validate(DungeonGameSaveData save, DungeonGameRestoreReport report)
     {

@@ -445,7 +445,7 @@ public sealed class ResidentEvacuationOutcomeDescriptor :
             || outcome.SubjectCount != 1
             || outcome.MetricCount != 0
             || outcome.TagCount != 3
-            || outcome.AnchorCount != 1
+            || outcome.ProductionAnchorCount != 1
             || outcome.ProvenanceCount != 2
             || outcome.FactCount != 10
             || !outcome.GetParticipant(0).RoleId.Equals(
@@ -485,8 +485,8 @@ public sealed class ResidentEvacuationOutcomeDescriptor :
             outcome.GetFact(5).Value,
             outcome.GetFact(6).Value,
             outcome.GetFact(7).Value);
-        NarrativeEvidenceReference anchor = outcome.GetAnchor(0);
-        if (outcome.GetAnchorSubject(0)
+        NarrativeEvidenceReference anchor = outcome.GetProductionAnchor(0);
+        if (outcome.GetProductionAnchorSubject(0)
                 != outcome.GetParticipant(0).EntityId
             || anchor.AnchorTypeId
                 != ResidentEvacuationOutcomeIds.CauseEvidenceAnchor

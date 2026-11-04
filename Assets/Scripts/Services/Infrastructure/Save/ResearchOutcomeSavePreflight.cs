@@ -9,7 +9,7 @@ using System.Linq;
 /// committed command from this check. This is not a physical wear/state digest.
 /// </summary>
 public sealed class ResearchOutcomeSavePreflight :
-    IDungeonSavePreflightValidator, IDungeonCapturedSavePreflightValidator
+    IDungeonSavePreflightValidator, IDungeonDetachedCapturedSavePreflightValidator
 {
     public void Validate(DungeonGameSaveData saveData, DungeonGameRestoreReport report)
     {

@@ -608,13 +608,23 @@ public sealed class DungeonSaveSectionRegistry : IDungeonSaveSectionRegistry
 
     public List<DungeonSaveSectionEnvelope> CaptureAll()
     {
-        return orderedSections.Select(section => new DungeonSaveSectionEnvelope
+        return orderedSections.Select(section =>
         {
-            sectionId = section.SectionId,
-            sectionVersion = section.SectionVersion,
-            restorePhase = section.RestorePhase,
-            optional = section is IOptionalDungeonSaveSection,
-            payloadJson = section.Capture() ?? string.Empty
+            string sectionId = section.SectionId;
+            int sectionVersion = section.SectionVersion;
+            DungeonSaveRestorePhase restorePhase = section.RestorePhase;
+            bool optional = section is IOptionalDungeonSaveSection;
+            DungeonSaveEditorTrace.Record("capture-section.before:" + sectionId);
+            string payloadJson = section.Capture() ?? string.Empty;
+            DungeonSaveEditorTrace.Record("capture-section.after:" + sectionId);
+            return new DungeonSaveSectionEnvelope
+            {
+                sectionId = sectionId,
+                sectionVersion = sectionVersion,
+                restorePhase = restorePhase,
+                optional = optional,
+                payloadJson = payloadJson
+            };
         }).ToList();
     }
 

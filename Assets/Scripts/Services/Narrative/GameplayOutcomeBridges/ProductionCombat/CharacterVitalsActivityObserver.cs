@@ -36,9 +36,13 @@ public sealed class CharacterVitalsActivityObserver : IInitializable, IDisposabl
         CharacterVitalTransition.Damaged => CharacterActivityEvent.Create(
             CharacterActivityKinds.Health,
             CharacterActivityOutcomes.Damaged,
-            string.IsNullOrWhiteSpace(value.Reason)
-                ? $"피해 {value.Amount:0.#}"
-                : $"피해 {value.Amount:0.#}: {value.Reason}",
+            value.Amount > 0f && value.Amount < 0.05f
+                ? string.IsNullOrWhiteSpace(value.Reason)
+                    ? "소량의 피해"
+                    : $"소량의 피해: {value.Reason}"
+                : string.IsNullOrWhiteSpace(value.Reason)
+                    ? $"피해 {value.Amount:0.#}"
+                    : $"피해 {value.Amount:0.#}: {value.Reason}",
             actionId: "health:damage",
             reasonCode: value.Reason,
             value: value.Amount,
@@ -69,6 +73,32 @@ public sealed class CharacterVitalsActivityObserver : IInitializable, IDisposabl
             value.Transition,
             "Unknown character vital transition.")
     };
+
+#if UNITY_EDITOR
+    public static void VerifySmallDamageProjectionForBatch()
+    {
+        var character = new CharacterId("character:small-damage-projection");
+        CharacterActivityEvent small = Project(new CharacterVitalsChangedEvent(
+            character, CharacterVitalTransition.Damaged, 0.01f, "출혈"));
+        CharacterActivityEvent withoutReason = Project(new CharacterVitalsChangedEvent(
+            character, CharacterVitalTransition.Damaged, 0.01f));
+        CharacterActivityEvent normal = Project(new CharacterVitalsChangedEvent(
+            character, CharacterVitalTransition.Damaged, 3.5f, "출혈"));
+        CharacterActivityEvent zero = Project(new CharacterVitalsChangedEvent(
+            character, CharacterVitalTransition.Damaged, 0f, "출혈"));
+        CharacterActivityEvent threshold = Project(new CharacterVitalsChangedEvent(
+            character, CharacterVitalTransition.Damaged, 0.05f, "출혈"));
+        if (small.FactText != "소량의 피해: 출혈" || small.Value != 0.01f
+            || small.ReasonCode != "출혈" || small.OutcomeId != CharacterActivityOutcomes.Damaged
+            || withoutReason.FactText != "소량의 피해" || withoutReason.Value != 0.01f
+            || normal.FactText != $"피해 {3.5f:0.#}: 출혈" || normal.Value != 3.5f
+            || zero.FactText != $"피해 {0f:0.#}: 출혈" || zero.Value != 0f
+            || threshold.FactText != $"피해 {0.05f:0.#}: 출혈" || threshold.Value != 0.05f)
+        {
+            throw new InvalidOperationException("Small damage projection changed its value or display contract.");
+        }
+    }
+#endif
 
     private void Observe(CharacterVitalsChangedEvent value)
     {

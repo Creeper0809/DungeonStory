@@ -718,10 +718,7 @@ public sealed class InvasionOwnerEvacuationService :
                 "Owner evacuation restore did not join the published facility grid.");
         }
 
-        Dictionary<string, CharacterActor> liveActors = characterWorld.Characters
-            .Where(actor => actor != null
-                && CharacterPersistentIdentity.TryGet(actor, out _))
-            .ToDictionary(GetCharacterId, StringComparer.Ordinal);
+        Dictionary<string, CharacterActor> liveActors = BuildActiveRestoreActorIndex(characterWorld.Characters);
         ValidateRestoredActorJoin(owner, liveActors, "owner");
         if (IsEvacuating
             && (!invasionContext.TryGetOwner(out CharacterActor liveOwner)
@@ -819,6 +816,19 @@ public sealed class InvasionOwnerEvacuationService :
             };
             residents.Add(GetCharacterId(restored.Actor), runtime);
         }
+    }
+
+    internal static Dictionary<string, CharacterActor> BuildActiveRestoreActorIndex(IEnumerable<CharacterActor> actors)
+    {
+        if (actors == null) throw new ArgumentNullException(nameof(actors));
+        // Published corpse objects can outlive the previous character graph.
+        // Evacuation joins only the active living graph, exactly as the owner
+        // and resident checks below require. Two active owners of one ID still
+        // fail rather than choosing one of the references.
+        return actors.Where(actor => actor != null && actor.gameObject.activeInHierarchy
+                && !actor.IsDead && actor.CurrentLifecycleState == CharacterLifecycleState.Active
+                && CharacterPersistentIdentity.TryGet(actor, out _))
+            .ToDictionary(GetCharacterId, StringComparer.Ordinal);
     }
 
     private static void ValidateRestoredActorJoin(

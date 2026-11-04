@@ -225,6 +225,12 @@ public sealed class EvolutionModuleRegistry : IEvolutionModuleRegistry
         // a cross-axis operating burden would make the content appear balanced
         // while either doing nothing or reintroducing a self-cancelling axis.
         yield return Module(
+            "facility:service-operations",
+            "서비스 운용의 흔적",
+            "service",
+            Benefit("service.speed", 0f, 1.1f),
+            burden: null);
+        yield return Module(
             "facility:training-operations",
             "훈련 운용의 흔적",
             "training",
@@ -278,7 +284,7 @@ public sealed class EvolutionModuleRegistry : IEvolutionModuleRegistry
             Burden("service.speed", 0f, 0.98f),
             3,
             new[] { "failed", "damage", "accident", "invasion", "실패", "손상", "사고", "침공" },
-            new[] { "facility:room-synergy", "facility:service" });
+            new[] { "facility:room-synergy", "facility:service", "facility:service-operations" });
         yield return DrawbackModule(
             "facility:drawback-research-drag",
             "연구 정체",

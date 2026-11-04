@@ -1,4 +1,768 @@
+# 현재 R60 컴파일33 통과와 자원 대기창 종료
+
+현재285소스9d12898d의격리Unity컴파일과원33회귀는10:08:35UTC exit0으로끝났다. 원읽기메모전달/가변격리/폐기/취소/원검사순서가현재Unity에서통과했다. 실제대형저장시간과R80게임은미실행이다.
+
+원exec89122/PID108384관측기는변경하지않은VRAM7GiB조건을기다리다10:34:44.581933UTC terminal exit1이됐다. 원events와observation-latest.json에사유를보존했고자기프로세스부재를확인했다. 모델play의RAM8GiB/VRAM7GiB보호선과사용자앱을유지했으며자동재시작0이다. GPU미사용컴파일과실제모델실행은구분한다. 다음실제자원변경을확인한뒤필요한모델단계만이어가고컴파일33을이유없이반복하지않는다.
+
+문장과기술지연/전체저장은계속미완료다. 모델학습/변환과활성50GB관리는AI root가권위이며게임의원모델과효과/검사경계는유지한다.
+
+아래는이전상태다.
+
+# 현재 R60 읽기 메모 전달 수정과 실제 격리 시험 자원 대기
+
+R60은3파일만변경한285소스9d12898d로READY/FROZEN이다. 캡처읽기메모의토큰/byte값/스냅샷을독립복사해한번만작업스레드세션으로전달한다. 기본세션스레드소유권과원90검사순서/공유report/취소/실패/원본참조키계약을유지한다. 씬과에셋변경0이다.
+
+현재생산reader와원수명2회귀를CPU에서실행해원세션폐기후재사용/중복소비거절/토큰과가변snapshot격리/정확원문참조키를확인했다. Foundation/Infrastructure/Editor현재3assembly Roslyn컴파일도PASS다. CPU계측marker만stub이며Unity실행증거나전체저장개선으로세지않는다. source와fixture는r60-read-continuation-source-r1에결속했다.
+
+같은실제격리launcher를쓰는exec73111/관측PID81184(createTime1793352983.1947486)이현재live이고8GiB시작RAM을기다린다. 관측5.78GB에서보호선을내리거나앱을닫지않았다. 조건충족시현재Unity33회귀→원31MB저장/공식27인물24Persona복원→실제R80 10프로필을직렬1회실행한다. 자원대기는최대30분이며변경이나실패시멈추고자동재실행하지않는다. 원관측process/handle을확인하기전중복operator0,편집창닫힘/추가소스편집0이다. r60-frozen-runtime-r1/observation-latest.json이현재상태다.
+
+R59성공32응답과기술13후보를전부직접읽었다. 3효과중reposition누락/문장형이름/소문의experience혼용/Persona의생성지시반복이남아있다. 장비정밀은선택된정의자체의공격부담이므로drawback빈목록만보고오류로분류하지않는다. 기술성공7건의대기포함중앙23.191초/service중앙6.996초/최대queue24.582초다. 개선완료나새후보채택주장0이며원답과새학습전용0이다. language-direct-review.json참조.
+
+아래는이전상태다.
+
+# 현재 R59 실제 검증 종료와 같은 조건의 모델 평가 진행
+
+R59는285소스56dc1fd4를유지한현재컴파일33검사,같은대형저장과공식복원,원R80 10프로필을모두실제종료했다. session62253은terminal0이다. 원검사순서와공유report를보존하고실제캡처검사90중main6/worker84를확인했다.
+
+저장은8.825→8.105초로약8.16%줄었지만아직느리다. 복원9.271초/27캐릭터/24Persona/원기계값과trace는보존됐다. 실제CharacterRecord의원문유지거절1건이남았고언어전건검토는미완료다. r59-after-training-runtime-r2/review.json참조. 저장개선완료나전체Goal완료로세지않는다.
+
+같은R85는199/6368과최종adapter원본검증까지끝났다. 모델학습과고정비교상태는AI root가권위이며게임구현기록을그쪽에옮기지않는다. 현재R80실제게임기본모델은유지한다. 다음은실제phase의worker5.458초와메인캡처1.411초를좁히고현재원답언어를직접검토하는것이다. Unity와native작업종료확인후에만다음SOURCE_EDIT를연다.
+
+아래는이전상태다.
+
+# 현재 R59 수정 동결과 학습 종료 후 격리 검증 연결
+
+R59는 285소스 SHA56dc1fd4로 READY/FROZEN_R2다. 원90검사 순서와 같은 report를 유지하며 캡처 전용84개만 한 작업 스레드에서 실행하고 런타임 의존6개는 원래 메인 스레드에 순서대로 넘긴다. 기다리는 작업의 취소와 종료까지 확인하는 회귀도 추가했다.93파일 문법 검사만 통과했고 현재 Unity 컴파일과 실제 저장 속도는 아직 검증 전이다.
+
+기존 r1 대기 관측기만 종료하고 새 session62253이 실제 driver89708과 현재 학습을 따라간다. 학습 중단이나 재시작 없이 전체199 종료와 최종 adapter 원본 검증 후 격리 compile33, 같은 대형 저장과 공식 복원, 원R80 10프로필을 한 번씩 직렬 실행한다. 실패하면 원결과를 남기고 자동 재시도하지 않는다. 사용자 앱과 포커스, 원모델과 효과 검사는 유지한다.
+
+아래는 이전 상태다.
+
+# 현재 R58 실제 검증 종료와 같은 R85 학습 계속
+
+R58은 현재 소스 컴파일33개, 동일 대형 저장과 공식 복원, 실제 R80 10프로필을 exit0으로 완료했다. 197소스와 원R80 전체SHA를 다시 확인했고 3개 격리 창 probe도 통과했다. 06:40:44UTC 자기 Unity 종료 뒤 기존 학습 driver89708을 복귀했다. `r58-boundary-runtime-r1/review.json`과 `language-direct-review.md`가 현재 결과다.
+
+복사자의 행별 함수참조 생성을 없애 CPU 진단 할당은27.53% 줄었으나 실제 저장8.825초는 이전8.891초와 거의 같고 복원9.212초다. 저장 지연 해결을 주장하지 않는다. 실제 기술7응답13후보에서 이동 효과 누락과 문장형 이름이 남았고 대기 포함 중앙22.358초의 추가 개선도 입증하지 못했다. 원9명 특성 생성 복구는 R57 실제 결과로 유지한다.
+
+같은 R85는160완료 경계에서 원래 chunk011로 한 번 재개해163/199단계와5216노출까지 확인했다. 현재 학습을 다음 사소한 실험 때문에 다시 hold하지 않는다. CPU로 원본/후보 동일 비교 경로를 연결한 뒤 전체199완료와 공식 변환, 동일 고정평가 및 실제 후보 게임을 이어간다. 고정 평가 요청에 현재 게임의 인물 바인딩을 임의 작성하지 않으며 원본 benchmark와 실제 Unity 문맥을 구분한다. Goalactive, 50GB, 원모델과 원답, 포커스 비간섭과 사용자 앱 보존을 유지한다.
+
+# 현재 R58 복사 할당 개선 동결과 실제 검증 실행
+
+생산 변경은 GameplayOutcomeSaveReadCopy.cs 한 파일의 불변 함수참조12개 재사용뿐이다. 실제 컴파일된 원복사자에서 장부마다delegate6개/각행마다8개 신규생성을 확인했다. 실제3410행을88번씩 A/B/A 복사한 후보는 모든필드/nullable/가변격리검사를 유지하며 할당558,143,212→404,468,448B/27.53%감소,시간696.403/675.569→639.922ms였다. 별도Mono진단이며 전체저장 개선 증거는 아직 아니다. 생산본은 원래 internal MemberwiseClone을 유지한다.
+
+source197 SHA765dd8ce9c1c0bdabf0fca5f7114ea110fe86d4e6ccdd1f9ae4c05fcb6d1d66b로 READY/FROZEN/역변환원문동일/gitdiffcheck PASS다. r58-save-copy-delegate-source-r1/analysis.json/source-status.json과candidate-r2/review.json 참조. 첫r1 진단은 이전compile의MVID를현재DTO의MVID로잘못썼다. 현재실제DLL의SHA32dfa63a와MVIDfdcd1bd3를독립확인해고정한r2에서통과했으며원오류/원입력/원DLL은보존했다. 읽기전용IL파서의prefix상수오류도제품/CUDA영향없이정정했다.
+
+현재 exec68939/run_r58_at_training_boundary.py SHA5c1fb2319f21474295fca32a474adb44611e90bc26fb5cac2274f379dab15a7b가06:06:15.818610UTC 원driver89708만hold했다. 같은chunk010/controller74816/learner92628은실제150/199/4800노출까지진행하며중단하지않았다. 정상최대160경계/완료shard독립검증뒤compile33→동일31MB저장/공식복원→기본R80전체게임을실행하고finally자기Unity종료뒤원driver를복귀한다. 새현재compile/전체저장/게임은NOT_RUN이다. 기존R57PASS를새변경에승계하거나중복operator를만들지않는다. source추가편집0/Goalactive/원모델/50GB/사용자앱/포커스격리를유지한다.
+
+# 이전 R57 실제 종료와 원9명 생성 완료
+
+R57 C#배치 마감의 생성 인덱스 갱신 exec43066은exit0/쿼리5회귀PASS/검증오류0/문서링크오류0/최종freshness오류0으로끝났다. 기존491/90 생성물의전SHA동일을먼저검증했다. index-regeneration-result.json에기록했다. 이후R58한파일변경으로다시stale일수있으며새배치마감전에중복갱신하지않는다.
+
+exec44529는05:50:19UTC compile33/원31MB저장/원거절9명 전원 생성/기본 전체게임/private ngram 전체게임을 exit0으로 끝냈다.05:50:25.714697UTC 자기Unity 종료 뒤 원driver89708을 복귀했다. 같은144checkpoint에서 원래 학습을 이어가며 종료된 R57을 다시 실행하지 않는다. r57-boundary-runtime-r1/review.json SHA ae15b65071e25af89aa75622b702d3526fc1a13e316c7d5736b7e6923e8b2f51에 현재197핀 동일/원R80 전체SHA2894ec52/5격리probe/Unity-native0을 독립 결속했다. 다음 C# 편집 전 현재 상태를 다시 확인한다.
+
+원래9명 모두 새 활성특성을 하나 이상 생성했다. 총10개/000010은2개이며 마지막 pending1개는000017의 후속 요청이다. 모든 신규는 IsActive=true/erased=false이고 관측이 상태명령이나 응답을 주입하지 않았다. 다만 밤 작업 이점만 선택한2개 설명이 낮 감속을 추가했고2개 설명에는 어색한 표현이 남았다. trait-direct-review.md에 원상태와 플레이어 문구를 대조했다. 생성 거절 복구와 설명 품질을 구분한다.
+
+실제 nativeCLI는 ngram-simple을 지원하지만 추가 가속은 미채택이다. 기본/진단 모두10profile/요청실패0/Unity0/기술7응답13후보다. 정확히 같은 native입력7개 중 출력토큰도 같은5개 모두 진단이 더 느렸다. 대기포함 기술 중앙값22.787→23.112초이며 서로 다른 요청 집단의 단순 인과비교로 세지 않는다. 기본cache256/선택/문법/기한/단일모델을 유지한다. language-and-speed-review.md와 원응답을 보존하고 평가 내용을 TRAIN이나 답 템플릿으로 쓰지 않는다.
+
+이번 동일 원31MB저장은8.891178초/restore9.385721초/27인물24Persona와기계값 보존이다. ReadPayload1.931658초/가변복제1.333629초/TokenReplay0.091197초/SourceMiss0.530305초를 관측했다. SourceMiss에는 최초복제도 들어가며 중첩marker를 더하지 않는다. 계측 추가만으로 최적화했다고 주장하지 않는다. 저장잔여/설명누락/기술지연과 R85 전체199단계/새후보 고정평가는 여전히 남아 Goalactive다. 활성AI 전체45.88GB/50GB미만/추가결제0/앱보존을 유지한다. 아래는 이전 결과다.
+
+# 현재 R56 r2 실제 종료와 남은 저장/설명/응답 지연
+
+exec74763은04:45:13UTC compile32/기본31MB저장/원R46특성생성/기본256전체게임/private0전체게임을exit0으로끝냈다.04:45:18.279313UTC 자기Unity/native종료뒤원driver89708을복귀했고같은128checkpoint에서chunk009가재개됐다. r56-boundary-runtime-r2/review.json/language-direct-review.md가원결과SHA와범위를결속한다.197소스는r2동결과같고원R80전체SHA2894ec52도끝난뒤재검증했다. 소스는아직READY/FROZEN이며새편집전현재상태를재확인한다.
+
+같은원31MB입력SHA5d020073의저장은12.812946→9.296878초로이번관측27.44%감소했다. 원복원27인물/24Persona/기계값검사를유지했고새공식restore9.199291초다. stale근거조회는4.733984→1.170678초,전체특성Tick5.066659→1.522321초로줄었다. 중첩marker는합산하지않는다. 전체저장/복원이여전히약9초이므로완료/즉시저장주장0이다.
+
+원거절9명모두실제offer가제출됐고000010의새생존본능1개수락/효과상태적용을확인했다. 아직초기8명새생성미완료/9pending이며그중000010은다음요청이다. 9명전체생성완료주장0이고원검사/정성조건/원답수선0이다. 다음시험은실제나머지응답과상태적용까지관측해야한다.
+
+기본/진단모두10profile와Unity0을확인했으나모델거절은남았다. 기본은소문timeout1,진단은관측실패0이다. 취소된소유자요청을실패/정상p95로섞지않는다. 기본9성공기술응답/19후보,진단7/13의직접내용에서조건/복합효과누락과문장형이름이남았다. 전체 기술중앙26.983초vs21.759초는표본과queue/복원취소가다른unpaired관측이며일관된개선증거가아니다.49/44원wire중16개distinct만정확공통이다. cache0는미채택/생산256유지다.
+
+다음은원응답phase실제timing으로기술지연의직렬단계를분리하고,저장VContainer잔여비용과8명생성을추적한다. previousCandidateNames와choice uniqueness가후속생성입력에들어가므로무조건병렬화하거나원조건을생략하지않는다. 보완학습199완료/새후보고정평가/전체Goal은미완료이며추가결제0/50GB/포커스비간섭/사용자앱보존/Goalactive다.
+
+# R55 계측 동결과 현재 실제 자원창
+
+현재194파일 frozen-polish-r55-r1.json SHA8abe9672b1995818e9175602d92daf9364cd7d6dc52a8714c429bfb062429adf/READY-FROZEN이다. 생산 변경은 특성 Tick/평가/stale 검사/상태 복사의 ProfilerMarker만이며 원R54를 역구성해 전체SHA동일을 검증했다. 후보/효과/기한/원검사와 원답은 그대로다. QA의 명시 플래그는 원R46 저장SHA5972f7f4를 고정하고 읽기 전용 상태/근거 창을 기록한다. 기본 R17 저장 입력은 유지한다.
+
+exec59031/inner104500의같은run_r55_at_training_boundary.py가현재chunk006/worker96660을따른다. 실제소유/194핀/원contract를check-only로검증한뒤다음구간driver89708만hold했고학습worker는계속진행한다. 정상현재구간terminal과완료shard검증뒤격리컴파일30→기본31MB저장→원R46거절월드복원/저장/진단순서다. finally자기Unity종료뒤같은driver복귀를소유한다. 새컴파일/실제계측결과는아직없으며중복실행/바쁜학습중단/앱종료0/Goalactive다. 아래는이전상태다.
+
+# 현재 R54 실제 종료, 저장 지연 계측과 원 특성 거절 월드 재현으로 진행
+
+R54는 현재 소스 컴파일30회귀PASS와 원R80 실제10프로필을 완료했다. 소문1건은 원8초 경계에서 실패했고 보고서형 기록 거절도 남았다. 장소 방향조사와 경비 시작 문구는 실제 출력에서 교정됐다. 31,419,161B 저장은12.461초/공식복원9.630초/27인물과24Persona 보존이나 이전11.625초보다 빨라지지 않았다. r54-boundary-runtime-r1/review.json이 원결과와 범위를 보존한다.
+
+90개 capture 검사의 실제 호출 합계는3.042초이고 프레임의 VContainerUpdate는9.158초다. 중첩값을 더하지 않으며 후자의 세부 원인은 아직 미확정이다. 다음 R55는 특성 Tick과 snapshot 복사를 계측하고 원R46의37MB 월드를 별도 명시 입력으로 복원해 현재 NoOffer 필터 진단을 관측한다. 합법 후보/효과/검사/기한/원답 변경0, 실제 새 실행 전 해결 주장0이다. 원R54 창은02:14:53.648078UTC에 자기 종료 뒤 학습driver89708을 복귀했다. 현재 학습은 같은chunk006이며 Unity/native0을 재확인했다. 아래는 이전 상태다.
+
+# 현재 R54 저장 복사와 시작 문구 수정, 다음 정상 학습 경계 검증 실행
+
+R53은현재소스컴파일30회귀PASS와실제R80게임exit0/10프로필성공/요청실패0/Unity오류0을마쳤다. 목적격장소문구는실제응대지점을/순찰지점을로확인했지만원기록의보고서형설명거절1과새로확인한순찰지점로/경비를들어갔다가남았다. 3,068,981B저장공식복원3인물/2.501초이며대형저장개선증거아니다. 기술9건전체응답6.306~32.544초/중앙25.289초는통제profile관측이고일반플레이p95나이전대비개선으로세지않는다. r53-boundary-runtime-r1/review.json이원결과SHA786142bc와제한을보존한다.
+
+자기Unity/native종료뒤SOURCE_EDIT_R54에서원장DTO의불필요한9빈목록생성을피하고같은9가변목록을모두깊게복사하도록수정했다. 원31MB/3410행의별도Mono A/B/A에서할당약35.1%감소/전필드값과가변참조격리를검증했지만현재생산C#컴파일과전체저장시간은아직미검증이다. 시작기록의방향조사는같은locale query에서ㄹ예외를포함하고한국어기존14변형의목적어와서술어를맞췄다. 원답/과거활동/작업상태/효과/검사변경0이며수동Inspector연결0이다.
+
+현재194파일frozen-polish-r54-r1.json SHA684c8134356ce87653a83637228db3905cc0577b6184ad55bd8d19208b7d2333/READY-FROZEN이다. exec21679/run_r54_at_training_boundary.py/inner78888가같은64복원chunk005의정상종료를따른다. 실제소유PID/194핀/원contract를check-only로확인후다음구간driver89708만hold했고학습worker27472는66단계까지진행했다. 정상terminal과완료shard검증뒤격리컴파일30→원3입력native cache256/0/256진단→원정책실제게임→원대형저장scheduled/공식restore순서다. cache진단은정책채택이아니며독립실패를명시한뒤다른안전조건이유효한경우만원정책게임검증을계속한다. finally자기실행종료뒤원driver를resume한다. busyworker중단/원학습auth수정/Goalpause/사용자앱종료0이다. 아래는이전상태다.
+
+# 이전 R53 장소 조사 원문 수정, 다음 학습 경계 검증 예약
+
+현재 SOURCE_EDIT_R53는 READY/FROZEN이며190파일/SHA232b6d71dc2a6b988460ede0fc0b9457e0e8bf71484c44ac4643a3d2c012442a다. 실제R52출력에서응대지점를/순찰지점를이재현됐다. CharacterRecordTemplateBank는기존번역의{place}를단위를기존ApplyObjectParticle로먼저처리한다. 과거기록/AI원답/번역asset/효과/사실검사변경0이다. 한국어받침유무/기존장소처격/영어/원activity불변8경계를실제번역문구와동일조사query로검사하는fixture를추가했으며새30회귀와실게임은아직NOT_RUN이다. r53-place-source-r1/source-change.patch/analysis.json이직전3원파일의전체SHA복원을검증했다.
+
+직전R52는현재컴파일29회귀PASS와실게임exit0/10프로필성공/Unity오류0/실제전투/공식저장복원을마쳤다. 그러나소문1건8.039초service timeout과보고서형기록거절1이남아RUNTIME_COMPLETED_WITH_MODEL_REJECTIONS다. 3.201MB저장복원2.625초는31MB저장개선증거가아니다. 특성완료3/사전후보0거절0이지만옛R46대량거절원인은이번짧은실행으로해결했다고하지않는다. 원resultSHA88a34061과r52-boundary-runtime-r2/review.json에범위와원답/지연을보존했다.
+
+현재실행권위는exec95035/run_r53_at_training_boundary.py/inner86736다. check-only로실제동일driver/현재학습구간/190pin을검증한뒤원다음구간운영자89708만hold했다. 학습worker104868은원48checkpoint복원뒤50단계까지진행했다. 다음정상chunk004terminal/완료shard검증뒤격리30회귀와실게임을실행하고자기Unity종료뒤finallydriver를복귀한다. 새타이머/Goalpause/학습중단/권한변경/사용자앱종료0이다. 아래는이전상태다.
+
+# 이전 R52 컴파일29 통과와 실제 R80 게임 재시험 진행
+
+현재 r52-boundary-runtime-r2/compile/compile-result.json은 CURRENT_SOURCE_COMPILED이며29회귀가전부PASS다. 새특성후보0진단/원거절과상태미소비/저장실패와재개/원답거절경계를포함한다. 원189source는동결과같고원R80전SHA도검증했다. 실제OS비대화형station/desktop창프로브PASS뒤새Unity컴파일을실행했으며구R50의결과를승계한것이아니다.
+
+같은exec61533은컴파일Unity정상종료뒤현재R80ExtendedPlayModeVerifier.RequestProfilesForBatch를격리실행한다. runtime/isolation-probe.txt도별도PASS이며원본모델의실제기능/전투/상태와저장복원출력부터이어간다. 아직이번게임종료/전프로필품질/특성대량거절원인해결/대형저장개선은완료아니다. 현재SOURCE_EDIT금지/READY-FROZEN을유지하고finally의자기Unity종료와기존모델운영자복귀전중복실행하지않는다. 아래는이전준비상태다.
+
+# 이전 R52 특성 후보0 진단 보완, 새 C# 검증 대기
+
+
+현재resource window는exec61533/inner30704의run_r52_at_training_boundary_r2.py가관리한다. 원r1은32단계완료버퍼검증뒤Windows PowerShell5의Get-FileHash명령부재로Unity시작전에exit1이었다. 순수런처self-test는PASS지만station/window probe와새C#컴파일/실게임은NOT_RUN이다. 원실패와source/로그를그대로두고기존PowerShell7에서실제자기파일SHA명령을검증한뒤호출기만고쳤다. 현재R85의다음정상구간이진행하며다음구간운영자89708만hold중이다. source189핀과29회귀/원R80게임검증/메모리/OS격리조건은같고정상구간terminal후같은순서로1회진행한다. learner중단/권한변경/Goalpause/사용자앱종료0이며finally자기Unity종료뒤운영자를resume한다. 현재event와handle에서이어서관측하고중복시작하지않는다.
+
+기존 실제 R46 진단에서 모델 응답 전 합법 이점 후보가0인 SubmissionRejected1458건을 구분했다. 원수용 필터와 후보 생성은 바꾸지 않고 그 실패 경로에만 점유/상충/같은binding/분야/친화도/예산별 탈락 수를 추가했다. 기존 오류종류와 prefix, milestone/근거/효과를 소비하지 않는 경계는 유지한다. 정상 후보, 빈목록과 다른분야 거절, 상태불변을 확인하는 표적회귀를 추가했다. r52-diagnosis-r1/analysis.json과source-change.patch는 변경 전3파일이 원R50핀과byte동일이고 실패진단 밖의 생산코드가 그대로임을 결속한다.
+
+현재 SOURCE_EDIT_R52는 READY/FROZEN이며 새 컴파일/29회귀/실제 재현은 아직 NOT_RUN이다. 아래R50의28PASS를 변경된현재소스의PASS로 세지 않는다. Unity/자기native0을확인하고 별도모델학습과 무거운Unity검증을겹치지않는다. 현R80과과거원답/저장은유지했다. 학습상태는NarrativeAI루트가권위이며 현재학습구간종료/자원반환뒤새컴파일과원거절재현을진행한다. 저장의90검사/메인스레드와Editor계측비용을분리했고, 새로운background검증이나저장정책은아직채택하지않았다. 전체Goalactive/미완료다.
+
+# 이전 R51 기록 입력 실험 미채택, 기존 R50 유지
+
+같은 R80으로 피해 원문 표현과 주어 prefix 문법을 따로 시험했다. 원문만 바꾸면 주어가 빠졌고 주어를 강제하면 피해 수치가 빠졌다. r51-damage-source-r1의 두 실제 비교/4원답과 adoption.json에 미채택을 보존했다. prefix CPU2검사는 형식 검사이며 의미 품질 통과가 아니다. 새 문법이나 피해 원문을 생산에 넣지 않았고 현재 C# 28회귀/189핀의 R50 및 원 R80를 유지한다.
+
+호출 문구를 더 강제하거나 답을 코드로 완성하는 대신 TRAIN 입력 형식과 복합 효과 설명의 누락을 모델 작업공간에서 조사 중이다. 모델 자료와 학습 상태는 형제 NarrativeAI 루트가 권위이며 새 학습 모델 export는 아직 없다. 게임의 다음 소비 게이트는 보완 모델의 원문 그대로 검증과 현재 R80 대비 판단/자연스러움/지연 재시험이다. 대형 저장과 무거운 월드의 프레임 비용도 전체 Goal에서 유지한다. 현재 자기 Unity/native0이며 새 기본 모델 교체0이다.
+
+# R50 시설 파손 원문 조사 수정과 실제 게임 재시험 완료
+
+시설 원문 두 생산자가 항상 목적격 조사를 을로 붙였다. CharacterActivityFormatter.FacilityDamage가 기존 KoreanJosaFormatter를 재사용하고, 붕괴 행동과 시설 난동 관찰자가 같은 함수를 쓴다. 간이침대을 파손함은 새 사건부터 간이침대를 파손했다가 된다. 과거 저장 원문과 모델 답, 효과 선택과 사실 검사는 그대로다. 발음 근거가 없는 이름은 기존 조사 계약의 명시적 중립형으로 대상 이름을 보존한다.
+
+frozen-polish-r50-r1 189핀과 compile-polish-r50-r1의 현재 소스 28회귀 PASS. 원 R80 전체 SHA 2894ec52는 동일하다. r50-facility-source-r1의 실제 원입력 비교에서 원문 수정 전후 모델 답을 그대로 보존했고 조사 오류 개선을 확인했다. full-polish-r50-r1은 exit0, 10개 요청 프로필, 전투와 장비/시설 상태 적용, 3,280,711바이트 저장의 공식 복원 3인물, 요청 실패0/Unity오류0이다. 판정은 RUNTIME_COMPLETED_WITH_MODEL_REJECTIONS이며 기록 적용2/원문 유지1/통제 폴백0이다. 작은 저장의 2.734초 저장과 복원 합계로 대형 저장 지연 해결을 주장하지 않는다. verification.json에 범위를 분리했다. 자기 Unity/native 종료와 전핀 동일을 확인했다.
+
+R49 자유 gap 대체 문법은 CPU6회귀와 실제6응답에서 원문 결속3/3이었으나 조사 오류와 원문에 없는 체력 저하가 남아 미채택했다. 기존 사실 검사가 그 체력 저하를 거절함을 새 C# 회귀로 확인했다. 생산 decoder는 R48 그대로다.
+
+다음은 실제 게임에서 다시 거절된 피해 기록의 보고서형 원문 생산자를 확인한다. 피해/원인 수치와 행동 단계는 보존하고 새 입력 원문만 자연스럽게 표현할 수 있는지 검증한다. 기술명과 조건 누락, 합법 후보가 없는 특성 거절과 stale 거절의 구분, 26인물 장기 실행의 프레임 비용과 대형 저장 지연은 여전히 미해결이다. AI 프로젝트43.77GB/50GB상한, 단일 R80/원답 보존/원검사/격리/Goalactive를 유지한다.
+
+# R48 말풍선 작성 상한 일치, 기록 지시 실험 미채택
+
+말풍선의옛80자/4~10어절지시를실제caller schema의상한에맞췄다. 원24자native규격/공개입력/실패기한/원R80는동일하다. frozen-polish-r48-r2 180핀/72Python회귀PASS/C#전핀동일로기존현재27컴파일회귀는유효하다. 실제native8회의두Bubble경로에서같은공개입력과원schema/grammar를확인했다. 이수정은지시충돌만해소하며ItemStackMissing입력의빈손님같은부적합응답과시간초과를해결했다고주장하지않는다.
+
+기록에명령/완료구분지시를더한실험은지정을해제로바꾸거나피해원문을빠뜨려미채택했다. 원record_writing_messages AST로되돌렸고실제시험한소스/HTTP는r48-request-writing-contract-r1/rejected와native-comparison-r1에보존했다. 현재기존함수변경은Engine.call/새bubble_writing_messages뿐이며선택/규격/사실검사/출력조립은불변이다.
+
+다음은R40의구절중간삽입실패를반영해출력수선없이source구절을생성전에묶는record decoder를국소시험한다. 임의문장gap을그대로반복하지않고원60자/주어/모든구절/원검사를유지한다. 실제Bubble source에는기계reasonCode만있어도모델이새원인을추측하므로원생산자의공개사실/용어를함께점검한다. R46의1800실시간/700게임시계/4420frame도짧은frame비용계측으로분리한다. 새실제게임검증과문장/지연해결전Goal완료0/현재자기Unity-native0/EDIT_READY.
+
+# 현재 R47 실제 문장 비교 미채택
+
+R46 30분종료/저장복원/원모델SHA검증은아래와같이유효하다. 이후같은R80로원선택과모든효과/조건을고정한작성입력형식비교6회를실행했지만조건누락과어색한이름이남아미채택했다. r47-prose-input-contract-r1/adoption.json과원HTTP를보존했고원179생산핀은그대로다.
+
+다음은이미증명된말풍선의80자/24자작성지시충돌과기록의명령/완료구분을국소교정하고실제입력으로검증한다. 입력키정렬실험을같은방식으로반복하지않는다. 기술이름/조건의모델지도범위와R46의낮은관측frame진행도별도로해결해야하므로Goal은active다. 현재자기Unity/native는종료됐고EDIT_READY다.
+
+# 현재 R46 실제 30분 종료, 문장 입력 수정으로 전환
+
+soak-polish-r46-r1은exec92403 exit0/실시간1800.592초/179핀drift0/Unity오류0/자기Unity-native-launcher0으로종료했다. 원R80전체SHA2894ec52/5,027,783,552B를다시확인했다. 5개checkpoint와최종37,013,555B의공식복원을통과했고최종26인물/24Persona다. 특성의선택/효과/이름/설명/근거/수식/요청원본은이전복원이후103쌍전건동일/현재인물의예기치않은손실0/최종53instance를확인했다. 원가변반응/삭제상태는별도구분한다.
+
+전체품질PASS가아니다. 소문6/말풍선1 timeout과원명령을완료사건으로바꾼기록/조사로끝나는기술명/효과조건누락을원문보존했다. 기록실제적용1/원문유지1/가짜응답0이다. 게임시계증가700.833초/4420frame은실시간30분과다르므로렌더링FPS나동속도시뮬레이션완료로주장하지않는다. 짧은현재실행의frame비용관측이필요하다.
+
+다음은EDIT_READY에서R80실제학습키와현재기술작성입력의차이를맞추는국소수정과같은선택을고정한native비교다. 모든선택/조건/원검사/원응답은유지한다. 말풍선의80자/24자중복지시는원24자기준에맞추고기록의원행동phase를보존한다. 현재소스컴파일27/Python69와R44성능변경은유효하며새관련수정에맞는회귀/실제게임으로계속한다. Goalactive/새모델학습0/원모델보존.
+
+# 현재 r46 지속 시험의 생산 저장 일시정지 관측
+
+R45는실제종료autosave2,839,567B/41769d4b를직접복원했고원owner종료상태를검증했다. 대체저장0이며이전저장경합수정은실행통과다. 이후지속측정9.261초까지관측된상태에서정기BeginSave의정상시계hold를즉시paused오류로잡아exit1이었다. terminal-verification.json에원실패/179핀동일/자기프로세스0을보존했다. 30분완료주장0.
+
+R46은Editor시험만수정해stage10에서도실제IsSaving동안기존60초경계안에서프레임을돌린다. NaN/무한시계는대기전거절하고idle뒤TimeScale양수검사는그대로다. 생산save/원응답/단일모델/1800초와2280초한도동일/강제drain0. 179핀동결로현재컴파일과27회귀후새격리soak단회실행한다. 설명누락/말투와일부거절은미해결이며Goalactive다.
+
+# 현재 r45 지속 시험의 실제 자동 저장 경계 수정
+
+soak-polish-r44-r1은진행중이아니다. exec50308/Unity57000은exit1/자기Unity-native0으로종료했고1800초측정전stage11에서A save is already in progress로실패했다. 실제owner죽음의생산final autosave가비동기로진행되는데시험이즉시추가동기Save를호출했다. 원실패/원179핀동일/종료를terminal-verification.json에보존한다. R44 full의성능/10profile/실행오류0/실패요청0/저장복원은별개로유효하다.
+
+R45는Editor시험기만고친다. 생산슬롯guard와메타/자동저장service는전부동일하다. 실제자동저장의busy해소와생산LateTick실패처리를관측하고autosave슬롯그자체를원전체검증으로불러와종료owner상태를검증한다. 시험이대신새저장을만들지않으며이전소비한terminal digest재사용을거절한다. 기존60초저장경계와2280초전체한도유지/강제동기drain0이다. 같은30분checkpoint/final도자동저장중에는프레임을돌려원경계안에서기다린다. 179핀SOURCE_FROZEN/현재컴파일27회귀→새격리soak단회로계속한다. 아직30분완료/언어품질PASS/Goal완료아님.
+
+# 현재 r44 실제 게임 성능 검증 완료, 30분 지속 시험
+
+profiles-polish-r44-r1/verified-summary.json은exit0/179핀drift0/실행오류0/요청timeout0/기록실제적용1/원문유지1/자동전투피해1/공식저장복원3인물을확인했다. 피해기록원인누락과보고서말투/일부부효과및조건누락은미해결이다. 기존27회귀에해당하는C#전핀동일/69Python/273147유한구조화값동일검증도유효하다. 원R80전체SHA/모델/원답/상태검사는그대로다. 성능변경만수용하고모델품질전체PASS로세지않는다.
+
+동일C#context상관ID의3후보기술서비스는이전30.047/32.345초에서이번21.757/21.328초로줄었다. 전체직렬화wire동일은별도증명하지않았고,같은원wire의엄격native3쌍18.161→9.971/17.039→9.611/16.736→9.967초증거와구분한다. small save2.510초는기존대형save11.625초를대체하지않는다.
+
+현재소스179핀을유지해soak-polish-r44-r1의30분실제플레이를단회시작한다. 같은handle/실제PID/격리프로브부터이어가며종료전소스편집/다른Unity/새GPU0이다. 언어수정은이실행종료뒤진행하고장시간결과나Goal완료를미리주장하지않는다. Goalactive.
+
+# 현재 r44 같은 유한 선택 규칙의 중복 경로 축약
+
+R43의이벤트단계묶음은실제3요청시간을줄였지만선택도달라지고조건부피해의절반체력조건을누락해미채택/원R42로전건복원했다. r43-event-phases-r1/adoption.json/rejected에실행코드/원답/비교를보존한다.
+
+R44는원프롬프트/호출순서/원native규격/모델을유지한다. 기존decision상수와그에연결된proof배열의반복접두만문자트리로묶는다. 지원하지않는기호규격은기존native방식을그대로쓴다. 독립전개기로실제3종규격의273147개구조화값을모두열거해전건동일함을확인했다. 동일원3요청native시간18.161→9.971/17.039→9.611/16.736→9.967초며2요청전체응답동일/1요청선택변경을보존한다. 기존부효과/조건누락은양쪽에있어품질통과주장0이다.
+
+69Python PASS/원27회귀에대응하는C#전핀동일/179핀동결을확인했다. 다음동일격리환경의실제R80 full에서시간/선택합법성/상태적용/전투/저장복원을검증한다. 원R80전체SHA확인/학습0/원답수선0/효과또는근거의코드선택0/Goalactive.
+
+# 현재 r42 실제 종료와 남은 언어 품질
+
+compile-polish-r37 현재27회귀PASS후profiles-polish-r42-r1 실제full도exit0/178핀drift0/실행오류0/자동전투피해1/공식저장복원3인물로종결했다. 기록의원문활용/이름숫자경계회귀는유효하지만이실행의실제기록적용0/원문유지1이다. 피해기록의원인누락과보고서말투는계속거절했고마지막에는대기열접수실패도있어모델품질해결이아니다.
+
+원native단독6입력비교의형식/가상예시/간소지시세방법모두사실보존을안정적으로해결하지못해생산미채택이다. r43-compact-record-native-r1에원답을보존한다. 다음은같은프롬프트변형을반복하지않고원사실을생성전강제하는방법과현학습의해당기록지도문제를구분해검토한다. 기술이벤트3후보는약4600token을후보마다다시읽어23~28초native구간이있다. 초기창작만단계를묶었던기존최적화와구분하며현재단일R80/원답/검사/178핀동결을유지한다. 현재작업자Unity/native0을확인한후다음편집을열고중복실행0/Goalactive.
+
+# 현재 r42 원문 행동 활용과 인물 이름의 사건 검사 분리
+
+R41 full은exit0/178핀동일/실행오류0/전투와공식저장복원이며기록의주어누락/원인누락/보고서말투가남았다. 같은6개실제입력의native형식/독립가상문체비교는사실보존을개선하지못해모두미채택이다. 원응답/문법초기escape실패를QA에보존했고생산Python/원모델은바꾸지않았다.
+
+R42는실제원답의“저지하러 이동했다”를원문행동이동과별개로거절한오판을고친다. 원문에독립된정확한행동명사가있을때만같은명사의활용을인정한다. 검증된requiredSubject접두만사건수치/결과검사에서분리하고본문의새숫자/결과와없는행동/단어일부일치는계속거절한다. 원구절/효과/생명주기/원답불변이며새회귀를기존fixture에포함했다. frozen-polish-r42-r1 178핀으로현재컴파일/실제적용을진행한다. Goalactive.
+
+# 현재 r41 기록의 실제 사실과 옛 작성 지시 분리
+
+R40의강제구절grammar는실제문장중간에원구절이끼어깨져미채택/정확한R39생성경로로되돌렸다. rejected/원소스/adoption.json과실제원답을보존하며원검사가거절한결과를수선하지않는다. R39의현재27회귀/실제전투오류0/공식저장복원은유효하다.
+
+R41은CharacterLogNarrativeService가원래명시한인물/종족/역할/Persona/최근기록과행동/대상/장소를publicFacts에전부구조화한recordPromptVersion2를보낸다. 원작성지시와거절초안은originalCallerPrompt에audit용으로그대로남긴다. R80의v2기록작성입력에서만그중복작성지시를제외하고모든publicFacts/publicBindings/caller참조/작성feedback을그대로읽는다. 원모델/원nativeSchema/근거ID/사실검사/생명주기/재시도횟수는동일하며원답수선은없다. Legacy기록입력은원래대로다. 동결178핀과현재회귀/실제full로문장/기록적용/시간과전투/저장복원을계속검증한다. Goalactive.
+
+# 현재 r40 기록의 원문 구절을 생성 전에 보장
+
+R39 full은exit0/자기프로세스0/실행오류0/실제자동전투피해1/시설진화/공식저장복원이며원기록거절과소문timeout1로전체품질완료아니다. verified-summary.json과원5.027GB모델독립SHA2894ec52를확인했다. 같은침입부모수정은27현재회귀로유효하다.
+
+R40은caller가이미제공한requiredSubject와requiredExactPhrases를단순기록의native grammar에서그대로보장한다. 구절순서와연결말/동사는모델이쓰고완료문자열을수선하거나채우지않는다. 원line60자상한/모든원caller필드/근거ID/원C#사실검사는유지한다. 문장형원문/긴목록/별도pattern은현재일반grammar호환경로를그대로쓰며생성실패뒤재작성폴백은없다. 65Python회귀/현재C#전핀동일+27회귀재사용/178핀동결뒤실제R80 full을진행한다. Goalactive.
+
+# 현재 r39 붕괴 이후 침입 전이의 원래 부모 연결
+
+R38은반복붕괴생산명령/저널저장/foreign-Resolved거절포함27회귀PASS지만실제RunInside시설파손에서같은부모판정누락으로exit1이었다. 실제원응답과Unity오류를보존한다. R39은원상태기가허용한붕괴→던전진입/시설파손도같은침입의직전collapsed기록으로연결한다. 외부침입/종결부모/원저널exact선행/committed해시/상태rollback/저장형식은유지한다.
+
+회귀는기존생산CollapseFront2회→실제MarkDungeonBreached→CollapseFront→TryDamageNearbyFacility를호출하고실제시설손상/횟수와원장-저널-카운터저장join을검사한다. 동결178핀과현재27회귀/compile-polish-r35 exit0을확인했고 profiles-polish-r39-r1 실제full이exec44631/자기Unity84392/native91224로진행중이다. 종료확인전중복실행하지않는다. 기록거절/이벤트기술지연/현재소스장시간검증은남았고Goalactive다.
+
+# 현재 r38 실제 전선 재붕괴 기록 P0 수정
+
+R37은현재컴파일26/Python63 및시설/공식저장복원은통과했지만침입전투에서invasion-lifecycle-parent-key-invalid로exit1이다. 원failure.txt/unity-errors.json/원응답을보존하며품질PASS가아니다. 원저널은같은침입의여러붕괴를서로다른revision으로게시하지만observer가이전붕괴를다음붕괴의부모로인정하지않는불일치다.
+
+R38은FrontCollapsed의동일침입부모만이전FrontCollapsed까지받는다. 같은저널의정확한선행키/committed hash/다른침입거절/종결이후거절/owner rollback/저장형식은불변이다. 기존생산CollapseFront를두번호출하고원저널/원장/카운터저장검증과외부침입부모/종결부모거절을추가했다. 동결후27현재회귀와실제R80 full을진행한다.
+
+초기기술순서변경은실제동일caller에서뒤선택prefill약3600→500token,모델내부13.146→11.133초를확인했다. native-comparison.json으로공개입력/모델결정/문장을대조한다. 기록최소길이제거는거절을해결하지못했고미해결이다. 전체Goalactive.
+
+# 현재 r37 짧은 기록과 기술 단계 묶음 실제 비교
+
+R36은현재26회귀/63Python/실제시설-공식저장복원-자동전투까지exit0이다. 숫자전건일치회귀는유효하나원기록은원인등다른단어로거절되어품질해결이아니다. verified-summary.json에모델거절/소문timeout을보존했다. R37은기록의검증되지않는최소32자이야기요구만없애짧은사실문장을허용한다. 원사실/최대길이검사는유지한다.
+
+기술생성은noOutcomes초기창작에만후보별모델선택을먼저모으고그선택의설명을이어쓴다. 선택마다전체원공개사실과이전모델결정을유지하고설명마다현재효과/문맥/이전이름을유지한다. 모듈선택-근거-최종schema/기한/원답은불변이며모델호출수도같다. 긴선택접두의반복prefill을줄이는가설로실제시간/캐시/문장을비교한다. 소스동결후컴파일과R80 full을실행하며Goalactive.
+
+# 현재 r36 기록 숫자 경계 수정과 실제 재시험
+
+R35 full은 176핀 무변경, 실제 시설 진화와 사용영수증, 공식 저장복원과 자동 침입전투까지 종결했다. unityErrors0이나 SocialRumor 시간초과1 및 원기록 거절이 있어 RUNTIME_COMPLETED_WITH_MODEL_REJECTIONS이며 전체 품질 PASS가 아니다. profiles-polish-r35-r1/verified-summary.json을 보존한다.
+
+R36은 원숫자의 일부만 새숫자로 허용하던 비교를 전체 숫자토큰 일치로 강화하고, 그 원숫자에 붙은 이다/이며/이고만 어휘 검사에서 인식한다. 원문 구절과 허위 결과 검사는 유지한다. 기록 작성은 원사건을 한 번 직접 서술하도록 입력만 보완하며 원답 수선은 하지 않는다. 소스 편집 종료 후 현재 컴파일/26표적회귀와 실제 R80 full을 실행한다. Goalactive.
+
+# 현재 r35 원래 기술 문맥 참조 복원 후 실제시험
+
+3slot r34는일부서비스단축에도대기47.38초등역효과로미채택/기존4slot복원했다. 원기록대기1정책/26회귀/실제기록접수는유효하다. R34시설응답은성공했으나지원하지않는EnteringDungeon중저장guard로exit1이었다. 시험stage5는기존방문객지원경계와최대60초대기를재사용해기다리며원serializer검사를유지한다.
+
+초기기술prose는C#의X열을이름없이배열로전달하고primary_P=0만전달하여실제P규칙이빠졌었다. r35는동일원문열과P참조를mechanics/context/primaryContract로기계적으로복원해주체-수신자-주효과지시를분리한다. 선택/근거/grammar/원답조립코드동일이며원평가문장을예문으로쓰지않는다. 62Python회귀/176핀 frozen-polish-r35-r1. 다음 profiles-polish-r35-r1의현재소스실제full을이어간다. 목표전체미완료/소스동결/원단일R80와모든증거보존.
+
+# 현재 r34 세 통로 설정 실제 비교
+
+r33 기록대기수정은현재컴파일26회귀PASS후실제기록3응답을접수해full시험이stage4를진행했다. 첫모델문장의사실검사거절과원문표시는그대로보존한다. 이후시설이용중진화금지에걸려r33-r1은exit1이었다. 생산guard는정상이며시험은원30초actor접수예산내에서현재이용종료를기다리고같은후보를재검사하도록수정했다.
+
+현재r34는R33생산source동일/이후Editor시험wait수정과실행설정parallel4→3만비교한다. bulk2→1/말풍선-짧은응답각전용/총문맥30720/기한과우선순위동일/원R80byte동일이며품질채택전이다. r34-three-lanes-r1/configuration.json/61Python회귀PASS/frozen-polish-r34-r1 176핀. 다음 profiles-polish-r34-r1을현재격리경로1회실행한다. 기존 full기준/원답보존/Goalactive이며시설표적PASS로전체를대체하지않는다.
+
+# 현재 r32 시설 단일 생성 실제 검증 종료
+
+facility-polish-r32-r1 exec90102/Unity94788은exit0/자기Unity-native0으로종결했다. verified-summary.json에서176핀 drift0/시설원10초내service6.340874초/queue21.984802초/전체28.325676초를확인했다. 여섯필드전체native출력=RawModelContent=Content byte동일/수선0이며단일값caller에만새경로를적용한다. 실제효과적용/사용영수증/공식저장복원/자동침입공격과피해/오류0/주입0 PASS다. 전체profile통과/Goal완료아니다.
+
+남은작업은초기창작기술의잘못된문장과일부이름,다후보기술생성/대기지연,CharacterRecord미접수후full시험정체다. 다음은이생산경로와대기열부하원인을좁혀실제재시험한다. 관련생산C#이동일한대형원저장11.625초/초기main1.268초/복원8.960초는유효하며이번작은시설save2.203초로대체하지않는다. 현재소스frozen-polish-r32-r3/176핀/60Python회귀/명령0/Goalactive다.
+
+# 현재 r32 시설 전용 실제 시험 진행
+
+현재 facility-polish-r32-r1 exec90102/launcher88152/Unity94788, frozen-polish-r32-r3 176핀이다. 같은handle에서현재C#컴파일/실제시설6필드단일생성-원10초/공식저장복원/침입전투를이어간다. 전체profiles-r32는기록요청미접수로stage4중단되어operator-stop원인과원답을보존했고자기job만종료했다. 새전용모드는기존시설/저장/전투본문을fresh세계에서재사용하며옛source핀을완화하거나전체profile통과를승계하지않는다. 원R80/원모델/증거/기한/효과검사유지/Goalactive.
+
+# 현재 r32 단일값 시설 요청의 중복 생성 제거
+
+r31-r2 실제시험은시설원10초timeout/기술6건8.25~36.18초로전체FAIL이다. 첫동일기술prose936→655token/잘림0을확인했지만이름문장어색함이남아품질PASS아니다. 시설현재요청은원caller스키마의효과/근거/상관ID가각각단일값이며부담은빈값으로고정되어있었다. r32는이계약에만동일모델1회로여섯응답필드전체를직접생성한다. 코드의의미선택/완료원답보충0이며원문6필드/숫자금지/32-180자/원10초/원C#적용검사를유지한다. 복수선택/근거/부담자유도가있으면원래경로다.
+
+현재 frozen-polish-r32-r2 176핀/60Python검사PASS. 원공개schema의pattern과범위만통제IDfixture로보존해고정필드변조/길이/숫자거절/복수선택배제를확인했다. 첫fixture는역사적static schema의다른pattern이어서명시거절됐고실제C#공개schema로교정했다. 다음profiles-polish-r32-r1현재실제시험만이어간다. 원단일R80/모든모델/원답/실패보존/새학습0/Goalactive.
+
+# 현재 r31 기술 설명 입력 간소화 후 실제 시험
+
+r30 ngram 시험은 Unity exit0이나 소문1건 원8초 시간초과로 전체미달이며 기술서비스8.88~33.30초로 일관된 개선이 없어 미채택이다. trial-summary.json에 원응답/시간/175핀동일과 활성독립증명없음을 보존했다. 시설은9.58초 성공이나 전체속도PASS는아니다.
+
+r31은 같은 단일R80의 생성전 문장지시를 정리하고 기술 prose에3회 중복된 효과 원문을 selectedModules 한곳으로 모았다. 모든 모듈 속성/실제선택/근거/대상/조건/수치용어/원schema는 유지한다. 선택/grammar/검사/원답조립 AST동일, output수선0이다. canonical Tools/AI와 배포bridge byte동일/manifest 갱신, frozen-polish-r31-r1 175핀/실제bundle Python56검사PASS다. 초기검사는 system Python 의존성부재 및 잘못된 Tools-relative recipe 경로/배포전 불일치로 실패해 원로그를 보존했고 실제bundle을 먼저 import해 수정했다. 사용자환경 설치/검사완화0.
+
+다음 profiles-polish-r31-r1을 같은 격리경로에서1회실행해 실제 문장/습득/시설/기술시간/상태적용과 원기한을 확인한다. r30 저장11.625초와 선호보존/원저장복원/26회귀는관련C#무변경으로유효하다. 활성Goal전체미달/원모델-원답-실패보존/새학습0.
+
+# 현재 같은 r30 소스의 ngram 실행 속도 시험 진행 중
+
+r30 저장11.625초/원선호보존/게임시간0/UI87frame계속/복원8.960초/26회귀/175핀은유효하다. profiles-polish-r30-r1은실제28응답성공(기술6/습득3/장비1/Persona1등)과취소1뒤시설1건TimedOut으로exit1이다. 시설queue23.8256초+service10.0053초/총33.8309초, 원10초기한을유지했다. native selection/prose입력과원HTTP/토큰을native-facility-failure로전건SHA동일보존했다. failure-analysis.json/local-language-review.md는LOCAL평가로TRAIN/업로드0이다.
+
+실제이름에쉼표-evid조각/placeholder/+연결접미가남고한문장은목적격이겹쳤다. 원답수선/성공만선별/자연스러움PASS0이다. 단일8B와모든원본유지/자기Unity-llama0. 다음속도시험은현재실행기가--spec-type ngram-simple 및LLAMA_ARG_SPEC_TYPE을지원함을실제--help로확인했으므로같은R80이검증하는반복구간추론가속을환경설정으로한번시험한다. 추가draft모델/timeout완화/의미선택변경0이며모든C#175핀은동일하다. 새profiles-polish-r30-ngram-r1 exec53198/launcher82684를한번실행했고experiment-configuration.json에서원175핀동일/임시환경만변경을검증했다. 이현재실행종료전코드편집/새Unity/새모델학습0이다. 활성Goal전체미달/기본R80runtime설정채택전이다.
+
+# 현재 r26 r2 소스 동결, 전체 Unity 검증은 대기
+
+frozen-polish-r26-r2.json의158핀은현재SOURCE FROZEN이다. 분할capture/작업별read session/단일slot쓰기/실제완료표시/로드-delete-씬전환경합보호/종료drain과명시적receipt GC Deferred를구현했다. r26-scheduled-save-contract-r1에현재상태와원before를보존했다. r1시점Foundation/Infrastructure/Assembly-CSharp의직접Roslyn컴파일은통과했고전체Editor컴파일은RAM보호중단으로미완료다. 변경된새두Editor파일은별도로컴파일했고 read-session 및Deferred경계 두실행검사는통과했다. 뒤이은r2는씬전환공유gate/등록/표적회귀를추가해동결했으며아직현재r2컴파일/23fixture/실제분할저장Play통과는아니다.
+
+Unity/IsolatedUnityLauncher0이며모델학습과RAM경합없이같은격리경로에서다음현재컴파일과실제30MB스케줄저장프로파일을진행한다. 직접C#컴파일및단순PS실행harness의실패는roslyn-current-r1/roslyn-editor-subset-r1-r2/pure-boundary-test-r2.json과원source/스크립트로구분보존했다. 기준완화0/원r25실제17.71초는역사적결과다. 별도모델/저장공간권위는NarrativeAI 루트다. 아래는역사기록이다.
+
+# 현재 r25 - 현재22회귀/동일저장 복원 통과, 전체17.71초로 지연미해결
+
+frozen-polish-r25-r1 142핀/compile-polish-r21 현재22fixture PASS를확인했다. 새generic bool shape조회는private snapshot의가변참조를노출하지않고전체typed검사/원필수root상태/오류순서를유지한다. 실제빈retail경로는ledger 추가copy를생략하며기존pending수집/canonical 검증body는exact다. 실제retail ACK전후복원/없는canonical/변조proof 회귀도통과했다. 최초compile-polish-r20은현재C#build와일부회귀뒤RAM1071661056B<원1073741824B 보호선으로자기job만중단돼FAIL로보존했다. 모든자기process종료후동일source새compile-r21을검증했으며guard완화/사용자앱종료0이다.
+
+save-profile-r25-r1 실제동일원30,026,407B/SHA5d020073의공식capture/파일write/restore가exit0/17.7077925초/27인물24완료소개/저작수치/런타임오류0/주입0이다. 최종31,419,161B SHAce2ddb20을독립확인했다. 같은r24 16.4326초보다느리므로전체속도개선/지연해결로보고하지않는다. trace에서Retail restore검사.4317→.2385초이나capture검사는.2585→.4153초로길었고전체capture preflight는4.245초다. 단일콜의copy감소와전체성능을구분한다. r25-empty-retail-shape-r1/current-source-verification.json/phase-analysis-r1.json 참조.
+
+SOURCE_EDIT/UNITY_VERIFY를종료했고소스FROZEN이다. batch마감지식인덱스1회갱신을진행한다. 다음은저장처리가한프레임에서모두끝나야하는현행동기계약을실제호출자/종료시flush/동시저장-불러오기/취소와실패원자경계를포함해검토하는것이다. 현재async/staged save구현이나새성능은아직없다. 기본R80/모든원본모델/저장/실패보존/Goalactive다. 별도모델자원대기와학습권위는NarrativeAI루트며사용자앱종료0이다. 아래는역사기록이다.
+
+# 현재 r25 - 빈 구매 관측 검사 복사 생략 구현 동결, 현재 격리 컴파일 진행
+
+기본R80/모든원본/기존실패는보존한다. 메인EDIT_READY/UnityEditor0/명령0 확인후 DungeonSaveJson.HasNonNullRootFields와 Retail preflight만한정변경했다. 같은작업scope의private typed snapshot에서bool만읽으며mutableDTO/리스트참조를외부로반환하지않는다. 처음읽는원문은원Deserialize 전체형변환/문서끝검사를거치며실패는memo하지않는다. ledger/counter의필수section/version/원nullable root 상태와오류순서를검사한후pending이비었을때만추가ledger복사를생략한다.
+
+r25-empty-retail-shape-r1/before와source-change.json에원소스를보존했고 실제pending 수집과canonical 검증 body가원문동일임을대조했다. 새fixture는빈scopecopy수/형변환실패/필수배열null/오류순서/중복root/잘못된sectionversion/실제원retail ACK경계와변조proof를검사한다. frozen-polish-r25-r1 142핀/READY FROZEN뒤 compile-polish-r20/session12636 한건을실행했다. 현재noninteractive Service station/별도desktop/UI제한255/visiblefalse/fallbackfalse와C#컴파일진행을확인했으며전체PASS는아직아니다. 종료확인전소스수정/다른Unity0이다.
+
+컴파일/회귀통과후같은원30,026,407B/SHA5d020073 저장으로실제프로파일을재시험한다. 전체저장시간개선/게임thread 차단해결은아직증명전이다. 새모델자원대기와학습은NarrativeAI루트권위이며사용자앱종료0/Goalactive다. 아래는역사기록이다.
+
+# 현재 - r24 현재 21회귀와 같은 원저장 복원 통과, 전체 시간 개선은 미확정
+
+frozen-polish-r24-r1의 139핀과 compile-polish-r19 현재 21fixture PASS를 확인했다. strict scalar 읽기는 정상 원문 전체를 끝까지 검사하며 필요한 root 값만 보유한다. 중복키, 특수 구문과 손상 입력은 원래 strict DOM 검사로 같은 오류를 내고 실패는 memo하지 않는다. 원래 예외의 종류, 문구, 위치와 mutable snapshot 분리는 유지한다.
+
+save-profile-r24-r1은 같은 30,026,407B 원본/SHA5d020073의 공식 저장과 복원을 16.4326초에 완료했다. 원문 streaming 2회/DOM 0회/같은 scope memo 1회를 실제 관측했고 27인물/24소개/저작수치/오류0/주입0을 보존했다. capture-preflight 3.267초와 restore-preflight 3.424초로 줄었지만 전체는 직전16.0961초보다 느리므로 전체 속도 개선이나 지연 해결로 보고하지 않는다. 게임 thread 차단도 남는다.
+
+메인 편집과 검증 창 종료/자기 Unity-model-launcher0/앱 종료0이다. r24-strict-scalar-stream-r1/current-source-verification.json에 현재 소스와 원본을 결속했다. 다음은 전체 DTO 복사와 원장 검사 중 줄일 수 있는 구체 경계를 좁힌다. 별도 R83 자원 제한과 학습 권위는 NarrativeAI 루트에 기록한다. 기본 R80 보존/Goal active. 아래 내용은 역사 기록이다.
+
+# 현재 - r23 현재20회귀/동일 대형 저장복원 통과, 실제16.10초와 남은 지연
+
+현재 frozen-polish-r23-r1의137핀/compile-polish-r18 현재20fixture/격리probe/exit0을 확인했다. save-profile-r23-r1은같은원30MB/SHA5d020073의공식roundtrip16.0960797초/Unity오류0/주입0으로끝났고27인물/24완료소개/저작수치보존이다. r21동일source19.0198197초와r22 16.8400845초를함께기록했으며단일실행의환경변동을배제한인과/전체속도보장은주장하지않는다. 게임thread차단true/지연해결false다.
+
+메인SOURCE_EDIT/UNITY_VERIFY는종료했고자기Unity/model/launcher0/사용자앱종료0이다. 같은호출의이미엄격검사한character DOM만재사용하며public검사계약/중복키/오류순서/모든shape거절은유지한다. batch마감인덱스를1회갱신했고두artifact fresh검증/failure0을확인했다. 완료후메타데이터작성오류의외부exit1은별도보존하고재생성하지않았다. 기존trace에서현재파일쓰기완료까지6.771초/이후복원구간약9.288초를구분했다. 다음큰병목을계속확인한다. 문장R83은실제start했으나A100부재/T4배정으로학습전원증거회수와자기해제를완료했다. 상세권위는NarrativeAI루트이며기본R80은그대로다. Goalactive. 아래현재는역사기록이다.
+
+# 현재 - r23 현재20회귀 통과, 같은 대형 저장 프로파일 실행 중
+
+frozen-polish-r23-r1의137핀과 compile-polish-r18 현재20fixture/exit0을 확인했다. CharacterWorldSaveSection의 public검사계약/중복키/오류순서/모든shape검사는보존하고같은호출안에서retail엄격파싱root를actors/profiles에도쓴다. 별도scope나호출간공유는없다. source-change.json/원before를보존했다.
+
+메인 UNITY_VERIFY/모든source FROZEN. save-profile-r23-r1 session93843을한번실행했고끝나기전수정/다른Unity를시작하지않는다. 기존r22동일source16.8401초는유효하지만r23속도결과는아직이다. 별도R83은A100부재/T4배정으로학습전해제했으며상세권위는NarrativeAI루트다. Goalactive. 아래현재는역사기록이다.
+
+# 현재 - r22 현재 컴파일과 동일 대형 저장복원 통과, 19.02초에서16.84초로 감소
+
+현재 frozen-polish-r22-r1의136핀은 compile-polish-r17의20fixture를 통과했다. 소유 character DTO70타입/672필드의 exact read copy는 null/불량값/별도 mutable참조/작업scope/손상입력 재시도를 보존한다. save-profile-r22-r1은 같은 원30,026,407B/SHA5d020073의 공식복원과 재저장/재복원을16.8400845초/Unity오류0/주입0으로 완료했고27인물/24소개/저작수치를 보존했다. 직전r21동일source19.0198197초 대비 단일실측11.46% 감소이나 게임thread차단true/지연해결false다. 파일쓰기.019초보다 검증과stage가 여전히 크다.
+
+자기Unity/model/launcher종료/UNITY_VERIFY종료/소스FROZEN이다. 다음은 남은 반복raw JSON 검사 비용을 좁힌 뒤 필요한 한정 수정, 별도NarrativeAI의 판단유지 언어보완을 계속한다. 기본R80/모든원본과실패는 보존, 앱종료0/포커스간섭0/Goalactive. 아래현재는 역사기록이다.
+
+# 현재 - r21 현재컴파일/19회귀/공식대형저장복원 통과, 지연은 남아 r22 조사
+
+현재 frozen-polish-r21-r1의132핀은 compile-polish-r16에서19fixture PASS다. 자기로컬모델종료 뒤 단독 save-profile-r21-r1은 공식원저장 복원/새저장/재복원 exit0/Unity오류0/주입0을 통과했다. actual19.0198197초/게임thread차단true라 지연해결로 보고하지 않는다. trace상capture-preflight5.023초/restore-preflight4.183초, 파일쓰기.019초이고 AbilityWork부재로그는0이다. 원30MB저장/모델/모든실패를 보존했다. 외부shell이 PowerShell함수의 null LASTEXITCODE를오류로판정한 exit1은원Unity exit0과구분해 current-source-verification.json에명시했다.
+
+다음 r22는 같은큰 characters.world를 여러검사에서 반복DTO화하는 비용을 줄이는 소유DTO의 exact null-preserving read snapshot이다. 현재클론들은 trim/null제거/기본값보정이 있어 재사용하지 않는다. 새코드/20번째fixture/새소스실행은아직없고 기존r21이현재생산소스다. 메인이복잡한복사/검증을 담당하며 읽기전용담당은QA필드그래프만 작성한다. SOURCE_EDIT/UNITY_VERIFY는종료상태이며 다음편집전 EDIT_READY를새로확인한다. Goalactive.
+
+게임은 여전히 원R80을 사용한다. 별도모델 후보R82는미채택으로분리보존됐고 이번자기Colab세션은해제됐다. 그모델평가와차기학습의 상세권위는 NarrativeAI 루트다. 아래현재는역사기록이다.
+
+# 현재 - r21 선택적 능력조회 수정 동결, 메모리 보호중단 후 단독 검증 대기
+
+메인 EDIT_READY/자기Unity0 뒤 CharacterWorldSaveService의 복원 전 선택적 AbilityWork 조회 한 문장만 GetAbility→TryGetAbility로 바꿨다. 필수staff/저장work권한이 있는데 능력이 없는 두오류 검사는 그대로다. r21-optional-work-query-r1/before 원문 및 source-change.json/frozen-polish-r21-r1의132핀 동결. compile-polish-r15는 실제C# Tundra build success/assemblyreload 뒤 물리여유1042411520B<원1073741824B 보호선으로 자기격리job만 중단/exit1이며19fixture완료PASS가 아니다. 사용자앱종료/기준완화0. 로컬 보조모델평가가 끝난 뒤 동일현재소스로 단독 격리컴파일과 기존 공식save profile을 수행한다. 새소스 실제게임 성공은 아직이다.
+
+기존 r20의 실제30분/6복원/36특성완료/오류0과 원R80은 보존한다. 별도NarrativeAI의R82는 실제학습/두weights검증/원12완료 후 같은VM 고정288 진행중, 소개64의명백한비문/허위사실로 기본모델채택0이다. 아직목표미달/Goalactive다. 아래현재는 역사기록이다.
+
+# 현재 - r20 실제30분/6복원 통과, 새모델 원본 회수와 문장평가 대기
+
+soak-polish-r10 session46207 terminalexit0/actual1801.9447455초/공식6복원/Unity오류0/주입0이다. 실제자동Trait동시최대1을관측했고36완료/완료거절0이다. 현재19fixture/132핀은그대로다. analysis-final-soak-r10.json/verification-final-soak-r10.json에전체성공/실패/취소/만료와원save를보존했다. 기존원본/모델/원답/실패를고치지않았다.
+
+같은실제30분에서 기술성공43의중앙end-to-end29.438초/service16.001초, 이전r9중앙32.757초/service15.350초다. P95는62.947초로이전48.099초보다길어모든요청개선을주장하지않는다. Trait성공35/실제완료36(기동포함), Bubble210성공/10실패/4취소/6만료, 전체Failed39다. 최종24MB/27인물/소개24보존의SaveRestore17.606초이며즉시저장이아니다. 다른게임궤적과일부R82원본다운로드중첩을명시해인과격리비교로쓰지않는다.
+
+생산은r20 profile한도를유지하고nativecache256/R80가중치/검사/원timeout을유지한다. 자기Unity/model/launcher종료를확인한뒤후속소스편집창을열며새후보검증전무조건교체0이다. R82는별도NarrativeAI에서실제144/4608/공식Q4를strict회수했고 export상수오류는원실패를보존한채재학습없이복구했다. 현재모델38원조각을다운로드중이며전체SHA/원평가/실제문장검토후후보를판정한다. 문장문제와느린꼬리응답이남아Goalactive다. 아래현재는역사기록이다.
+
+# 현재 - r20 자동특성 동시 한도 수정 동결, 현재 컴파일 중
+
+r19 실제 status-006에서 자동Trait 두건이 BG두자리를 차지하고 기술2건이11.8초 대기하는 원증거를 확인했다. EDIT_READY/자기Unity-model-launcher0 뒤 메인 SOURCE_EDIT에서 immutable request profile의 DedicatedConcurrencyLimit과 기존 dedicated scheduler 검사만 추가했다. 실제 AcquiredTraitModuleSelection은1, 다른기존profile은0으로 기존lane한도를 따른다. 구형scheduler/두자리기술/말풍선/일반응답/모델입력/검사/timeout/expiry는 바꾸지 않는다. 취소중 요청도 Finish전까지 해당한도를 계속 소유한다.
+
+현재 READY/FROZEN/frozen-polish-r20-r2,132핀. 기존 Responsive fixture에 profile복사/음수거절/대기Trait보존/기술과별도lane/취소한도유지/Finish재개/legacy불변을 추가했다. compile-polish-r13은 새fixture가 분리lane의 시작순서를 잘못 가정해 exit1이며 원로그를 보존했다. 자기프로세스0 확인 뒤 검사용 순서assert만 두정확객체/각자리/5번째금지로 정정했고 생산코드는 그대로다. fixture-failure-r1.json/fixture-first-attempt.cs에 보존, 현재 compile-polish-r14로 재검증한다. 세원본은 역patch 후 r19 rawSHA 전건동일을 요구해 r20-trait-concurrency-r1/before에 보존했다. 첫metadata검사는 CRLF 역치환실패였고 shellfailfast누락으로 컴파일이 먼저 시작돼 metadata-attempt-r1.json에 보존했다. 이미완료동결된소스는 바꾸지 않고 비교용텍스트만 정규화한 뒤 원raw SHA를 검증했다. 재컴파일/기준완화0이다.
+
+compile-polish-r14 terminalexit0/현재19fixture PASS를 확인했다. 현재132핀 동일과 자기이전프로세스0 뒤 soak-polish-r10을1회 실행했고 session46207/launcher30972를 이어서 관측한다. 메인 UNITY_VERIFY/소스FROZEN, 실제지연/특성처리량 판정 전이다. r19 PASS를 새소스 성공으로 승계하지 않는다. Native RAM cache는 미채택256 그대로이며 R82 실제학습은 별도task78에서 계속한다. Goal active. 아래현재표기는역사기록이다.
+
+# 현재 - r19 실제30분/6복원 통과, 문장과 기술 지연은 계속 개선
+
+soak-polish-r9 handle92599 terminal exit0. actual1800.5815206초/3395frame/공식중간5+최종1복원/Unity오류0/주입0. final26159864B/26인물/완료소개24 및 authored 수치 보존,32특성 실제완료/완료거절0을 확인했다. 최종 actor 저장에는31특성이며 완료 수32와 같은 지표로 세지 않는다. 추가 submission거절157은 모두 새 허용이점이 남지 않은 원합법 검사이고 완화0이다. analysis-final-soak-r9.json/verification-final-soak-r9.json에132source동일과R80+129지원 독립해시를 결속했다. 종료 후 자기 Unity/model/launcher0을 확인했다.
+
+성공만의 기술응답 중앙32.76초/순수service15.35초, Trait중앙46.26초/service40.75초, Bubble157성공/29실패/3취소/1만료다. 최종26MB 저장복원19.825초로 즉시 저장이 아니며 새 문장 품질 전체승인도 아니다. 소문과 일부 기술/대사의 어색함은 원답 보존 상태다. Goal active다.
+
+추가 skill-prompt-cache-comparison-r1은 동일R80/네원입력/6호출 순서를 유지한256vs2048MiB 비교다. 긴 prefix재사용은3token에서약3천token으로 늘고 중앙8.14→7.24초였지만2입력의 선택이 달라지고1설명 미완성이 있었다. memory guard발동0/양쪽자기모델종료. 기본256설정이나생산코드는 바꾸지 않았다. comparison.json/원답을보존하고 새 R82 실제품질을 먼저 판단한다. 새 C#수정/불필요Unity재실행0이다.
+
+현재 Unity검증 창은 종료했고 생산소스는 r19 그대로다. 문장 후보 R82는 NarrativeAI의 task78과 실제205246Z worker에서144step 학습 중이며 아직 새weights/품질결과는 아니다. 기본R80/모든이전모델/실패/저장을 보존한다. 메모리 여유약12.5GiB/사용자앱종료0이다. 모델/판단/전체프로토타입 검증 전 Goal완료0, KB 마감은 최종 통합배치 종료시1회다. 아래현재표기는역사기록이다.
+
+# 현재 - r19 공식 실패저장 복원 통과, 실제 연속시험 진행
+
+frozen-polish-r19 132핀과 현재 C#19회귀를 compile-polish-r12에서 통과했다. producer-anchor-recovery-r1은 원 r8 실패저장6f1aa19b를 공식 복원하고 전체 재저장/복원6.245초,13인물/완료소개10/오류0/주입0/exit0을 확인했다. current-source-verification.json으로 모든 기존 특성 전필드와 원출처 보존 및132핀 동일을 검증했다. gameClockPaused=false이며 원30MB 지연측정17.35초와 별도 파일이다.
+
+같은 현재소스의 soak-polish-r9를1회 실행했고 handle92599/launcher92148/Unity95264부터 관측한다. 첫 공식 저장복원7511563B/13인물/완료소개9 보존까지 통과했으며 연속30분과 최종6회는 아직이다. 메인 UNITY_VERIFY, 모든 소스 FROZEN. 사용자 앱 종료0이고 새GPU/다른게임창/포커스 조작0이다. 설명 후보 R82는 별도 NarrativeAI 권위에서 실제 GPU 학습 중이며 게임 기본은 R80이다. Goal active.
+
+아래 현재 표기는 역사 상태다.
+
+# 현재 - r19 producer 근거 분리 수정 동결, 두 번째 원저장 복원 준비
+
+soak-polish-r8은 실제300초 부근 첫복원에서 ambition 전환 outcome42의 current anchor3/initial2 혼동으로 exit1이다. 원파일SHA6f1aa19b/실패/원답 보존, 자기 Unity/model/launcher0 확인 뒤 메인 SOURCE_EDIT에서 남은 같은 유형12descriptor를 모두 확인했다. 7개의 producer-zero 비교는 지정 담당자가6파일에 정확치환했고 source-hash-proof.json으로 main이 검토했다. 나머지5 typed descriptor의 count/hash/owner 읽기는 기존 생산 조건 그대로 ProductionAnchor 접근으로 바꿨고 typed-source-hash-proof-r1.json으로 허용치환만 검증했다. Skill-acquired의 dynamic current-owner loop와 ledger/query mutation은 바꾸지 않는다.
+
+현재 READY/FROZEN/frozen-polish-r19 132핀. 공유 read-view의 draft/current와 sealed/immutable anchor count/identity/owner 및 범위거절 fixture를 추가했다. compile-polish-r12 handle74932/launcher96792에서 현재소스를 컴파일하고 있으며 끝나기 전 새수정/Play를 실행하지 않는다. 통과하면 기존 정확 RequestSkillAnchorRecoveryForBatch entry로 새 원r8파일을 복원한다. 출력은 producer-anchor-recovery-final로 구분한다. 원r7 파일의 이전7.01초/6신규특성 보존 PASS는 유효하지만 새132핀의 전체복원이나30분 PASS로 승계하지 않는다.
+
+단일 새문장 후보 R82의 실제 학습은 별도 NarrativeAI 최신 task78이 권위다. Unity 기본모델은 보존된 R80이며 문장 후보 검증 전 교체하지 않는다. Goal active,30분완료는 아직이다. 아래 현재는 역사 상태다.
+
+# 현재 - 특성 실제 적용과 실패 원저장 복원 성공, 연속시험 재개 예정
+
+메인 READY/FROZEN/frozen-polish-r18 121핀. compile-polish-r11 현재19회귀 PASS/격리 probe/exit0, 새 소스에서 바뀐 마지막 C#은 QA의 고정 paused 표기를 실제 controller 값으로 바꾸는 한 줄뿐이다. gameplay 수정은 동일하다. native 정확 recovery entry의 guard/selftest/probe도 통과했다. 부분 r7은 Arin과 레오 2에 신규 특성을 실제 적용했으나 첫 공식복원에서 skill-acquired의 고정4생산근거/현재5유지근거 혼동으로 exit1이다. 원저장1b669dab와 원실패를 보존했다.
+
+생산 shape/hash/owner는 봉인 전 current와 봉인 후 immutable initial에 정확 결속하고 current 근거는 별도 owner 검사를 유지했다. skill-anchor-recovery-r2에서 같은 원저장의 공식복원과 새9050184B 저장복원7.0111428초/15인물/완료소개10/Unity오류0/주입0/exit0을 확인했다. 신규 v1 특성6개가 출처/효과/원문 전필드 동일하게 보존됐고 숫자 이름도 포함한다. 원30MB r13 측정17.35초와 다른 파일이며 즉시 저장으로 주장하지 않는다.30분 연속 완료는 아직 아니다. 현재 자기 Unity/model0/여유12.72GiB/사용자 앱 종료0이다. 자기 이전프로세스0과 전핀 동일을 재확인한 뒤 현재 r18의 새 soak-polish-r8을1회 실행했다. 현재 handle29313/launcher70008부터 관측하며 중복 실행하지 않는다. 새30분 완료는 아직이다.
+
+문장 후보 R81은 미채택/기본 R80 유지다. 새 R82 TRAIN은 별도 NarrativeAI task78에서 원자료의 명시적 문장 오류128개를 고치고4서술형태를 보완하며 CPU 검사 중이다. 평가자료 재학습/새품질 PASS는 아니다. Goal active. 아래 현재 표기는 역사 기록이다.
+
+# 현재 - 원근거 변경 시 특성 요청 정리와 재생성 검증
+
+메인 READY/FROZEN, frozen-polish-r14 120핀. 자기 Unity/model0을 확인했다. R13 원30MB 공식 저장복원은17.3517221초/27인물/완료소개24 보존/exit0이다. 부분 soak-r6에서 첫 공식저장복원8537107B는 통과했지만 Arin의 고정근거 salience0.599999964와 현재0.667999983 차이로 원 exact-binding 검사가 반복 거절됐다. 원요청/응답/실패/부분저장을 보존하고 자기 격리 런처만 종료했다.30분완료로 세지 않는다.
+
+새 수정은 progression 소유 명령으로 오래된 pending만 폐기하고 다음 정상 평가에서 새 공개 context로 재요청한다. milestone/효과/원장 소비는 없으며 exact 검사나 원답을 바꾸지 않는다. 새 사실만 추가된 경우에는 기존 요청을 유지한다. 통제 fixture는 실제 query/ledger의 anchor 변경, stale revision 무변경, Tick와 callback 두 경로, 늦은 답 무시 및 JSON 보존을 검사한다. 현재 새소스 컴파일/실제게임은 아직 미검증이다.
+
+# 현재 - R13 구저장 출처 호환 검사 통과, 원30MB 실제 복원 재시험
+
+메인 UNITY_VERIFY/frozen-polish-r13 120핀. compile-polish-r8 현재소스/17fixture/새raw shape호환-변조검사/비대화형 OS probe/exit0를 확인했다. 자기 이전 Unity 종료 뒤 save-profile-r8을1회 실행했고 같은handle부터 관측한다. save-profile-r7은 원파일에 새optional presentationOrigin이 없다는 엄격 shape 거절로 exit1, 원실패/원30MB/trace/Unity오류0을 그대로 보존했다. 새필드 타입의 absent/null과 데이터 없는 v0만 legacy로 허용하고 v1 필수필드 및 다른 원필드/중복키 검사는 유지했다. fixture에 실제구형 publication/새정상출처/잘못된타입/부분v1/위조v0/다른필드누락을 추가했다. 기존 저장이나 원응답을 고치지 않았다.
+
+현재 새120핀의 실제 저장 시간과 게임 특성 최종 적용은 아직 검증 중이다. R81 새후보는 모든실제평가 후 판단97/104와 소개64결함으로 미채택/자기GPU해제/LOCAL모델0, 기본 R80 보존이다. 언어 TRAIN의 좁은 골격과 일부목표 오류는 다음새자료 버전의 수정 대상으로만 기록했고 평가자료를 학습하지 않는다. Goal active다.
+
+# 현재 - 저장 strict scalar 재사용과 특성 이름 출처 수정 동결
+
+메인 READY/FROZEN/frozen-polish-r12 119핀. 기존118핀에 실제 변경한 GameWorldLineageSaveSection을 추가했다. 같은 작업/정확한 JSON 참조/필드명에만 strict JObject 결과의 불변 문자열을 재사용한다. 중첩 중복키 검사를 포함한 원파서와 원예외/캐스트/누락/수치/null 동작은 유지하고 실패는 memo에 넣지 않는다. 기존 read-scope fixture에 타입/중복/객체참조/중첩 scope/새작업 격리를 추가했다. 실제 지연 개선은 아직 미측정이다.
+
+숫자 이름 최종 trait 적용은 생성 당시 공개 출처 보존과 request identity 재검증으로 수정했으며 다른 숫자/효과 검사는 유지한다. 원실패 checkpoint는 읽기 전용 fixture다. 새 C# 컴파일/실제 적용/원30MB 저장복원 재측정은 LOCAL 모델 평가 종료 후 같은 격리 경로에서 순차 실행한다. 현재 자기 Unity0/사용자 앱 종료0이다. 원격R81 고정288은 완료해 원본 회수 중이며 후보 소개64 실패로 게임 기본 모델은 R80을 유지한다. Goal active다.
+
+# 현재 - 특성 최종 이름 출처 수정 동결, 실제 후보 평가 중
+
+메인 READY/FROZEN/frozen-polish-r11 118핀이다. 자기 Unity0 확인 후 숫자 이름의 최종 formula validator 중복 거절을 수정했다. 새 완료 trait는 원 pending의 공개 snapshot/owner/revision/evidence 목록을 깊은 복사로 보존하고 기존 request identity로 재검증한다. 정확한 생성 당시 이름만 숫자 예외이며 다른 숫자/기계수치/길이 검사는 유지한다. 구형 출처 없음은 원 금지를 유지하고 알 수 없는 출처는 거절한다. 개명/clone/JSON/원출처 변조 표적 검사를 기존 numeric fixture에 추가했다. 현재 C# 컴파일 전이므로 PASS를 주장하지 않는다. 다른 실제 거절의 상세 원인 수집은 QA 진단 구독으로 연결했다.
+
+R81 학습/공식Q4/원본 전체 회수/원12 strict는 실제 완료했지만 새 Persona64에 명확 결함16이 남아 후보 미채택이다. 같은 Colab 고정288과 LOCAL 다른64/생산자4의 평가를 이어가며 게임 기본 R80과 원자료를 보존한다. 다음은 LOCAL 모델 종료 후 격리 컴파일 및 실제 게임에서 숫자 이름 최종 적용/다른 거절 원인을 확인한다. Goal active다.
+
+# 현재 - 초기 기술 설명의 선택 범위 분리 검증
+
+메인 READY/FROZEN, frozen-polish-r10 118핀/Python54PASS다. C# 전핀은 compile-polish-r6 현재17PASS와 같아 재컴파일을 반복하지 않았다. 초기 기술은 같은 R80의 실제 선택을 먼저 완료하고 그 선택 효과와 현재 공식 대상만 설명 입력으로 넘긴다. 원 공개사실은 선택 입력에 전부 유지하며 설명 입력에는 미선택 후보와 앞 후보 설명을 넣지 않는다. 코드가 효과를 고르거나 원답을 고치지 않는다. 4개 원 게임 입력의 실제 경로 비교는 authored-path-comparison-r1/selected-prose-verification-r1.json이다. 기존3호출 중앙6.27초/새6호출7.90초로 조금 느려졌으나 회복/피해감소/아군/자신 혼합이 관측되지 않았다. 최초 게임 중앙26.52초와 통제 실행은 구분하고 최종게임 속도는 아직이다. 일부 문장형 기술 이름은 작은 한계로 남긴다. 추가 이름 지시 r2는 문장 파손을 만들어 미채택, 원출력/시험소스를 보존하고 정확한 r1으로 복원했다. 자기 Unity/진단 모델0, 같은 Colab R81 학습을 계속한다. 새 가중치 검증과 최종30분 게임은 미완료/Goal active다.
+
+# 이전 - 특성 설명 연결 검증, 단일 모델 소개문 후보 학습 계속
+
+frozen-polish-r9 118핀, compile-polish-r6 현재17회귀 PASS/격리창 probe PASS/exit0이다. 실제 CharacterSummaryGrowthPresenter는 formula 특성의 원 narrativeFlavor를 표시하고 legacy 설명은 보존한다. raw 근거 ID와 내부 효과식은 플레이어 요약에서만 숨기고 원본 상태/검사는 유지한다. summary-display-verification-r1.json이 컴파일 증거다. actual-trait-application-partial-r5.json은 부분 저장의 신규 특성2개가 원응답/owner/revision/원 Ordinal 근거 정렬과 일치함을 확인했다. R81이나 최종30분 완료 증거가 아니다. 자기 Unity/model0, 같은 Colab R81 학습은 계속 진행하며 새 모델 검증 전 게임 가중치 교체0/Goal active다.
+
+# 이전 - 게임 소스 보존, 단일 모델 소개문 후속 후보 학습 중
+
+Unity 소스는 frozen-polish-r8 116핀, C# compile-polish-r5의 현재16회귀/Python52PASS 상태로 유지한다. 자기 Unity/model0, 새 Unity 실행과 게임 모델 교체는 없다. 소개문 추가 focus 추론은 미채택해 되돌렸고 원모델/원답/실패는 보존했다. 문장 보완용 새 단일8B 후보의 데이터/학습/평가는 NarrativeAI의 최신 task77/HANDOFF가 B2~B5 권위이며 현재 agent가 새R81 start/train을 각각1회 실행해 같은학습을 진행한다. 새 검증전 모델을 게임에 넣지 않는다. Unity의 저장/특성/기술 개선 및 최종 실제 연속 재시험 완료 조건은 이 저장소 task_plan을 그대로 유지하고 Goal active다.
+
+# 이전 - 메모리 제한 해소, Persona 추가 추론 실험 미채택
+
+사용자 최신 질문은 "지금도 부족해?"다. 다른 앱을 닫지 않고 soak-polish-r5 실제 실행 중 여유 RAM 6.38GiB, 자기 시험 종료 후 14.18GiB를 확인했다. Discord/Firefox/사용자 게임/Editor 종료 승인은 없으며 건드리지 않았다. r5 첫 공식 checkpoint는 9189442B/15인물/완료Persona11과 원메커니즘을 복원했지만 원 소개문에 명백한 어색함이 남았다. own launcher55000만 확인해 중단했고 원문/정지receipt/analysis-partial-soak-r5.json을 보존했다. 30분 통과가 아니다.
+
+같은 R80 원문과 설정에서 native 문법 유무, 짧은 지시, 별도 가상 문체 예시를 실제 비교했다. persona-native-diagnostic-r1/r2/r3에 원HTTP와 실패까지 보존했다. 문법을 빼도 어색함과 스키마 오류가 남았으며 짧은 지시나 예시도 일관된 개선을 보이지 않았다. 단일 원인이나 새 품질 PASS로 주장하지 않는다. 단일 사실을 먼저 고르는 추가 추론은 미채택하고 persona-focus-unaccepted-r1에 소스/테스트를 보존한 뒤 bridge를 frozen-r6 원바이트로 복원했다. 현재 frozen-polish-r8.json116핀, Python52PASS, C#는 compile-polish-r5 현재16회귀와 동일하다. 자기 Unity/model0, 메인 READY/FROZEN, 새 Unity 실행은 없다.
+
+저장/특성/기술 수정은 유지한다. 소개문 문제를 지시만 반복해 해결됐다고 하지 않는다. NarrativeAI에서는 최신 R80 학습 출처와 TRAIN-only 작성자를 읽기 전용 확인했으며 새 학습/자료/패키지/Colab 실행/가중치 변경은 아직 없다. 학습 작업을 실제 시작할 때는 그 저장소 지침과 전체 HANDOFF를 따로 확인하고 B2~B5만 그 저장소에 기록한다. Unity 상태 기록은 여기가 권위다. Goal active, 문장 보완과 현재 최종 소스의 실제 연속 재시험 및 마감 검증은 미완료다.
+
+# 이전 - R80 Persona 공개 사실 선택 후 문장 생성 실제시험
+
+soak-polish-r4도첫5분공식복원PASS이지만새소개문언어가충분히자연스럽지않아ownlauncher47900만확인후중단/원문보존했다. 현재단일R80로전체공개입력을읽고원순서의모든fact index중하나를모델이직접선택한뒤그원record전체를근거로한번소개문을쓴다. 코드의사실순위/의미선택/원답수선/다른checkpoint0. 고른사실scope는원기록필드전부보존하고공식publicsubject이름을쓴다. originalfinal2필드스키마/메커니즘/timeout30초불변. plainlegacy입력은기존직접경로를보존한명시표현분기이며실패폴백이아니다. CPU55PASS및직전실제Persona입력전체focus material사전검증PASS,실제문장개선은미확인이다. C#원핀은compile-polish-r5현재16PASS와동일/추가컴파일반복0. frozen-polish-r7.json116핀FROZEN/메인UNITY_VERIFY, 새soak-polish-r5를1회실행한다. Goalactive/전체완료아님.
+
+# 현재 - 읽기 쉬운 공개 입력으로 R80 soak-polish-r4 재시험
+
+soak-polish-r3은첫5분공식저장복원PASS뒤새Persona원문에어색함이남아ownlauncher51748만확인후중단했다. 원문/partial/정지receipt보존,30분완료아니다. 자기Unity/model0확인후Python표현경계만수정했다. Persona입력은repeated-public-text-v1의열배열/문자열참조를그대로모델에보내고있었으므로기존공식_expand/_table해독기를재사용해모든사실/ID/수치/null/링크/헤더를읽기쉬운records로풀어전달한다. 내용선별/새사실/수선0. CPU52PASS및실제원Persona입력의역변환전건PASS,실제문장개선은아직미확인이다. C#와에셋전핀은compile-polish-r5현재16PASS의소스와동일해재컴파일을반복하지않고재사용한다. 새frozen-polish-r6.json116핀/메인UNITY_VERIFY, soak-polish-r4를1회실행한다. 모델/스키마소비/가드/원자료보존. 끝의실제응답/특성적용/저장복원/보존확인전Goal완료0.
+
+# 현재 - R80 소개문 입력과 생성 언어 수정 검증
+
+soak-polish-r2는첫5분공식저장/복원PASS(15인물/완료Persona12보존)후새원문에서한자혼용과부자연스런소개가남아ownlauncher96300만확인후중단했다. operator-stop-r1.json과모든원본보존,30분완료아니다. 자기Unity/model0확인후SOURCE_EDIT했다. Persona header의name은원에셋기본이름asd와실제공개인물세나1이달랐다. 공개subject의정확이름을header로쓰고본문전체facts는보존했다. 새Persona생성만별칭2~14/설명8~96자와한자/제어/JSONescape없는완결문으로요청한다. 원소비스키마40/180은변경하지않았다. sourcePersona메커니즘/기존저장문장/가중치불변. SocialRumor에는횟수와효능/수용량의구분을지시했다. CPU49PASS, 새116핀FROZEN/메인UNITY_VERIFY. compile-polish-r5현재검증후같은soak-polish-r3을1회실행한다. 원문과숫자이름특성실제적용/연속저장복원및끝보존확인전Goal완료0.
+
+# 현재 - 수정 후 R80 연속 시험 soak-polish-r2
+
+메인UNITY_VERIFY/114핀FROZEN. compile-polish-r4 현재소스16회귀PASS, 원실패checkpoint의trait-anchor-recovery-r2 공식전체복원과다시저장복원6.98초/Unity0/주입0/exit0 PASS다. 현재봉인전draft와봉인후record근거query를분리한소스이며숫자이름Python최종검사도같은공식이름권위를받는다. 새soak-polish-r2를1회실행하고이handle부터이어서관측한다. 원soak-r1/회수/모든실패와모델은보존하며부분시험을합산하지않는다. 다른앱종료0/사용자기본실행대기0/Goalactive이다. 다음완료조건은같은현재소스의실제연속시험/새공식저장복원/문장원문/특성실제적용과끝보존대조다.
+
+# 현재 - 생산 단계별 근거 수와 숫자 이름 검증 통합
+
+trait-anchor-recovery-r1은원checkpoint전체복원의사전비교draft에서InitialAnchorCount가아직0이라거절됐다. 해당실패를보존했다. Descriptor는봉인전에도호출되므로새읽기query ProductionAnchorCount를추가했다. 미봉인draft는현재생산입력,해시검증된봉인기록은최초생산입력의수를반환한다. 저장된flag를받는우회가아니라runtimepage의내부검증상태다. 8descriptor의원허용개수/참여자검사와참조/해시검사는그대로다. 순수fixture는두단계를함께검사한다. 또한실제남은숫자이름3거절은Python후단의중복금지였고,기존reference validator의기본동작은보존한채game_assemble에서만공식publicsubject이름을전달한다. 원3응답/기준/효과불변대조PASS,CPU44PASS. frozen-polish-r4.json114핀/메인UNITY_VERIFY. compile-polish-r4뒤원실패checkpoint를새trait-anchor-recovery-r2로공식복원한다. 기본셀실행대기/다른앱종료/가중치변경0,Goal active.
+
+# 현재 - R80 trait 근거 pin 후 복원 오류 수정 검증
+
+soak-polish-r1은첫5분공식저장에서 원완료기록의descriptor shape거절로중단/exit1. 마지막상태real296.25초이며30분완료가아니다. checkpoint1 e45bbd23.../8561528B와모든원답을보존했다. 실제추가trait가앞선trait완료기록에합법적으로근거pin을추가해현재anchors3→4가됐지만생산시shape검사는현재개수3을요구했다. 원초기anchors3와현재4는모두원본에있다. 같은Evolution descriptor군의고정개수검사를InitialAnchorCount로옮기고원수치/참조/해시/소유자검사는유지한다. 단순shape16번째fixture및원실패checkpoint공식복원전용entry를추가했다. 현재소스112핀FROZEN/메인UNITY_VERIFY, compile-polish-r3뒤trait-anchor-recovery-r1을실행한다. 원문중선택되지않은반대조건불이익표현도보존했고생성지시에대비불이익을만들지말라는일반규칙만추가했다. 원답수선/가중치/평가기준변경0.
+
+# 현재 - R80 프로토타입 실제 연속 시험
+
+메인 UNITY_VERIFY /109핀FROZEN, 새 soak-polish-r1을1회 실행한다. compile-polish-r2 현재소스 및15회귀PASS. save-profile-r6은 같은원30MB/r17저장의실제공식저장복원21.55초/Unity오류0/주입0/exit0으로70.59초보다약69%감소했다. capture preflight5.44초/restore preflight4.86초/파일쓰기0.023초이며완전히즉시저장이라고주장하지않는다. 장부13DTO/164필드복사및숫자정밀도/객체독립성전건fixturePASS. 원자료와검사/단일가중치를보존한다. 다음실제R80기술3호출/특성정확이름과native근거/말풍선원문/공식주기저장복원을같은실행부터추적하며중복실행0이다. 다른앱종료0,기본실행사용자대기0.
+
+# 현재 - R80 장부 읽기 복사 최적화 검증
+
+메인 UNITY_VERIFY / 모든 작성자 FROZEN. compile-polish-r1의 현재 소스와14회귀 및 save-profile-r5 실제 공식 저장/복원이 통과했다. 동일30MB 원본의 측정 창은70.59초에서50.57초로 줄었으나 여전히 길어 Goal은active다. 이 측정중 별도 KB조회가 일부 겹쳤고 해당 자기 조회만 중단했으므로 정밀 성능 비교 한계로 보존한다. 현재 자기 Unity/model0 확인뒤 새 편집을 완료했다. 가장 큰 GameplayOutcomeLedgerSaveData에만 DTO소유자의 명시적 깊은복사 계약을 추가했고13DTO/164public필드를 모두 복사한다. 호출별 mutable객체는 공유하지 않고 원스코프 밖에는 캐시가 남지 않는다. 새 실제전체필드 fixture를15번째로 연결했다. frozen-polish-r2.json109핀, compile-polish-r2 후 새 save-profile-r6을 실행한다. 실제측정 중 추가 CPU 감사/조회는 하지 않는다. 다른앱종료0, 원모델/원답/저장과기준 불변.
+
+# Current - R80 prototype polish current source frozen
+
+Main UNITY_VERIFY. save-profile-r4 completed actual official restore and save with original r17 data, exit0 and Unity errors0. The measured roundtrip was70.59s: capture preflight26.93s, restore preflight29.49s, disk write0.02s. Existing checks and original save remain intact. New code reuses exact typed JSON reader tokens only within each operation and always returns fresh DTO graphs. Numeric-name trait fixture passed in compile-profile-r4; new native single-effect proof grammar and3-call initial skill authoring plus spoken BubbleLine guidance are now frozen. Python37+6 tests and64 original trait schema replay builds passed. These CPU checks are not new model quality evidence. frozen-polish-r1.json pins current source; compile-polish-r1 precedes save-profile-r5. All authors frozen, only main runs isolated Unity. Other user apps remain untouched.
+
+# 현재 - R80 프로토타입 개선 SOURCE_EDIT 재개
+
+exec36487의 compile-profile-r1은 현재소스/회귀PASS/exit0. save-profile-r1은 모델 로딩중availablePhysical905,117,696바이트로 원1GiB 보호가 자기job만 종료했다. launcher-failure와원로그보존,실제저장phase계측아직0/판정미완료다. Unity/R80모델0 확인후 SOURCE_EDIT를다시열었다. 원기준완화/다른앱종료/같은실패자동반복0이다. 기존CUHA접속/자원만읽기전용확인중이며원격변경은0이다. 다음은특성정확이름예외와단일효과근거의생성전제약,기술생성중복을수정하고현재소스검증을진행한다.
+
+# 현재 실행 - R80 실제 저장 지연 계측
+
+메인 UNITY_VERIFY / SOURCE FROZEN. CaptureAll section 전후와 기존 서비스 직렬화/파일 I/O 경계를 기존 Editor 전용 trace에 연결했다. 의미/값/검사/원자적 파일 커밋은 바꾸지 않았다. 모든 작성자 READY/FROZEN, profile-source-r1.json19핀이다. exec36487가 compile-profile-r1 현재컴파일 후 같은핀확인과 save-profile-r1 실제R80/원r17최종저장 재생을 각한번 실행하는 체인이다. 현재 compile의72초소스컴파일 및reload구간을 확인했고 같은handle부터 추적한다. 새원본을만들거나 원저장을덮어쓰지않는다.
+
+# 현재 Goal - R80 프로토타입 문장, 특성, 저장과 기술 속도 개선
+
+최신 사용자 요청으로 새 native Goal active. 기존 R80/이전 모델과 원답/실패/저장은 보존한다. 메인 EDIT_READY: 현재 Unity와 R80 프로세스0을 확인했으며 실제 실행은 아직 시작하지 않았다. 새 QA root는 Artifacts/QA/R80PrototypePolish-20261028-r1이다. CharacterWorldSaveService 및 CharacterAcquiredTrait KB query는 fresh다.
+
+현재 원인 조사 결과: r17 특성 실패35건은 숫자 포함 실제 이름과 prose 금지 규칙 충돌19건, 선택 효과별 근거 불일치16건이다. 후자는 실제 선택 호출 뒤의 검증 실패이며 모두 모델 호출 전 실패로 세지 않는다. 저장63.90초는 저장과 복원 전체 창이고 단계별 원인을 먼저 계측한다. 실제 ledger와 character section이 크기 대부분을 차지하지만 기록 삭제나 검사 생략으로 해결하지 않는다.
+
+메인은 핵심 구현과 통합 및 유일한 Unity 검증 담당이다. 두 기존 담당자는 원 trace와 저장 원본만 읽는 독립 조사 중이며 편집 권한은 없다. 새 실행/배포/학습/다른 앱 종료는 아직0이다. 아래 이전 Goal 마감과 지표는 기준선이다.
+
+# 현재 - R80 응답성 Goal 구현 및 실제 재시험 마감
+
+r17 실제 연속1,801.5536733초/공식 중간5+최종1복원/Unity오류0/주입0/exit0. 자기 Unity98528/bridge97940/native50908 종료를 확인했다. 현재 SOURCE_EDIT와 UNITY_VERIFY 모두 닫혔다. 소스93핀 변경0/모델과 지원 및 기존3모델133파일 독립해시/입력686개 잘림0. 원본 실제로그4,047파일은 기존 기본 경로에서 한번 회수해 전체 바이트 동일성을 검증했고 원본은 보존했다.
+
+말풍선100성공/5시간초과/2만료, 중앙3.375/P955.633초. 기술43성공/4취소, 중앙26.521/P9542.292초. 기존 실제 시설 이력3건은 r15에서 적용 및 공식 복원을 확인했고 같은 구현을 유지한다. 원3문장 그대로/게임 고정정보7필드/8근거 전체를 검증했다. 원R80와 이전 모델 및 모든 실패는 보존한다.
+
+권위는 docs/dev/r80-responsiveness-goal-20261028.md, analysis-final-r17.json, verification-goal-final-r17.json이다. 일부 어색한 표현과24자 경계 미완성2건, 특성 후보 거절 및 전체 저장63.90초 지연은 남는다. 전체 모델 품질이나 출시 인증이 아니다. 기본 사용자 셀 실행 대기나 추가 학습 대기는 없다. 관련 지식베이스를 이번 배치 마감에 한번 갱신한다. 아래는 역사 상태다.
+
+# 현재 Goal - R80 r17 말풍선 문장과 응답성 검증
+
+Goal active. r16 연속 시험과 보존 검사는 완료했지만 원문 검토에서 미완성 말풍선이 반복돼 완료로 승인하지 않았다. 원16자 생성 제한과 생산자의4~10단어 지시가 충돌했다. r17은 생산자와 system 지시를 짧은 완결 반응1~4단어/8~16자 목표로 맞추고 생성 상한24자로 여유를 둔다. 원consumer80자, 원입력 사실, 원timeout와 후수선 금지는 유지한다. 모델과 bridge 가중치 및 이력 경로는 바꾸지 않았다.
+
+현재 메인 UNITY_VERIFY / SOURCE FROZEN. frozen-r17.json93핀과 Python39PASS. compile-r17 현재소스 및12표적회귀PASS/exit0. 최초체인은 명시R80 bundle환경 누락으로 Play기동전 거절됐다. 같은컴파일과93핀을 재사용하고 exec49555에서 명시원bundle root의 soak-r17를 한번 실행했다. 거절2건은 goal-r17/prelaunch-refusal-r1/r2.json에 보존했다. 같은 handle과 새root부터 이어가며 중복실행하지 않는다. sampler는 sample_memory_r17.ps1이다. 원r16/모든실패/원답과 모델은 보존한다. 이력3건 실제적용/공식복원r15 증거는 유효하다. 이번 원문과 실제속도가 확인되기 전 Goal완료로 끝내지 않는다.
+
+# 현재 Goal - R80 r16 말풍선과 기술 문구 수정 검증
+
+최신Goal active. r15b actual1800.8143569초/공식중간5+최종1SaveRestore/Unity오류0/주입0/exit0 완료. analysis-final-r15b.json: 기술43성공/4취소,응답중앙24.525/P9539.925초(이전r13중앙33.703/P9550.374). Bubble148성공/21Failed/2TimedOut/2취소/2만료,중앙3.533/P955.774초. 이력3성공/0실패,새world내응답P958.337초. 모델/모든원답/실패/구저장보존. 짧은말풍선의timeout이남고기술9후보표본1개에자동선택을사람선택처럼쓰고칸을방으로쓴문제가있어Goal완료로끝내지않았다.
+
+현재 r16 SOURCE FROZEN/메인UNITY_VERIFY, frozen-r16.json93핀/Python39PASS. Bubble모델생성요청만maxLength16과짧은한문장지시로좁혔다. 원catalog80/consumer수용/원3초대기·4초응답제한/원입력전체/무수선유지. 초기기술prose에는currentMechanics공식설명을근거로ManualWork의DeterministicRandom자동선정과Square칸범위를보존하고메모체를피하도록보강했다. 후보/선택/이전이름/6단계/판단함수불변. bundlebridgeSHA819e4a8ef409fb07bc6d6ce457f0b0cbc38a72ec36131f7fe6edd5ea8bc37c89/원R80weights불변.
+
+exec session50231가compile-r16→현재결과및93핀대조→soak-r16를각한번순서대로실행한다. sample_memory_r16.ps1/새root로추적하며아직새실제속도/문구/30분완료PASS아니다. 원r15이력3건적용/공식복원증거는유효하며소유자metadata봉투/원prose3값검사는바꾸지않았다. r16근거원본은goal-r16/before에보존했다. Goal완료/새학습/다른앱종료/출력후자르기/기준완화0. 아래r15b실행중은역사상태다.
+
+# 이전 - R80 r15b 실제 연속 시험 중
+
+compile-r15b terminal0/CURRENT_SOURCE_COMPILED/전체표적회귀PASS, frozen-r15-r2.json92핀동일후soak-r15b를한번실행했다. 현재exec54536/메인UNITY_VERIFY/SOURCE FROZEN, actualStage10/real68초부터정상연속플레이를확인했다. 초기17종결/Bubble5성공5표시/만료0/실패파일없음은부분표본이며최종속도PASS가아니다. 실제R80와원1800초/6SaveRestore/모든결과및native캐시를같은root로계속추적한다. sample_memory_r15b.ps1/현재root외자료쓰기0/중복실행0/Goalactive유지다. 아래경계수정과기동준비는역사상태다.
+
+# 이전 - R80 r15b 연속 시험 시작 경계 수정 검증
+
+최신Goal active, production은r15그대로/이력실제3건적용과공식복원PASS유효. soak-r15는Stage1의방문객저장경계대기중mood-consumer.json을반복create-only쓰기하여기동준비중IOException/exit1,30분soak미시작이다. 원failure/파일/모델응답보존, 자기Unity/model0확인. QA에서경계대기를한번쓰기앞으로옮겼으며원create-only/검사강도/timeout불변이다.
+
+현재 frozen-r15-r2.json92핀/메인UNITY_VERIFY/SOURCE FROZEN. exec session54536가compile-r15b→현재결과및핀대조→soak-r15b를각한번순서대로실행한다. 실제새완료/속도PASS아님. 관측도구sample_memory_r15b.ps1와새root를사용하고옛soak-r15자료에쓰지않는다. 같은handle부터추적하고중복실행0. 아래r15의이전기동문구는역사상태다.
+
+# 이전 - R80 r15 실제 3이력 복구 PASS와 연속 시험
+
+native Goal active. 최신 frozen-r15.json92핀/SOURCE FROZEN/메인UNITY_VERIFY. Python36PASS, compile-r15 CURRENT_SOURCE_COMPILED 및 실제실패5회뒤미접수2초/실제timeout120초회귀PASS/exit0. history-recovery-r15는실제3시설모두completed/playerVisible/이름설명적용과공식SaveRestore를통과했고terminal0. 응답3.754/3.219/3.855초/실패0/Unity오류0/주입0. 원효과/근거배열/노드근거/8사건불변, 완성Persona24명/원수치보존. goal-r15/history-consumer-verification-r1.json은모델raw3prose와전체응답값동일/게임const7metadata동일/원384budget/잘림0을독립대조했다. 이표적은gameClock0이며30분연속실행으로세지않는다.
+
+현재같은92핀의 soak-r15 exec session27121를한번시작했고원비대화형station/desktop/창생성probePASS. 실제R80/1800초/공식6회저장복원/짧은응답과기술6단계캐시/모든종결과억제를같은handle로추적한다. sample_memory_r15.ps1은현재root로분리된관측도구다. 아직새연속완료/속도승인/Goal완료아님. 중복Unity/학습/다른앱종료0. 아래r15편집과r14대기는역사상태다.
+
+# 이전 - R80 r15 이력 응답과 접수 재시도 수정
+
+native Goal active. r14b 현재컴파일/회귀PASS뒤history-recovery-r14e를실제실행했다. 원3미완료시설복원및native실행/최초timeout1뒤원8evidence전체를가진transport성공2를확인했으나3건전체적용/최종Save검증완료전이다. 고정정보432자모델복사와기존실패5회의긴대기를미접수에도다시부과하는낭비를줄이려고operator-stop-r1.json을남기고자기Unity23320만종료했다. session8531 exit1/자기child0, 원답과실패/새명칭/모델보존. transport2를적용2로계상하지않는다.
+
+현재메인SOURCE_EDIT. r15는게임소유자가const로고정한7필드(ID5/예산/순서있는전체근거)를프로토콜봉투로그대로전달하고모델은원3prose필드만작성한다. 원public입력전체/원문장값/원fullschema/원소유자검사/원10초제한은유지한다. 실제model raw3필드HTTP와metadata조립마커를각각보존하며후수선/효과선택/근거선별0. 원wire384output예산도명시사용한다. 초기기술공통prefix6단계변경은r14그대로다.
+
+미접수는attemptCount를원5로보존하고2초용량재대기만둔다. 실제accepted후timeout의원120초지수backoff는그대로이며이를8사건fixture로검사한다. 새history snapshot은부분완료와nodeEvidence도기록한다. 독립envelope단위검사작성중, 새CPU/compile/실제r15는아직미실행이다. goal-r15/before에r14원본보존. 다음은READY/FROZEN→현재컴파일→동일원r13최종저장의실제3시설소비자/공식restore→새연속부하측정순이다. 아래r14실행대기는역사상태다.
+
+# 이전 - R80 r14 동결과 실제 이력 시험 대기
+
+최신 native Goal active. 최종 frozen-r14-r4.json91핀/SOURCE FROZEN. Python33PASS, compile-r14 현재소스/8근거잠금/12표적회귀PASS/exit0. 독립검토로 실제node.evidenceIds도원기준과명시비교하는QA assertion을추가해compile-r14b가필요하다. 생산변경은같으며아직새모델추론0이다.
+
+현재 exec session8531은 외부worktree CI controller Python99160 전체종료와Unity0을기다린뒤compile-r14b→같은핀확인→history-recovery-r14e를각한번순서대로실행한다. 단일Editor사이의빈틈으로실행하지않는다. 다른작업의Unity와controller는종료/조작하지않는다. 이전대기session19125는QA assertion수정전에CtrlC로종료했고자기Unity를기동하지않았다. 같은세션과원로그를이어가고중복실행0.
+
+새정확QA entry는PowerShell과C#launcher의동일안전분류/allowlist/순수selftest에모두등록했다. 새launcher순수selftestPASS. history-recovery-r14는C#층등록누락으로기동전거절, r14c는다른CI의다음Unity기동과겹쳐기동전거절로원stderr보존, 모델실패아님. 관련변경전launcher도goal-r14/before보존. 아래기동/편집중문구는이전상태다.
+
+# 이전 - R80 남은 지연과 이력 적용 해결 r14 컴파일
+
+모든 작성자 READY/FROZEN, frozen-r14.json91핀. 합동Python33PASS/cpu-tests-r2.json. 첫CPU의경로전용fixture1실패는cpu-tests-r1.json/cpu-import-fixture-failure-r1.json에보존했으며실제source/bundle양쪽경로와원byte SHA동일검사로정정했다. 첫Unity기동은다른worktree의batch Editor97784때문에시작전거절됐고원실행은건드리지않았다. 그실행종료뒤91핀동일/Unity0을확인하고compile-r14 session4202를한번시작했다. 현재메인UNITY_VERIFY/SOURCE FROZEN/새추론0. 같은handle/로그부터이어가고중복실행0. 아래편집중은역사상태다.
+
+사용자 "goal 만들어서 해결해"에 따라 native Goal active 생성. 메인 EDIT_READY(현재Unity/model0)/SOURCE_EDIT. 실제 이력0/3의 근본원인은 고정근거8개중1개반환이다. DungeonStoryHostStructuredChatBackend가 EvolutionHistoryLegacyV2 원header의5식별자/효과예산/순서있는전체evidence를 const schema로생성전결박한다. 원검사/원timeout/기계효과/원답수선0. V25 회귀는 실제8사건fixture, 전필드동일 및 중복header거절을추가했다.
+
+초기기술6단계는 같은 caller메시지를 공통prefix로두고 기존 단계지시를별도system, 기존단계입력을별도user로뒤에둔다. 같은후보수/순서/선택/이전이름제외/512한도와validator유지. 실제prompt순서변경의모델품질과속도는아직검증전이다. 묶음bridge SHA700ec21fac4d798218e3b59bdf0e55713e44e76bc62a34954f3221c687e99ecc, 원R80가중치불변, 이전r13 bridge/manifest/activation과해당source는goal-r14/before에보존했다.
+
+새 RequestHistoryRecoveryForBatch는 원r13 최종저장 SHA713f918c75a26b6f36aabc369ea34a02bf9f8f1a13ea17504bea7609e71e195d의3미완료시설이력을 실제서비스/원권한으로재개해완료/표시/원근거보존/공식SaveRestore를검사한다. 이표적시험은gameClock정지이며30분연속시험으로계상하지않는다. 현재CPU/native문법회귀/컴파일전, 새Unity/추론실행0이다. READY/FROZEN 후컴파일→실제이력소비자→새연속부하순으로진행한다. 기존r13완료/실패를새목표완료로승계하지않는다. 아래이전보고는보존기록이다.
+
+# 이전 - R80 지연 수정과 r13 실제 30분 재시험 완료
+
+메인 UNITY_VERIFY 종료, 자기 Unity와 모델 프로세스0. soak-r13은 actual1800.2948713초/7020frame/공식 중간5+최종1저장복원/Unity오류0/주입0/launcher exit0다. analysis-final-r13.json과 verification-final-r13.json에90source drift0, R80와129지원 및 기존3weights의133독립hash PASS,784input budget 잘림0을 보존했다. 최종 완료 Persona24명, 복원별 보존 수 합119다. 현재 컴파일 및 이력 admission/무손실 공개입력/수명/Persona/원retry/원장/종족 표적 회귀와 Python28 PASS.
+
+30분 접수 말풍선263종결 중231성공/16timeout형Failed/13대기만료/3취소. 성공 응답 중앙3.47/P954.97/최대7.17초, 대기P951.11/최대1.57초다. 짧은6프로필390성공의 응답P959.67/대기P953.24초. 이전232.5초는대기중스냅샷이고이번동일스냅샷최대21.7초, 완료전체대기최대59.04초는별도지표다. 이전641말풍선만료와이번13은접수정책/실제표본이다르므로동일부하성공률로비교하지않는다. 필요없는요청을안보내는용량억제도별도기록했다.
+
+기술생성 중앙33.70/P9550.37초, LegacyHistory4transport성공/12timeout, AcquiredTrait29내용거절/87취소는남는다. 이력은시설3개모두completed=false/표시이름과설명빈값/playerVisible=false로실제적용0/3이다. 고정근거8개중1개만반환해원validator가거절했으며narrativeReady=true단독으로적용승인0. 모든AI즉시응답/품질승인이아니다. 최종전체SaveRestore는69.64초게임스레드를막았으며수동화면FPS보장0이다. docs/dev/r80-latency-20261028.md와원자료를따른다. 기존모델/모든원답/실패/dirty변경보존, 새학습/출력수선/기준완화/다른앱종료/Goal조작0. 아래실행중문구는역사기록이다.
+
+# 이전 - R80 지연 r13 이력 응답 수정 컴파일
+
+r12 실제 soak session71184 terminal0,1800.4418617초 연속/공식6SaveRestore/Unity오류0/주입0/86source drift0. verification-final-r12.json은 R80+129지원+기존3weights 독립133파일hash PASS/725input budget 잘림0. analysis-final-r12.json: 실제566terminal/359성공/106취소/95실패/3timeout/3drop. Bubble124성공/7timeout형Failed/3drop/1취소, 응답중앙3.15/P955.01초. 짧은응답대기P951.82초, 전체완료대기최대54.79초. Skill중앙33.3/P9550초. 단, LegacyHistory36건중34timeout/2transport성공이며 시설의3개 frozenHistoryJob은최종Save에서모두미완료라 전체응답성목표완료로끝내지않았다. 원모든failure/HTTP/source/모델/결과보존.
+
+현재 r13 SOURCE FROZEN/메인UNITY_VERIFY, frozen-r13.json90핀, compile-r13 session14499 실행중. LegacyHistoryV2만 짧은ordinary slot1로분류하고기존lossless public입력압축을적용한다. BG2/3/Bubble0/한R80/원384tokens/10초timeout/스키마/판단/원출력불변. 접수false는모델attempt로세지않고기존durablejob retry만남기며실제accepted후timeout은원attempt/backoff유지한다. sceneTransient로전환하지않는다. 새28CPU PASS. 메인V25 purefixture는 실제HistoryOwner Tick/미접수재시도/실제timeout/공개입력왕복을검사한다. compile결과와동일핀 확인뒤 새실제평가로이력응답/실제도메인적용을확인하고단일30분재시험을이어간다. r12기존bridge/manifest/activation은before-r13에도보존했다. 아래r12실행중은역사상태다.
+
+# 현재 - R80 지연 r12 실제 연속 시험 중
+
+compile-r12 session30838 terminal0/CURRENT_SOURCE_COMPILED와 전체 표적 회귀 PASS. 새 동일종족이력/손상입력/live상태불변도 PASS. frozen-r12.json86핀 postcompile byte동일 후 soak-r12 session71184를 한 번 시작했다. 현재 메인 UNITY_VERIFY/SOURCE FROZEN, root R80Latency-20261028-r1/soak-r12/sample_memory_r12.ps1. 실제모델/1800초연속/공식6회저장복원 결과부터이어간다. r10/r11 실패와부분시간 합산0. 아래컴파일준비/과거실행중은역사상태다.
+
+# 현재 - R80 지연 r12 컴파일 준비
+
+r11 session48682는900초 세 번째 공식 저장에서 species-observation-save-join 오류로 자동exit1. 마지막status real887초/실제30분미완료. 원failure와timing/두성공save/HTTP보존, 자기Unity/model0 확인후 SOURCE_EDIT. 실제실패 최종species행은저장전거절로회수되지않았다. 직전실제Persona요청의 해당캐릭터는Slime이며 마지막성공save의동일종족 첫행들은사고이력이없다.
+
+재현가능한원인: SpeciesActionFactPreflight가동일종족첫개체lastIncidentId를authored정의로오용해다른개체의정상사고이력을거절한다. 원소유자ICharacterSpeciesPersistence.BuildRestore를재사용하도록수정했으며동일Slime2개체의다른정상이력과손상입력거절/현재state불변fixture를추가했다. 원본실패최종행의정확필드증명과는구분한다. 재실패시harness는원species Capture도별도보존한다. BG2/일반1/말풍선1,모델,입력,timeout 및검사강도는r11과동일하다. frozen-r12.json86핀으로동결후compile-r12와새1800초실제실행을이어간다. 아래r11진행문구는역사상태다.
+
+# 현재 - R80 지연 r11 실제 실행 중
+
+메인 UNITY_VERIFY, SOURCE FROZEN. compile-r11 session33444 terminal0와 CURRENT_SOURCE_COMPILED,18대상 observer/공식 fixture 저장복원/2049대상 거절/receipt 불변을 포함한 전체 표적 회귀 PASS. Python28 PASS. frozen-r11.json84핀을 컴파일 후 byte동일 대조했고, soak-r11 session48682를 한 번 시작했다. private noninteractive desktop 프로브 PASS, sampler sample_memory_r11.ps1. 같은 handle/root에서 실제 모델,1800초 연속 플레이와6회 공식 save/restore, 일반 구간 및 loading 포함 latency를 계속 확인한다. 아직 실제 속도나30분 완료는 아니다. 아래 수정 중과 r10 진행 문구는 역사상태다.
+
+# 현재 - R80 지연 r11 수정 중
+
+현재 메인 SOURCE_EDIT, 자기 Unity와 모델 프로세스0 확인. r10은 13분가량의 실제 연속 플레이 중 날짜5 계절 사건 종료의 context16명, 세력1, world flag1이 adapter의 inline16 상한을 넘어 Unity 오류로 자동 종료했다. session2510 exit1 및 자기 자식0. operator 종료는 실행하지 않았다. soak-r10 원 failure/HTTP/timing/저장과 모든 이전 실패를 보존한다. 첫 두 공식 저장복원에서 완료 Persona 각7명의 text/trace와 authored 수치는 실제 보존됐다.
+
+r11은 단일 R80와 기존 context/정밀도/timeout을 유지하며 BG2, 일반1, 말풍선1로 실행 자리를 나눈다. 일반 best-effort는 처리 중1건만 접수해 대기를 쌓지 않는다. Python 전체28 PASS, 실제 속도는 아직 검증 전이다. 날짜 사건의 참가자와 대상은 삭제하지 않는다. central ledger의 기존 bounded participant/subject 상한을 adapter도 사용하고, 작은16건 inline은 유지하며 초과분만 복사해 receipt 불변을 지킨다. 원장 자체 상한과 metric/fact 제한은 그대로다. 현재 독립 18대상 및 거절/저장 회귀를 추가 중이고, READY/FROZEN 후 현재 컴파일과 새1800초 실제 실행을 한다. 아래 r10 진행 중 문구는 과거 상태다.
+
+# 현재 - R80 지연 수정 r10 실제 실행 중
+
+현재 최우선: compile-r10 session90280 terminal0와 현재 컴파일 및 전체 표적 회귀 PASS. frozen-r10.json78핀을 컴파일 후 다시 대조했고 실제 soak-r10 session2510을 한 번 실행했다. 현재 메인 UNITY_VERIFY, SOURCE FROZEN. root R80Latency-20261028-r1/soak-r10, sampler sample_memory_r10.ps1, 같은handle부터 이어간다. 아직1800초와 속도PASS는 아니다. r9는 생산 admission 변경을 초기 probe가 즉시 실패로 취급해 종료된 통제시험 실패다. 원failure와로그 보존, ownchild0 확인. r10은 복원 자체를 반복하지 않고 새stage12에서0.5초 간격으로 실제 생산자 admission을 기다리며 원래 전체기한, 응답검사와 모델은 유지한다. 아래r9 컴파일/실행대기 문구는 역사상태다.
+
+# 현재 - R80 지연 수정 r9 실제 실행 중
+
+사용자는 232초 대기와 말풍선 만료를 고쳐 실제 게임에서 다시 시험하라고 요청했다. R80 단일 8B와 기존 모델, 모든 원답과 실패를 보존한다. 현재 SOURCE FROZEN, 메인 UNITY_VERIFY. Artifacts/QA/R80Latency-20261028-r1/frozen-r9.json78핀, compile-r9 session18862 terminal exit0와 CURRENT_SOURCE_COMPILED, Persona codec, clock, retry와 기존 표적 회귀 PASS다. 컴파일 후78핀 byte동일을 확인했고 실제 soak-r9 session7738을 한 번 실행했다. 현재 R80Latency-20261028-r1/soak-r9와 같은handle에서 관측을 이어간다. sampler sample_memory_r9.ps1도 준비했다. r8 actual은 목표 미달로 자기 Unity64404만 종료했고 session96621 종료 및 자기 자식 프로세스 부재를 확인했다. r8 operator-stop-r1.json과 원timing을 보존했다. 종료된 실행을 재시작하지 않는다.
+
+r9 신규 변경: 성격 설명 완료 상태를 optional v10 Persona DTO로 실제 저장하고 candidate 활성화 전에 복원한다. 현재 graph의 미래 설명을 과거 save에 보충하지 않는다. 원text와 trace를 깊은 복제하고 수치 배율과 선호는 현재 authored C# 값으로 유지한다. null 및 구형 필드 누락은 미완성으로 남아 새로 생성한다. 첫 r8 checkpoint에서 완료된 같은 고객7명의 Persona가 모두 재큐된 원인을 실제 확인했다. 모델 메모리426MiB shared 관측만으로 spill을 단정하지 않으며 KV30720, 요청12288, f16 및 model은 그대로다.
+
+일반 best-effort 요청은 기존 RejectQuietly 생산자의 반환 계약을 유지하면서 두 worker와 최대 두 queued까지만 접수한다. 거절 수는 별도 진단한다. Persona는 이 조용한 거절 대상이 아니다. 말풍선은 실제 처리 가능할 때 한 건만 접수하고 줄세우지 않으며 가시성, 인물 pending과 용량 억제를 따로 센다. 원TTL3초와 응답4초는 유지한다. UnityUiClock은 같은 프레임의 저장 복원 중에도 흐르는 realtimeSinceStartup을 사용한다. 원 게임 시계와 수치 규칙은 바꾸지 않는다.
+
+r8까지 통과한 변경은 유지: 장면 소유자와 풀 반환 revision에 따른 transient 취소, native 소켓 취소 전달, 짧은 응답 무손실 public context 압축, speech slot0 / ordinary1,2 / background3, batch256과 ubatch128. 내용 거절은 typed requiresInputChange로 transport 실패와 구분한다. 동일 거절 입력은 수정 입력 재시도 후 기존 실패 상태에 멈추며 일반 복원은 자동 해제하지 않는다. Trait 선택 전 실패는 enum5 ModuleSelectionAwaitingNarrativeRetry로 unresolved offers와 실제 count를 저장한다. 효과 검사를 완화하지 않는다. 성장 UI에는 실패 수를 표시하고 새 수동 retry 버튼은 추가하지 않았다.
+
+현재 표적 회귀는 Persona codec, null과 구형누락, tampered 설명과 trace, clone 격리, 40ms 같은 프레임 UI시계, 입장 용량, 기존5회 timeout과 동일입력 재시도, trait 선택전 실패 직렬화다. 실제 Save/Load hook에는 완료 Persona text/trace와 authored mechanics 보존 assertion도 추가했다. compile-r8와 Python28 PASS는 보존하며 r9 현재 결과와 실제 속도는 아직 미확인이다. 다음 실제 실행은 1800초 연속 플레이와 공식6회 저장복원, raw/all-inclusive와 일반 구간 timing, 거절과 억제와 취소를 모두 구분해 확인한다. 테스트 응답 주입, 출력 수선, 다른 앱 종료, Ollama 정책 차단 우회, 새 Goal/학습은 하지 않는다.
+
+# 최신 — R80 지연 r4 기동 인수 연결 수정
+
+R3 soak44645는기동전실패/terminalexit1/ownUnity-model0다. 원인은Host C#의shared KV 옵션실제인수전달이누락되어Python이기동전에거절한것이다. 원failure.txt/trace와로그보존,속도/품질판정아니다. --request-context-size10240와--kv-unified --no-context-shift를실제commonArguments에연결했고정적존재검사를했다. 프로세스가먼저종료된경우45초timeout으로오인하지않도록exitcode오류로구분한다. timeout/안전기준변경0.
+
+현재 frozen-r4.json62pins를동결해compile-r4를실행한다. R3대비Host배선/오류메시지만변경,CPU25는동일bridge/state로기존PASS유효. 아직actual4slotshared기동/실제속도미검증. compile-r4 terminal0/현재결과후새soak-r4한번실행해n_slots4,kv_unifiedtrue,전체30720/요청10240과VRAM여유확인필수. 메인UNITY_VERIFY/새작성0/소스편집0. r1/r2성능미달과r3기동실패는그대로보존하며승계/합산0이다.
+
+# 최신 실행 — R80 지연 r3
+
+compile-r3 session89970 terminalexit0/CURRENT_SOURCE_COMPILED와기존표적PASS후 frozen-r3(62pins)의 soak-r3 session44645를1회시작했다. 현재Root Artifacts/QA/R80Latency-20261028-r1/soak-r3, sample_memory_r3.ps1. 소스FROZEN/메인UNITY_VERIFY/같은handle관측/중복0. 다음native n_slots4/kv_unifiedtrue/공유30720/논리요청10240/GPU여유를실제확인한다. CPU25PASS는실제속도PASS아니다. r1/r2는목표미달부분실행으로보존됐고시간합산0. 원래30분데이터soak-r11은이전baseline일뿐새속도승계0이다.
+
+# 최신 — R80 지연 r3 공유 메모리 구성
+
+R2 soak54974는404초관측에서일반응답P95 68.16/말풍선39성공8만료여서operator-stop-r1.json을쓰고ownUnity93004만종료했다. terminalexit1과ownUnity/llama/bridge0확인. 이전raw/모델/실패보존. SOURCE_EDIT후frozen-r3.json62pins동결,compile-r3진행예정.
+
+native공식binary --help에서--kv-unified와--no-context-shift를확인했다. manifest는한R80모델/f16KV 총30720공유/각request cap10240/4slot(BG0,일반1-2,Bubble3)이다. 슬롯4를위해GPU메모리총량을늘리거나정밀도를바꾸지않는다. Host에sharedContextTokens를추가해manifest가총용량/동시성권위를소유하고bridge의--request-context-size와native총ctx를구분한다. 실제기존max필요8631,전체입력보존/overflow명시거절/timeout/3초queue만료/선택근거검사불변. bridge RequestLanes가2foreground자리를빌려주고취소/예외에반환한다. queue순수2/3/4slot취소공정성+Python25PASS.
+
+다음compile-r3현재결과확인후새soak-r3한번실행한다. actualnative n_slots4/kv_unifiedtrue/VRAM여유/짧은응답과말풍선이실제로겹쳐처리되는지확인하고초기지표미달시완료보고0. raw전체및loading별도timing을같이보존한다. 타인앱조작/사용자기본실행대기/Goal새로생성0이다.
+
+# 최신 — R80 3lane 실제 실행 중
+
+compile-r2 session38512 terminalexit0/CURRENT_SOURCE_COMPILED와기존표적PASS. frozen-r2(62pins)동결후soak-r2 session54974를새격리데스크톱에서실행했다. 메인UNITY_VERIFY,소스편집금지. memorySampler sample_memory_r2.ps1/현재root R80Latency-20261028-r1/soak-r2. 같은handle과새trace/status부터관측하며새실행중복0. Python24PASS,실제3slot×10240/GPU여유/말풍선전용lane0..2실동작을확인할차례다. raw모든응답timing과officialSaveWindows를보존하며일반플레이지표도별도로낸다. 아직개선PASS/30분완료아니다.
+
+# 최신 — R80 지연 수정 r2 컴파일
+
+r1 실제soak7822는목표미달측정후operator-stop-r1.json을쓰고ownUnity56740만종료,terminalexit1/ownnative0확인. 새frozen-r2(62pins)는3lane(BG0/일반interactive1/Bubble2)각1이며R80manifest가전체실행topology권위다. 한모델3slot×10240(f16KV유지),max실제입력필요8631/원입력잘림0/overflow명시거절. 상위timeout/queueTTL3/모델/판단/근거검사불변. Python24PASS, 신규purefixture는3lane취소/동시성도검사한다. 메인SOURCE_EDIT닫고compile-r2를같은격리런처로실행한다.
+
+실제Save/Load의mainthread중단구간은officialSaveWindows에기록하고전체원timing+일반플레이timing을함께낸다. r1의Bubble13.89초는HTTP1.92초완료뒤공식저장으로callback이12.3초밀린사례. 현재초기작업문맥의2slot/12288지시는역사기록이며r2가우선이다. 다음현재compile-r2종료확인후새soak-r2실행,slot3/ctx10240/GPU여유/초반5분지표를확인한다. 기본실행/사용자앱종료대기0이며Ollama재기동우회0이다.
+
+# 현재 인수인계 — R80 응답 지연 개선 진행
+
+최신 사용자 요청은232초대기와말풍선만료를고쳐실제게임에서속도재시험이다. 현재 Artifacts/QA/R80Latency-20261028-r1/frozen-r1.json62pins 동결/compile-r1 session76110 실행중. SOURCE_EDIT닫힘, 메인만UNITY_VERIFY. 기존before10파일/oldsoak-r11/모든weights와실패는보존한다.
+
+같은단일8B를native2slot으로실행하며각slot12288context를유지한다. bridge는request별Engine/profile/opener분리+interactive/background semaphore각1+끊긴caller의후속stage차단+정확prefixcache/id_slot. queue도한interactive한background만허용하며말풍선2회후persistent양보,기존defaultscheduler유지. Dialogue는화면가시성/인물pending1/수명revision/표시중중복요청차단. 원입력/모델/후보/근거/3초queue만료/timeout불변. CPU기존19+새4PASS는실제속도아님.
+
+다음compile현재결과와순수lanefixture확인후새실제soak-r1을같은격리런처로실행한다. 실제queue/service/end-to-end,표시된bubble,만료,취소와요청전억제를서로구분해측정한다. 5분초기지표를확인하고동일실행30분+저장복원으로마무리한다. 설정2slot이기동되는지nativectx별12288와CUDA메모리를실제확인필수. 다른앱종료허가를추가로가정하지않는다. Ollama는직전policy차단으로현재없음이며재기동우회0이다.
+
+## 이전 시험 마감 기록
+
+# 현재 인수인계 — R80 실제 시험 완료
+
+최신: frozen-r32(55pins)/compile-r29/soak-r11 session79255는 terminal exit0. verification-final-r1.json 독립 검증 PASS(RUNTIME_TESTS_COMPLETED_WITH_MODEL_REJECTIONS). 한 번의 실제1800.019초/19,827frame/게임시계1140.481초/공식 주기5+final1 저장복원/자연사망종료1 및 원saved-world 공식재개/Unity오류0/주입0이다. sourceDrift0, R80 전체 가중치/지원129파일과 기존3개 가중치 전체 독립해시 PASS. own Unity/llama/bridge0을 확인했다. CODE FROZEN이며 새 실행이나 Goal 작업은 필요 없다.
+
+terminal customer를 candidate 준비시 exact reference로 보관한 뒤 전체 commit Complete에서만 registration retirement+scoped pool 반환하도록 CharacterWorldSaveService/CharacterSpawner를 고쳤다. 일반 visitor의 예상 밖 activeDespawned 거절과 body/life/item-stack 권위, 전투 duplicate 검사는 유지했다. 실제 soak-r9의 late-terminal 원본 재현 및 r11의 자연 런 종료 후 재개가 모두 PASS. AiDirector actor/type single-flight와 이전 시설/사망음식/직원이탈 수정도 현재 실행에서 유지됐다.
+
+현재 생산11프로필 모두 실제 성공 응답이 있다. 품질과 적용 수는 별개다. r11 transport성공456/실패27/취소58/말풍선만료641, 최대 관측큐대기232.5초이며 일부 설명 거절과 응답 지연은 남는다. 모든 전투 조합/모델 전체품질/수동화면FPS 인증을 하지 않았다. 현재 결과와 한계는 docs/dev/r80-extended-playtest-20261027.md 및 profile-coverage-r1.json에 기록했다. KB rebuild-r2 terminalexit0/freshness failures0/4171sources/90outputs다.
+
+Ollama API 숨김 복원 명령은 자동 승인 검토에서 정책상 차단됐다. 구체 사유 미제공, 실행 전 차단이라 mutation0이다. 후속 readonly API/프로세스없음 확인. 우회 실행/GUI복원/Firefox-Discord-Nikke종료/타인세션조작0. 사용자가 Ollama를 다시 켜야 한다. CUHA는GPU없는16GB CPU장비이며 원격파일/실행0이다.
+
+## 이전 진행과 실패 기록
+
+
+## 최신 이어가기 — R80 연속 시험 재개
+
+최신우선: r9 session28942는terminalexit1/ownUnity-model0이다. last1645.33초와25분공식복원5회뒤naturalownerdeath→terminalSave/Load성공→원활성seed재개에서InvasionOwnerEvacuationService의전체scene객체ToDictionary중복(world1)이실제발생했다. 원terminal24954435B/SHA6d8a8209f55fd15a8d4aa435f0fe6c8b7ff4fe6ce08c7713fa691377383766f5를새LateTerminalSeed상수로핀했다. 현재 `frozen-r31.json`53pins/`compile-r28`session85474 진행중이다. production hook은newBuildActiveRestoreActorIndex에서activeHierarchy/!dead/LifecycleActive/validID만인덱싱하며기존expected exactReference owner/resident검사는유지한다. 두Active동일ID는계속거절하며life/corpse행삭제/First선택0이다. 새ActiveEvacuationRestoreJoinDebugScenarios+meta가순서/상태/중복거절을검사한다. Stage11은기존통제owner사망재개PASS뒤actualguestKill→원lateSave공식복원→원activeSeed재개→공식SaveLoad를먼저수행하고late-terminal-reload-fixture.json을기록한다. 그Save가freshgraph를다시게시하므로owner/director를재조회한QA추가2줄이f31(생산f30/c27currentPASS와동일)이다. compilePASS와초기pure/late통합PASS후새soak-r10을실행한다. helper/메모리sample/핸들은아직r9이므로r10로갱신필요. 현재소스FROZEN/메인UNITY_VERIFY이며타인앱종료나model/RunAll중복0. 최종해시/보고서/KB f31영향갱신/Ollama API숨김복원은여전히필수다. 이전모든실패와질문CUHA는아래보존기록이다.
+
+최신 실행은 `soak-r9` session28942/frozen-r29(50pins)/compile-r26 current PASS다. 초기 facility-operational-fixture.json의directorSingleFlight와모든기존순수fixture PASS를확인했다. 같은R80새호스트기동뒤실제terminal/직원이탈/운반검사부터관측한다. 소스FROZEN/메인UNITY_VERIFY/추가작성자없음. functions store r80_soak_session28942와r80_soak_poll은r9및sample_memory_r9.ps1을가리킨다. helper도f29/c26/r9로갱신됐지만최종실행전이다. 아래r8/current자료는이전실패보존기록이며재실행하지않는다.
+
+최신 상태: r8 session10549는 terminal exit1/ownUnity-model0이며 last1716.82초/5회공식저장복원/Unityerrors0 뒤 추가QA MacroGoal queue-full false를fatal처리해끝났다. 정상backpressure이며지속포화(393~436초대기)는원답/상태에보존한다. 현재 `frozen-r29.json`(50pins)/`compile-r26` session18432 확인중이다. 실제 AiDirectorRuntime에 actor/type별 single-flight를추가했고, 새 `AiDirectorSingleFlightDebugScenarios.VerifyForBatch()`가 Start에서돌도록연결했다. 인물/종류독립과 callback성공/실패/취소 및 동기거절/throw후재요청을 검사한다. 용량64/timeout/원cadence/응답해석은불변. QA periodic은ShouldRequest를따르고 eligible/accepted/reason을result.periodicMacroAdmissions로기록하며false자체는게임fatal이아니다. 실제MacroGoal응답성공/1800초/5+final저장/메모리/정상종료확인조건은여전히필수다. 컴파일PASS와초기순수fixturePASS후 새soak-r9를실행한다. Model/Bundle는f28대비불변이다. helper/외부memorySampler/문서current경로는아직r8이라r9에맞춰갱신필요. KB는f28까지PASS이므로새f29의최종배치후영향갱신필요. 원OllamaAPI숨김복원/최종검증/최종보고는미완료다. 기본실행/앱종료를사용자대기로돌리지않으며FF/Discord종료허가로CUHA질문을오인하지않는다.
+
+r8 현재기동/직원 이탈/실제terminal-reload 통제fixture 모두PASS 뒤 실시간측정중이다. 첫92.72초/외부 메모리샘플에서physical여유7467012096B, ownUnityRSS4461875200B, bridge70MB, llamaRSS1072742400B를확인했다. Unity Profiler추적326MiB는전체RSS가아니다. `sample_memory_r8.ps1`가이세자기프로세스와OS여유만`soak-r8/external-memory-samples-r1.jsonl`에추가한다. functions store의r80_soak_session10549/r80_soak_poll은현재r8이고샘플도수집한다. KBsession53245는terminalexit0, content/knowledgebase freshness failures0/4169source/90output으로완료했다. 소스변경없으면KB갱신을반복하지않고마감시freshness만확인한다.
+
+최신 재개: r7은 Unity 오류가 아니라 `QA_MEMORY_PRESSURE`(가용physical893140992B <1073741824B)로 자기job만 종료했다. 마지막930.16초/공식복원3회/통제terminal재개PASS를 보존한다. Firefox/Discord 추가 종료 허가를 물었으나 사용자는 CUHA 가능 여부를 물었다. 읽기 전용 확인에서 CUHA는 i7-7500U 4thread/16GB/Intel HD620이며 NVIDIA GPU가 없다. CIFRAR SSH는 connect timeout이다. 그 후 로컬 여유가RAM약12.6GiB/VRAM10361MiB로 자연히 확보돼 다른앱종료0으로 같은f28/c25의 새 `soak-r8` session10549를 실행했다. 현재부터 같은handle을 관측하며 source 변경/새compile/동시worker는 없다. helper는r8로갱신했지만 최종검증은 아직실행전. 별도 `preserved-models-extended-r1.json`에서R80/129지원파일/기존3weights의hash와source47 drift0은 PASS이나1800완료아니다. KB갱신 session53245는 현재진행중이며로그가unit5PASS뒤에머물러 있으므로 상태확인필수. 새앱종료허가로 CUHA질문을 오인하지 않는다.
+
+최신 실행: `compile-r25` current PASS 뒤 `soak-r7` session39023 진행 중이다. `terminal-world-reload-fixture.json`에서 실제 owner Kill, 공식 terminal Save/Load, 활성 실제 saved world 재개 PASS를 확인했고 이 통제 구간은 타이머에 제외됐다. 새1800초 측정을 시작했으며 첫 관측27.99초다. 현재 f28 생산/QA 소스 FROZEN, 메인만 UNITY_VERIFY. 기존 session47977은 terminal exit0이다. 다음 같은39023 handle과 soak-r7 상태부터 이어가며 중복실행하지 않는다.
+
+이 문단이 아래 상태보다 최신이다. `soak-r6`는 session63054 terminal exit1, 마지막 관측1461.59초에서 사장 사망으로 정상적인 런 종료/일시정지를 시험기가 실패로 처리했다. Unity errors는0이며 실제 autosave의 owner health0/lifecycle10, run.flow terminal Loss, meta endedtrue/완료1회/보상431을 확인했다. 모델이나 저장 결함으로 단정하지 않는다. 현재 `frozen-r28.json`/`compile-r25` session47977 컴파일 중이다. current PASS/자기 Unity0 뒤 새 `soak-r7`를 실행한다. 실제 통제 사망→공식 terminal 저장/복원→기존 실제 활성 saved world 재개를 먼저 시험하며 `terminal-world-reload-fixture.json`을 쓴다. 이 통제 구간은1800초에 제외한다. 그 뒤 실시간30분을 새로 측정하며 자연 정상 종료가 오면 동일 명령 경로로 저장/재개하고 wall timer는 초기화하지 않는다. 생존30분/한런불사/난이도변경으로 주장하지 않는다. 게임 시계는 재로드 점프를 제외한 양의 누적 진행으로 기록하며 비정상pause는 여전히FAIL이다. 원5회+final 복원/메모리/2280-2400초 한도/실제프레임진행 조건은 유지한다. `verify_completion.py`는 아직 f26/c23/r6이므로 실제 성공 후 f28/c25/r7과 terminal fixture 조건으로 갱신해야 한다. 생산 소스는 f26 대비 QA harness만 바뀌었다. 마지막 Ollama API 복원과 보고서/KB/보존 검증은 여전히 미완료다.
+
+전체 작업 미완료. 메인만 UNITY_VERIFY. 현재 `frozen-r26.json`/`compile-r23` current compile PASS 뒤 `soak-r6` 실행 session63054를 관측 중이다. 첫5분 공식 저장 복원과 실제 직원 이탈 전체 저장 표적 PASS다. 실제1800초 완료 전이며 기존 handle/상태 파일부터 이어간다. `soak-r5`는 session69565 terminal exit1이며 Unity/자기 llama0 확인 후 소스를 수정했다. 원답과 모든 실패는 보존한다. 기존모델 및 현재 R80 가중치는 불변이고 bridge auxiliary 지시/실제 SocialRumor Activity 입력만 보완했다. bundled bridge19검사 PASS, auxiliary 함수 외 AST 동일 증거는 `wording-source-verification-r1.json`이다. 생산 schema/의미 대신 선택/출력 수선은 바꾸지 않았다.
+
+`soak-r5`의 실제 직원 영구 이탈 후 공식 전체 저장과 원상복구 회귀 PASS를 유지한다. 15분 저장은 방문객 EnteringDungeon의 기존 미지원 계약 때문에 실패했다. 다음 QA는 동일 lifecycle 상태를 관측해 안정 상태인 같은 프레임에서 동기 Save를 호출하고 최대60초 대기만 허용한다. 원2280/외부2400초, 저장5회+final, 실제1800초와 프레임/게임시계 진행은 불변이다. 방문객 이동 중 저장 지원을 구현했다고 주장하지 않는다. source 편집과 Unity를 겹치지 않으며 새로운 지속 이동 DTO 확장은 범위 밖이다.
+
+직전 `soak-r3` 사망 시 운반 신선도 반환 실패와 `soak-r4` 영구 이탈 심리 기록 잔류는 수정했고 각각 실제 Actor.Die와 전체 이탈 저장 표적 PASS다. 전투/장비, 시설 진화/운영 이력, 자동 경비 교전은 기존 실제 evidence를 관련 소스 범위로만 재사용한다. `verify_completion.py`는 아직 `frozen-r25`/`compile-r22`/`soak-r5`를 바라보므로 실제 성공 후 최종 핀과 새 경로, 의도한 auxiliary AST 변경 provenance에 맞춰 수정해야 한다. 아직 실행하지 않았다. `verification-final-r1.json` 생성 전이다. 마지막에 모델/지원파일/이전3모델 hash, 보고서와 루트문서, 관련 KB1회 갱신, 자체 프로세스 정리와 승인된 Ollama API 숨김 복원이 필수다. GUI 복원을 주장하지 않는다. 사용자 추가 기본 실행이나 새 Goal/Colab/학습/결제는 없다.
+
+## 과거 이어가기 — 시설과 적대 교전 후속
+
+현재 frozen-r17.json/compile-r14 target PASS 뒤 facility-hostile-r1 실행중(session97987), 같은 R80/생산소스 동결이다. DUNGEONSTORY_R80_REMAINING_FEATURES_ONLY=1로 기존 RequestProfilesForBatch의 남은 단계만 실행한다. 코드가 profiles-r16/auxiliary-consumers.json SHAa44c2020d526fa6b2f76463dc5e3d60fc1183bf1c19c0989addb1ff462e3216b와 frozen-r16의 harness 이외 전 입력 해시를 직접 검증해야만 후속을 시작한다. 기본user환경에지속설정하지않았고 exec 호출범위변수다. 이후soak모드는이flag를무시하지만launch할때명시제거하는것이좋다.
+
+R16은 실제 CharacterRecord 거절후원사실3건 표시/보존, 실제Bubble callback '체력이 회복된 건 정말 다행이야.'와 실제Persona1개 적용까지확인했다. 제어카메라/queue drain은 QA통제이며사용자데스크톱입력0이다. 이어시설을방문할guest가EnteringDungeon일때시계를멈춰 No actual actor eligible fixture오류가발생했다. 원오류/실패보존. 실제생산시설오류로단정하지않으며fixture는Active방문객을기다린다. 새stage20은원R80seed를공식복원해정상속도에서Active Customer를기다리고시설실제Interact→TryEvolve/모델실제커밋→Save/Load→침입자공개spawn/자동교전과acknowledged damage만수행한다. 이전전체trialPASS를주장하지않는다.
+
+기존CharacterLog P0수정/단일R80/프로토콜과원모델은불변이다. 후속종료후새soak-r2 실시간1800초가여전히필수이며아직30분완료0. 최초soak-r1은RAM보호로시작직후종료했다. --load-mode none으로같은가중치를GPU에올린뒤여유RAM약5GiB관측/기준완화0. Ollama API서버는모든시험끝나면숨김으로복원. 새Goal/학습/결제/업로드0. Main만UNITY_VERIFY, 소스편집0.
+## 최신 현재 상태
+
+전체 작업 미완료. 현재 frozen-r16.json, compile-r13 모든표적 PASS 뒤 profiles-r16 실제Play 실행중(session65301). 메인만 Unity를 비대화형 station/desktop에서 실행한다. 소스 FROZEN. 다음 기존 handle/로그/receipt부터 이어가며 중복실행0이다.
+
+profiles-r14는 실제 다중효과 설명 개선, 장비 commit와 고객 Persona1개적용을 확인했고 원인문구 수정을 위해 owned job만 operator-stop했다. profiles-r15는 recordApplied0/직접전투 원인구절 거절에서 CharacterLog 표시대기 해제 누락을 확인해 operator-stop했다. 원답과실패 모두보존. 기본공격원인3곳은 'Arin의 공격'으로바꿨고 수치/공격자ID/typed명령origin은보존한다.
+
+새 P0 수정은 CharacterLog의 원 사실을 AI 생성대기와무관하게 표시/저장하는 것이다. 비공개 기록은계속제외하며 원 log 목록이단일권위다. TryEndNarrativeDisplayWait는 exact entry ID/예상문자열이 맞는 요청만 닫는다. 서비스의최종거절/취소와동기enqueue거절에서수명을닫고, 대체문장을생성하지않는다. WorldSave가 Entries를사용하므로대기중사실저장누락도해결한다. DTO/버전변경0. compile-r13의 recordRejectedDisplayVisibilityFixture는 동기거절/대기원문/중복/stale/대기저장복원/hidden제외PASS다.
+
+실제검증기는 CharacterRecord의 실제모델적용(Applied-ControlledFallback)과 거절후원사실유지(RejectedOriginalDisplayCount)를구분한다. 거절이있으면결과는 RUNTIME_COMPLETED_WITH_MODEL_REJECTIONS이며모델품질PASS라하지않는다. Persona적용후 통제된aux단계만 게임시계를멈추고queue를비워fresh BubbleLine을실제생산자로확인한다. 게임내카메라만대상에맞추고복원하며사용자데스크톱조작0. 이일시정지는30분시험으로세지않는다. 이후정상속도로시설실제이용/진화/공식저장복원/적대NPC공개spawn/자동교전과acknowledged damage를확인해야한다.
+
+소스: Python bridge19검사, full-skill-prose-contract-r1, large-trait-stage-r2, large-trait-binding-check-r2는순수검사다. 실제r14의 heal+guard와reposition+dot설명이모든효과를포함한것은실제관측이다. 큰근거에서native선행제약과최종binding/caller검증은구분한다. 잘못된근거거절을수선하거나적용하지않는다.
+
+soak-r1은실제30분실패/미완료다. 시작직후 RAM floor로자기job종료했고원증거보존. --load-mode none 적용후 profiles-r13/14에서여유RAM약5GiB관측/가중치/문맥/guard불변. profiles-r16 종료후 새soak-r2에서실시간1800초,5회주기저장복원+최종복원,진행프레임/시계/메모리를실제로완료해야한다. Ollama는사용자명시허용으로시험동안종료했으며마지막에API서버를비간섭복원해야한다. 새학습/외부업로드/결제/Goal0. 원모델/사용자씬/저장/QA실패보존.
+## 최신 R80 확장 시험 상태
+
+전체 작업 미완료. 최신 소스 frozen-r14.json, compile-r11 실행 중이다. 현재 소비자 검증기에서 거절된 응답을 기록하되 게임 전체를 즉시 종료하지 않도록 경계를 바로잡았다. 실제 Mood/장비/Persona/기록/말풍선/시설 커밋은 여전히 원 생산 소비 상태로 확인해야 한다. 거절이 남으면 결과는 PASS가 아니라 RUNTIME_COMPLETED_WITH_MODEL_REJECTIONS이며 Failed와 TimedOut 모두 집계한다. 원 거절/실패/출력은 보존하고 생산 검증을 완화하거나 답을 수선하지 않는다. 이 변경은 모델 전체 품질 통과를 뜻하지 않는다.
+
+profiles-r13은 실제 장비 적용과 고객 Active까지 진행했으나 24근거의 ritual-attunement가 declared module evidence를 못 인용해 원 binding_errors에서 거절됐다. 원 거절은 올바른 방어이며 적용0이다. profiles-r12는 근거 정렬 위반을 확인했고 생성 전 sorted tuple grammar로 고쳤다. 19 Python 경계 검사, 24근거 실제 실패 입력의 변환과 create-only large-trait-binding-check-r2.json의 기계적 원 검증 경계 확인을 보존한다. 큰 근거의 native ID/배열 제약과 최종 의미 결합 검증은 구분하고 과거 전수 enum과 완전 동등하다고 주장하지 않는다.
+
+soak-r1은 실제 연속30분을 시작했지만 seed 복원/soak-start 저장 직후 여유RAM1GiB 아래의 메모리 보호로 자기 작업만 종료됐다. 실제1800초 완료0이다. launcher-failure.txt의1071099904bytes/원floor1073741824bytes를 보존한다. 이후 R80 bridge의 같은 GPU 가중치 로딩에 --load-mode none을 적용했고 profiles-r13에서 여유RAM 약5.2GiB로 관측됐다. guard/VRAM/문맥/가중치 변경0. memory-load-mode-none-r1.json 참조. 다른 사용자 앱은 종료하지 않았다. Ollama 임시 종료 허용은 유효하며 마지막에 API서버를 비간섭 복원해야 한다.
+
+실제 r12 선택된 부효과가 prose payload에서 빠지는 문제를 확인했다. game_prose_messages에서 caller contract의 선택된 모든 module 원뜻을 전달하며 원 selection과 schema는 그대로 유지했다. full-skill-prose-contract-r1.json PASS는 순수 전달 검사이고 실제 자연스러움 보장은 아니다. 최종 실제 후보 문장을 다시 확인해야 한다. 부효과만 전달한다고 새 효과를 선택하거나 모델 답을 고치지 않는다.
+
+다음은 현재 compile-r11 종료 확인 후 새 profiles-r14로 실제 consumer/시설/적대NPC 자동 교전과 acknowledged damage를 끝낸다. 기존 r13/job 종료를 확인했다. 그 뒤 새 soak-r2에서 정상속도 실시간1800초, 5회 주기 저장 복원과 최종 저장 복원, 진행 프레임/게임 시계/메모리를 확인한다. Main 단독 UNITY_VERIFY이며 소스 동결을 지킨다. 새 Colab/학습/Goal/외부업로드0. 원 모델과 원49셀 기록, 사용자 저장과 씬은 보존한다.
+# 현재 R80 확장 전투와 AI 및 30분 시험 (2026-10-27)
+
+최신 직접 요청은 전투, 나머지 AI 기능과 장시간 플레이를 실제 시험하고 문제를 고치는 것이다. 전체 작업은 미완료다. 실제 실시간 30분 연속 시험을 하겠다고 알렸으며 아직 시작하지 않았다. 과거 45초 시험을 대신 집계하지 않는다. 메인만 소스와 Unity를 담당한다. 현재 profiles-r8은 원격 handle 97121 종료 exit1을 확인했고 자기 Unity 종료 뒤 다음 편집 단계다. 사용자 화면, 키보드, 마우스와 다른 게임을 건드리지 않는다. Ollama 모델만 내려도 계속 재로딩되어 첫 시험이 메모리 보호로 중단됐다. 사용자가 추가로 시험 동안 Ollama 앱과 서버 종료를 명시 허용했고 경로와 PID를 확인해 중지했다. 종료 기록은 authorized-ollama-pause.json. 시험 완료 시 기존 API 서버를 포커스 간섭 없이 복원할 필요가 있다.
+
+증거 root는 Artifacts/QA/R80ExtendedPlay-20261027-r1. 원본 모델과 기존 R80 통합 증거는 보존한다. 현재 default는 같은 단일 R80 GGUF SHA2894ec5261b3a8352a375eb6319bbc8dd8c68c9b7b64fba255d51ce1bc2eb9b2다. 학습이나 추가 결제는 하지 않았다. R80 game bridge와 지원 manifest 및 활성화 hash만 코드 변경에 맞춰 갱신했다. 실제 장비 입력 8401token이 8K 문맥을 초과해 contextSize를 12288로 늘렸고 이후 실행 전 여유 RAM8GiB와 VRAM8GiB를 요구했다. 입력 자르기와 출력 수선은 없다.
+
+현재 소스와 검사:
+- 새 R80ExtendedPlayModeVerifier.cs: 실제 기존 R80 공식 committed-world 복원, MoodImpulse, 실제 활 공격 피해와 장비 진화, 기록과 말풍선과 고객 Persona, 실제 시설 이용과 진화 시험 단계. 별도 RequestSoakForBatch는 실시간 1800초, 5회 저장 복원과 마지막 복원, 원래 게임 시계와 실제 AI 요청을 확인한다. 아직 해당 전체 통과는 없다.
+- IsolatedUnityLauncher와 run_isolated_unity_batch.ps1에 두 정확한 진입점만 추가했다. 모든 격리 검사와 메모리 보호 유지. 연속 시험만 외부2400초 및 내부2280초, 다른 실행은 원900초. 세션이 끝났는지 확인 전 재시작하지 않는다.
+- 원 소비자 CharacterLogNarrativeService의 3.5가35가 되던 token 정규화와 소수점을 문장 종결로 보던 검사를 고쳤다. 다른 문장 및 다른 숫자는 계속 거절한다. 기존 강제 creative detail 정책은 아직 변경하지 않았다. compile-r7/compile-result.json은 현재 C# 및 decimalRecordFixture와 스케줄링 fixture PASS다. 그 이후 C# 변경은 없다.
+- bridge game_selection_native가 실제 flat trait schema의 필수 requestRef를 생성 전 문법에 포함한다. 원 선택36개와 근거 규칙 보존 회귀 PASS. 후속 범위가 없는 새 부상 관측은 원래 전체 읽기 후보로 처리하고 실제 명시된 후속 범위는 원 제한을 유지한다.
+- finite_array_intersection의 중복 anyOf 전수 검사를 이미 유효한 closed tuple union에서만 제거했다. root 제약과 추가 branch 제약은 유지한다. 실제 실패 입력 native216선택의 준비가 약2.2초, 회귀16PASS. schema 실제 출력 검증은 유지한다.
+- 실제 장비 caller는 generic string ID schema와 공개 offer 최대값을 준다. bind_caller_choices에서 그 literal ID와 max를 엄격 결속했고, 증거가6개 초과인 장비와 시설은 factorial enum 대신 같은 finite item domain과 cardinality를 symbolic native schema로 만든다. 원 single decision 및 positional proof binding_errors 검증 유지, 수선0. large-equipment-contract-r1.json은 공개24근거 및4이점 전부와 최대1이점 보존 PASS. 이 경로는 아직 실제 최종 커밋을 통과하지 않았다.
+
+실제 실행:
+- r1 메모리 보호 중단. r2 검사 시점 오류. r3 trait requestRef 오류. r4 unscoped reading 오류. r5 CPU 준비 지연 후 Social timeout. r6 장비 문맥 초과. r7 장비 generic ID enum 누락. 원답과 실패 전부 보존했다.
+- r8은 장비 실제 선택 단계까지 진행했지만 prose pattern 컴파일에서 unsupported original prose pattern; no unconstrained fallback으로 중단. request-1793087699870892700/failure.json, runtime-traces/82061664cdeb487d9f2da7104f7a59be 하위다. 실제 C# 장비 displayName 및 narrativeFlavor는 숫자와 퍼센트 및 제어 문자를 금지하는 긴 raw JSON-safe character repetition regex다. game_prose_grammar와 numeric_free_prose_grammar는 인물 이름의 고정 주어 pattern만 전제로 해 이 장비 형식을 못 받는다. 다음 수정은 원 regex를 보존하는 canonical BMP bounded string 문법이어야 한다. 무제한 폴백 금지.
+- 실제 피해는 profiles-r4 및 이후 combat-damage.json에서 체력10000에서9964.829 감소를 확인했다. 첫30발 전부 빗나간 경우 사용 숙련도는 올라가므로 피해와 진화 대기를 따로 검증했다. 현재는 조준 사격 및 거리3, 피해 확인 후 속도를1로 복원한다.
+- 장비 pending 자동 제출 자체는 정상이다. profiles-r6 이후 진단에 queryVisible true, dispatcherPendingCount1, nextScanAt이 uiClockTime에 따라 증가한다. 부모 노드 조건과 VContainer 등록 문제는 확인되지 않았다. 실제 equipment response/커밋은 아직 미통과다.
+
+중요한 아직 미해결 내용 품질:
+- 읽기 전용 r80_playtest_readonly가 r5와 r7 원 입력을 대조했다. BubbleLine은 현재 출혈 피해0인데 출혈이 멎었다고 여러 번 생성했다. CharacterRecord는 어색한 문장, 수치 및 원인 누락, 회복 반전을 냈다. SocialRumor는 영어 rest facility has an open wound나 근거 없는 시설 치료 칭찬을 냈다. transport Succeeded를 실제 소비자 수용으로 세지 않는다. decimal anchor는 r7에서3.5를 유지한 사례로 경로 수정이 확인됐지만 내용 품질은 별개다.
+- 현재 game_auxiliary_messages는 원 입력과 schema를 바꾸지 않고 프로파일별 기존 R80 INSTRUCTIONS 및 현재 상태와 수치 보존 한국어 지시만 추가한다. 이 지시 추가만으로는 위 품질 문제가 해소되지 않았다.
+- 실제 원인은 최소 BubbleLine에서 확인됐다. frozen aligned_language_view.FRAME가 event 뒤 나머지를 모두 sourceEvent로 잡아서 Available character facts (request-local references): 이하의 과거 치유 및 정체성 배경까지 현재 사건에 합쳐진다. auxiliary-input의 user JSON publicFacts.sourceEvent에 이 전체가 들어 있다. 다음 수정은 고정된 transport marker로 실제 사건과 원 배경을 분리하고 원 배경을 별도 필드로 그대로 보존하는 것이며 의미나 최신 근거를 코드가 고르면 안 된다.
+- CharacterRecord는 Character: 아래 정확 name/requiredSubject 등의 필드, Source event: 다음 tag/message/requiredAnchorWords, Recent visible records ... 순서다. correction은 Source event: 원문 및 Required exact phrases: 별도형식이다. Social은 Speaker: 뒤 name 및 speakerCharacterId=, Event: 뒤 tag/count/message, candidateFacilities:와 JSON Example이 뒤따른다. facility experience형은 Facility:와 Experience:이며 관측값 그대로 분리해야 한다. Persona에는 원래 사건필드가 없다. 임의 이름이나 persistent ID나 사건을 만들지 않는다.
+- behavior_auxiliary_grammar는 원 schema의 자유 문자열을 공식 converter에 전달하며 특정 출혈 중지 문장을 강제하지 않는다. 따라서 고정 문장 whitelist가 원인이라는 증거는 없다.
+
+작업 재개는 현재 root 계획과 원본을 읽고 편집/검증 창을 구분한다. 현재 사용 가능한 실제 실행 스크립트는 run_isolated_unity_batch.ps1의 정확한 R80ExtendedPlayModeVerifier.RequestProfilesForBatch와 RequestSoakForBatch. 환경 DUNGEONSTORY_LLM_STREAMING_ROOT는 Assets/StreamingAssets/R80의 절대경로, DUNGEONSTORY_R80_TRACE_ROOT는 새 QA 실행 디렉터리/runtime-traces 절대경로다. 이전 셀이나 Colab은 이번 게임 시험에 사용하지 않는다. SOURCE_EDIT를 닫은 뒤 검사, 실제 모델, 모든 필요한 기능 및 실시간30분을 완수한다. 실제 통과 전 완료 보고하지 않는다.
+
 # 최신 Goal — 2026-10-16 보고서 전체 수정 결과
+
+## 현재 작업 — R80 확장 실제 플레이 검증 (2026-10-27)
+
+최신 사용자가 전투, 남은 AI 기능과 장시간 플레이를 실제 시험하고 문제를 고치도록 요청했다. 기존 단일 R80 연결을 유지하고 현재 기능별 생산자/소비자와 기존 검증기를 조사한다. 장기는 우선 실시간30분 연속 실행이며 실제 모델과 저장 복원, 전투/자원/오류를 관찰한다. 아직 새 전투/나머지 AI/장기 PASS는 아니다. Unity0 확인 후 메인 SOURCE_EDIT, 읽기 전용 담당자 한 명만 AI 호출 경로 조사 중이다. 증거는 Artifacts/QA/R80ExtendedPlay-20261027-r1에 create-only로 보존한다.
+
+
+## R80 게임 연동 완료 (2026-10-27)
+
+현재 기본 모델은 단일 R80 8B이며 Assets/StreamingAssets/R80 아래 별도 묶음으로 연결했다. 이전 1.7B와 V10 기본 가중치 및 어댑터 3파일은 최종 독립 SHA 검사에서 원본과 동일했다. 씬과 프리팹을 교체하지 않았고 인스펙터 수동 연결은 필요 없다.
+
+source-frozen-r22와 play-r20의 현재 소스 컴파일, 요청 순서 회귀 검사, 비대화형 창 프로브, 실제 GameplayScene 자동 Play가 통과했다. 실제 모델 응답20개, 실패0개이며 초기 기술 생성과 선택, 부분/전체 재생성, 취소 후 재시작, 파티 확정, 공식 저장 복원, 후천 특성 및 소문 응답, 기존 NarrativeOnly 매크로 목표 소비를 확인했다. 사용자 응답이나 모델 답을 주입하지 않았다. 결과는 Artifacts/QA/R80Integration-20261027-r1/verification-final-r2.json과 play-r20에 있다.
+
+모든20개 요청 형태, 수동 UI 조작, 전투, 장시간 플레이와 출시 인증까지 완료한 것은 아니다. 소문 문장과 대상 해석의 전수 의미 검토도 별도 범위다. 원래 전체 모델 품질 기준 통과를 주장하지 않는다. 기존 모델로 명시 복귀하려면 narrative-runtime.json의 활성화 선택을 해제하거나 기존 V10 root를 환경변수로 지정한다. 잘못된 R80 연결은 임의로 이전 모델에 폴백하지 않는다.
+
+자기 Unity/Python/llama 프로세스0을 별도 확인했고 SOURCE_EDIT와 UNITY_VERIFY를 닫았다. 현재 요청에 새 학습, 결제, 게임 출시 또는 새 Goal 완료 표시는 포함하지 않았다. 관련 인덱스 마감은 같은 증거 폴더의 knowledge-base-close-r1.log를 따른다.
+
+## R80 초기 준비 기록 — 단일8B 게임 연동과 실제 Play 시험 (2026-10-27)
+
+최신 사용자가 기존 모델 보존, R80 게임 연동과 실제 플레이테스트를 직접 요청했다. 2026-10-18 실행보류 지시는 이 새 요청 범위에서 해제됐다. 메인 단독 SOURCE_EDIT, 현재 Unity/llama 프로세스0을 확인해 EDIT_READY다. 기존1.7B와 V10 묶음은 보존한다. R80 모델파일과 평가된 요청 처리 계약을 확인하고 기존 Host/Queue 소유권을 유지해 연동한다. 비대화형 station/desktop의 순수검사/실제창프로브/현재소스컴파일 후 정상 GameplayScene에서 실제 모델응답, 선택/커밋과 공식 저장복원을 검증한다. 상태와 증거는 Artifacts/QA/R80Integration-20261027-r1에 보존하며 사용자 데스크톱 실행으로 폴백하지 않는다. 아직 소스변경/Unity실행/Play PASS 전이다.
+
+
+## 현재 인계 — V10 8B 로컬 4비트 파일·연결 준비만, 실행 보류 (2026-10-18)
+
+최신 사용자 선택은 메모리 확보 없이 파일·연결 준비까지만 수행하는 것이다. 추가 모델 실행·Unity·학습을 자동 재개하지 않는다. 상세 계획/결정/증거는 이 저장소 task_plan.md/findings.md/progress.md 최신 절을 따른다. 형제 저장소의 학습 원본/평가 동결 파일은 읽기만 했다.
+
+Artifacts/QA/TrainedModelIntegration-20261018-r1/runtime에 공식 Qwen3-8B Q4_K_M+검증한 최종 V10 LoRA+CUDA12.4 서버를 별도 준비했다. 가중치5.38GB/실행 묶음6.53GB, 원본 LoRA504 F32 tensor bit-exact PASS. bundle-receipt.json은 PREPARED_NOT_INFERENCE_PASS다. 기존 1.7B base-untrained 파일/manifest·씬/프리팹 diff0. Host/Queue 연결 코드와 정상 시작 파티→실제 응답→커밋→저장 복원 시험 entry는 문법/순수 검사만 통과했다. 현재 Unity 컴파일/추론/Play/4비트 품질은 미실행이며 전체 게임 연동 완료가 아니다.
+
+사용자가 나중에 실행을 요청하면 tools/QA/run_trained_model_integration.ps1로 새 출력 폴더에서만 진행한다. 같은 격리 Unity 런처·station/desktop 프로브·원래 메모리 보호를 유지한다. 이번 all-GPU 시험 래퍼의 여유 예산은 RAM8GiB/VRAM7GiB이며 현재 부족을 예상대로 차단한 것까지 확인했다. 마지막에 Unity0/llama-server0. Source edit 배치는 준비 상태로 닫으며 관련 실제 import/컴파일과 KB 갱신은 후속 실행 전 남아 있다. 작은 게임 배포용 모델 방향은 미확정이며 이번 8B를 필수 동봉 배포본으로 결정하지 않았다.
 
 ## 현재 인계 — SO 전수 조사·선별 수정·실행 완료 (2026-10-18)
 

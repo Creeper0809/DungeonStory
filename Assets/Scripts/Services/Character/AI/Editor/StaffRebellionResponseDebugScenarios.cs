@@ -491,7 +491,8 @@ public static partial class StaffRebellionResponseDebugScenarios
                 CharacterAiEditorTestDependencies.SettlementStandings,
                 publisher,
                 facts,
-                CharacterAiEditorTestDependencies.GameCalendar);
+                CharacterAiEditorTestDependencies.GameCalendar,
+                new GriefTraumaRuntime(RootStore));
 
             for (int x = 0; x < Grid.width; x++)
             {

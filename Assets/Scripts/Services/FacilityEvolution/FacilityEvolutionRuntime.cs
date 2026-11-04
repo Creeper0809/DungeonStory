@@ -68,6 +68,20 @@ public sealed class GridFacilityEvolutionBuildingReplacer : IFacilityEvolutionBu
             return false;
         }
 
+        // Live interaction coroutines belong to the source instance. Their
+        // occupancy and execution handles cannot be moved by a world swap.
+        if (source.CurrentUserCount > 0
+            || source.FacilityState.activeUses?.Count > 0)
+        {
+            reason = "이용 중인 시설은 이용 종료 후 진화할 수 있습니다.";
+            return false;
+        }
+        if (!source.FacilityState.IsValid(out string operationalFailure))
+        {
+            reason = "시설 운영 상태 검증 실패: " + operationalFailure;
+            return false;
+        }
+
         bool canOwnProduction = source.BuildingData?.GetProductionWorkstationAbility() != null
             || source.BuildingData?.GetProductionBufferAbility() != null;
         // The staged retarget transaction is the authority for active owners.
@@ -123,6 +137,7 @@ public sealed class GridFacilityEvolutionBuildingReplacer : IFacilityEvolutionBu
         Vector2Int position = source.centerPos;
         BuildingSO sourceBuilding = source.BuildingData;
         BuildingInstanceId survivorId = source.RequirePersistentInstanceId();
+        FacilityRuntimeState operationalState = source.FacilityState.Clone();
         ProductionFacilityRetargetTransactionState retargetState = null;
         if (productionRetarget != null)
         {
@@ -156,6 +171,10 @@ public sealed class GridFacilityEvolutionBuildingReplacer : IFacilityEvolutionBu
             candidate.RestorePersistentIdentity(survivorId);
             candidate.SetGrid(grid);
             candidate.Initialization(resultBuilding, position);
+            // Identity survives evolution, so its operation cursors and durable
+            // receipts must survive too. Restore before any world publication;
+            // a failed handoff leaves the source state untouched.
+            candidate.RestoreFacilityState(operationalState);
         }
         catch (Exception exception)
         {

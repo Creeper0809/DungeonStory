@@ -1,4 +1,5 @@
 using System;
+using DungeonStory.Narrative.Korean;
 using UnityEngine;
 
 public static class CharacterActivityKinds
@@ -345,6 +346,32 @@ public static class CharacterNarrativeDomainUtility
 
 public static class CharacterActivityFormatter
 {
+    private static readonly KoreanJosaFormatter Josa = new KoreanJosaFormatter();
+
+    public static string FacilityDamage(string targetName)
+    {
+        if (string.IsNullOrWhiteSpace(targetName))
+        {
+            throw new ArgumentException("A damaged facility display name is required.", nameof(targetName));
+        }
+
+        KoreanJosaFormatResult target = Josa.Format(new KoreanJosaRequest(
+            new KoreanNameSnapshot(targetName, targetName,
+                KoreanPronunciationHint.AutoHangulDisplay(), "ko"), KoreanJosaKind.Object));
+        if (target.Status == KoreanJosaFormatStatus.Applied)
+        {
+            return target.Text + " 파손했다";
+        }
+
+        // 발음 근거가 없으면 기존 조사 계약의 중립형으로 대상 이름을 그대로 보존한다.
+        if (target.Status == KoreanJosaFormatStatus.UnknownPronunciation)
+        {
+            return "시설 파손: " + targetName;
+        }
+
+        throw new InvalidOperationException("Facility damage particle formatting failed: " + target.Status);
+    }
+
     public static string Format(CharacterActivityEvent activity)
     {
         if (activity == null)

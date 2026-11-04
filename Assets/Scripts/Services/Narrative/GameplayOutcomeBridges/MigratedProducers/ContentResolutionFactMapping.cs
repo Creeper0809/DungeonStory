@@ -231,7 +231,9 @@ internal static class ContentResolutionFactMapping
                 MigratedProducerOutcomeIds.EffectApplicationFact,
                 aggregate));
         }
-        if (subjects.Count > 16 || metrics.Count > 16 || facts.Count > 14)
+        if (subjects.Count > GameplayOutcomeBufferLimits.AbsoluteMaximumParticipantsPerOutcome
+            || subjects.Count > GameplayOutcomeBufferLimits.AbsoluteMaximumSubjectsPerOutcome
+            || metrics.Count > 16 || facts.Count > 14)
         {
             throw new InvalidOperationException(
                 "V20 resolved-event evidence exceeds fixed ledger capacity: "

@@ -295,7 +295,7 @@ public sealed class SocialConflictOutcomeDescriptor : IGameplayOutcomeDescriptor
         && outcome.MetricCount is 4 or 7
         && outcome.SubjectCount is 2 or 3
         && outcome.TagCount is 2 or 3
-        && outcome.AnchorCount == 0
+        && outcome.ProductionAnchorCount == 0
         && outcome.ProvenanceCount == 1
             ? OutcomeValidationResult.Accepted
             : OutcomeValidationResult.Reject("social-conflict-shape-invalid");
@@ -331,7 +331,7 @@ public sealed class ApologyOutcomeDescriptor : IGameplayOutcomeDescriptor
         && outcome.MetricCount == 3
         && outcome.SubjectCount == 2
         && outcome.TagCount == 2
-        && outcome.AnchorCount == 0
+        && outcome.ProductionAnchorCount == 0
         && outcome.ProvenanceCount == 1
             ? OutcomeValidationResult.Accepted
             : OutcomeValidationResult.Reject("apology-shape-invalid");

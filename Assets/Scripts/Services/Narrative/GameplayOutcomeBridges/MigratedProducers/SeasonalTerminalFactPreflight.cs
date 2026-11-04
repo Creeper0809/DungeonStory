@@ -6,7 +6,7 @@ using DungeonStory.Foundation.Facts;
 using DungeonStory.Narrative.Korean;
 
 // Native identity/canonical payload joins belong to the observer, never to seasonal gameplay.
-public sealed class SeasonalTerminalFactPreflight : IDungeonSavePreflightValidator, IDungeonCapturedSavePreflightValidator
+public sealed class SeasonalTerminalFactPreflight : IDungeonSavePreflightValidator, IDungeonDetachedCapturedSavePreflightValidator
 {
     public void Validate(DungeonGameSaveData save, DungeonGameRestoreReport report)
     {

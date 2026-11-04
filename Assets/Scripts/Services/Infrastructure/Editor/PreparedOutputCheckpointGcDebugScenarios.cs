@@ -338,6 +338,7 @@ public static class PreparedOutputCheckpointGcDebugScenarios
     private sealed class FakeSaveService : IDungeonGameSaveService
     {
         public DungeonGameSaveData Capture() => new();
+        public IDungeonGameSaveCapture BeginCapture() => throw new NotSupportedException("Synchronous GC fixture only.");
         public string ToJson(DungeonGameSaveData saveData, bool prettyPrint = false)
             => "{\"fixture\":true}";
         public DungeonGameSaveData FromJson(string json) => new();

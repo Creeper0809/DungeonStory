@@ -179,7 +179,7 @@ public sealed class GameWorldLineageSaveSection :
 }
 
 public sealed class GameWorldLineageSaveValidation : IDungeonSavePreflightValidator,
-    IDungeonCapturedSavePreflightValidator, IDungeonSaveRegistryPreflightValidator
+    IDungeonDetachedCapturedSavePreflightValidator, IDungeonSaveRegistryPreflightValidator
 {
     public void Validate(DungeonGameSaveData data, DungeonGameRestoreReport report) =>
         Validate(data.sections.ToDictionary(s => s.sectionId, StringComparer.Ordinal), report);
@@ -189,9 +189,8 @@ public sealed class GameWorldLineageSaveValidation : IDungeonSavePreflightValida
             || !sections.TryGetValue(GameplayOutcomeLedgerSaveSection.Id, out var ledger))
         { report.AddError("world-lineage-or-ledger-section-missing"); return; }
         GameWorldLineageSnapshot snapshot = GameWorldLineageSaveSection.ReadSnapshot(lineage.payloadJson);
-        JObject ledgerData = JObject.Parse(ledger.payloadJson,
-            new JsonLoadSettings { DuplicatePropertyNameHandling = DuplicatePropertyNameHandling.Error });
-        if (snapshot.LedgerRunId != (string)ledgerData["runId"])
+        string ledgerRunId = DungeonSaveJson.ReadStrictStringProperty(ledger.payloadJson, "runId");
+        if (snapshot.LedgerRunId != ledgerRunId)
             report.AddError("world-lineage-ledger-run-mismatch");
     }
 }
