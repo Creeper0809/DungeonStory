@@ -1,0 +1,2845 @@
+{
+  "schema": "development-required-fixtures-v1",
+  "purpose": "Existing automated checks and fixed Editor regression inputs. Generated runs and exports are local.",
+  "files": [
+    {
+      "path": "Artifacts/QA/GameplayOutcomeLedgerPhase80FinalClosure-20260920-r6/final-closure.json",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ],
+      "sha256": "5274ac45c9e4edf1496a95a3f0e3d614a4ea1b611661b77a9823741e286b98c1"
+    },
+    {
+      "path": "Artifacts/QA/ImpactCI/r31-character-summary.json",
+      "consumers": [
+        "current-native-ci-receipt-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/ImpactCI/r31-character.log",
+      "consumers": [
+        "current-native-ci-receipt-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/ImpactCI/r31-core-summary.json",
+      "consumers": [
+        "current-native-ci-receipt-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/ImpactCI/r31-core.log",
+      "consumers": [
+        "current-native-ci-receipt-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/ImpactCI/r31-crop-summary.json",
+      "consumers": [
+        "current-native-ci-receipt-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/ImpactCI/r31-crop.log",
+      "consumers": [
+        "current-native-ci-receipt-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/ImpactCI/r31-effects-definitions-summary.json",
+      "consumers": [
+        "current-native-ci-receipt-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/ImpactCI/r31-effects-definitions.log",
+      "consumers": [
+        "current-native-ci-receipt-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/ImpactCI/r31-effects-recovery-summary.json",
+      "consumers": [
+        "current-native-ci-receipt-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/ImpactCI/r31-effects-recovery.log",
+      "consumers": [
+        "current-native-ci-receipt-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/ImpactCI/r31-effects-traits-summary.json",
+      "consumers": [
+        "current-native-ci-receipt-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/ImpactCI/r31-effects-traits.log",
+      "consumers": [
+        "current-native-ci-receipt-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/ImpactCI/r31-world-summary.json",
+      "consumers": [
+        "current-native-ci-receipt-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/ImpactCI/r31-world.log",
+      "consumers": [
+        "current-native-ci-receipt-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/ImpactCI/verification.json",
+      "consumers": [
+        "current-native-ci-receipt",
+        "existing-python-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/ability-haul-lifecycle-recovery-playmode.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/ai-mid-action-save-load-playmode.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/captivity-ai-playmode.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/captivity-wildlife-lifecycle-playmode.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/character-ai-autonomous-medical-playmode.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/character-ai-chaos-external-intent-alert.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/character-ai-chaos-facility-alert-destroy.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/character-ai-chaos-haul-alert-casualty.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/character-ai-chaos-hunt-alert-topology-loss.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/character-ai-chaos-rescue-alert-rescuer-downed.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/character-ai-chaos-responder-casualty.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/character-ai-chaos-routine-lockdown.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/character-ai-cross-action-fault-playmode.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/character-ai-emergent-chaos-playmode.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/character-ai-emergent-chaos-seed-271828.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/character-ai-emergent-combination-coverage.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/character-ai-fault-recovery-playmode.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/character-ai-lifecycle-fault-playmode.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/character-ai-self-care-playmode.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/character-ai-worktype-live-matrix.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/character-alarm-response-playmode.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/character-consumable-action-fault-playmode.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/character-visitor-control-journey-playmode.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/combat-balance-final.txt",
+      "consumers": [
+        "existing-python-verifier-input",
+        "observed-python-ci-read",
+        "release-archive-verifier",
+        "release-verifier-file-constant"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/combat-balance-final/encounter-01.txt",
+      "consumers": [
+        "existing-python-verifier-input",
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/combat-balance-final/encounter-02.txt",
+      "consumers": [
+        "existing-python-verifier-input",
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/combat-balance-final/encounter-03.txt",
+      "consumers": [
+        "existing-python-verifier-input",
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/combat-balance-final/encounter-04.txt",
+      "consumers": [
+        "existing-python-verifier-input",
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/combat-balance-final/encounter-05.txt",
+      "consumers": [
+        "existing-python-verifier-input",
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/combat-balance-final/encounter-06.txt",
+      "consumers": [
+        "existing-python-verifier-input",
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/combat-balance-final/encounter-07.txt",
+      "consumers": [
+        "existing-python-verifier-input",
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/combat-balance-final/encounter-08.txt",
+      "consumers": [
+        "existing-python-verifier-input",
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/combat-balance-final/encounter-09.txt",
+      "consumers": [
+        "existing-python-verifier-input",
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/combat-balance-final/encounter-10.txt",
+      "consumers": [
+        "existing-python-verifier-input",
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/combat-balance-final/encounter-11.txt",
+      "consumers": [
+        "existing-python-verifier-input",
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/combat-balance-final/encounter-12.txt",
+      "consumers": [
+        "existing-python-verifier-input",
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/combat-balance-final/encounter-13.txt",
+      "consumers": [
+        "existing-python-verifier-input",
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/combat-balance-final/encounter-14.txt",
+      "consumers": [
+        "existing-python-verifier-input",
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/combat-balance-final/encounter-15.txt",
+      "consumers": [
+        "existing-python-verifier-input",
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/combat-balance-final/encounter-16.txt",
+      "consumers": [
+        "existing-python-verifier-input",
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/combat-balance-final/encounter-17.txt",
+      "consumers": [
+        "existing-python-verifier-input",
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/combat-balance-final/encounter-18.txt",
+      "consumers": [
+        "existing-python-verifier-input",
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/combat-balance-final/encounter-19.txt",
+      "consumers": [
+        "existing-python-verifier-input",
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/combat-balance-final/encounter-20.txt",
+      "consumers": [
+        "existing-python-verifier-input",
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/combat-balance-final/encounter-21.txt",
+      "consumers": [
+        "existing-python-verifier-input",
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/combat-balance-final/encounter-22.txt",
+      "consumers": [
+        "existing-python-verifier-input",
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/combat-balance-final/encounter-23.txt",
+      "consumers": [
+        "existing-python-verifier-input",
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/combat-balance-final/encounter-24.txt",
+      "consumers": [
+        "existing-python-verifier-input",
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/combat-balance-final/encounter-25.txt",
+      "consumers": [
+        "existing-python-verifier-input",
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/combat-balance-final/encounter-26.txt",
+      "consumers": [
+        "existing-python-verifier-input",
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/combat-balance-final/encounter-27.txt",
+      "consumers": [
+        "existing-python-verifier-input",
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/combat-balance-final/encounter-28.txt",
+      "consumers": [
+        "existing-python-verifier-input",
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/combat-balance-final/encounter-29.txt",
+      "consumers": [
+        "existing-python-verifier-input",
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/combat-balance-final/encounter-30.txt",
+      "consumers": [
+        "existing-python-verifier-input",
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/combat-balance-final/encounter-31.txt",
+      "consumers": [
+        "existing-python-verifier-input",
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/combat-balance-final/encounter-32.txt",
+      "consumers": [
+        "existing-python-verifier-input",
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/combat-balance-final/encounter-33.txt",
+      "consumers": [
+        "existing-python-verifier-input",
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/combat-balance-final/encounter-34.txt",
+      "consumers": [
+        "existing-python-verifier-input",
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/combat-balance-final/encounter-35.txt",
+      "consumers": [
+        "existing-python-verifier-input",
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/combat-balance-final/encounter-36.txt",
+      "consumers": [
+        "existing-python-verifier-input",
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/combat-v14-playmode-report.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/construction-project-playmode-report.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/defense-engagement-playmode.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/equipment-repair-buffer-mass-playmode-report.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/final-acceptance-report.txt",
+      "consumers": [
+        "existing-python-verifier-input",
+        "observed-python-ci-read",
+        "release-archive-verifier",
+        "release-verifier-file-constant"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/final-playmode-acceptance-preflight-report.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/final-playmode-acceptance-progress.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/final-playmode-acceptance-report.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/game-content-catalog-generation-manifest.json",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/industrial-power-fuel-buffer-playmode-report.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/l02-mass-admission-playmode-report.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/offense-journey-playmode.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/offense-tactical-journey-playmode.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/phase157-daily-routine-wu-playmode.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/phase157-daily-routine-wu-seed-157181.txt",
+      "consumers": [
+        "existing-editor-verifier-input",
+        "existing-python-verifier-input",
+        "observed-python-ci-read",
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/phase157-daily-routine-wu-seed-157182.txt",
+      "consumers": [
+        "existing-editor-verifier-input",
+        "existing-python-verifier-input",
+        "observed-python-ci-read",
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/phase157-daily-routine-wu-seed-157183.txt",
+      "consumers": [
+        "existing-editor-verifier-input",
+        "existing-python-verifier-input",
+        "observed-python-ci-read",
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/physical-item-carry-ui.png",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/physical-item-logistics-playmode-report.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/prepared-output-destructive-drain-live-playmode-report.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/prepared-output-m06-live-playmode-report.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/prepared-output-p17-live-playmode-report.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/prepared-output-sawmill-live-playmode-report.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/prepared-output-synthetic-canary-catalog.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/prepared-output-synthetic-canary-cleanup.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/prepared-output-synthetic-canary-contract.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/prepared-output-warehouse-live-playmode-report.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/primitive-start-survival-5day-report.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/production-branches-1600x900.png",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/production-branches-900x1600.png",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/production-input-buffer-mass-playmode-report.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/production-ui-pointer-matrix-report.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/research-blueprint-physical-flow.png",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/start-party-desktop.png",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/start-party-mobile.png",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/start-party-playmode-report.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/surgery-playmode-report.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v19-save-atomicity-report.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v26-equipment-readiness-throughput.md",
+      "consumers": [
+        "existing-editor-verifier-input",
+        "existing-python-verifier-input",
+        "observed-python-ci-read",
+        "release-archive-verifier",
+        "release-verifier-file-constant"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v26-founder-trait-source-consumer-manifest.md",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-balance-anomaly-graph.json",
+      "consumers": [
+        "existing-editor-verifier-input",
+        "existing-python-verifier-input",
+        "observed-python-ci-read",
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-balance-approval-recalibration-current-diff.txt",
+      "consumers": [
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-balance-artifact-manifest.json",
+      "consumers": [
+        "existing-editor-verifier-input",
+        "existing-python-verifier-input",
+        "observed-python-ci-read",
+        "release-archive-verifier",
+        "release-verifier-file-constant"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-balance-asset-rollback.txt",
+      "consumers": [
+        "existing-editor-verifier-input",
+        "existing-python-verifier-input",
+        "observed-python-ci-read",
+        "release-archive-verifier",
+        "release-verifier-file-constant"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-balance-audit-second-generation-noop.json",
+      "consumers": [
+        "release-archive-verifier",
+        "release-verifier-file-constant"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-balance-before-after.csv",
+      "consumers": [
+        "existing-editor-verifier-input",
+        "existing-python-verifier-input",
+        "observed-python-ci-read",
+        "release-archive-verifier",
+        "release-verifier-file-constant"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-balance-builder-no-clobber.txt",
+      "consumers": [
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-balance-construction-review-application.txt",
+      "consumers": [
+        "existing-editor-verifier-input",
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-balance-economy-256-seed.txt",
+      "consumers": [
+        "existing-python-verifier-input",
+        "observed-python-ci-read",
+        "release-archive-verifier",
+        "release-verifier-file-constant"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-balance-expansion-editmode.txt",
+      "consumers": [
+        "existing-editor-verifier-input",
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-balance-expansion-playmode.txt",
+      "consumers": [
+        "existing-editor-verifier-input",
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-balance-expansion-tiers.txt",
+      "consumers": [
+        "existing-editor-verifier-input",
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-balance-floor-clutter.csv",
+      "consumers": [
+        "existing-editor-verifier-input",
+        "release-archive-verifier",
+        "release-verifier-file-constant"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-balance-labor-facility-authority.txt",
+      "consumers": [
+        "existing-python-verifier-input",
+        "observed-python-ci-read",
+        "release-archive-verifier",
+        "release-verifier-file-constant"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-balance-layout-256-seed.txt",
+      "consumers": [
+        "existing-editor-verifier-input",
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-balance-ledger-contracts.txt",
+      "consumers": [
+        "existing-python-verifier-input",
+        "observed-python-ci-read",
+        "release-archive-verifier",
+        "release-verifier-file-constant"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-balance-market-application-focused.txt",
+      "consumers": [
+        "existing-editor-verifier-input",
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-balance-market-application-receipts/8597aa1aa83d69ec79fb5821e8dd36ec6ac832c36a1d6e83cad038735c41777a.json",
+      "consumers": [
+        "existing-editor-verifier-input",
+        "existing-python-verifier-input",
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-balance-market-authority.txt",
+      "consumers": [
+        "existing-python-verifier-input",
+        "observed-python-ci-read",
+        "release-archive-verifier",
+        "release-verifier-file-constant"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-balance-market-parent-current-source.txt",
+      "consumers": [
+        "existing-editor-verifier-input",
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-balance-market-review-application.txt",
+      "consumers": [
+        "existing-editor-verifier-input",
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-balance-market-review-bundles.csv",
+      "consumers": [
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-balance-market-review-bundles.txt",
+      "consumers": [
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-balance-market-second-apply-noop.json",
+      "consumers": [
+        "existing-editor-verifier-input",
+        "release-archive-verifier",
+        "release-verifier-file-constant"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-balance-market-writer-provenance.txt",
+      "consumers": [
+        "existing-editor-verifier-input",
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-balance-output-capacity-playmode.txt",
+      "consumers": [
+        "existing-editor-verifier-input",
+        "release-archive-verifier",
+        "release-verifier-file-constant"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-balance-paired-run-rng.csv",
+      "consumers": [
+        "existing-editor-verifier-input",
+        "release-archive-verifier",
+        "release-verifier-file-constant"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-balance-paired-run-rng.txt",
+      "consumers": [
+        "existing-editor-verifier-input",
+        "existing-python-verifier-input",
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-balance-population-stage-playmode.txt",
+      "consumers": [
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-balance-random-stream-manifest.txt",
+      "consumers": [
+        "existing-editor-verifier-input",
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-balance-recalibration-audit.txt",
+      "consumers": [
+        "existing-editor-verifier-input",
+        "existing-python-verifier-input",
+        "observed-python-ci-read",
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-balance-service-continuity-playmode.txt",
+      "consumers": [
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-balance-service-continuity.csv",
+      "consumers": [
+        "existing-editor-verifier-input",
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-balance-shared-cell-congestion.txt",
+      "consumers": [
+        "existing-editor-verifier-input",
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-balance-six-adult-food-water-loop.txt",
+      "consumers": [
+        "existing-editor-verifier-input",
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-balance-source-inventory.json",
+      "consumers": [
+        "existing-editor-verifier-input",
+        "existing-python-verifier-input",
+        "observed-python-ci-read",
+        "release-archive-verifier",
+        "release-verifier-file-constant"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-balance-spatial-capacity.csv",
+      "consumers": [
+        "existing-editor-verifier-input",
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-balance-stage-portfolios.csv",
+      "consumers": [
+        "existing-editor-verifier-input",
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-balance-vertical-slice-full-loop-playmode.txt",
+      "consumers": [
+        "existing-python-verifier-input",
+        "observed-python-ci-read",
+        "release-archive-verifier",
+        "release-verifier-file-constant"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-balance-vertical-slice-playmode.txt",
+      "consumers": [
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-balance-whole-game-coverage.txt",
+      "consumers": [
+        "existing-editor-verifier-input",
+        "existing-python-verifier-input",
+        "observed-python-ci-read",
+        "release-archive-verifier",
+        "release-verifier-file-constant"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-batch-a-output-closure.txt",
+      "consumers": [
+        "existing-editor-verifier-input",
+        "release-archive-verifier",
+        "release-verifier-file-constant"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-batch-c-parent.txt",
+      "consumers": [
+        "existing-editor-verifier-input",
+        "release-archive-verifier",
+        "release-verifier-file-constant"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-batch-g-remaining-fault-evidence.txt",
+      "consumers": [
+        "existing-editor-verifier-input",
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-canonical-output-line-apply-manifest.txt",
+      "consumers": [
+        "existing-editor-verifier-input",
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-canonical-output-line-backfill-proposals.csv",
+      "consumers": [
+        "existing-editor-verifier-input",
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-canonical-output-line-backfill-proposals.txt",
+      "consumers": [
+        "existing-editor-verifier-input",
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-canonical-output-line-current-authority.txt",
+      "consumers": [
+        "existing-editor-verifier-input",
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-construction-redistribution-focused.txt",
+      "consumers": [
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-crop-harvest-maximum-envelope.csv",
+      "consumers": [
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-current-source-fg-evidence-orchestration.txt",
+      "consumers": [
+        "existing-editor-verifier-input",
+        "release-archive-verifier",
+        "release-verifier-file-constant"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-current-source-fg-orchestration-contract.txt",
+      "consumers": [
+        "existing-editor-verifier-input",
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-daily-routine-three-seed-orchestration.txt",
+      "consumers": [
+        "existing-editor-verifier-input",
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-domain-cluster-closure.csv",
+      "consumers": [
+        "existing-editor-verifier-input",
+        "release-archive-verifier",
+        "release-verifier-file-constant"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-domain-cluster-closure.txt",
+      "consumers": [
+        "existing-editor-verifier-input",
+        "release-archive-verifier",
+        "release-verifier-file-constant"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-facility-buffer-owner-manifest.csv",
+      "consumers": [
+        "existing-editor-verifier-input",
+        "release-archive-verifier",
+        "release-verifier-file-constant"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-facility-buffer-owner-manifest.txt",
+      "consumers": [
+        "existing-editor-verifier-input",
+        "release-archive-verifier",
+        "release-verifier-file-constant"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-grand-project-affected-recipe-envelope.csv",
+      "consumers": [
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-h-fg-source-freeze-static-manifest.txt",
+      "consumers": [
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-labor-authority-matrix.txt",
+      "consumers": [
+        "existing-python-verifier-input",
+        "observed-python-ci-read",
+        "release-archive-verifier",
+        "release-verifier-file-constant"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-lineage-craft-operation-focused.tsv",
+      "consumers": [
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-live-fault-matrix.csv",
+      "consumers": [
+        "existing-editor-verifier-input",
+        "release-archive-verifier",
+        "release-verifier-file-constant"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-live-fault-matrix.txt",
+      "consumers": [
+        "existing-editor-verifier-input",
+        "release-archive-verifier",
+        "release-verifier-file-constant"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-output-cost-allocation-focused.txt",
+      "consumers": [
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-p15-production-execution-modes-playmode.txt",
+      "consumers": [
+        "existing-editor-verifier-input",
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-physical-mass-audits-request.txt",
+      "consumers": [
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-physical-mass-authority-inventory.csv",
+      "consumers": [
+        "existing-editor-verifier-input",
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-physical-mass-authority-inventory.txt",
+      "consumers": [
+        "existing-editor-verifier-input",
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-physical-mass-carry-capacity.txt",
+      "consumers": [
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-physical-mass-coupling.csv",
+      "consumers": [
+        "release-archive-verifier",
+        "release-verifier-file-constant"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-physical-mass-coupling.txt",
+      "consumers": [
+        "release-archive-verifier",
+        "release-verifier-file-constant"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-physical-mass-explicit-semantic-slice.txt",
+      "consumers": [
+        "existing-editor-verifier-input",
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-physical-mass-explicit-unit-semantics.csv",
+      "consumers": [
+        "existing-editor-verifier-input",
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-physical-mass-family-proposals.csv",
+      "consumers": [
+        "existing-editor-verifier-input",
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-physical-mass-family-proposals.txt",
+      "consumers": [
+        "existing-editor-verifier-input",
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-physical-mass-packaging-review.csv",
+      "consumers": [
+        "existing-editor-verifier-input",
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-physical-mass-packaging-review.txt",
+      "consumers": [
+        "existing-editor-verifier-input",
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-physical-mass-primitive-profiles.csv",
+      "consumers": [
+        "existing-editor-verifier-input",
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-physical-mass-transform-contracts.csv",
+      "consumers": [
+        "existing-editor-verifier-input",
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-physical-mass-unit-semantic-candidates.csv",
+      "consumers": [
+        "existing-editor-verifier-input",
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-physical-mass-weight-writer-manifest.txt",
+      "consumers": [
+        "existing-editor-verifier-input",
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-prepared-output-custody-carry-callsite-manifest.txt",
+      "consumers": [
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-production-execution-mode-exclusion-focused.txt",
+      "consumers": [
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-production-facility-output-census.csv",
+      "consumers": [
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-production-facility-output-census.txt",
+      "consumers": [
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-production-finite-lane-authority-focused.txt",
+      "consumers": [
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-production-lane-provenance-census-focused.txt",
+      "consumers": [
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-production-output-clearance-crop-focused.txt",
+      "consumers": [
+        "existing-editor-verifier-input",
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-production-output-clearance-measurement-plan.csv",
+      "consumers": [
+        "release-archive-verifier",
+        "release-verifier-file-constant"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-production-output-clearance-measurement-portfolio.csv",
+      "consumers": [
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-production-output-clearance-natural-32-seed.csv",
+      "consumers": [
+        "existing-editor-verifier-input",
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-production-output-clearance-natural-32-seed.txt",
+      "consumers": [
+        "existing-editor-verifier-input",
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-production-output-clearance-natural-focused.txt",
+      "consumers": [
+        "existing-editor-verifier-input",
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-production-output-clearance-natural-observations.csv",
+      "consumers": [
+        "release-archive-verifier",
+        "release-verifier-file-constant"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-production-output-clearance-natural-output-slices.csv",
+      "consumers": [
+        "release-archive-verifier",
+        "release-verifier-file-constant"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-production-output-clearance-natural-portfolio-runner.txt",
+      "consumers": [
+        "existing-editor-verifier-input",
+        "release-archive-verifier",
+        "release-verifier-file-constant"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-production-output-clearance-natural-portfolio.txt",
+      "consumers": [
+        "release-archive-verifier",
+        "release-verifier-file-constant"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-production-output-clearance-profile-catalog-focused.txt",
+      "consumers": [
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-production-output-clearance-profile-current.txt",
+      "consumers": [
+        "existing-editor-verifier-input",
+        "release-archive-verifier",
+        "release-verifier-file-constant"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-production-output-clearance-profile-generation.txt",
+      "consumers": [
+        "existing-editor-verifier-input",
+        "release-archive-verifier",
+        "release-verifier-file-constant"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-production-output-clearance-profile-promotion.txt",
+      "consumers": [
+        "existing-editor-verifier-input",
+        "release-archive-verifier",
+        "release-verifier-file-constant"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-production-output-clearance-profiles.candidate.json",
+      "consumers": [
+        "existing-editor-verifier-input",
+        "release-archive-verifier",
+        "release-verifier-file-constant"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-production-output-clearance-requirement-focused.txt",
+      "consumers": [
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-production-output-clearance-telemetry-focused.txt",
+      "consumers": [
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-production-reachability-audit.csv",
+      "consumers": [
+        "existing-editor-verifier-input",
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-production-reachability-audit.txt",
+      "consumers": [
+        "existing-editor-verifier-input",
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-production-recipe-throughput-playmode.csv",
+      "consumers": [
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-production-throughput-envelope-playmode.csv",
+      "consumers": [
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-production-utility-authoring-static-manifest.txt",
+      "consumers": [
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-production-work-rate-composition-playmode.txt",
+      "consumers": [
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-recipe-external-input-classification.csv",
+      "consumers": [
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-recipe-external-input-classification.txt",
+      "consumers": [
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-recipe-mass-balance-audit.txt",
+      "consumers": [
+        "existing-editor-verifier-input",
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-recipe-mass-balance.csv",
+      "consumers": [
+        "existing-editor-verifier-input",
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-six-adult-service-outage-playmode.txt",
+      "consumers": [
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-species-capacity-balance.md",
+      "consumers": [
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-storage-mass-authority.txt",
+      "consumers": [
+        "existing-editor-verifier-input",
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-world-resource-maximum-envelope.csv",
+      "consumers": [
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/v27-world-resource-transaction-fault-matrix.txt",
+      "consumers": [
+        "existing-editor-verifier-input",
+        "release-archive-verifier"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wildlife-ai-hunt-playmode.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/connectivity-manifest.md",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/fire-01-environmental-fire-focused.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/fire-01-seasonal-response-live.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/v27-balance-critical-approvals-pre-revalidate-eb3ad262.json",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-001-003-source-packet.md",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-002-material-protection-focused.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-003-apparel-condition-runtime.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-003-condition-prefix-evidence.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-004-light-adaptation-runtime.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-005-disease-performance.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-006-automatic-quality.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-006-natural-quality.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-006-shared-quality-live.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-006-shared-quality-target.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-007-conveyor-live.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-008-conveyor-filter-reserve.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-009-023-20260913-unity-final.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-009-crop-pests-live-attempt1-current.json",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-009-crop-pests-live-attempt1.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-009-crop-pests-live.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-009-crop-pests-rules.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-009-early-frost-live.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-009-early-frost-rules.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-009-seasonal-drift-cargo-natural.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-009-seasonal-wildlife-arrival-rules.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-009-summer-dry-well.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-009-temporary-supply-live.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-009-temporary-supply-rules.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-009-winter-contract-focused.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-009-winter-contract-live.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-010-starting-owner-trait-upgrade.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-011-light-contracts.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-011-main-lighting.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-013-flow-contracts.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-013-main-power.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-014-owned-expiry-discard.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-014-source-packet.md",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-016-committed-refill-restore.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-016-finite-network-runtime.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-016-light-irrigation-focused.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-016-lighting-growth-live.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-016-manual-refill-live-attempt1.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-016-manual-refill-live.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-016-refill-cancellation.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-016-water-refill-focused.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-017-053-r01-public-research-runcommand-readiness.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-017-053-support-blueprint-6103-normal-acquisition.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-017-main-weather-decision-ui-save.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-018-product-thermal-runtime.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-019-migration-focused.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-019-migration-live.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-020-equipment-mass.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-021-022-028-contract-evidence.md",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-021-022-medical-effects.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-023-actual-npc-surgery-route-input.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-023-age-facility-authoring.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-023-age-facility-live-attempt1.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-023-age-facility-live-attempt2.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-023-age-facility-live-attempt3.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-023-age-facility-live-attempt4.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-023-age-facility-live.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-023-authored-part-publication.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-023-clinical-20260912-console-errors.json",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-023-clinical-20260912-drain-current-water.json",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-023-clinical-20260912-hp-fixed-terminal-source-operation.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-023-clinical-20260912-terminal-drain-failure.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-023-clinical-20260912-terminal-state.json",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-023-clinical-20260912-ui-selection-failure.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-023-consumer-20260912-missing-proficiency-fixture.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-023-consumer-20260912-missing-subject-fixture.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-023-main-installed-combat-consumer.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-023-main-movement-heat-consumers.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-023-main-prepared-part-production-20260912-fixture-failure.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-023-main-prepared-part-production-20260912-semantic-failure.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-023-main-prepared-part-production-20260912-state-fixture-failure.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-023-main-prepared-part-production.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-023-main-produced-part-clinical-chain.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-023-pending-effect-projection.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-023-source-packet.md",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-023-surgery-replacement-contracts.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-023-vitals-emergency-compile-attempt1.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-023-vitals-emergency-current-source.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-028-toxicity-antidote.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-029-animal-haul-live-attempt1.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-029-animal-haul-live-attempt2.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-029-animal-haul-live-attempt3.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-029-animal-haul-live-attempt4.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-029-animal-haul-live-attempt5.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-029-animal-haul-live.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-029-companion-care-live.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-029-companion-combat-live.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-029-companion-data-and-authoring.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-029-companion-invalid-owner-whole-restore.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-029-companion-live-managed-entry.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-029-companion-live-path-ready.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-029-companion-live-restored.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-029-companion-live-room.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-029-companion-live-verified.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-029-companion-live.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-029-wildlife-haul-data.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-030-crystal-carapace.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-031-034-wiki-evidence.md",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-032-033-faction-contracts.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-032-033-source-packet.md",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-035-meal-consumption.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-035-ui-playmode.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-036-source-packet.md",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-036-substance-effects.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-037-041-venue-authoring.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-037-first-failure-transactions.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-037-guest-delivery-cancel-live.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-037-guest-delivery-live-attempt1.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-037-guest-delivery-live-attempt2.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-037-guest-delivery-live.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-037-guest-request-catalog-exclusion.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-037-venue-and-guest-delivery-live.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-037-venue-capacity-failure.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-037-venue-setup-failure.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-038-wiki-evidence.md",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-039-failure-result-live-attempt1.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-039-failure-result-live-attempt2-review-rejected.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-039-failure-result-live.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-039-risk-authoring.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-039-risk-state-focused.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-040-funeral-life-event-live.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-040-incident-completion-focused.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-040-observed-incident-focused.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-040-observed-meal-customer-live-attempt1.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-040-observed-meal-customer-live-attempt2.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-040-observed-meal-customer-live-attempt3.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-040-observed-meal-customer-live.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-041-festival-execution-live.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-042-prepared-candidate-living-information-evidence.md",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-043-046-live-path-preparation.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-044-retirement-choice-schedule.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-045-012-door-contracts.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-045-012-main-doors.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-045-door-consumers-remaining.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-045-door-consumers.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-045-door-policy.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-045-return-restore-evidence.md",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-045-return-restore.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-046-live-no-path-recovery-runcommand.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-047-committed-invasion-warning.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-048-bounded-frame-observer-runcommand.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-048-full-save-runcommand-input.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-048-lease-topology-runcommand-input.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-048-protected-moving-fullsave-runcommand-v2.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-048-protected-setup-runcommand.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-049-057-060-061-wiki-evidence.md",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-050-committed-run-result-history.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-051-052-endless-crisis-focused.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-051-052-live-consumers-and-alerts.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-053-actual-casualty-553998e5-checkpoint.json",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-053-actual-casualty-75a21760-checkpoint.json",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-053-actual-casualty-bd3adf71-checkpoint.json",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-053-actual-post-battle-resume-runcommand.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-053-actual-settled-445c4443-checkpoint.json",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-054-captivity-body-damage.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-055-interrogation-information.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-056-live-apparel-estimate.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-056-quality-estimate.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-058-059-wiki-evidence.md",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-062-main-haul-ui.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-062-main-request-prefix.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-062-medical-lore-integration.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-062-treatment-delivery-focused.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-063-removal-reference-inventory.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-063-retired-facility-removal-implementation.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-063-retired-supply-focused.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-20260908-003-014-017-053-unity-verify.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-20260912-clinical-integration.json",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-20260912-composition-weather-focused.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-20260912-installed-consumer-integration.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-20260912-integration-current-source.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-20260912-movement-heat-integration.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-20260912-producer-and-candidate-integration.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-20260913-refill-endless-weather-integration.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-7.4.1-water-health-attribution.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-combat-impact-pool-runcommand.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-completion-strict-reaudit-20260913.md",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-facility-fuel-delivery.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-facility-fuel-live-attempt1.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-facility-fuel-live.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-facility-operating-fuel.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-r01-continuation-cycle-followup.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-r01-interruption-followup.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-r01-one-worker-research-runcommand.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-r01-research-live-time-attribution-transitions.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-r01-research-live-time-attribution.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-r01-research-self-care-live-20260912-action-observed-failure.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-r01-research-self-care-live-20260912-initial-approach-failure.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-r01-research-self-care-live-20260912-observed-approach-failure.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-r01-research-self-care-live-continuation.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-r01-research-self-care-live-fixed.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-r01-research-self-care-live-participation.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-r01-research-self-care-live-resume.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-r01-research-self-care-live-safe-environment.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-r01-research-self-care-live.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-r01-resume-diagnostic.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-r01-resume-self-slot-diagnostic.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-r01-work-candidate-classification.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-r01-work-candidate-probe.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-venue-spatial-focused.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/wim-implementation/wim-venue-wet-water-focused.txt",
+      "consumers": [
+        "existing-editor-verifier-input"
+      ]
+    }
+  ]
+}

@@ -49,6 +49,13 @@
 
 ## 조사와 검증
 
+### GitHub 개발 파일
+
+- Git에는 게임 코드와 에셋 및 `.meta`, 패키지와 프로젝트 설정, 개발 도구와 유지 문서를 보관한다. 실행 로그와 생성된 내보내기, 임시 빌드와 개인 설정은 기본적으로 제외한다.
+- `Artifacts/`의 공유 예외는 `tools/Repository/required-fixtures.json`에 명시된 기존 검사 입력이다. 실제 소비자와 필요한 범위를 확인해 추가하며 기존 해시와 검사 기준을 낮추지 않는다.
+- `HANDOFF.md`, `task_plan.md`, `findings.md`, `progress.md`는 필요한 경우 로컬에 만들고 기존 작업 기록을 보존한다. 자동 작업 일지를 배포 파일로 올리지 않는다.
+- 새 체크아웃의 필수 파일과 LFS 복원은 `python tools/Repository/verify_checkout.py`로 확인한다. 이 검사는 Unity 실행 성공과 구분한다.
+
 - 정의·호출처 조사에는 먼저 [지식베이스 쿼리](Tools/Documentation/query_knowledge_base.py)를 사용한다. [사용법](docs/dev/verification.md)의 좁은 query/area부터 시작한다.
 - stale이면 원본 C#/에셋으로 확인한다. 인덱스는 탐색 단서이며 실행 증거가 아니다. 생성물을 직접 편집하지 않는다.
 - 고아·연결·크기 검사는 [검증 도구 안내](docs/dev/verification.md)의 해당 도구를 사용한다. 수작업 전수 표를 매 작업마다 만들지 않는다.

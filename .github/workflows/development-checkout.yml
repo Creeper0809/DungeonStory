@@ -1,0 +1,39 @@
+name: Development checkout
+
+on:
+  pull_request:
+    paths:
+      - '.gitignore'
+      - '.gitattributes'
+      - '.github/workflows/development-checkout.yml'
+      - 'tools/Repository/**'
+      - 'Assets/**'
+      - 'Packages/**'
+      - 'ProjectSettings/**'
+      - 'Artifacts/**'
+  push:
+    branches: [main]
+    paths:
+      - '.gitignore'
+      - '.gitattributes'
+      - '.github/workflows/development-checkout.yml'
+      - 'tools/Repository/**'
+      - 'Assets/**'
+      - 'Packages/**'
+      - 'ProjectSettings/**'
+      - 'Artifacts/**'
+
+permissions:
+  contents: read
+
+jobs:
+  verify-checkout:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python tools/Repository/verify_checkout.py
