@@ -1,1 +1,0 @@
-InvalidOperationException: Cannot create a new scene additively with an untitled scene unsaved.

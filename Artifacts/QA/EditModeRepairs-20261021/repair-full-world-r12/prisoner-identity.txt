@@ -1,2 +1,0 @@
-RESULT=PASS
-actualSceneFactory=true;canonicalHealthRecords=1;transientOwnerExact=True;baselineRestored=True;healthBaselineExact=True

@@ -1,6 +1,0 @@
-ARCHITECTURE_EDITMODE RESULT=PASS
-expectedTests=160
-tests=160
-pass=160
-fail=0
-generatedUtc=2026-08-11T15:40:35.7235787Z

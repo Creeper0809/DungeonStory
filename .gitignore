@@ -155,3 +155,13 @@ __pycache__/
 /wiki/dist/
 /wiki/public/spoiler-data/
 /wiki/.generated/
+
+# Generated runs stay local. Existing fixed regression inputs are tracked
+# intentionally and listed in tools/Repository/required-fixtures.json.
+/Artifacts/
+/HANDOFF.md
+/task_plan.md
+/findings.md
+/progress.md
+/.codex/
+*.slnx

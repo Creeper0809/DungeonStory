@@ -1,8 +1,0 @@
-{
-  "error": "negative count must be exactly 14",
-  "exceptionType": "VerificationError",
-  "humanApprovalClaimed": false,
-  "retryAutomatically": false,
-  "status": "FAIL",
-  "trainingEligible": false
-}

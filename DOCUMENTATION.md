@@ -8,7 +8,7 @@
 | 현재 구현 사실 | C# 소스와 Unity 작성 자산 | 최상위 권위 |
 | 런타임 계약·검증 도구 | [`tools/README.md`](tools/README.md) | 구현 계약·운영 안내·검증 스키마 |
 | 생성된 지식베이스·콘텐츠 DB | [`docs_final/README.md`](docs_final/README.md) | 생성 절차로 갱신; 직접 편집 금지 |
-| QA·export·실행 증거 | `Artifacts/QA/`, `Artifacts/Exports/`, `Artifacts/Review/` | 버전 고정; 덮어쓰기·합치기 금지 |
+| 고정 검사 입력 | [`required-fixtures.json`](tools/Repository/required-fixtures.json) | 기존 검사가 읽는 입력만 Git에 보관 |
 
 ## 현재 작업에서 자주 보는 문서
 
@@ -21,7 +21,7 @@
 
 ## 기록 성격
 
-- 루트 `task_plan.md`, `findings.md`, `progress.md`는 현재 작업 연속성을 위한 요약이다. 이전 전문은 Git 이력에서 복구한다.
+- 루트 `HANDOFF.md`, `task_plan.md`, `findings.md`, `progress.md`는 현재 작업 연속성을 위한 로컬 기록이며 Git에서 제외한다. 이전 전문은 Git 이력에서 복구한다.
 - `.planning/`은 진행 중에만 사용하는 Git 비추적 로컬 임시 기록이다. 현재 구현 권위나 영구 보관소가 아니며, 작업 종료 후 삭제할 수 있다.
 - `docs/generated/`, `docs/implementation-reports/`, `docs/qa/`는 특정 시점의 생성·검증 결과다.
 - `wiki/`는 사이트 애플리케이션이며, `docs_final/`을 읽기 전용 입력으로 사용한다.
@@ -33,7 +33,7 @@
 - 개발 워크플로·도구 사용법: `docs/dev/` (해당 작업에 필요한 문서만 열람)
 - 구현 계약과 검증 절차: `tools/Documentation/`
 - 자동 생성 문서: 생성기가 관리하는 `docs_final/` 또는 `docs/generated/`
-- 버전별 실행·검수 증거: 새 이름의 `Artifacts/.../` 디렉터리
+- 로컬 실행과 검수 결과: Git에서 제외되는 `Artifacts/.../` 디렉터리
 - 세션 임시 기록: `.planning/<날짜-작업명>/` (Git 비추적·완료 후 정리 가능)
 
-기존 증거를 보기 좋게 만들기 위해 이동하거나 이름을 바꾸지 않는다. 링크 인덱스로 탐색하고, 오래된 기록은 해당 버전 위치에 그대로 보존한다.
+고정 검사 입력의 바이트와 기존 검사 기준은 유지한다. 일반 로그와 내보내기를 공유하려고 전체 `Artifacts/`를 추가하지 않는다. 과거 감사 문서가 참조하는 실행 원문은 해당 문서 작성 커밋에서 확인한다.
