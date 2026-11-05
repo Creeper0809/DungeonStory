@@ -225,6 +225,8 @@ if ($PSBoundParameters.ContainsKey('SerializedStartup')) {
         $ExecuteMethod -eq 'FacilityWishlistProcurementCausalProductionEntryDebugScenarios.RunT02FromBatch'))
     $qaSerializedObserverEntry = $Mode -eq 'play' -and $U0E09EnvironmentExposure -and
         $ExecuteMethod -eq 'DungeonFullWorldRoundTripPlayModeFacade.RequestIsolatedBatch'
+    $qaSerializedWorldEntry = $Mode -eq 'play' -and $qaSerializedSelectors.Count -eq 0 -and
+        $ExecuteMethod -eq 'DungeonFullWorldRoundTripPlayModeFacade.RequestIsolatedBatch'
     $qaSerializedCropEntry = $Mode -eq 'edit' -and $qaSerializedSelectors.Count -eq 0 -and
         $ExecuteMethod -in @('EnvironmentCropProductionEntryDebugScenarios.RunCropCommandObserversFromBatch',
             'TrainedNarrativeModelPlayModeVerifier.CompileForBatch',
@@ -255,7 +257,7 @@ if ($PSBoundParameters.ContainsKey('SerializedStartup')) {
     $qaSerializedFocusedRegression = $qaSerializedSelectors.Count -eq 0 -and
         (($Mode -eq 'edit' -and $ExecuteMethod -in $qaFocusedRegressionEditEntries) -or
          ($Mode -eq 'play' -and $ExecuteMethod -in $qaFocusedRegressionPlayEntries))
-    if (-not $qaSerializedCropEntry -and -not $qaSerializedComposition -and -not $qaSerializedGameWorldLineage -and
+    if (-not $qaSerializedWorldEntry -and -not $qaSerializedCropEntry -and -not $qaSerializedComposition -and -not $qaSerializedGameWorldLineage -and
         -not $qaSerializedCharacterRestoreLifetime -and
         -not $qaSerializedRestoreOutcome -and
         -not $qaSerializedNarrativeContextLifetime -and -not $qaSerializedMovementOwnership -and -not $qaSerializedArchitectureCore -and
@@ -1465,7 +1467,8 @@ if ($qaHasResumeWorld) {
         }
     }
 }
-if (Get-Process -Name Unity -ErrorAction SilentlyContinue) { throw 'An Editor is already running; do not overlap verification.' }
+# The native launcher owns the process guard. It distinguishes known Hub/CLI
+# executables from an Editor and rejects unknown/inaccessible Unity executables.
 $qaBuild = $qaOutput + '.launcher'
 if ((Test-Path -LiteralPath $qaOutput) -or (Test-Path -LiteralPath $qaBuild)) {
     throw 'Create-only evidence/build target already exists.'

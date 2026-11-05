@@ -1725,9 +1725,19 @@ class FormulaExecutionEvidenceTests(unittest.TestCase):
         logs: dict[str, str],
         *,
         missing_committed_path: str | None = None,
+        extra_inputs: dict[str, bytes] | None = None,
+        ignore_patterns: tuple[str, ...] = (),
+        native_error: str | None = None,
     ) -> list[str]:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary).resolve()
+            subprocess.run(["git", "init", "-q"], cwd=root, check=True)
+            if ignore_patterns:
+                (root / ".gitignore").write_text("\n".join(ignore_patterns) + "\n", encoding="utf-8")
+            for relative, payload in (extra_inputs or {}).items():
+                path = root / relative
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_bytes(payload)
             for relative, text in logs.items():
                 path = root / relative
                 path.parent.mkdir(parents=True, exist_ok=True)
@@ -1736,13 +1746,15 @@ class FormulaExecutionEvidenceTests(unittest.TestCase):
             gate = types.ModuleType("verify_change_scope")
             gate.ROOT = root
             gate.EVIDENCE = "Artifacts/QA/ImpactCI/verification.json"
-            gate.verify_receipt = mock.Mock()
+            gate.verify_receipt = mock.Mock(side_effect=SystemExit(native_error) if native_error else None)
             gate.ledger = types.SimpleNamespace(
                 load_json_strict=mock.Mock(return_value={"checks": [effects]})
             )
             cat_file_paths: list[str] = []
 
             def run_git(_: Path, command: list[str], input_bytes=None) -> bytes:
+                if command[:3] == ["git", "ls-files", "--others"]:
+                    return subprocess.check_output(command, cwd=root)
                 if command[:3] == ["git", "cat-file", "-e"]:
                     path = command[3].split(":", 1)[1]
                     cat_file_paths.append(path)
@@ -1760,6 +1772,41 @@ class FormulaExecutionEvidenceTests(unittest.TestCase):
 
     def assert_effect_gate_called(self) -> None:
         self.gate.verify_receipt.assert_called_once_with({"effects"})
+
+    def test_restored_model_is_allowed_with_current_native_evidence(self):
+        log = "Artifacts/QA/ImpactCI/effects.log"
+        model = "Assets/StreamingAssets/R80/DungeonStoryLlm/DungeonStory-R80-8B-Q4_K_M.gguf"
+        self.run_formula_evidence(
+            {"group": "effects", "log": log, "summary": "Artifacts/QA/ImpactCI/effects-summary.json"},
+            {log: self.marker()}, extra_inputs={model: b"GGUF\0restored-model"},
+            ignore_patterns=("/" + model,),
+        )
+        self.assert_effect_gate_called()
+
+    def test_ignored_model_still_requires_matching_native_evidence(self):
+        log = "Artifacts/QA/ImpactCI/effects.log"
+        model = "Assets/StreamingAssets/R80/DungeonStoryLlm/DungeonStory-R80-8B-Q4_K_M.gguf"
+        with self.assertRaisesRegex(verifier.VerificationError, "Formula native evidence failed: stale inputs"):
+            self.run_formula_evidence(
+                {"group": "effects", "log": log, "summary": "Artifacts/QA/ImpactCI/effects-summary.json"},
+                {log: self.marker()}, extra_inputs={model: b"GGUF\0modified-model"},
+                ignore_patterns=("/" + model,), native_error="stale inputs",
+            )
+        self.assert_effect_gate_called()
+
+    def test_other_untracked_unity_inputs_remain_rejected_even_when_ignored(self):
+        for path in (
+            "Assets/Scripts/Uncommitted.cs",
+            "Assets/StreamingAssets/R80/DungeonStoryLlm/DungeonStory-R80-8B-Q4_K_M.gguf.cs",
+            "Packages/extra.json", "ProjectSettings/extra.asset",
+        ):
+            with self.subTest(path=path):
+                with self.assertRaisesRegex(verifier.VerificationError, "uncommitted Unity inputs"):
+                    self.run_formula_evidence(
+                        {"group": "effects"}, {}, extra_inputs={path: b"uncommitted"},
+                        ignore_patterns=("/" + path,),
+                    )
+                self.gate.verify_receipt.assert_not_called()
 
     def test_formula_execution_accepts_the_legacy_single_effect_log(self):
         log = "Artifacts/QA/ImpactCI/r30-effects.log"

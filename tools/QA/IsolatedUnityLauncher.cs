@@ -51,7 +51,7 @@ internal static class IsolatedUnityLauncher
                         Environment.GetEnvironmentVariable("DUNGEONSTORY_U0_E11_CAPTURE_REPORT_PATH"), output),
                         "Full captivity/wildlife lifecycle requires PlayMode and its exact scoped report binding.");
                 Require(mode == "edit" || IsOwnedPlayEntry(method), "Only an owned PlayMode entry may omit quit.");
-                Require(Process.GetProcessesByName("Unity").Length == 0, "An existing Unity process must not be overlapped.");
+                Require(!HasExistingUnityEditor(), "An existing Unity Editor process must not be overlapped.");
                 foreach (string pending in new[]
                 {
                     "Temp/playmode-persistence-snapshots",
@@ -109,6 +109,54 @@ internal static class IsolatedUnityLauncher
             }
             return 1;
         }
+    }
+
+    private static bool IsPackagedHubCli(string executable)
+    {
+        if (string.IsNullOrEmpty(executable)) return false;
+        string root = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "WindowsApps")
+            + Path.DirectorySeparatorChar;
+        string path = Path.GetFullPath(executable);
+        if (!path.StartsWith(root, StringComparison.OrdinalIgnoreCase)) return false;
+        string[] parts = path.Substring(root.Length).Split(Path.DirectorySeparatorChar);
+        return parts.Length == 4
+            && parts[0].StartsWith("UnityTechnologies.UnityHub_", StringComparison.OrdinalIgnoreCase)
+            && string.Equals(parts[1], "app", StringComparison.OrdinalIgnoreCase)
+            && string.Equals(parts[2], "resources", StringComparison.OrdinalIgnoreCase)
+            && string.Equals(parts[3], "unity.exe", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool HasExistingUnityEditor()
+    {
+        foreach (Process process in Process.GetProcessesByName("Unity"))
+        {
+            using (process)
+            {
+                string executable;
+                try { executable = process.MainModule.FileName; }
+                catch (InvalidOperationException)
+                {
+                    if (process.HasExited) continue;
+                    throw;
+                }
+                // Unknown or inaccessible executables still block verification.
+                // The Hub's packaged CLI shares Unity.exe's process name.
+                if (IsPackagedHubCli(executable)) continue;
+                FileVersionInfo version = FileVersionInfo.GetVersionInfo(executable);
+                if (!IsStandaloneUnityCli(executable, version.ProductName, version.CompanyName)) return true;
+            }
+        }
+        return false;
+    }
+
+    private static bool IsStandaloneUnityCli(string executable, string productName, string companyName)
+    {
+        string installed = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "Unity", "bin", "unity.exe");
+        return !string.IsNullOrEmpty(executable)
+            && string.Equals(Path.GetFullPath(executable), installed, StringComparison.OrdinalIgnoreCase)
+            && string.Equals(productName, "unity", StringComparison.Ordinal)
+            && string.Equals(companyName, "Unity Technologies", StringComparison.Ordinal);
     }
 
     private static int ChildProbe(string proof, string expectedStation, string expectedDesktop)
@@ -494,6 +542,20 @@ internal static class IsolatedUnityLauncher
     }
     private static int SelfTest()
     {
+        string apps = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "WindowsApps");
+        string hubCli = Path.Combine(apps, "UnityTechnologies.UnityHub_3.22.5.65535_x64__2vrhnee42bhxm", "app", "resources", "unity.exe");
+        Require(IsPackagedHubCli(hubCli), "Packaged Hub CLI was mistaken for an Editor.");
+        Require(!IsPackagedHubCli(Path.Combine(apps, "UnityTechnologies.UnityHub_3.22.5.65535_x64__2vrhnee42bhxm", "app", "Editor", "Unity.exe")),
+            "Editor inside a Hub package was ignored.");
+        Require(!IsPackagedHubCli(@"C:\Unity\6000.3.28f1\Editor\Unity.exe")
+            && !IsPackagedHubCli(@"C:\tools\unity.exe") && !IsPackagedHubCli(null),
+            "An Editor or unidentified Unity process was ignored.");
+        string cli = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Unity", "bin", "unity.exe");
+        Require(IsStandaloneUnityCli(cli, "unity", "Unity Technologies"), "Standalone CLI auth broker was mistaken for an Editor.");
+        Require(!IsStandaloneUnityCli(cli, "Unity Editor", "Unity Technologies")
+            && !IsStandaloneUnityCli(cli, "unity", "Unknown")
+            && !IsStandaloneUnityCli(@"C:\Unity\Editor\Unity.exe", "unity", "Unity Technologies"),
+            "An Editor or unrecognized executable was ignored as the standalone CLI.");
         const string uiEntry = "UiUxAuditCapture.RequestForBatch";
         Require(IsOwnedPlayEntry(uiEntry) && !IsOwnedPlayEntry(uiEntry + "Unexpected"), "UI capture entry guard failed.");
         string[] uiArguments = BuildUnityArguments("C:\\project", uiEntry, "C:\\project\\Artifacts\\QA\\ui", "play", "serial-import-job1");

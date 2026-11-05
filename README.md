@@ -1,6 +1,6 @@
 # DungeonStory
 
-Unity 게임 개발 저장소다. Windows x64와 Unity **6000.3.8f1**을 기준으로 한다.
+Unity 게임 개발 저장소다. Windows x64와 Unity **6000.3.28f1**을 기준으로 한다.
 
 ## 개발 시작
 
@@ -14,7 +14,7 @@ git lfs pull
 python tools/Repository/restore_r80_model.py
 ```
 
-Unity Hub에서 이 폴더를 추가하고 6000.3.8f1로 연다. 첫 실행에서는 패키지 복원과 에셋 가져오기가 끝날 때까지 기다린다. 시작 씬은 `Assets/Scenes/TitleScene.unity`다.
+Unity Hub에서 이 폴더를 추가하고 6000.3.28f1로 연다. 첫 실행에서는 패키지 복원과 에셋 가져오기가 끝날 때까지 기다린다. 시작 씬은 `Assets/Scenes/TitleScene.unity`다.
 
 Git LFS는 모델, 플러그인, 폰트와 이미지의 실제 파일을 받는 데 필요하다. ZIP 대신 위 복제 방법을 사용한다. `Library`, IDE 솔루션과 사용자 설정은 Unity와 편집기가 다시 만든다.
 

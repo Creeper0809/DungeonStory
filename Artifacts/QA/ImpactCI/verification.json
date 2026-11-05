@@ -2,23 +2,23 @@
   "schema": "impact-ci-v1",
   "scope": "targeted-contracts-not-full-balance-certification",
   "source": {
-    "digest": "de6736651e5202a94fdb39731091a1abab146d98c1df338eb912f3c3340b0919",
-    "count": 4805,
-    "pathsDigest": "d5db0104ee345c23045818355929d4518a0886c5fe9104abcc8a2f35b817ab2e"
+    "digest": "e56583698fd91716b5d28e317a6d249a3d31cc19d236e71b04ff43747112c24d",
+    "count": 4837,
+    "pathsDigest": "1469f67561237dc1d09dd67f2f3c9845054b875ed9402aca685ffd59550b027c"
   },
-  "configurationDigest": "34b001122604ea12bc1ab9a80352635f598d2e89c8c1dc789d4fd1c9f6be603d",
-  "platform": "CUHA Linux private Xvfb; isolated display; input desktop untouched",
-  "sourceManifest": "Four CUHA Linux private-Xvfb fetched inspections and the three-part effects inspection are source-label matched to r254r31 and guarded by current source/config PASS markers.",
-  "redaction": "Input unity.redacted.log bytes are retained without rewriting.",
+  "configurationDigest": "c890e6d41e4828bf653d4ff594786748cd8c4dd62fcab033d0a437f7604eee93",
+  "platform": "Windows Unity 6000.3.28f1; noninteractive isolated window station/desktop; headless",
+  "sourceManifest": "Seven completed run_isolated_unity_batch.ps1 jobs share exact source/configuration completion markers. Protection floors and time budgets were unchanged.",
+  "redaction": "Original unity.log bytes are retained without rewriting.",
   "sourceRunLabels": {
-    "core": "r254r31-impact-so-inspector-r31-ci-core-01",
-    "character": "r254r31-impact-so-inspector-r31-ci-character-01",
-    "crop": "r254r31-impact-so-inspector-r31-ci-crop-01",
-    "world": "r254r31-impact-so-inspector-r31-ci-world-01",
+    "core": "core-r3",
+    "character": "character-r3",
+    "crop": "crop-r1",
+    "world": "world-r3",
     "effects": [
-      "r254r31-impact-so-inspector-r31-ci-effects-definitions-01",
-      "r254r31-impact-so-inspector-r31-ci-effects-recovery-01",
-      "r254r31-impact-so-inspector-r31-ci-effects-traits-01"
+      "effects-definitions-r3",
+      "effects-recovery-r2",
+      "effects-traits-r2"
     ]
   },
   "effectsParts": [
@@ -30,38 +30,38 @@
     {
       "group": "core",
       "method": "V27CiEvidenceBatch.RunImpactCoreContracts",
-      "sourceRunLabel": "r254r31-impact-so-inspector-r31-ci-core-01",
-      "log": "Artifacts/QA/ImpactCI/r31-core.log",
-      "logSha256": "766241b75a9b70b9ba53781dcddc4711fb560c68ad1234d5c972797b4ecefcf3",
-      "summary": "Artifacts/QA/ImpactCI/r31-core-summary.json",
-      "summarySha256": "6569ec1b769c85e0849caf0a3844d637a5f65ba917c85dbff14cb53a459bbc33"
+      "sourceRunLabel": "core-r3",
+      "log": "Artifacts/QA/ImpactCI/r60-recovery-core.log",
+      "logSha256": "6220428cafce135c8aec2de1138d1a23cc0a07e9e8ea4d5ef11fa8257f34580b",
+      "summary": "Artifacts/QA/ImpactCI/r60-recovery-core-summary.json",
+      "summarySha256": "7ae69d40b885f443ef4fc673a48a91799e9721b29ec0cec4d0357a1c36dc5706"
     },
     {
       "group": "character",
       "method": "V27CiEvidenceBatch.RunImpactCharacterContracts",
-      "sourceRunLabel": "r254r31-impact-so-inspector-r31-ci-character-01",
-      "log": "Artifacts/QA/ImpactCI/r31-character.log",
-      "logSha256": "f28fdbb3596163a886bdd983785532bce0f94987aabab8e0083c3640021f58d7",
-      "summary": "Artifacts/QA/ImpactCI/r31-character-summary.json",
-      "summarySha256": "770e77667b76c551e027d6d63834ddc40a09ae0c298c78b1c4be2b50a8446105"
+      "sourceRunLabel": "character-r3",
+      "log": "Artifacts/QA/ImpactCI/r60-recovery-character.log",
+      "logSha256": "6539664f6303f5cbcd08eb15c5383310b0190c3130dd5c3d49e38ad62b61a782",
+      "summary": "Artifacts/QA/ImpactCI/r60-recovery-character-summary.json",
+      "summarySha256": "742c5d8d9e132116e2d836fe5e9399019ade786434dc35c74bdc44b70f2fb97c"
     },
     {
       "group": "crop",
       "method": "V27CiEvidenceBatch.RunImpactCrops",
-      "sourceRunLabel": "r254r31-impact-so-inspector-r31-ci-crop-01",
-      "log": "Artifacts/QA/ImpactCI/r31-crop.log",
-      "logSha256": "cb9b313d2196aebcb50b380cc8f7d529dde052be4d7bd42829eaf2a157a7a059",
-      "summary": "Artifacts/QA/ImpactCI/r31-crop-summary.json",
-      "summarySha256": "dffe6445c32b9aeec6aec97a5b6909e4a481827abff77f6da817c77fc5e031f6"
+      "sourceRunLabel": "crop-r1",
+      "log": "Artifacts/QA/ImpactCI/r60-recovery-crop.log",
+      "logSha256": "fa7b5aa470291bd107950b78e3fdecf1e36a48a5b9ae6ee98bfef62c4daa1b6d",
+      "summary": "Artifacts/QA/ImpactCI/r60-recovery-crop-summary.json",
+      "summarySha256": "c62329234e999966c5a4868e69fa1a1cd44d12d502146900d012b1df2961f036"
     },
     {
       "group": "world",
       "method": "V27CiEvidenceBatch.RunImpactWorldRestore",
-      "sourceRunLabel": "r254r31-impact-so-inspector-r31-ci-world-01",
-      "log": "Artifacts/QA/ImpactCI/r31-world.log",
-      "logSha256": "71308d8a5c866ac50ca7fa948045b46262357ae4674cc6e258cfd460835fc7fe",
-      "summary": "Artifacts/QA/ImpactCI/r31-world-summary.json",
-      "summarySha256": "43619a86f791cd59c32dd0ea078e5cf3c336ed2dc231405002921c81c30c260f"
+      "sourceRunLabel": "world-r3",
+      "log": "Artifacts/QA/ImpactCI/r60-recovery-world.log",
+      "logSha256": "329c0e981fffb6b6bcfd7455158c40c2a2295c00290551aea1b49abbd15684d5",
+      "summary": "Artifacts/QA/ImpactCI/r60-recovery-world-summary.json",
+      "summarySha256": "bd9c5341317a77f338146d878b961797a962310615d642e8a9e62d6c129b8333"
     },
     {
       "group": "effects",
@@ -70,29 +70,29 @@
         {
           "group": "effects-definitions",
           "method": "V27CiEvidenceBatch.RunImpactEffectDefinitionContracts",
-          "sourceRunLabel": "r254r31-impact-so-inspector-r31-ci-effects-definitions-01",
-          "log": "Artifacts/QA/ImpactCI/r31-effects-definitions.log",
-          "logSha256": "20b8b582e78e66045ca08dc4ca3ac74bcc3aef27c040161be346bea23d18230b",
-          "summary": "Artifacts/QA/ImpactCI/r31-effects-definitions-summary.json",
-          "summarySha256": "829624ab1f10b308d93bf0fba3afc404b4b650d318c1c2ec4f3c134210883e32"
+          "sourceRunLabel": "effects-definitions-r3",
+          "log": "Artifacts/QA/ImpactCI/r60-recovery-effects-definitions.log",
+          "logSha256": "6509359554e116be7fef136bc022a122a0b28757c94f733f6c38cfbde89e0f28",
+          "summary": "Artifacts/QA/ImpactCI/r60-recovery-effects-definitions-summary.json",
+          "summarySha256": "9e7cd4111fa177f043f7e881305d3c695480f75d997879d234339f48d0e50d36"
         },
         {
           "group": "effects-recovery",
           "method": "V27CiEvidenceBatch.RunImpactEffectRecoveryContracts",
-          "sourceRunLabel": "r254r31-impact-so-inspector-r31-ci-effects-recovery-01",
-          "log": "Artifacts/QA/ImpactCI/r31-effects-recovery.log",
-          "logSha256": "8ef758d27ec20fc5ae86768456e79209ce966eb14c8eb3231be2a3ab15ffeea6",
-          "summary": "Artifacts/QA/ImpactCI/r31-effects-recovery-summary.json",
-          "summarySha256": "fe9700f0bd0dd0b5e929c748d64e61eb55dc77b866aae1a01dc9673285b50c76"
+          "sourceRunLabel": "effects-recovery-r2",
+          "log": "Artifacts/QA/ImpactCI/r60-recovery-effects-recovery.log",
+          "logSha256": "6fac103f92263eb8f305940140c7a9174786f4046f3691c7ce64c03db6b385be",
+          "summary": "Artifacts/QA/ImpactCI/r60-recovery-effects-recovery-summary.json",
+          "summarySha256": "4eaf5853bc154ad1879f019bba22dd35ccd7df3ab18bdfbce63f5f8ba719bac6"
         },
         {
           "group": "effects-traits",
           "method": "V27CiEvidenceBatch.RunImpactAcquiredTraitContracts",
-          "sourceRunLabel": "r254r31-impact-so-inspector-r31-ci-effects-traits-01",
-          "log": "Artifacts/QA/ImpactCI/r31-effects-traits.log",
-          "logSha256": "f3773d5b1d615252b0aec5737a4ab58a5dedc88614457cfb3b6a65da57bb2b77",
-          "summary": "Artifacts/QA/ImpactCI/r31-effects-traits-summary.json",
-          "summarySha256": "ecd035a2cffbfa1e25c75d1553af77a5297bb28f876b6f64933927df6357a3e8"
+          "sourceRunLabel": "effects-traits-r2",
+          "log": "Artifacts/QA/ImpactCI/r60-recovery-effects-traits.log",
+          "logSha256": "1d15dff62668a32b91085b628f1a61717e4dcabf15cd464d4dc96b1cb4b4c63e",
+          "summary": "Artifacts/QA/ImpactCI/r60-recovery-effects-traits-summary.json",
+          "summarySha256": "ea2ed78991e73c15019acebf2c8f9ecb6dffb223ca546521d2acd8c062b7d426"
         }
       ]
     }

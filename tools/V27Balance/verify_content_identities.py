@@ -21,6 +21,9 @@ import yaml
 
 
 ROOT = Path(__file__).resolve().parents[2]
+RESTORED_R80_MODEL_PATH = (
+    "Assets/StreamingAssets/R80/DungeonStoryLlm/DungeonStory-R80-8B-Q4_K_M.gguf"
+)
 BASELINE_PATH = "ProjectSettings/PublishedContentIdentities.json"
 WORK_TYPE_SOURCE_PATH = "Assets/Scripts/Models/Work/WorkTypeId.cs"
 ROOT_ASSET_PATH = "Assets/Resources/SO/GameContentCatalog.asset"
@@ -1593,7 +1596,11 @@ def verify_formula_execution(snapshot: GitSnapshot, published_count: int) -> Non
     paths = ["Assets", "Packages", "ProjectSettings", "Artifacts/QA/ImpactCI"]
     if _run_git(snapshot.root, ["git", "diff", "--name-only", snapshot.commit, "--", *paths]):
         raise VerificationError("Formula validation inputs/evidence differ from the committed head")
-    if _run_git(snapshot.root, ["git", "ls-files", "--others", "--", *paths[:3]]):
+    # The checkout restores this exact derived model from committed LFS parts.
+    # Its bytes still participate in verify_receipt's configuration digest.
+    # Keep rejecting every other untracked input, including ignored sources.
+    if _run_git(snapshot.root, ["git", "ls-files", "--others",
+                               "--exclude=/" + RESTORED_R80_MODEL_PATH, "--", *paths[:3]]):
         raise VerificationError("Formula validation has uncommitted Unity inputs")
     try:
         gate.verify_receipt({"effects"})

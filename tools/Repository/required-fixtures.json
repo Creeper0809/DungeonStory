@@ -2861,6 +2861,90 @@
       "consumers": [
         "existing-editor-verifier-input"
       ]
+    },
+    {
+      "path": "Artifacts/QA/ImpactCI/r60-recovery-character-summary.json",
+      "consumers": [
+        "current-native-ci-receipt-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/ImpactCI/r60-recovery-character.log",
+      "consumers": [
+        "current-native-ci-receipt-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/ImpactCI/r60-recovery-core-summary.json",
+      "consumers": [
+        "current-native-ci-receipt-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/ImpactCI/r60-recovery-core.log",
+      "consumers": [
+        "current-native-ci-receipt-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/ImpactCI/r60-recovery-crop-summary.json",
+      "consumers": [
+        "current-native-ci-receipt-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/ImpactCI/r60-recovery-crop.log",
+      "consumers": [
+        "current-native-ci-receipt-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/ImpactCI/r60-recovery-effects-definitions-summary.json",
+      "consumers": [
+        "current-native-ci-receipt-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/ImpactCI/r60-recovery-effects-definitions.log",
+      "consumers": [
+        "current-native-ci-receipt-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/ImpactCI/r60-recovery-effects-recovery-summary.json",
+      "consumers": [
+        "current-native-ci-receipt-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/ImpactCI/r60-recovery-effects-recovery.log",
+      "consumers": [
+        "current-native-ci-receipt-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/ImpactCI/r60-recovery-effects-traits-summary.json",
+      "consumers": [
+        "current-native-ci-receipt-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/ImpactCI/r60-recovery-effects-traits.log",
+      "consumers": [
+        "current-native-ci-receipt-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/ImpactCI/r60-recovery-world-summary.json",
+      "consumers": [
+        "current-native-ci-receipt-input"
+      ]
+    },
+    {
+      "path": "Artifacts/QA/ImpactCI/r60-recovery-world.log",
+      "consumers": [
+        "current-native-ci-receipt-input"
+      ]
     }
   ]
 }

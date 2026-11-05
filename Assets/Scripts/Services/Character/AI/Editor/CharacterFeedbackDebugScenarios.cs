@@ -9,8 +9,22 @@ public static class CharacterFeedbackDebugScenarios
         new CharacterNarrativeTextQuery();
     public static void VerifyNarrativeContractForBatch()
     {
-        if (!VerifyNarrativeResponseValidation())
-            throw new System.InvalidOperationException("Character record factual contract failed.");
+        UnityEngine.Localization.Settings.LocalizationSettings.InitializationOperation.WaitForCompletion();
+        var previous = UnityEngine.Localization.Settings.LocalizationSettings.SelectedLocale;
+        try
+        {
+            // EditMode has no startup locale on a fresh checkout. These samples
+            // assert Korean grammar, independently of the user's preview locale.
+            UnityEngine.Localization.Settings.LocalizationSettings.SelectedLocale =
+                UnityEngine.Localization.Settings.LocalizationSettings.AvailableLocales.Locales
+                    .Single(locale => locale.Identifier.Code == "ko");
+            if (!VerifyNarrativeResponseValidation())
+                throw new System.InvalidOperationException("Character record factual contract failed.");
+        }
+        finally
+        {
+            UnityEngine.Localization.Settings.LocalizationSettings.SelectedLocale = previous;
+        }
     }
 
     public static void VerifyRecordPlaceParticleForBatch()

@@ -9,6 +9,30 @@
 - 아래 참조 문서는 해당 작업에 필요한 것만 연다. 링크가 있다는 이유로 모두 읽거나 실행하지 않는다.
 - 기존 사용자 변경, 미저장 씬, 저장 데이터, QA 증거를 보존한다. 파괴적 작업과 승인 범위 확대는 임의로 진행하지 않는다.
 
+## 스킬 선택과 적용
+
+- 작업을 시작할 때 변경 대상과 완료 조건을 확인하고, 아래 표에서 주 작업 스킬과 필요한 보조 스킬만 고른다. [공식 스킬 안내](https://learn.chatgpt.com/docs/build-skills)에 따라 스킬 설명으로 적용 범위를 판단한 뒤 필요한 `SKILL.md`를 읽는다.
+- 세션에 제공된 스킬 목록의 실제 `SKILL.md` 경로를 읽고, 처음 적용할 때 사용자에게 스킬명과 용도를 짧게 알린다. 같은 맥락에서 이미 읽은 스킬은 지침이 바뀌거나 필요한 참조가 추가될 때만 다시 읽는다.
+- 사용자가 지정한 스킬을 우선한다. 경로가 없으면 실제 설치 위치를 찾아본다. 필수 스킬이 없거나 실행 조건을 충족하지 못하면 의존 작업을 멈추고 원인과 영향 범위를 알린다. 가능한 독립 작업은 계속한다.
+
+| 작업 | 선택할 스킬과 범위 |
+|---|---|
+| 여러 단계 구현·CI 실패 조사·중단 작업 재개 | `planning-with-files`. 이 저장소 루트의 기존 4문서에 이어 쓰고 완료 기록을 보존한다. 새 `.planning` 계획이나 활성 포인터를 만들지 않는다. |
+| Unity 설치·라이선스·Editor 제어·컴파일·Play 검증 | `unity-cli`. 실제 프로젝트와 Editor를 지정하고 아래의 비간섭 실행 창을 따른다. |
+| Unity C# 구현·수명·직렬화·코루틴 수정 | `unity-csharp-scripting`. 변경하는 서브시스템에 전용 스킬이 있으면 해당 범위도 확인한다. |
+| Unity NUnit/EditMode/PlayMode 회귀 테스트 작성 | `automated-unit-testing`. 변경한 공개 동작과 실패 경계에 필요한 검사만 작성한다. Python CI는 저장소의 해당 Python 테스트와 검증 도구를 사용한다. |
+| UPM 패키지 추가·제거·버전 충돌 | `unity-package-management`. 프로젝트 버전과 manifest/lock의 실제 해결 결과를 확인한다. |
+| 플레이어 빌드·플랫폼·BuildPipeline·빌드 CI | `unity-build-pipeline`. 단순 Python CI 조사나 Editor 검사만으로 플레이어 빌드를 추가하지 않는다. |
+| 메뉴·HUD·화면·Editor UI | 프레임워크가 불명확하면 `ui`로 먼저 분류한다. Canvas/RectTransform은 `ui-ugui`, UXML/USS는 `ui-uitk`, 기존 OnGUI는 `ui-imgui`를 사용한다. |
+| Unity 씬·프리팹·에셋 YAML, GUID/fileID 직접 수정 | `unity-yaml-editing`. Editor/API로 처리할 수 없는 경우에만 적용하고 `.meta`와 참조를 함께 보존한다. |
+| 물리·입력·경로 탐색·애니메이션 등 게임 서브시스템 | 실제 시스템에 맞는 전용 스킬을 고른다. 예: 2D 물리는 `create-2d-physics`, 입력은 `unity-input-system`, Animator는 `unity-animation`. |
+| 성능 문제 | `performance-optimization`으로 측정 범위를 정한 뒤 실제 병목에 맞는 메모리·UI·오디오 등의 전용 스킬을 적용한다. |
+| 한국어 글쓰기·설명·진행 안내·답변 | `humanizer-ko`를 기본 적용한다. 영어 산문은 `humanizer`를 적용한다. 사실·수치·코드·경로·식별자는 보존한다. |
+
+- 스킬의 예제, 최신 버전 권고, 전체 테스트 권고를 설치·업그레이드·서버 활성화·범위 확대의 자동 허가로 취급하지 않는다. 사용자 요청, 이 저장소의 상태/저장 권위와 비간섭 실행 지침을 우선한다.
+- Unity 명령과 검증은 지정 담당자 한 명이 수행한다. 스킬에 직접 `unity open`, 일반 batch 또는 UI 조작 예제가 있어도 Windows에서는 검증된 격리 런처만 사용한다.
+- 문서·지침만 수정했으면 관련 경로·내용·diff를 검사한다. 스킬을 적용했다는 이유로 Unity 실행이나 기존 PASS의 재검증을 추가하지 않는다.
+
 ## 우선순위와 범위
 
 - 먼저 크래시·데이터 손상·진행 불가·핵심 UI/AI 단절 등 현재 플레이를 막는 P0를 해결한다.
@@ -56,7 +80,7 @@
 - `HANDOFF.md`, `task_plan.md`, `findings.md`, `progress.md`는 필요한 경우 로컬에 만들고 기존 작업 기록을 보존한다. 자동 작업 일지를 배포 파일로 올리지 않는다.
 - 새 체크아웃의 필수 파일과 LFS 복원은 `python tools/Repository/verify_checkout.py`로 확인한다. 이 검사는 Unity 실행 성공과 구분한다.
 
-- 정의·호출처 조사에는 먼저 [지식베이스 쿼리](Tools/Documentation/query_knowledge_base.py)를 사용한다. [사용법](docs/dev/verification.md)의 좁은 query/area부터 시작한다.
+- 정의·호출처 조사에는 먼저 [지식베이스 쿼리](tools/Documentation/query_knowledge_base.py)를 사용한다. [사용법](docs/dev/verification.md)의 좁은 query/area부터 시작한다.
 - stale이면 원본 C#/에셋으로 확인한다. 인덱스는 탐색 단서이며 실행 증거가 아니다. 생성물을 직접 편집하지 않는다.
 - 고아·연결·크기 검사는 [검증 도구 안내](docs/dev/verification.md)의 해당 도구를 사용한다. 수작업 전수 표를 매 작업마다 만들지 않는다.
 - 도구가 다루지 않는 변경 경계는 원본과 실제 호출 경로를 확인한다. 문자열 검색이나 정적 검사만으로 모든 런타임 연결을 보장하지 않는다.

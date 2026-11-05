@@ -60,6 +60,44 @@ public static partial class InstanceEvolutionDebugScenarios
         Require(securityOffers.Any(candidate => candidate.benefitModuleId == "facility:security-operations")
                 && !securityOffers.Any(candidate => candidate.benefitModuleId == "facility:service-operations"),
             "guard-only security offers did not match the target capability");
+        VerifyInstanceOnlyFormulaBoundary(service.Data);
+        UnityEngine.Debug.Log("INSTANCE_EVOLUTION_FORMULA_SCOPE=PASS; actualServiceOffers=true; authoringAtomic=true; unsupportedRecipeRejected=true");
+    }
+
+    private static void VerifyInstanceOnlyFormulaBoundary(BuildingSO resultBuilding)
+    {
+        var recipe = UnityEngine.ScriptableObject.CreateInstance<FacilityEvolutionRecipeSO>();
+        try
+        {
+            recipe.evolutionId = "qa:instance-only-formula-boundary";
+            recipe.resultBuilding = resultBuilding;
+            P1FacilityEvolutionAssetBuilder.ApplyFormulaAuthoringForControlledSimulation(
+                recipe, "facility:survival");
+            var capabilities = recipe.formulaCapabilities;
+            var policy = recipe.formulaPolicy;
+            foreach (string unsupported in new[]
+                { "facility:service-operations", "equipment:reinforced-durability", "facility:missing" })
+            {
+                RequireThrowsContaining(() =>
+                    P1FacilityEvolutionAssetBuilder.ApplyFormulaAuthoringForControlledSimulation(
+                        recipe, unsupported),
+                    "does not support facility recipe formulas",
+                    "Unsupported module entered recipe authoring.");
+                Require(ReferenceEquals(capabilities, recipe.formulaCapabilities)
+                        && ReferenceEquals(policy, recipe.formulaPolicy),
+                    "Rejected recipe authoring partially changed its input: " + unsupported);
+            }
+
+            capabilities.Single().evolutionModuleId = "facility:service-operations";
+            RequireThrowsContaining(() => recipe.RequireFormulaCapabilities(),
+                "does not support facility recipe formulas",
+                "Runtime accepted an instance-only recipe module.");
+            RequireThrowsContaining(() =>
+                P1FacilityEvolutionAssetBuilder.ComputeFormulaCatalogSha256(recipe, capabilities, policy),
+                "does not support facility recipe formulas",
+                "A recipe fingerprint admitted an unsupported dependency.");
+        }
+        finally { UnityEngine.Object.DestroyImmediate(recipe); }
     }
 
     private static void ConfigureOfferFacility(

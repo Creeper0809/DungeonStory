@@ -229,7 +229,8 @@ public sealed class EvolutionModuleRegistry : IEvolutionModuleRegistry
             "서비스 운용의 흔적",
             "service",
             Benefit("service.speed", 0f, 1.1f),
-            burden: null);
+            burden: null,
+            supportsFacilityRecipeFormula: false);
         yield return Module(
             "facility:training-operations",
             "훈련 운용의 흔적",
@@ -452,7 +453,8 @@ public sealed class EvolutionModuleRegistry : IEvolutionModuleRegistry
         EvolutionEffectModifier burden,
         EvolutionModuleActivationRule activation = null,
         int riskWeight = 0,
-        EvolutionModuleBurdenKind burdenKind = EvolutionModuleBurdenKind.None)
+        EvolutionModuleBurdenKind burdenKind = EvolutionModuleBurdenKind.None,
+        bool supportsFacilityRecipeFormula = true)
     {
         return new EvolutionModuleDefinition(
             id,
@@ -462,7 +464,8 @@ public sealed class EvolutionModuleRegistry : IEvolutionModuleRegistry
             burden == null ? Array.Empty<EvolutionEffectModifier>() : new[] { burden },
             activation,
             riskWeight,
-            burdenKind);
+            burdenKind,
+            supportsFacilityRecipeFormula: supportsFacilityRecipeFormula);
     }
 
     private static EvolutionModuleDefinition HistoricalEquipmentModule(

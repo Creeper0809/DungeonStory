@@ -232,6 +232,13 @@ public static class V27CiEvidenceBatch
     {
         if (errors)
             throw new InvalidOperationException("Impact CI execution logged console errors: " + group);
+        // 검증 본문에서 만든 임시 저장 그래프를 회수한 뒤 전체 입력을 읽는다.
+        // 소스/설정 불변 검사와 런처의 메모리 보호 기준은 그대로 유지한다.
+        long managedBefore = GC.GetTotalMemory(false);
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        GC.Collect();
+        Debug.Log($"IMPACT_CI_MEMORY group={group};managedBefore={managedBefore};managedAfter={GC.GetTotalMemory(false)}");
         if (source != V27CurrentSourceEvidenceDigest.ComputeAllScriptsDigest())
             throw new InvalidOperationException("Impact CI execution changed its source inputs: " + group);
         if (config != ComputeImpactConfigurationDigest())
@@ -497,6 +504,7 @@ public static class V27CiEvidenceBatch
     private static void RunEffectDefinitionInputs()
     {
         ContentReferenceIntegrityDebugScenarios.RunAll();
+        InstanceEvolutionDebugScenarios.VerifyCapabilityAlignedGenerationForBatch();
         Debug.Log(ScriptableObjectModularityDebugScenarios.RunCatalogExtensionsForBatch());
         V20ContentResolutionRecoveryDebugScenarios.RunAuthoredReferenceBoundaries();
     }
