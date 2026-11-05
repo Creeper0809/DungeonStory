@@ -5,7 +5,7 @@ using DungeonStory.Foundation;
 
 public sealed class FacilitySynthesisFactPreflight :
     IDungeonSavePreflightValidator,
-    IDungeonCapturedSavePreflightValidator
+    IDungeonDetachedCapturedSavePreflightValidator
 {
     public void Validate(
         DungeonGameSaveData save,

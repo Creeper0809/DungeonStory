@@ -1,0 +1,537 @@
+{
+  "protocolVersion": 25,
+  "hostKind": "R80StagedServer",
+  "hostWindows": "python/python.exe",
+  "hostWindowsSha256": "d932e5e2f324d57f392e8fd063dcf6d0185be8a664c57c6d24e7762ed02c28ca",
+  "modelFile": "DungeonStory-R80-8B-Q4_K_M.gguf",
+  "modelSha256": "2894ec5261b3a8352a375eb6319bbc8dd8c68c9b7b64fba255d51ce1bc2eb9b2",
+  "modelAlias": "DungeonStory-R80-8B-Q4_K_M",
+  "adapterFile": "",
+  "adapterSha256": "",
+  "gpuLayers": 99,
+  "contextSize": 12288,
+  "parallelSlots": 4,
+  "maximumModelBytes": 5027783552,
+  "modelVersion": "DungeonStory-R80-8B-Q4_K_M@2894ec5261b3",
+  "releaseCertified": false,
+  "trainingState": "r80-single-checkpoint-prototype",
+  "supportFiles": [
+    {
+      "file": "cublas64_12.dll",
+      "sha256": "e40202fe4223c1cd2d2dce7beec59e1ed61c7801bd827309183be9b50e358f4c"
+    },
+    {
+      "file": "cublasLt64_12.dll",
+      "sha256": "2a896460bef60ed57ef32b0875812f355a6984e671d638bb632f5e8c1d7a831f"
+    },
+    {
+      "file": "cudart64_12.dll",
+      "sha256": "d28e42265da7462162a54da6b7a99ea4fa2caf8139d862bb500db875d0b32dfc"
+    },
+    {
+      "file": "ggml-base.dll",
+      "sha256": "81789fc8fe43741b103447d1c7c1e503451d8fcc986000a7c7036e4c1cbe37b1"
+    },
+    {
+      "file": "ggml-cpu-alderlake.dll",
+      "sha256": "f9af5edbdb7443532e8f8468983f9cbd56fb64e194f066b427c4550bcfe3e987"
+    },
+    {
+      "file": "ggml-cpu-cannonlake.dll",
+      "sha256": "a7b1df024d350a344ef25119fd5fac7643f812d4ba2014bae6661c237a7e3cff"
+    },
+    {
+      "file": "ggml-cpu-cascadelake.dll",
+      "sha256": "a50b73090ef48bf8ca470d8e09962a1bbb725dee9a28381867740bf133100ed9"
+    },
+    {
+      "file": "ggml-cpu-cooperlake.dll",
+      "sha256": "2629536acffb580cbfb1910bf7aa41914ec282bb7cd89778c58e73aab353b46d"
+    },
+    {
+      "file": "ggml-cpu-haswell.dll",
+      "sha256": "231161384855d11b3af5c847644e01ffbb1712ba7a7e012fe209412fb8ca9005"
+    },
+    {
+      "file": "ggml-cpu-icelake.dll",
+      "sha256": "02a050f41c8b73524ced00bcd67e804a104abaaeea43b8c441520a61eadcc40b"
+    },
+    {
+      "file": "ggml-cpu-ivybridge.dll",
+      "sha256": "435b7e02e45af13733ba9eb28669c97e991de76a562a4e732d40b038d19b79e9"
+    },
+    {
+      "file": "ggml-cpu-piledriver.dll",
+      "sha256": "f5a0cef6db0627e39f2673855c3bb4012149d5fe664cc544fb2a3e02f15b22db"
+    },
+    {
+      "file": "ggml-cpu-sandybridge.dll",
+      "sha256": "2b2d3b6c7354f264ed1121db474ff580dbebc9c954e0b928d6c289accfc75353"
+    },
+    {
+      "file": "ggml-cpu-sapphirerapids.dll",
+      "sha256": "fc2765662cfdbe6a5092d37a54c46275f9b05c4be01ff6c8585e35e9be869019"
+    },
+    {
+      "file": "ggml-cpu-skylakex.dll",
+      "sha256": "d6dda5e3d4cc68d519751d3471f28cb355e93e87c04da7abac998f1fc5e64cb9"
+    },
+    {
+      "file": "ggml-cpu-sse42.dll",
+      "sha256": "e779756e5a4e73ed941509d7c148beb4cde62813ada3e166779554c659868d96"
+    },
+    {
+      "file": "ggml-cpu-x64.dll",
+      "sha256": "ef688bed04eda6175c44c333d4a115b1f41fdd2a9fbe559518ef9b1af4e4f775"
+    },
+    {
+      "file": "ggml-cpu-zen4.dll",
+      "sha256": "6bd7e62e04c5df0fb6b77ee140c20da085dfa69471c97426554deb9e7fb152f5"
+    },
+    {
+      "file": "ggml-cuda.dll",
+      "sha256": "a4cf2ffb25ade7cd70b0fd30fe8a10499efcd624e6d83dbed18687931b7be67f"
+    },
+    {
+      "file": "ggml-rpc.dll",
+      "sha256": "6942c5d6530662687c098437339c4b58133a22569e3c0fcb6487054a92d56802"
+    },
+    {
+      "file": "ggml.dll",
+      "sha256": "d30a76f9363c9a6d697277cbac6b0f527de1fd5fc9f18d1f82b00046f163967f"
+    },
+    {
+      "file": "libomp140.x86_64.dll",
+      "sha256": "4a20c1e5c115c29771a12324513eb109badac72180f79481527ad79d996ffb33"
+    },
+    {
+      "file": "llama-batched-bench-impl.dll",
+      "sha256": "6a03a56fe7794ef14da49aa31f8cd2ff5e0fe4f2d138e2f971c0c6971829cde0"
+    },
+    {
+      "file": "llama-bench-impl.dll",
+      "sha256": "2d868a73422ed6ca162d17bf7faa56fad0cdd59dec357ac01bebffcda3712121"
+    },
+    {
+      "file": "llama-cli-impl.dll",
+      "sha256": "7615fe695f5e14095d4d29a0237758547862f4904ebeefce40f49ff19090ff62"
+    },
+    {
+      "file": "llama-common.dll",
+      "sha256": "9974ade33d399b97170d4ea0bce9fb51ee2836689c026edf20733f6502f82d71"
+    },
+    {
+      "file": "llama-completion-impl.dll",
+      "sha256": "425f5fc771140f013dac9f7b85c36107e650a7b7f6e48ec7c04fc3efb0ec74cd"
+    },
+    {
+      "file": "llama-fit-params-impl.dll",
+      "sha256": "8c90355b56edbce3c2c999ce8d60441303e9909ff3bf412a8cbf087f8b2c2465"
+    },
+    {
+      "file": "llama-perplexity-impl.dll",
+      "sha256": "d72761c7eeed8dd90fc559ddc9a6b8c32ae196c997ba801fa6b3d6c34a8262bc"
+    },
+    {
+      "file": "llama-quantize-impl.dll",
+      "sha256": "975782d7d1e7e2b6705835b624ca4f9e45e1344d083b89688592d34230688780"
+    },
+    {
+      "file": "llama-server-impl.dll",
+      "sha256": "45953d105c1ce5745fdf3242d2c3719affcbc84c0ff3efa85d15e562a87e8eb9"
+    },
+    {
+      "file": "llama-server.exe",
+      "sha256": "23f1fa1f7fc673768b10fba736e3bc34ba6ae03187f94c37eb70d9699617ee9d"
+    },
+    {
+      "file": "llama.dll",
+      "sha256": "2b63f7fb9f390ab8cde06c6dbb710dd25071687b5ca3b6e40149fd5e737515c1"
+    },
+    {
+      "file": "mtmd.dll",
+      "sha256": "5f59bc3317bc92690181c0a7f6e78a32143be2249c3604c3222337dae646689e"
+    },
+    {
+      "file": "python/DLLs/_asyncio.pyd",
+      "sha256": "675587b1155c875ab27e24302d53f38e41febd3c080bc190c3e4ffbdb51fe76b"
+    },
+    {
+      "file": "python/DLLs/_bz2.pyd",
+      "sha256": "b3dd7cea6d03342252834cebcc814af37d850b86d0627fa22b7f6990882f2f8b"
+    },
+    {
+      "file": "python/DLLs/_ctypes.pyd",
+      "sha256": "dfa65498c77e71f038883337d2b5ffd92508489e79e6ee5e96ddec4ecf2a7fa1"
+    },
+    {
+      "file": "python/DLLs/_ctypes_test.pyd",
+      "sha256": "71316f76b6f37bd9c1f91995d380da67d10d65750bb804b40b348ba1c822801a"
+    },
+    {
+      "file": "python/DLLs/_decimal.pyd",
+      "sha256": "f55d81378a3261a7073fb71aee674152265b6f24ba6f375f9b939d5a117d8e6b"
+    },
+    {
+      "file": "python/DLLs/_elementtree.pyd",
+      "sha256": "58339737dd818a6d0bac98403158677f2f7d54adc7c673b9a8a18c8b19ab11f6"
+    },
+    {
+      "file": "python/DLLs/_hashlib.pyd",
+      "sha256": "1a3010b06c2fcd625dece3dd0883ca060e98b94adc062b06cb1a671cfc3b5caf"
+    },
+    {
+      "file": "python/DLLs/_lzma.pyd",
+      "sha256": "f20be6a9fee8fb5d53170c4bc24a39b48d3c0ccbe8e2000e60ff7d65b77c6ea1"
+    },
+    {
+      "file": "python/DLLs/_multiprocessing.pyd",
+      "sha256": "6c4ca996eafc99aeb246d25b5a9499d01488b643dcdabee6b48137f179b3deef"
+    },
+    {
+      "file": "python/DLLs/_overlapped.pyd",
+      "sha256": "626675dc9fc5c74beb72cd278322a8313b68b22161e34473f8b951c238e72185"
+    },
+    {
+      "file": "python/DLLs/_queue.pyd",
+      "sha256": "1e349a13913370369059a4ae5951157112b5eba53ed4389c18ffc5e00af1a037"
+    },
+    {
+      "file": "python/DLLs/_socket.pyd",
+      "sha256": "127a39d2198f17dd9b573904fe7e4040c7c8718753e6c4edee2ff6c35f487fac"
+    },
+    {
+      "file": "python/DLLs/_sqlite3.pyd",
+      "sha256": "1f79bc24e1736dcbe487e711ae04b19fbd19498818be46010d862912d83df1c2"
+    },
+    {
+      "file": "python/DLLs/_ssl.pyd",
+      "sha256": "faf716d309349dbd54efd7fb402bd42ed21a537614ac0da89ed92ba307ecbf15"
+    },
+    {
+      "file": "python/DLLs/_testbuffer.pyd",
+      "sha256": "a545699147eafce8e28d7aa76a426fc3d06d58bd192af82df62b3eb6315d61b8"
+    },
+    {
+      "file": "python/DLLs/_testcapi.pyd",
+      "sha256": "b856a8fd3b709c0a3ae7a123befaea94feba236ecb9a4b3d8a058d73a9c8e6d0"
+    },
+    {
+      "file": "python/DLLs/_testclinic.pyd",
+      "sha256": "12b3ad8de2ba275874c4991e0063ba09826cf2dfabaafb50b401d14da705e1b9"
+    },
+    {
+      "file": "python/DLLs/_testclinic_limited.pyd",
+      "sha256": "22e1eaf0395b9780a95e0e2f9e57501c2323ad7ffb70c5cab288a019681a195f"
+    },
+    {
+      "file": "python/DLLs/_testconsole.pyd",
+      "sha256": "90f04720c81fa961dd977eb056341dd87ccf8159a271a0d8aa5f7776194b481c"
+    },
+    {
+      "file": "python/DLLs/_testimportmultiple.pyd",
+      "sha256": "3489de69c8a3143f8b7bb98ce71dfa6e4156652478e8463418c71363021db681"
+    },
+    {
+      "file": "python/DLLs/_testinternalcapi.pyd",
+      "sha256": "0538eeeb1989482872b7e19abd63df8fb3a29e011edaec85224a394ebf81721b"
+    },
+    {
+      "file": "python/DLLs/_testlimitedcapi.pyd",
+      "sha256": "7b507f14739246851d86a4bb98986b8528e3cefc798f5f3ac75c2d60b6f05cf2"
+    },
+    {
+      "file": "python/DLLs/_testmultiphase.pyd",
+      "sha256": "dbe3f85186de0ba6a30ab7b6df6774ab07af561deb1ac79898a328f871f4c3cd"
+    },
+    {
+      "file": "python/DLLs/_testsinglephase.pyd",
+      "sha256": "495ec8dd88be8b0c5e7664cdd8fe98bb1ae03053d2e936536a668008b5af333e"
+    },
+    {
+      "file": "python/DLLs/_uuid.pyd",
+      "sha256": "6748c182df6181cff8691da72dbb81f4f7f446ac7482d5dfe671f2b5333aed5d"
+    },
+    {
+      "file": "python/DLLs/_wmi.pyd",
+      "sha256": "3be5e14e9a9dc49f099209dee98b9cb5e31ade3b0deab52277026bb14df5bdb6"
+    },
+    {
+      "file": "python/DLLs/_zoneinfo.pyd",
+      "sha256": "88f8ce841f21a2203fe7f66fdc95723321f21678916f8cd87f24be370d7e00b3"
+    },
+    {
+      "file": "python/DLLs/libcrypto-3.dll",
+      "sha256": "ccfffddcd3defb8d899026298af9af43bc186130f8483d77e97c93233d5f27d7"
+    },
+    {
+      "file": "python/DLLs/libffi-8.dll",
+      "sha256": "eff52743773eb550fcc6ce3efc37c85724502233b6b002a35496d828bd7b280a"
+    },
+    {
+      "file": "python/DLLs/libssl-3.dll",
+      "sha256": "007142039f04d04e0ed607bda53de095e5bc6a8a10d26ecedde94ea7d2d7eefe"
+    },
+    {
+      "file": "python/DLLs/py.ico",
+      "sha256": "150c470f9943b806b44312efdec85755f22f8d7d52b31f93a9af3c43e8627381"
+    },
+    {
+      "file": "python/DLLs/pyc.ico",
+      "sha256": "fda28a734788a3f175cb6aed4daeb5f05f0e49f6a272ccd2051ba337f7b3b42f"
+    },
+    {
+      "file": "python/DLLs/pyd.ico",
+      "sha256": "c4ec1845a5724b2a83500f3bd940355e2fe26efc6b4fe6c208365359a6130da1"
+    },
+    {
+      "file": "python/DLLs/pyexpat.pyd",
+      "sha256": "719dc29fee125f0d5026319da9a3001c130c84419db7ef7c5473fb496d56cfc2"
+    },
+    {
+      "file": "python/DLLs/python_lib.cat",
+      "sha256": "4525d635f726e2b9f4669f59d33b85e8a8701fb5e6f95fa173ec341b7e1c0be0"
+    },
+    {
+      "file": "python/DLLs/select.pyd",
+      "sha256": "9cc1ef0264060099503592db57ee7d7c1f8d6bea689b2ed125919c7a30b7ab7f"
+    },
+    {
+      "file": "python/DLLs/sqlite3.dll",
+      "sha256": "e8f3655d8abce668ff7dc3811167f1a85e08704ba03c51515cacf02d0be21e7b"
+    },
+    {
+      "file": "python/DLLs/unicodedata.pyd",
+      "sha256": "1989628f16052f9123c5cf603e96490a75fde6228315457556f96a838bf9e904"
+    },
+    {
+      "file": "python/DLLs/winsound.pyd",
+      "sha256": "399d8c1a6607a97394a2ed735dcf3b489cf81048e81afe29bce7e0f53fb252c2"
+    },
+    {
+      "file": "python/DLLs/zlib1.dll",
+      "sha256": "1dd27f0411ebb31bd148a61589cee254410915f1e6c37aa3ffa52fac71a5426c"
+    },
+    {
+      "file": "python/LICENSE.txt",
+      "sha256": "62bec384df47b0328307db41455ff6ea2559e5546b394ac69148561b21703120"
+    },
+    {
+      "file": "python/packages/rpds/__init__.py",
+      "sha256": "c373205d6ee5a530880b0d0a5dbc36d105f9ef7fe46ec12758878cb0202e82f3"
+    },
+    {
+      "file": "python/packages/rpds/__init__.pyi",
+      "sha256": "002d522690504f7af41f28a432ad2324c9bd3c9829e8d2fc8818d7888e256d84"
+    },
+    {
+      "file": "python/packages/rpds/py.typed",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "python/packages/rpds/rpds.cp313-win_amd64.pyd",
+      "sha256": "cd1f93206867e3ce34b88ec8e2f8121b20c4c9e4ca22b26bd9e587af8d68dc26"
+    },
+    {
+      "file": "python/python.exe",
+      "sha256": "d932e5e2f324d57f392e8fd063dcf6d0185be8a664c57c6d24e7762ed02c28ca"
+    },
+    {
+      "file": "python/python3.dll",
+      "sha256": "4ae581aa4e65fef9f92c84c428c990892da538b4d9289592df51fa31fd879770"
+    },
+    {
+      "file": "python/python313._pth",
+      "sha256": "0e3bffe682c8adc745ea0125502d9854c6a3835b36480fb97df958c00949cf99"
+    },
+    {
+      "file": "python/python313.dll",
+      "sha256": "41ec4fc4e5bc8b207258590238f7f050b13fdfee84c4a7b1ecff6e945d031a10"
+    },
+    {
+      "file": "python/python313.zip",
+      "sha256": "477fa4b6d483af905faf48edb0971a73bb2b0f8f664fb8dc67413f8f3ae9ecd6"
+    },
+    {
+      "file": "python/vcruntime140.dll",
+      "sha256": "052ad6a20d375957e82aa6a3c441ea548d89be0981516ca7eb306e063d5027f4"
+    },
+    {
+      "file": "python/vcruntime140_1.dll",
+      "sha256": "6a99bc0128e0c7d6cbbf615fcc26909565e17d4ca3451b97f8987f9c6acbc6c8"
+    },
+    {
+      "file": "r80_game_bridge.py",
+      "sha256": "e0d34b5ca281d969f1a4d85867f7be6407f0b3d7b22fa176f5cce1709013b586"
+    },
+    {
+      "file": "recipe/aligned_language_view.py",
+      "sha256": "cdc693df85b1d743a6996b9db194f6521c61f92302582b699decaaa19626ffc6"
+    },
+    {
+      "file": "recipe/audit_sft_token_lengths.py",
+      "sha256": "97c2912f055b7a9b969b9db8592d827948b1b88ddbdf05acfd502d8e7bda67b5"
+    },
+    {
+      "file": "recipe/balanced_staged_view.py",
+      "sha256": "e910e2aeb3aaa451b1fc4045cfe616160a5b156c0826fb9db06a96b6899c418b"
+    },
+    {
+      "file": "recipe/behavior_auxiliary_grammar.py",
+      "sha256": "40085043ee319445a71cedcaca92ab108684235e5337060c4d3c12d769ee3ab1"
+    },
+    {
+      "file": "recipe/build_aligned_language_training.py",
+      "sha256": "98b70cd23f24fde81777f8ba13684203ec37e53ffa50f1e5ea78362832f076ae"
+    },
+    {
+      "file": "recipe/candidate_cost_view.py",
+      "sha256": "b77535a5052851e0bd790efb4a86daba7b2f3549633043f5dc9f53958ae21da8"
+    },
+    {
+      "file": "recipe/candidate_outcome_view.py",
+      "sha256": "d50762ce9d95bdea1e82cbc878c4cf79ec35f84278c8b3ebcf1892cf65be1c31"
+    },
+    {
+      "file": "recipe/candidate_task_view.py",
+      "sha256": "3cce8f2b36ea468de14a42487b81fbe2628e344349b870e6a3b19219a423d898"
+    },
+    {
+      "file": "recipe/causal_continuation_view.py",
+      "sha256": "b42900a5d75858fb0eb96fe26a1cffe510089d8672f634b9f50f59d3cf0074d3"
+    },
+    {
+      "file": "recipe/effect_bound_view.py",
+      "sha256": "c292dce90706a7b031fdaa1d267cacf24b832894543b6a174952b89124a7de58"
+    },
+    {
+      "file": "recipe/focused_auxiliary_view.py",
+      "sha256": "c5bd3a2cd89c264b60cdfda8a1dbba8779ef2ff81e2bd742df2316ecff6fa53e"
+    },
+    {
+      "file": "recipe/followup_scope_view.py",
+      "sha256": "791b7aea410d7dd1b34f8c764621623cb803ea8fa31b50bb0a0ee10cabd356db"
+    },
+    {
+      "file": "recipe/formula_reviewer/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "recipe/formula_reviewer/mechanical_summary.py",
+      "sha256": "1d5c949bffb4367d444215b5114109dc6fe7fe10afc6629433390f0f4156c328"
+    },
+    {
+      "file": "recipe/gameplay_module_selection_package.py",
+      "sha256": "37d17f50f190cf222ca94aa0e73842aa01fafde76e9d0f702bb9b906fb03fce3"
+    },
+    {
+      "file": "recipe/general_prototype_auxiliary_grammar.py",
+      "sha256": "c73ffacd92d024ffb8f6372941c5b4e6becbea56035562f5559bac65d0a9b3fa"
+    },
+    {
+      "file": "recipe/legal_binding_view.py",
+      "sha256": "fdc18808f06d64e4e4310414eb954f5c63e986d13d796b41c35665b52af5b37c"
+    },
+    {
+      "file": "recipe/live_module_selection_contract.py",
+      "sha256": "f03e140ae164f569d48d4a0b8d4d219e6563b7e8467c22948d214eb99f9d7a7c"
+    },
+    {
+      "file": "recipe/native_alignment_trial.py",
+      "sha256": "e2538fc7277b0c707d8294347327732a0a92fbc89d81a49d249b3ef5dffea25e"
+    },
+    {
+      "file": "recipe/natural_prototype_prose_view.py",
+      "sha256": "d971af56c6d8bb64a25f4639e14bbfedfae68525667abefa450a4786e2cf324b"
+    },
+    {
+      "file": "recipe/needs_auxiliary_view.py",
+      "sha256": "04830fea1a05c67d7f9edf7bbdc890377d123139b737880e3bebb9448c01059f"
+    },
+    {
+      "file": "recipe/numeric_free_prose_grammar.py",
+      "sha256": "4e2e84a11b1b1c321d3199884099d091b24678b7577a587b985fb3ee1f1711d3"
+    },
+    {
+      "file": "recipe/outcome_native_trial.py",
+      "sha256": "947848b45b5505d038d84eee5e1d8eb8975b6421132fc1695fc5127cb4fc4334"
+    },
+    {
+      "file": "recipe/outcome_staged_view.py",
+      "sha256": "48c21ba487b0ea93b9ebf75f9eb3fa0302702ec650d7360fe60ca78abbcc0eb3"
+    },
+    {
+      "file": "recipe/practical_prototype_prose_view.py",
+      "sha256": "ead68fa16118463531292d3c32d2dd907acd8edd80631363b8f3b4c26e6f577c"
+    },
+    {
+      "file": "recipe/prioritized_needs_view.py",
+      "sha256": "4a7e38dd211fbdf791c64ab4cd4d04ad7764b7b9eb6736aff5f2deb67067de51"
+    },
+    {
+      "file": "recipe/prose_bounds_grammar.py",
+      "sha256": "fd0e1561feda2974f8159bc20f61920b3d60634e1c0251507c0c204f4f00cbc7"
+    },
+    {
+      "file": "recipe/public_schema_decoding.py",
+      "sha256": "123653297d2bdf85d7dd0788f106c01550ac7bc3d1bb8495fb5a9e1865597deb"
+    },
+    {
+      "file": "recipe/public_task_projection.py",
+      "sha256": "a91b054097cad8e712b3c7a2590fa777fe9a06e6949b0b2d341b5ff99111f8c3"
+    },
+    {
+      "file": "recipe/r72_aux_json_schema_to_grammar.py",
+      "sha256": "6eedcbad62ba45438e7e1efad4749f297f218f0b8989e7128edd071e4784b0b0"
+    },
+    {
+      "file": "recipe/r80_request.py",
+      "sha256": "f2a61a3b1ff721069b9b203aacc62c985cb90b58983efc61011a90fe0f126986"
+    },
+    {
+      "file": "recipe/readable_prose_grammar.py",
+      "sha256": "4edbee1286aaf36631fad8ab07e4ccd578919e20cbbe0c3b65c3ea3e7b6a3471"
+    },
+    {
+      "file": "recipe/readable_prose_view.py",
+      "sha256": "cfbf4e16a7dc142f9cb18023cf2b06c57f42efa09f6a1c99a8cdcf3e7c2f444e"
+    },
+    {
+      "file": "recipe/scoped_auxiliary_view.py",
+      "sha256": "28b21987185c09a6c37b40b048a1446f216471623c5f6b38118e18a63b796838"
+    },
+    {
+      "file": "recipe/single_decision_view.py",
+      "sha256": "9a1fb4de4f5bf98827af6294d3c60a3b04abcabb9ef93d1eb95a725121234e46"
+    },
+    {
+      "file": "recipe/static-schemas.json",
+      "sha256": "14f47a30952e4dc2d96ce8a34a855f6ebe305be56a15a48455d13fed7bc60ae8"
+    },
+    {
+      "file": "recipe/strict_json.py",
+      "sha256": "d9d1e6c302a6822d1631ee99075500febecd400172dda9c0662dffed2efe7121"
+    },
+    {
+      "file": "recipe/student_llama_inference.py",
+      "sha256": "b87afc23635341648206ee3e5b0b8c620e819d80f3ef040a7d08754e4940b802"
+    },
+    {
+      "file": "recipe/subject_anchored_view.py",
+      "sha256": "714deb5613487a8680009b2c3dd01b0c3271832329c6d6f75efe4ddee054e49e"
+    },
+    {
+      "file": "recipe/subject_staged_view.py",
+      "sha256": "91b2755c452c264d0e34cd9d45f53fdf8eb1b1ee9697a2021298861926ba61d9"
+    },
+    {
+      "file": "recipe/temporal_staged_view.py",
+      "sha256": "8ab8862ef3c7d72c30cd9656851b0acdea9fb06702db2a029a324252ebfbcafc"
+    },
+    {
+      "file": "recipe-provenance.json",
+      "sha256": "ef38d87646636141bd0f5e218a6a85452e08fb7dee30d4d3a2829a7aa6dc523d"
+    }
+  ],
+  "sharedContextTokens": 12288
+}

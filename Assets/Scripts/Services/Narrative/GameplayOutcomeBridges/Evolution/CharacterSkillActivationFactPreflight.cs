@@ -4,7 +4,7 @@ using System.Linq;
 using DungeonStory.Foundation;
 
 /// <summary>Only observation infrastructure interprets opaque skill publication identities.</summary>
-public sealed class CharacterSkillActivationFactPreflight : IDungeonSavePreflightValidator, IDungeonCapturedSavePreflightValidator
+public sealed class CharacterSkillActivationFactPreflight : IDungeonSavePreflightValidator, IDungeonDetachedCapturedSavePreflightValidator
 {
     public void Validate(DungeonGameSaveData save, DungeonGameRestoreReport report)
     {

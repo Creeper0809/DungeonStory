@@ -5,7 +5,7 @@ using DungeonStory.Foundation;
 using DungeonStory.Narrative.Korean;
 
 /// <summary>Validates saved arrival facts against their exact canonical identity, payload and revision.</summary>
-public sealed class OffenseArrivalSettlementFactPreflight : IDungeonSavePreflightValidator, IDungeonCapturedSavePreflightValidator
+public sealed class OffenseArrivalSettlementFactPreflight : IDungeonSavePreflightValidator, IDungeonDetachedCapturedSavePreflightValidator
 {
     public void Validate(DungeonGameSaveData save, DungeonGameRestoreReport report) => Validate(
         DungeonSaveSectionPayload.ReadOrNew<DungeonOffenseAggregateSaveData>(save, OffenseAggregateSaveSection.Id).returnArrivals,

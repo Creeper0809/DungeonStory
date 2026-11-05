@@ -7,7 +7,7 @@ using DungeonStory.Foundation.Facts;
 // truth to the native outcome ledger without inventing a physical item owner.
 public sealed class ApparelLoadoutChangedFactPreflight :
     IDungeonSavePreflightValidator,
-    IDungeonCapturedSavePreflightValidator
+    IDungeonDetachedCapturedSavePreflightValidator
 {
     public void Validate(DungeonGameSaveData save, DungeonGameRestoreReport report)
     {

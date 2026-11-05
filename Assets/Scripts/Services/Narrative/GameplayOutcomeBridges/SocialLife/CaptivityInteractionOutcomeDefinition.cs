@@ -752,7 +752,7 @@ public sealed class CaptivityInteractionOutcomeDescriptor :
             && outcome.GetProvenance(0).Equals(CaptivityInteractionOutcomeIds.Source)
             && outcome.GetProvenance(1).KindId == "domain-fact-sha256"
             && CaptivityInteractionOutcomeReceipt.IsSemanticDigest(outcome.GetProvenance(1).Value)
-            && outcome.AnchorCount == 0
+            && outcome.ProductionAnchorCount == 0
             && outcome.FactCount == (outputAmount > 0d ? 6 : 5)
             && captive.EntityId.Kind.Equals(
                 CaptivityInteractionOutcomeIds.CharacterKind)

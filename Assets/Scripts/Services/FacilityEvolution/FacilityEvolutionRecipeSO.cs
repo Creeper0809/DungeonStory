@@ -142,6 +142,9 @@ public class FacilityEvolutionRecipeSO : DataScriptableObject
                 throw new InvalidOperationException(
                     $"Facility capability '{descriptor.CapabilityId}' names unregistered evolution module '{value.evolutionModuleId}'.");
             }
+            if (!module.SupportsFacilityRecipeFormula)
+                throw new InvalidOperationException(
+                    $"Evolution module '{module.ModuleId}' does not support facility recipe formulas.");
             if (!FacilityEvolutionModifierApplicability
                     .IsPositiveModuleEligibleForNewGeneration(
                         resultBuilding,

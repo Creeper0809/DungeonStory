@@ -627,29 +627,18 @@ public static class DungeonGameSaveDebugScenarios
                     && !string.IsNullOrWhiteSpace(value.persistentInstanceId))
                 .Select(value => value.persistentInstanceId.Trim())
                 .ToHashSet(StringComparer.Ordinal);
-            BuildableObject damagedFacility = (buildingWorld.Buildings
-                    ?? Array.Empty<BuildableObject>())
-                .FirstOrDefault(candidate =>
-                    candidate != null
-                    && candidate.PersistentInstanceId.IsValid
-                    && InvasionFacilityDamageResolver.IsDamageableFacility(candidate)
-                    && !candidate.SupportsWork(BuiltInWorkTypeIds.Research)
-                    && baselineBuildingIds.Contains(
-                        candidate.PersistentInstanceId.Value));
-            Require(savedIntruderRuntime != null && damagedFacility != null,
-                "The invasion save test needs a live damageable baseline facility.");
-            Vector2Int[] damagePositions = new[] { damagedFacility.centerPos,
-                    damagedFacility.centerPos + Vector2Int.left, damagedFacility.centerPos + Vector2Int.right }
-                .Where(position => grid.IsWalkable(position)
-                    && grid.GetGridCell(position)?.AreaType == GridCellAreaType.DungeonInterior).ToArray();
-            Require(damagePositions.Length > 0, "No walkable position exists beside the damage marker.");
-            savedIntruder.transform.position = grid.GetWorldPos(damagePositions[0]);
+            Require(savedIntruderRuntime != null && !savedIntruderRuntime.HasBreachedDungeonInterior,
+                "The controlled intruder must await its production breach transition.");
+            BuildableObject damagedFacility = PrepareMovingGuardSaveFixture(
+                scope, grid, owner, savedIntruderRuntime,
+                buildingWorld.Buildings ?? Array.Empty<BuildableObject>(), baselineBuildingIds);
+            Vector2Int damagePosition = savedIntruder.GetNowXY();
             // This controlled positioning must still commit the production breach
             // transition before facility damage, as the movement coordinator does.
             MethodInfo markBreached = typeof(InvasionIntruderRuntime).GetMethod(
                 "TryMarkDungeonBreached", BindingFlags.Instance | BindingFlags.NonPublic);
             Require(markBreached != null, "The invasion breach command is missing.");
-            markBreached.Invoke(savedIntruderRuntime, new object[] { grid, damagePositions[0] });
+            markBreached.Invoke(savedIntruderRuntime, new object[] { grid, damagePosition });
             Require(savedIntruderRuntime.HasBreachedDungeonInterior,
                 "The invasion breach command did not commit the interior arrival.");
             Require(savedIntruderRuntime.TryDamageNearbyFacility(grid, damagedFacility)
@@ -1384,6 +1373,95 @@ public static class DungeonGameSaveDebugScenarios
             {
                 Debug.LogError("Save QA baseline restore failed: " + string.Join(" | ", cleanupReport.Errors));
             }
+        }
+    }
+
+    private static BuildableObject PrepareMovingGuardSaveFixture(
+        DungeonRuntimeLifetimeScope scope, Grid grid, CharacterActor owner,
+        InvasionIntruderRuntime intruder, IEnumerable<BuildableObject> buildings,
+        ISet<string> baselineBuildingIds)
+    {
+        // This checkpoint tests restoration of an in-flight guard. Uncontrolled
+        // staff duty/positions or a breach beside the owner need not produce one.
+        // Establish that precondition using normal actors, work commands and the
+        // production intercept planner; the breach still performs auto-dispatch.
+        foreach (CharacterActor actor in scope.Container.Resolve<ICharacterWorldQuery>().Characters)
+            if (actor != null && !actor.IsOwner
+                && CharacterWorkRoleUtility.TryGetWork(actor, out AbilityWork actorWork))
+                actorWork.SetWorkPriority(BuiltInWorkTypeIds.Guard, WorkPriorityLevel.Off);
+
+        CharacterSO definition = scope.Container.Resolve<IRunCharacterCatalog>().Characters
+            .FirstOrDefault(value => value != null && value.characterType == CharacterType.NPC
+                && value.role != CharacterRole.Owner);
+        Require(definition != null, "No authored NPC definition exists for the save guard.");
+        Require(scope.Container.Resolve<ICharacterSpawnerProvider>().TryGetSpawner(out CharacterSpawner spawner)
+            && spawner.characterPrefab != null, "No character prefab exists for the save guard.");
+        ICharacterSpawnObjectFactory factory = scope.Container.Resolve<ICharacterSpawnObjectFactory>();
+        GameObject guardObject = factory.CreateInactive(spawner.characterPrefab, candidate =>
+        {
+            if (candidate.GetComponent<AbilityWork>() == null) candidate.AddComponent<AbilityWork>();
+        });
+        try
+        {
+            CharacterActor guard = guardObject.GetComponent<CharacterActor>();
+            Require(guard != null, "The save guard prefab lacks CharacterActor.");
+            guardObject.name = "Save QA Moving Guard";
+            guard.EnsureRuntimeState();
+            guard.RefreshAbilityCache();
+            guard.Initialize(definition);
+            factory.Publish(guardObject);
+            scope.Container.Resolve<ICharacterIdRegistry>().GetOrAssignPersistentId(guard);
+            guard.Heal(guard.MaxHealth);
+            AbilityWork work = guard.GetAbility<AbilityWork>();
+            work.SetWorkPriority(BuiltInWorkTypeIds.Guard, WorkPriorityLevel.Priority1);
+            work.SetDutyState(AbilityWork.DutyState.OnDuty);
+            Require(scope.Container.Resolve<IDefenseResponsePolicyRuntime>().AssignPolicy(
+                guard, DefenseResponsePolicyRuntime.StandardPolicyId), "Save guard policy assignment failed.");
+            var planner = new DefenseInterceptPlanner();
+            IRandomStream pathRandom = scope.Container.Resolve<IRandomStreamProvider>()
+                .Get($"invasion-intruder:{intruder.RuntimeId}");
+            HashSet<Vector2Int> unavailable = planner.BuildUnavailableCells(
+                scope.Container.Resolve<IDefenseEngagementRuntime>().ActiveEngagements);
+            Vector2Int[] offsets = { Vector2Int.left, Vector2Int.right, Vector2Int.up, Vector2Int.down };
+            foreach (BuildableObject facility in buildings.Where(value => value != null
+                    && value.PersistentInstanceId.IsValid
+                    && baselineBuildingIds.Contains(value.PersistentInstanceId.Value)
+                    && InvasionFacilityDamageResolver.IsDamageableFacility(value)
+                    && !value.SupportsWork(BuiltInWorkTypeIds.Research))
+                .OrderBy(value => value.PersistentInstanceId.Value, StringComparer.Ordinal))
+            foreach (Vector2Int breach in new[] { facility.centerPos,
+                facility.centerPos + Vector2Int.left, facility.centerPos + Vector2Int.right })
+            {
+                if (!grid.IsWalkable(breach)
+                    || grid.GetGridCell(breach)?.AreaType != GridCellAreaType.DungeonInterior) continue;
+                intruder.IntruderActor.transform.position = grid.GetWorldPos(breach);
+                Queue<GridMoveStep> route = grid.GetMovePathTo(breach, owner.GetNowXY());
+                if (route == null || route.Count < 2) continue;
+                foreach (Vector2Int start in route.SelectMany(step => offsets.Select(offset => step.To + offset))
+                    .Distinct().OrderBy(value => value.x).ThenBy(value => value.y))
+                {
+                    if (!grid.IsWalkable(start)
+                        || grid.GetGridCell(start)?.AreaType != GridCellAreaType.DungeonInterior) continue;
+                    guard.transform.position = grid.GetWorldPos(start);
+                    // Previewing the production route consumes its random stream.
+                    // Auto-dispatch must see the same controlled route input.
+                    ulong pathState = pathRandom.State;
+                    DefenseInterceptPlan plan;
+                    bool valid;
+                    try { valid = planner.TryCreatePlan(grid, intruder, guard, owner.GetNowXY(), unavailable, out plan); }
+                    finally { pathRandom.Restore(pathState); }
+                    if (!valid || plan.LeadPath.Count == 0) continue;
+                    Debug.Log($"SAVE_QA_MOVING_GUARD_READY guard={start};breach={breach};"
+                        + $"owner={owner.GetNowXY()};pathSteps={plan.LeadPath.Count};controlledFixture=true");
+                    return facility;
+                }
+            }
+            throw new InvalidOperationException("No moving-guard intercept exists beside a damageable baseline facility.");
+        }
+        catch
+        {
+            UnityEngine.Object.Destroy(guardObject);
+            throw;
         }
     }
 

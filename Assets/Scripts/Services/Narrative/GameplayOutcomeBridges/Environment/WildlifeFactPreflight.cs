@@ -5,7 +5,7 @@ using DungeonStory.Foundation;
 using DungeonStory.Narrative.Korean;
 
 // Only the observer interprets the opaque identities stored by wildlife owners.
-public sealed class WildlifeFactPreflight : IDungeonSavePreflightValidator, IDungeonCapturedSavePreflightValidator
+public sealed class WildlifeFactPreflight : IDungeonSavePreflightValidator, IDungeonDetachedCapturedSavePreflightValidator
 {
     public void Validate(DungeonGameSaveData save, DungeonGameRestoreReport report)
     {

@@ -7,6 +7,87 @@ public static class CharacterFeedbackDebugScenarios
 {
     private static readonly ICharacterNarrativeTextQuery NarrativeText =
         new CharacterNarrativeTextQuery();
+    public static void VerifyNarrativeContractForBatch()
+    {
+        UnityEngine.Localization.Settings.LocalizationSettings.InitializationOperation.WaitForCompletion();
+        var previous = UnityEngine.Localization.Settings.LocalizationSettings.SelectedLocale;
+        try
+        {
+            // EditMode has no startup locale on a fresh checkout. These samples
+            // assert Korean grammar, independently of the user's preview locale.
+            UnityEngine.Localization.Settings.LocalizationSettings.SelectedLocale =
+                UnityEngine.Localization.Settings.LocalizationSettings.AvailableLocales.Locales
+                    .Single(locale => locale.Identifier.Code == "ko");
+            if (!VerifyNarrativeResponseValidation())
+                throw new System.InvalidOperationException("Character record factual contract failed.");
+        }
+        finally
+        {
+            UnityEngine.Localization.Settings.LocalizationSettings.SelectedLocale = previous;
+        }
+    }
+
+    public static void VerifyRecordPlaceParticleForBatch()
+    {
+        UnityEngine.Localization.Settings.LocalizationSettings.InitializationOperation.WaitForCompletion();
+        var previous = UnityEngine.Localization.Settings.LocalizationSettings.SelectedLocale;
+        try
+        {
+            var locales = UnityEngine.Localization.Settings.LocalizationSettings.AvailableLocales.Locales;
+            var korean = locales.Single(locale => locale.Identifier.Code == "ko");
+            var english = locales.Single(locale => locale.Identifier.Code == "en");
+            UnityEngine.Localization.Settings.LocalizationSettings.SelectedLocale = korean;
+            foreach (string key in new[] { "Template.GenericProgress", "Template.GenericCompleted", "Template.Facility" })
+            {
+                string template = NarrativeText.GetVariants(key).Single(value => value.Contains("{place}를"));
+                VerifyPlaceLine(template, "응대 지점", "응대 지점을");
+                VerifyPlaceLine(template, "치료소", "치료소를");
+            }
+            foreach (string key in new[] { "Template.GenericStarted", "Template.WorkStarted.work:guard" })
+            {
+                string template = NarrativeText.GetVariants(key).Single(value => value.Contains("{place}로"));
+                VerifyPlaceLine(template, "순찰 지점", "순찰 지점으로");
+                VerifyPlaceLine(template, "치료소", "치료소로");
+                VerifyPlaceLine(template, "마을", "마을로");
+                if (template.Contains("{workObject} 들어갔다"))
+                    throw new System.InvalidOperationException("Work start still uses an object with an incompatible verb.");
+            }
+            string plain = NarrativeText.GetVariants("Template.GenericProgress").First(value => value.Contains("{place}에서"));
+            VerifyPlaceLine(plain, "응대 지점", "응대 지점에서");
+            UnityEngine.Localization.Settings.LocalizationSettings.SelectedLocale = english;
+            string englishTemplate = NarrativeText.GetVariants("Template.GenericProgress").Single(value => value.Contains("watching {place}"));
+            VerifyPlaceLine(englishTemplate, "the reception", "watching the reception.");
+        }
+        finally
+        {
+            UnityEngine.Localization.Settings.LocalizationSettings.SelectedLocale = previous;
+        }
+    }
+
+    private static void VerifyPlaceLine(string template, string place, string expected)
+    {
+        var activity = CharacterActivityEvent.Create(CharacterActivityKinds.Work,
+            CharacterActivityOutcomes.Progress, "작업을 이어갔다", actionId: "work:operate",
+            targetId: "fixture:record-place", targetName: place, narrativeEligible: true);
+        string original = JsonUtility.ToJson(activity);
+        var entry = new CharacterLogEntry(1, "fixture", "원래 기록", 1, "원래 기록", activity);
+        var bank = new CharacterRecordTemplateBank(new SingleRecordTemplateText(template));
+        if (!bank.TryBuildLine(null, entry, out string line) || !line.Contains(expected)
+            || line.Contains("지점를") || line.Contains("지점를를") || line.Contains("지점로")
+            || JsonUtility.ToJson(activity) != original || entry.OriginalMessage != "원래 기록")
+            throw new System.InvalidOperationException("Record place particle or immutable activity changed: " + line);
+    }
+
+    private sealed class SingleRecordTemplateText : ICharacterNarrativeTextQuery
+    {
+        private readonly string template;
+        public SingleRecordTemplateText(string template) { this.template = template; }
+        public string Get(string key, params object[] arguments) => NarrativeText.Get(key, arguments);
+        public IReadOnlyList<string> GetVariants(string key) => new[] { template };
+        public string ApplySubjectParticle(string value) => NarrativeText.ApplySubjectParticle(value);
+        public string ApplyObjectParticle(string value) => NarrativeText.ApplyObjectParticle(value);
+        public string ApplyDirectionalParticle(string value) => NarrativeText.ApplyDirectionalParticle(value);
+    }
     [MenuItem("DungeonStory/Debug/Character/Run P1 Character Feedback Scenarios")]
     public static void RunFromMenu()
     {
@@ -482,7 +563,7 @@ public static class CharacterFeedbackDebugScenarios
             "테스트 캐릭터가",
             out string line,
             out _);
-        bool blandRecordRejected = !CharacterLogNarrativeService.TryParseNarrativeLine(
+        bool plainRecordAccepted = CharacterLogNarrativeService.TryParseNarrativeLine(
             "{\"line\":\"테스트 캐릭터가 연구실에서 새 연구를 차분히 시작했다\"}",
             "작업 시작 · 연구 · 연구실",
             "테스트 캐릭터가",
@@ -668,9 +749,24 @@ public static class CharacterFeedbackDebugScenarios
             out _,
             out _);
 
-        bool valid = validResponse
+        bool contextPreserved = NarrativeRequestContext.TryParse(correctionPrompt, out var parsedContext)
+            && parsedContext.ProfileId == LocalLlmRequestProfiles.CharacterRecord.Id
+            && parsedContext.RequireCharacterFact && parsedContext.RequireMotif;
+        Newtonsoft.Json.Linq.JObject packet;
+        using (var reader = new Newtonsoft.Json.JsonTextReader(new System.IO.StringReader(variedStartPrompts[0])))
+            packet = Newtonsoft.Json.Linq.JObject.Load(reader);
+        bool typedRecordFactsPreserved = (int)packet["recordPromptVersion"] == 2
+            && (string)packet["publicFacts"]["sourceEvent"]["message"] == eligible.OriginalMessage
+            && (string)packet["publicFacts"]["publicCharacterFacts"]["species"] == "unknown"
+            && (string)packet["publicFacts"]["publicCharacterFacts"]["role"] == "unknown"
+            && packet["publicFacts"]["publicCharacterFacts"]["recentVisibleRecords"] != null
+            && packet["publicFacts"]["sourceEvent"]["actionId"] != null
+            && packet["publicFacts"]["sourceEvent"]["target"] != null
+            && packet["publicFacts"]["sourceEvent"]["place"] != null
+            && !string.IsNullOrWhiteSpace((string)packet["originalCallerPrompt"]);
+        bool valid = contextPreserved && typedRecordFactsPreserved && validResponse
             && line == "테스트 캐릭터가 엉뚱한 방향으로 움직였다가 슬쩍 되돌아와 연구실에서 새 연구를 차분히 시작했다."
-            && blandRecordRejected
+            && plainRecordAccepted
             && missingSubjectRejected
             && wrongParticleRejected
             && unchangedRejected
@@ -695,7 +791,7 @@ public static class CharacterFeedbackDebugScenarios
             && correctionPrompt.Contains("<subject> <place>에서 <work>를 마치고 <result>도 끝냈다.")
             && correctionPrompt.Contains("테스트 캐릭터가 엉뚱한 길로 샜다가 돌아와")
             && correctionPrompt.Contains("지하 연구실에서 연금 연구를 마치고 새 제조법 정리도 끝냈다.")
-            && correctionPrompt.Contains("harmless micro-situation")
+            && correctionPrompt.Contains("A simple faithful sentence is sufficient")
             && offDutyCorrectionPrompt.Contains("<subject> <reason>으로 비번을 시작했다.")
             && offDutyCorrectionPrompt.Contains("김철이 한 박자 멈칫했다가 머쓱하게")
             && offDutyCorrectionPrompt.Contains("근무 피로 누적으로 비번을 시작했다.")
@@ -706,6 +802,8 @@ public static class CharacterFeedbackDebugScenarios
             && variedStartPrompts[2].Contains("<subject> <place>로 향해 <action>에 착수했다.")
             && variedStartPrompts[3].Contains("<subject> <place>에서 <action>을 시작했다.")
             && variedStartPrompts.Distinct().Count() == 4
+            && variedStartPrompts.All(prompt => prompt.Contains("no minimum length")
+                && !prompt.Contains("between 32") && prompt.Contains("Do not lengthen a simple event"))
             && controlledFallbackValid
             && controlledFallback.Length <= CharacterLogNarrativeService.MaxLineCharacters
             && controlledFallback.Contains("딴생각에서 퍼뜩 깨어나")
@@ -715,6 +813,9 @@ public static class CharacterFeedbackDebugScenarios
             && CharacterLogNarrativeService.BuildRequiredSubject("테스트 캐릭터") == "테스트 캐릭터가"
             && CharacterLogNarrativeService.BuildRequiredSubject("김철") == "김철이"
             && CharacterLogNarrativeService.BuildRequiredSubject("asd") == "asd가"
+            && CharacterLogNarrativeService.BuildRequiredSubject("Arin") == "Arin이"
+            && CharacterLogNarrativeService.BuildRequiredSubject("Ian") == "Ian이"
+            && CharacterLogNarrativeService.BuildRequiredSubject("Yuna") == "Yuna가"
             && CharacterLogNarrativeService.ShouldNarrate(eligible)
             && !CharacterLogNarrativeService.ShouldNarrate(repeated)
             && !CharacterLogNarrativeService.ShouldNarrate(successfulWait);

@@ -38,6 +38,8 @@ public sealed class AiDirectorRuntime : SerializedMonoBehaviour
         new Dictionary<CharacterActor, float>();
     private readonly Dictionary<CharacterActor, float> nextMoodImpulseTimeByActor =
         new Dictionary<CharacterActor, float>();
+    private readonly HashSet<CharacterActor> pendingMoodActors = new();
+    private readonly HashSet<CharacterActor> pendingMacroActors = new();
     private ILocalLlmRuntimeProvider llmRuntimeProvider;
     private IAiDirectorContextSceneQuery contextSceneQuery;
     private ICharacterAiSchedulingService aiSchedulingService;
@@ -138,7 +140,7 @@ public sealed class AiDirectorRuntime : SerializedMonoBehaviour
 
     public bool ShouldRequestMoodImpulse(CharacterActor actor)
     {
-        if (actor == null || actor.Blackboard == null || !actor.CanRunAi)
+        if (actor == null || actor.Blackboard == null || !actor.CanRunAi || pendingMoodActors.Contains(actor))
         {
             return false;
         }
@@ -161,7 +163,7 @@ public sealed class AiDirectorRuntime : SerializedMonoBehaviour
 
     public bool ShouldRequestMacroGoal(CharacterActor actor)
     {
-        if (actor == null || actor.Blackboard == null || !actor.CanRunAi)
+        if (actor == null || actor.Blackboard == null || !actor.CanRunAi || pendingMacroActors.Contains(actor))
         {
             return false;
         }
@@ -288,6 +290,11 @@ public sealed class AiDirectorRuntime : SerializedMonoBehaviour
         {
             return false;
         }
+        if (pendingMoodActors.Contains(actor))
+        {
+            lastError = "Mood impulse request is already pending for this actor.";
+            return false;
+        }
 
         if (!TryGetLlmRuntime(out ILocalLlmRuntime queue))
         {
@@ -296,8 +303,24 @@ public sealed class AiDirectorRuntime : SerializedMonoBehaviour
 
         string prompt = BuildMoodImpulsePrompt(actor);
         lastRequestDebug = prompt;
-        if (!queue.GenerateMoodImpulseAsync(prompt, (result) => OnMoodImpulseResult(actor, result)))
+        pendingMoodActors.Add(actor);
+        bool accepted;
+        try
         {
+            accepted = CharacterSceneLlmRequests.Generate(queue, "MoodImpulse",
+                prompt, string.Empty, actor, result => {
+                pendingMoodActors.Remove(actor);
+                OnMoodImpulseResult(actor, result);
+            });
+        }
+        catch
+        {
+            pendingMoodActors.Remove(actor);
+            throw;
+        }
+        if (!accepted)
+        {
+            pendingMoodActors.Remove(actor);
             lastError = "Mood impulse request was not accepted by LocalLlmRequestQueue.";
             ScheduleNextMoodImpulse(actor);
             return false;
@@ -314,6 +337,11 @@ public sealed class AiDirectorRuntime : SerializedMonoBehaviour
         {
             return false;
         }
+        if (pendingMacroActors.Contains(actor))
+        {
+            lastError = "Macro goal request is already pending for this actor.";
+            return false;
+        }
 
         if (!TryGetLlmRuntime(out ILocalLlmRuntime queue))
         {
@@ -322,8 +350,24 @@ public sealed class AiDirectorRuntime : SerializedMonoBehaviour
 
         string prompt = BuildMacroGoalPrompt(actor);
         lastRequestDebug = prompt;
-        if (!queue.GenerateMacroGoalAsync(prompt, (result) => OnMacroGoalResult(actor, result)))
+        pendingMacroActors.Add(actor);
+        bool accepted;
+        try
         {
+            accepted = CharacterSceneLlmRequests.Generate(queue, "MacroGoal",
+                prompt, string.Empty, actor, result => {
+                pendingMacroActors.Remove(actor);
+                OnMacroGoalResult(actor, result);
+            });
+        }
+        catch
+        {
+            pendingMacroActors.Remove(actor);
+            throw;
+        }
+        if (!accepted)
+        {
+            pendingMacroActors.Remove(actor);
             lastError = "Macro goal request was not accepted by LocalLlmRequestQueue.";
             ScheduleNextRoutineMacroGoal(actor);
             return false;
@@ -522,6 +566,7 @@ public sealed class AiDirectorRuntime : SerializedMonoBehaviour
         builder.AppendLine($"mood: {GetMood(actor):0.0}");
         builder.AppendLine($"sleep: {GetCondition(actor, CharacterCondition.SLEEP):0.0}");
         builder.AppendLine($"hunger: {GetCondition(actor, CharacterCondition.HUNGER):0.0}");
+        builder.AppendLine($"fun: {GetCondition(actor, CharacterCondition.FUN):0.0}");
         builder.AppendLine($"excretion: {GetCondition(actor, CharacterCondition.EXCRETION):0.0}");
         builder.AppendLine($"hygiene: {GetCondition(actor, CharacterCondition.HYGIENE):0.0}");
         builder.AppendLine("Dungeon summary:");

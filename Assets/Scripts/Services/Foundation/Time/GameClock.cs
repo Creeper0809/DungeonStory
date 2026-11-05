@@ -28,6 +28,11 @@ namespace DungeonStory.Foundation
         float Scale { get; set; }
     }
 
+    public interface IGameTimeScalePauseAuthority
+    {
+        System.IDisposable HoldSimulation();
+    }
+
     public interface IGameClockDiagnosticsControl
     {
         bool IsDeterministicCheckpointTimeEnabled { get; }
@@ -73,7 +78,9 @@ namespace DungeonStory.Foundation
     public sealed class UnityUiClock : IUiClock
     {
         public float DeltaTime => UnityEngine.Time.unscaledDeltaTime;
-        public float Time => UnityEngine.Time.unscaledTime;
+        // UI deadlines need the current wall clock even during synchronous
+        // save/restore. unscaledTime is frozen at the beginning of the frame.
+        public float Time => UnityEngine.Time.realtimeSinceStartup;
     }
 
     public sealed class UnityRealtimeClock : IRealtimeClock
@@ -82,21 +89,72 @@ namespace DungeonStory.Foundation
         public double TimeAsDouble => UnityEngine.Time.realtimeSinceStartupAsDouble;
     }
 
-    public sealed class UnityGameTimeScaleController : IGameTimeScaleController
+    public sealed class UnityGameTimeScaleController : IGameTimeScaleController, IGameTimeScalePauseAuthority
     {
         private static readonly float BaseFixedDeltaTime =
             ResolveBaseFixedDeltaTime();
+        private readonly int ownerThread = System.Threading.Thread.CurrentThread.ManagedThreadId;
+        private int simulationHolds;
+        private float requestedScale;
 
         public float Scale
         {
             get => UnityEngine.Time.timeScale;
             set
             {
-                float scale = Mathf.Max(0f, value);
-                UnityEngine.Time.timeScale = scale;
-                UnityEngine.Time.fixedDeltaTime = scale > 0f
-                    ? BaseFixedDeltaTime * scale
-                    : BaseFixedDeltaTime;
+                RequireThread();
+                if (simulationHolds == 0) ApplyScale(value);
+                else
+                {
+                    // 같은 동기 호출에서 원래 Unity 입력 검사를 거친다. 프레임은 진행하지 않는다.
+                    try { ApplyScale(value); requestedScale = UnityEngine.Time.timeScale; }
+                    finally { ApplyScale(0f); }
+                }
+            }
+        }
+
+        public System.IDisposable HoldSimulation()
+        {
+            RequireThread();
+            if (simulationHolds == 0)
+            {
+                requestedScale = UnityEngine.Time.timeScale;
+                ApplyScale(0f);
+            }
+            simulationHolds++;
+            return new SimulationHold(this);
+        }
+
+        private void ReleaseSimulation()
+        {
+            RequireThread();
+            if (simulationHolds <= 0) throw new System.InvalidOperationException("No simulation hold is owned.");
+            if (simulationHolds == 1) ApplyScale(requestedScale);
+            simulationHolds--;
+        }
+
+        private void RequireThread()
+        {
+            if (System.Threading.Thread.CurrentThread.ManagedThreadId != ownerThread)
+                throw new System.InvalidOperationException("Simulation holds must use the owning thread.");
+        }
+
+        private static void ApplyScale(float value)
+        {
+            float scale = Mathf.Max(0f, value);
+            UnityEngine.Time.timeScale = scale;
+            UnityEngine.Time.fixedDeltaTime = scale > 0f ? BaseFixedDeltaTime * scale : BaseFixedDeltaTime;
+        }
+
+        private sealed class SimulationHold : System.IDisposable
+        {
+            private UnityGameTimeScaleController owner;
+            public SimulationHold(UnityGameTimeScaleController owner) => this.owner = owner;
+            public void Dispose()
+            {
+                if (owner == null) return;
+                owner.ReleaseSimulation();
+                owner = null;
             }
         }
 

@@ -678,6 +678,183 @@ public static class CharacterProgressionDebugScenarios
     public static bool RunGenerationTimeoutScenario() =>
         VerifyInFlightGenerationTimeout();
 
+    public static void VerifyRejectedInputRetryForBatch()
+    {
+        CharacterSkillSystemSettingsSO settings =
+            EditorCharacterSkillSettingsFactory.CreateTransientDefaults();
+        settings.initialRetrySeconds = 1f;
+        settings.maximumRetrySeconds = 2f;
+        using ActorFixture actor = new ActorFixture(994, "입력 재시도 검증자", "human");
+        try
+        {
+            TestSettingsProvider provider = new TestSettingsProvider(settings);
+            MutableUiClock clock = new MutableUiClock();
+            CompletionOwningLlmRuntime transport = new CompletionOwningLlmRuntime();
+            CharacterSkillGenerationService service = new CharacterSkillGenerationService(
+                NarrativeRequestContextTestFixture.CreateEmpty(), provider,
+                new TestLlmRuntimeProvider(transport), clock);
+            CharacterProgression progression = actor.Actor.Progression;
+            progression.ConstructCharacterProgression(service, provider,
+                gameEventBus: new GameEventBus(),
+                profileProjector: new CharacterProgressionProfileProjector(
+                    new ResourceGameContentCatalog(new UnityGameContentRootLoader()),
+                    new CharacterRuntimeProfileFactory(
+                        new ResourceGameContentCatalog(new UnityGameContentRootLoader()))));
+            progression.RecordNarrative(CharacterNarrativeDomain.Work,
+                "work:rejected-input", "facility:rejected-input",
+                CharacterActivityOutcomes.Completed, day: 1);
+            CharacterSkillDraft draft = service.CreateDraft(progression, CharacterSkillKind.Passive, 1);
+            CharacterGrowthState ownedGrowth = CharacterAiEditorTestDependencies.GetOwnedGrowthForFixture(progression);
+            ownedGrowth.drafts.Clear();
+            ownedGrowth.drafts.Add(draft);
+            service.RequestDraft(progression, draft);
+            service.Tick();
+            Require(transport.CharacterSkillCallCount == 1 && transport.HasPendingCallback,
+                "First skill request was not submitted.");
+            string firstPrompt = transport.LastPrompt;
+            transport.Complete(new LocalLlmResult(LocalLlmRequestStatus.Succeeded,
+                "{}", string.Empty, string.Empty));
+            Require(draft.presentationFailureCount == 1 && service.PendingRequestCount == 1,
+                "First malformed result did not remain retryable with one failure.");
+
+            clock.Advance(2.1f);
+            service.Tick();
+            Require(transport.CharacterSkillCallCount == 2 && transport.HasPendingCallback
+                    && !string.Equals(firstPrompt, transport.LastPrompt, StringComparison.Ordinal),
+                "Correction did not produce a second distinct input.");
+            transport.Complete(new LocalLlmResult(LocalLlmRequestStatus.Succeeded,
+                "{}", string.Empty, string.Empty));
+            Require(draft.presentationFailureCount == 2,
+                "Second malformed result did not retain the failure count.");
+            clock.Advance(2.1f);
+            service.Tick();
+            Require(transport.CharacterSkillCallCount == 2 && !transport.HasPendingCallback
+                    && service.PendingRequestCount == 0
+                    && draft.presentationState == CharacterSkillPresentationState.AwaitingNarrativeRetry
+                    && draft.presentationFailureCount == 2 && !draft.isReady
+                    && draft.candidates.Count == 0,
+                "Unchanged rejected input was submitted again or applied.");
+            var resume = typeof(CharacterProgression).GetMethod("ResumePendingRequests",
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
+                ?? throw new MissingMethodException(nameof(CharacterProgression), "ResumePendingRequests");
+            resume.Invoke(progression, new object[] { false });
+            clock.Advance(10f);
+            service.Tick();
+            Require(transport.CharacterSkillCallCount == 2 && service.PendingRequestCount == 0
+                    && draft.presentationState == CharacterSkillPresentationState.AwaitingNarrativeRetry
+                    && draft.presentationFailureCount == 2,
+                "Automatic resume re-submitted the failed draft.");
+
+            service.RequestDraft(progression, draft);
+            service.Tick();
+            Require(transport.CharacterSkillCallCount == 3 && transport.HasPendingCallback
+                    && service.PendingRequestCount == 1
+                    && draft.presentationState == CharacterSkillPresentationState.PresentationPending,
+                "Explicit retry did not resume the retained draft.");
+            service.CancelRequests(progression);
+            Require(VerifyInFlightGenerationTimeout(), "Existing timeout retry scenario failed.");
+            VerifyAcquiredTraitInputChangeStopsRetry();
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(settings);
+        }
+    }
+
+    public static void VerifyAcquiredTraitNoOfferDiagnosticForBatch()
+    {
+        LoadAuthoredAcquiredTraitContent(out CharacterAcquiredTraitSettingsSO settings,
+            out CharacterAcquiredTraitModuleSO[] modules);
+        using ActorFixture actor = new(812518, "Trait Offer Diagnostic", "human",
+            publishComposition: true, persistentId: "character:qa-trait-offer-diagnostic");
+        foreach (int index in Enumerable.Range(0, 33))
+            actor.Actor.Progression.RecordNarrative(CharacterNarrativeDomain.Work,
+                $"work:qa-offer-diagnostic-{index:00}", "target:qa:offer-diagnostic", "completed");
+        CharacterProgression progression = actor.Actor.Progression;
+        string before = JsonUtility.ToJson(progression.CaptureAcquiredTraitState());
+        string[] evidence = progression.NarrativeLedger.Facts
+            .Where(value => value.domain == CharacterNarrativeDomain.Work)
+            .Take(NarrativeRequestContext.MaximumFacts)
+            .Select(CharacterAcquiredTraitEvidenceProjection.Project).ToArray();
+        var offered = Prepare(modules);
+        Require(offered.Offers.Any(value => value.Polarity == NarrativeFormulaModulePolarity.Positive),
+            "The unchanged authored benefit fixture has no legal positive offer.");
+        CharacterAcquiredTraitModuleSO otherDomain = modules.FirstOrDefault(value =>
+            !value.DomainAffinities.Contains(CharacterNarrativeDomain.Work));
+        Require(otherDomain != null, "A real non-work authored module is required for the rejection fixture.");
+        CheckFailure(Array.Empty<CharacterAcquiredTraitModuleSO>(), "total=0;", "domain=0;");
+        CheckFailure(new[] { otherDomain }, "total=1;", "domain=1;");
+        Require(JsonUtility.ToJson(progression.CaptureAcquiredTraitState()) == before,
+            "Offer diagnostics consumed a milestone, evidence or trait state.");
+
+        NarrativeFormulaModuleSelectionRequest Prepare(IEnumerable<CharacterAcquiredTraitModuleSO> source) =>
+            CharacterAcquiredTraitFormulaGeneration.PrepareModuleSelection(progression,
+                "request:qa-trait-offer-diagnostic", "key:qa-trait-offer-diagnostic", 1,
+                settings, source, evidence);
+
+        void CheckFailure(IEnumerable<CharacterAcquiredTraitModuleSO> source, string total, string reason)
+        {
+            try { Prepare(source); }
+            catch (InvalidOperationException error)
+            {
+                Require(error.Message.StartsWith("No authored acquired-trait benefit is individually legal.",
+                        StringComparison.Ordinal)
+                    && error.Message.Contains(total) && error.Message.Contains(reason)
+                    && error.Message.Contains("unclassified=0;"),
+                    "No-offer rejection did not retain its boundary and exact filter reason: " + error.Message);
+                return;
+            }
+            throw new InvalidOperationException("An ineligible offer was accepted by the diagnostic path.");
+        }
+    }
+
+    private static void VerifyAcquiredTraitInputChangeStopsRetry()
+    {
+        LoadAuthoredAcquiredTraitContent(out CharacterAcquiredTraitSettingsSO settings,
+            out CharacterAcquiredTraitModuleSO[] modules);
+        using ActorFixture actor = new ActorFixture(812509, "Trait Input Retry", "human",
+            publishComposition: true, persistentId: "character:qa-trait-input-retry");
+        foreach (int index in Enumerable.Range(0, 33))
+            actor.Actor.Progression.RecordNarrative(CharacterNarrativeDomain.Work,
+                $"work:qa-input-retry-{index:00}", "target:qa:input-retry", "completed");
+        using EvolutionGameplayOutcomeEditorFixture outcomes = new("run:trait-input-retry-editor");
+        DeferredAcquiredTraitLlmRuntime transport = new();
+        MutableUiClock clock = new();
+        using CharacterAcquiredTraitManifestationRuntime runtime = new(
+            NarrativeRequestContextTestFixture.CreateEmpty(), new AcquiredTraitDefinitionSource(settings, modules),
+            new FixedCharacterWorld(actor.Actor), new TestLlmRuntimeProvider(transport),
+            new FixedGameCalendar(day: 17, hour: 4), clock, new GameEventBus(),
+            EmptyGameplayOutcomeNarrativeEvidenceQuery.Instance,
+            outcomes.TraitInferenceFacts, outcomes.TraitInferences);
+        runtime.Start();
+        runtime.Tick();
+        Require(transport.CallCount == 1 && transport.PendingCallbackCount == 1,
+            "Acquired trait input-change fixture did not submit once.");
+        transport.CompleteNext(new LocalLlmResult(LocalLlmRequestStatus.Failed,
+            string.Empty, "controlled input rejection", string.Empty, requiresInputChange: true));
+        CharacterAcquiredTraitAggregateState state = actor.Actor.Progression.CaptureAcquiredTraitState();
+        Require(state.pendingRequests.Count == 1
+                && state.pendingRequests[0].presentationState == CharacterAcquiredTraitPresentationState.ModuleSelectionAwaitingNarrativeRetry
+                && state.pendingRequests[0].presentationFailureCount == 1
+                && state.ActiveCount == 0 && runtime.PendingRequestCount == 0,
+            "Acquired trait input rejection did not persist one unapplied failure.");
+        CharacterAcquiredTraitAggregateState restored = JsonUtility.FromJson<CharacterAcquiredTraitAggregateState>(
+            JsonUtility.ToJson(state));
+        Require(restored.pendingRequests[0].presentationState
+                    == CharacterAcquiredTraitPresentationState.ModuleSelectionAwaitingNarrativeRetry
+                && restored.pendingRequests[0].presentationFailureCount == 1
+                && restored.pendingRequests[0].offeredBenefitModuleIds.SequenceEqual(
+                    state.pendingRequests[0].offeredBenefitModuleIds)
+                && restored.pendingRequests[0].benefitModuleIds.Count == 0,
+            "Paused unresolved module offers changed during serialization.");
+        clock.Advance(100f);
+        runtime.Tick();
+        runtime.Tick();
+        Require(transport.CallCount == 1 && transport.PendingCallbackCount == 0
+                && runtime.PendingRequestCount == 0,
+            "Acquired trait automatically retried rejected unchanged input.");
+    }
+
     public static bool RunProviderStartupReadinessScenario() =>
         VerifyProviderStartupWaitDoesNotConsumeAcceptedTimeout();
 
@@ -1769,6 +1946,27 @@ public static class CharacterProgressionDebugScenarios
                 "relationship:window-representative", StringComparer.Ordinal)
             && selected.Contains("injury:window-representative", StringComparer.Ordinal),
             "Acquired-trait evidence window lost domain diversity to high-importance work facts.");
+
+        int exactCapacity = CharacterAcquiredTraitEvidenceWindow.GetExactEvidenceCapacity(forward);
+        Require(exactCapacity == NarrativeRequestContext.MaximumFacts - 4
+            && exactCapacity == CharacterAcquiredTraitEvidenceWindow.GetExactEvidenceCapacity(reverse),
+            "Exact evidence crowded out the existing four-domain legacy coverage policy.");
+        var fullExactWindow = Enumerable.Range(0, exactCapacity)
+            .Select(index => new GameplayOutcomeEvidenceBindingSnapshot
+            { publicFactId = $"public-fact:sha256:capacity-{index:00}" }).ToArray();
+        var balanced = CharacterAcquiredTraitEvidenceWindow.SelectLegacyFactIds(forward, fullExactWindow);
+        Require(balanced.Count + fullExactWindow.Length == NarrativeRequestContext.MaximumFacts
+            && balanced.Contains("work:window-00", StringComparer.Ordinal)
+            && balanced.Contains("combat:window-representative", StringComparer.Ordinal)
+            && balanced.Contains("relationship:window-representative", StringComparer.Ordinal)
+            && balanced.Contains("injury:window-representative", StringComparer.Ordinal),
+            "A full exact window still starved legacy domains or exceeded the original public limit.");
+        Require(CharacterAcquiredTraitEvidenceWindow.GetExactEvidenceCapacity(new CharacterNarrativeLedger())
+                == CharacterAcquiredTraitEvidenceWindow.MaximumExactEvidenceFacts
+            && CharacterAcquiredTraitEvidenceWindow.GetExactEvidenceCapacity(BuildEvidenceWindowLedger(
+                source.Where(value => value.Domain == CharacterNarrativeDomain.Work)))
+                == CharacterAcquiredTraitEvidenceWindow.MaximumExactEvidenceFacts,
+            "Empty or one-domain ledgers changed the original exact-evidence ceiling.");
 
         GameplayOutcomeEvidenceBindingSnapshot[] reservedExact =
             Enumerable.Range(0, 5)
@@ -3006,6 +3204,175 @@ public static class CharacterProgressionDebugScenarios
                 "Replacement trait request did not complete the original milestone exactly once.");
         }
         return true;
+    }
+
+    // Controlled owner/query integration. No model output or game result is fabricated.
+    public static void VerifyStaleTraitEvidenceForBatch()
+    {
+        LoadAuthoredAcquiredTraitContent(out var settings, out var modules);
+        foreach (bool callbackFirst in new[] { false, true })
+        foreach (bool versionedQuery in new[] { true, false })
+        {
+            const string actorId = "character:qa-trait-stale-evidence";
+            using ActorFixture actor = new(812513, "근거 검증자", "human",
+                publishComposition: true, persistentId: actorId);
+            foreach (int index in Enumerable.Range(0, 33))
+                actor.Actor.Progression.RecordNarrative(CharacterNarrativeDomain.Work,
+                    $"work:qa-evidence-{index:00}", "target:qa:evidence", "completed");
+            var registry = new GameplayOutcomeRegistry(
+                new IGameplayOutcomeDescriptor[] { new EnvironmentalExposureThresholdOutcomeDescriptor(
+                    new DungeonStory.Narrative.Korean.KoreanJosaFormatter()) },
+                new IGameplayOutcomeAdapterRegistration[] { new EnvironmentalExposureThresholdOutcomeAdapter() });
+            var evidenceCalendar = new FixedGameCalendar(day: 17, hour: 4);
+            var ledger = new GameplayOutcomeLedger(registry, GameplayOutcomeBufferLimits.Default,
+                new GameplayOutcomeRunId("run:qa-trait-stale-evidence-" + callbackFirst), 1L, evidenceCalendar);
+            var bridge = new EnvironmentGameplayOutcomeBridge(
+                new GameplayOutcomeRecorder(ledger, registry, new GameEventBus()), ledger, ledger);
+            void AddOutcome(int index)
+            {
+                var data = new EnvironmentalExposureOutcomeSaveData
+                {
+                    operationId = "environment-exposure:trait-evidence:" + index,
+                    eventKind = "damage-tick", characterId = actorId,
+                    characterDisplayName = "근거 검증자", x = 3, y = 1,
+                    absoluteDay = 11, ownerRevision = index + 1,
+                    temperatureC = -12f, airQuality = 82f, lightLevel = 44f,
+                    coldBefore = 76f, coldAfter = 78f,
+                    bandBefore = EnvironmentalExposureBand.Critical,
+                    bandAfter = EnvironmentalExposureBand.Critical,
+                    damage = 60f, healthBefore = 100f, healthAfter = 40f,
+                    reasonCode = "controlled-trait-evidence-fixture"
+                };
+                var receipt = EnvironmentConditionOutcomeReceiptFactory.CreateEnvironmentalExposureThreshold(data);
+                Require(bridge.TryPrepare(receipt, out var prepared, out string failure), failure);
+                Require(bridge.Commit(prepared, data.ownerRevision).CanClearOwnerPending,
+                    "Controlled evidence outcome did not commit.");
+            }
+            AddOutcome(0);
+            var query = new GameplayOutcomeNarrativeEvidenceQuery(versionedQuery
+                ? ledger : new UnversionedOutcomeQuery(ledger));
+            using var outcomes = new EvolutionGameplayOutcomeEditorFixture("run:qa-trait-evidence-publications");
+            var transport = new DeferredAcquiredTraitLlmRuntime();
+            using var runtime = new CharacterAcquiredTraitManifestationRuntime(
+                NarrativeRequestContextTestFixture.CreateEmpty(), new AcquiredTraitDefinitionSource(settings, modules),
+                new FixedCharacterWorld(actor.Actor), new TestLlmRuntimeProvider(transport),
+                new FixedGameCalendar(day: 17, hour: 4), new MutableUiClock(), new GameEventBus(),
+                query, outcomes.TraitInferenceFacts, outcomes.TraitInferences);
+            runtime.Start(); runtime.Tick();
+            var initial = actor.Actor.Progression.CaptureAcquiredTraitState();
+            var original = initial.pendingRequests.Single();
+            Require(original.evidenceBindings.Count == 1 && transport.PendingCallbackCount == 1,
+                "A live exact evidence binding was not persisted with the request.");
+            var originalBinding = original.evidenceBindings.Single();
+            Action<LocalLlmResult> late = transport.PeekCallbackForDebug();
+            var inference = new CharacterAcquiredTraitInferenceService(settings, modules);
+            string unchanged = JsonUtility.ToJson(initial);
+            Require(!inference.TryInvalidateStaleEvidencePending(actor.Actor.Progression,
+                    original.requestId, initial.revision, query, out _)
+                && unchanged == JsonUtility.ToJson(actor.Actor.Progression.CaptureAcquiredTraitState()),
+                "Current exact evidence was discarded or changed state.");
+
+            runtime.Tick();
+            int passes = runtime.EvidenceResolutionPassesForDebug;
+            int hits = runtime.EvidenceResolutionMemoHitsForDebug;
+            runtime.Tick();
+            Require(runtime.EvidenceResolutionPassesForDebug == passes + (versionedQuery ? 0 : 1)
+                && runtime.EvidenceResolutionMemoHitsForDebug == hits + (versionedQuery ? 1 : 0)
+                && unchanged == JsonUtility.ToJson(actor.Actor.Progression.CaptureAcquiredTraitState()),
+                "Unchanged evidence was not reused safely, or an unversioned query skipped its original check.");
+
+            passes = runtime.EvidenceResolutionPassesForDebug;
+            ((ICharacterTraitInferenceAuthority)actor.Actor.Progression).ReplaceAcquiredTraitState(initial.Clone());
+            runtime.Tick();
+            Require(runtime.EvidenceResolutionPassesForDebug == passes + 1
+                && unchanged == JsonUtility.ToJson(actor.Actor.Progression.CaptureAcquiredTraitState()),
+                "Equal-valued trait state replacement reused an old validation identity.");
+
+            var originalLedger = ledger.CaptureGameplayOutcomes();
+            long expectedRevision = ledger.GetDiagnostics().Revision;
+            for (int restore = 0; restore < 2; restore++)
+            {
+                var candidate = ledger.PrepareGameplayOutcomeRestore(originalLedger);
+                ledger.BeginRestoreCandidate();
+                ledger.PublishGameplayOutcomeRestore(candidate);
+                ledger.PublishRestoreCandidate();
+                ledger.CompleteRestoreCandidate();
+                passes = runtime.EvidenceResolutionPassesForDebug;
+                runtime.Tick();
+                Require(ledger.GetDiagnostics().Revision == expectedRevision
+                    && runtime.EvidenceResolutionPassesForDebug == passes + 1
+                    && unchanged == JsonUtility.ToJson(actor.Actor.Progression.CaptureAcquiredTraitState()),
+                    "Restored ledger with the same numeric revision reused an old validation or consumed pending state.");
+            }
+
+            evidenceCalendar.SetDateTime(1, 0);
+            bool clockRejected = false;
+            try { runtime.Tick(); }
+            catch (InvalidOperationException error) { clockRejected = error.Message.Contains("calendar", StringComparison.Ordinal); }
+            Require(clockRejected && unchanged == JsonUtility.ToJson(actor.Actor.Progression.CaptureAcquiredTraitState()),
+                "An evidence memo hid an invalid query calendar or partially changed the pending state.");
+            evidenceCalendar.SetDateTime(17, 4);
+            runtime.Tick();
+
+            passes = runtime.EvidenceResolutionPassesForDebug;
+            AddOutcome(1);
+            runtime.Tick();
+            Require(unchanged == JsonUtility.ToJson(actor.Actor.Progression.CaptureAcquiredTraitState())
+                && transport.CallCount == 1 && runtime.EvidenceResolutionPassesForDebug == passes + 1,
+                "A changed ledger skipped fresh validation or rewrote a frozen request.");
+            var subject = new GameplayEntityId(EnvironmentOutcomeIds.CharacterKind, actorId);
+            Require(ledger.TrySetPlayerPin(new GameplayOutcomeId(
+                    new GameplayOutcomeRunId(originalBinding.outcomeRunId), originalBinding.outcomeSequence),
+                    subject, true, out string pinFailure), pinFailure);
+            Require(!query.TryResolveExactBinding(originalBinding, out _),
+                "The original exact-query guard accepted a changed anchor revision.");
+            Require(!inference.TryInvalidateStaleEvidencePending(actor.Actor.Progression,
+                    original.requestId, initial.revision + 1, query, out _)
+                && unchanged == JsonUtility.ToJson(actor.Actor.Progression.CaptureAcquiredTraitState()),
+                "A stale command revision changed the pending state.");
+            string ledgerBefore = JsonUtility.ToJson(ledger.CaptureGameplayOutcomes());
+            string narrativeBefore = JsonUtility.ToJson(actor.Actor.Progression.NarrativeLedger);
+            if (callbackFirst) transport.CompleteNext(new LocalLlmResult(
+                LocalLlmRequestStatus.Succeeded, "{}", string.Empty, string.Empty));
+            runtime.Tick();
+            var replaced = actor.Actor.Progression.CaptureAcquiredTraitState();
+            var replacement = replaced.pendingRequests.Single();
+            Require(replacement.requestId != original.requestId
+                && replacement.ownerBinding.Matches(actor.Actor.Progression, out _)
+                && replacement.evidenceBindings.All(value => query.TryResolveExactBinding(value, out _))
+                && replaced.lastRequestInvalidation.requestId == original.requestId
+                && replaced.lastRequestInvalidation.reason.StartsWith("STALE_EVIDENCE:", StringComparison.Ordinal)
+                && replaced.ActiveCount == 0 && replaced.processedMilestones.Count == 0
+                && transport.CallCount == 2 && transport.PendingCallbackCount == 1
+                && ledgerBefore == JsonUtility.ToJson(ledger.CaptureGameplayOutcomes())
+                && narrativeBefore == JsonUtility.ToJson(actor.Actor.Progression.NarrativeLedger),
+                "Stale evidence did not reissue once without consuming evidence, effects or the milestone.");
+            string beforeLate = JsonUtility.ToJson(replaced);
+            late(new LocalLlmResult(LocalLlmRequestStatus.Succeeded, "{}", string.Empty, string.Empty));
+            runtime.Tick();
+            Require(beforeLate == JsonUtility.ToJson(actor.Actor.Progression.CaptureAcquiredTraitState())
+                && transport.CallCount == 2, "A late old callback changed its replacement request.");
+            var decoded = JsonUtility.FromJson<CharacterAcquiredTraitAggregateState>(beforeLate);
+            Require(decoded.lastRequestInvalidation.reason == replaced.lastRequestInvalidation.reason
+                && decoded.pendingRequests.Single().requestId == replacement.requestId,
+                "Invalidation and replacement request did not survive save JSON.");
+        }
+        Require(VerifyAcquiredTraitAutomaticOwnerInvalidation(), "Existing stale owner contract regressed.");
+        Require(VerifyAcquiredTraitAutomaticProducerResume(), "Unchanged legacy request resume contract regressed.");
+    }
+
+    private sealed class UnversionedOutcomeQuery : IGameplayOutcomeQuery
+    {
+        private readonly IGameplayOutcomeQuery inner;
+        public UnversionedOutcomeQuery(IGameplayOutcomeQuery inner) => this.inner = inner;
+        public GameplayOutcomeQueryPage GetGlobal(OutcomeCursor cursor, OutcomeFilter filter) => inner.GetGlobal(cursor, filter);
+        public GameplayOutcomeQueryPage GetForEntity(GameplayEntityId id, OutcomeCursor cursor, OutcomeFilter filter) => inner.GetForEntity(id, cursor, filter);
+        public GameplayOutcomeQueryPage GetForOperation(GameplayOperationId id) => inner.GetForOperation(id);
+        public GameplayOutcomeQueryPage GetNarrativeEvidence(NarrativeEvidenceQuery query) => inner.GetNarrativeEvidence(query);
+        public bool TryGetExact(GameplayOutcomeId id, out GameplayOutcomeSnapshot outcome) => inner.TryGetExact(id, out outcome);
+        public bool TryGetCompacted(NarrativeMemoryId id, out CompactedNarrativeMemorySnapshot memory) => inner.TryGetCompacted(id, out memory);
+        public bool TryProject(GameplayOutcomeId id, NarrativePerspectiveContext perspective, out NarrativeView view) => inner.TryProject(id, perspective, out view);
+        public bool TryProjectMemory(NarrativeMemoryId id, NarrativePerspectiveContext perspective, out NarrativeMemoryView view) => inner.TryProjectMemory(id, perspective, out view);
     }
 
     private static bool VerifyAcquiredTraitWholeRootSaveRoundTrip()
@@ -5849,6 +6216,46 @@ public static class CharacterProgressionDebugScenarios
             try { CharacterSkillAcquisitionPublicationRuntime.ValidateAndClone(journalWithGap); }
             catch (ArgumentException) { gapRejected = true; }
             Require(gapRejected, "Skill-acquisition publication history accepted a revision gap.");
+            var subjectId = new GameplayEntityId(CharacterSkillAcquiredOutcomeIds.CharacterKind,
+                actor.Actor.Identity.PersistentId);
+            var extraAnchor = new NarrativeEvidenceReference("qa-retention", "anchor:qa:skill-retention");
+            Require(ledger.TryAddEvidenceAnchor(identity.OutcomeId, subjectId, extraAnchor, out string anchorFailure),
+                "Skill-acquired follow-up evidence anchor failed: " + anchorFailure);
+            var currentSkillRecord = ledger.CaptureGameplayOutcomes().exactOutcomes
+                .Single(value => value.sequence == identity.OutcomeId.Sequence);
+            var originalAnchor = new NarrativeEvidenceReference(currentSkillRecord.initialAnchors[0].anchorTypeId,
+                currentSkillRecord.initialAnchors[0].anchorId);
+            Require(ledger.TryRemoveEvidenceAnchor(identity.OutcomeId, subjectId, originalAnchor, out anchorFailure)
+                && ledger.TryAddEvidenceAnchor(identity.OutcomeId, subjectId, originalAnchor, out anchorFailure),
+                "Mutable evidence retention could not reorder its anchor: " + anchorFailure);
+            var saveWithRetention = ledger.CaptureGameplayOutcomes();
+            var retained = saveWithRetention.exactOutcomes.Single(value => value.sequence == identity.OutcomeId.Sequence);
+            Require(retained.initialAnchors.Count == 4 && retained.anchors.Count == 5,
+                "Mutable retention overwrote the original four producer anchors.");
+            var restoredLedger = new GameplayOutcomeLedger(registry, new GameplayOutcomeBufferLimits(16, 0, 64),
+                new GameplayOutcomeRunId("run:qa-skill-retention-restored"), 1L);
+            var retentionCandidate = restoredLedger.PrepareGameplayOutcomeRestore(saveWithRetention);
+            restoredLedger.BeginRestoreCandidate();
+            restoredLedger.PublishGameplayOutcomeRestore(retentionCandidate);
+            restoredLedger.PublishRestoreCandidate();
+            restoredLedger.CompleteRestoreCandidate();
+            Require(restoredLedger.TryGetExact(identity.OutcomeId, out var restoredOutcome)
+                && restoredOutcome.initialAnchors.Count == 4 && restoredOutcome.anchors.Count == 5,
+                "Skill-acquired exact record did not retain its dynamic anchor after restore.");
+            string unchangedRetention = JsonUtility.ToJson(restoredLedger.CaptureGameplayOutcomes());
+            foreach (int tamper in new[] { 0, 1 })
+            {
+                var invalidRetention = JsonUtility.FromJson<GameplayOutcomeLedgerSaveData>(JsonUtility.ToJson(saveWithRetention));
+                var invalidOutcome = invalidRetention.exactOutcomes.Single(value => value.sequence == identity.OutcomeId.Sequence);
+                if (tamper == 0) invalidOutcome.initialAnchors.RemoveAt(0);
+                else invalidOutcome.initialAnchors[0].anchorId = "forged-producer-hash";
+                bool initialAnchorRejected = false;
+                try { restoredLedger.PrepareGameplayOutcomeRestore(invalidRetention); }
+                catch (InvalidOperationException) { initialAnchorRejected = true; }
+                catch (ArgumentException) { initialAnchorRejected = true; }
+                Require(initialAnchorRejected && unchangedRetention == JsonUtility.ToJson(restoredLedger.CaptureGameplayOutcomes()),
+                    "Forged initial skill anchor was accepted or partially changed the restored ledger.");
+            }
             return true;
         }
         finally
@@ -8874,6 +9281,7 @@ public static class CharacterProgressionDebugScenarios
 
         private readonly Queue<Pending> pending = new();
 
+        public int CallCount { get; private set; }
         public int PendingCallbackCount => pending.Count;
         public Action<LocalLlmResult> PeekCallbackForDebug() => pending.Peek().Callback;
         public string PeekPromptForDebug() => pending.Peek().Prompt;
@@ -8883,6 +9291,7 @@ public static class CharacterProgressionDebugScenarios
             string prompt,
             Action<LocalLlmResult> callback)
         {
+            CallCount++;
             pending.Enqueue(new Pending
             {
                 RequestKey = requestKey,
@@ -8909,6 +9318,12 @@ public static class CharacterProgressionDebugScenarios
             pending.Clear();
             foreach (Pending value in retained)
                 pending.Enqueue(value);
+        }
+
+        public void CompleteNext(LocalLlmResult result)
+        {
+            Require(pending.Count > 0, "No acquired-trait callback is pending.");
+            pending.Dequeue().Callback?.Invoke(result);
         }
 
         public void CompleteNextSuccess()
@@ -9316,6 +9731,7 @@ public static class CharacterProgressionDebugScenarios
         private Action<LocalLlmResult> callback;
 
         public int CharacterSkillCallCount { get; private set; }
+        public string LastPrompt { get; private set; }
         public bool HasPendingCallback => callback != null;
         public bool OwnsAcceptedRequestCompletion => true;
 
@@ -9328,6 +9744,7 @@ public static class CharacterProgressionDebugScenarios
             Action<LocalLlmResult> resultCallback)
         {
             CharacterSkillCallCount++;
+            LastPrompt = prompt;
             callback = resultCallback;
             return true;
         }

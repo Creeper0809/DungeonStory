@@ -6,7 +6,7 @@ using UnityEngine;
 public sealed class DurableFacilityEquipmentCrossAggregateSaveValidation :
     IDungeonSavePreflightValidator,
     IDungeonSaveRegistryPreflightValidator,
-    IDungeonCapturedSavePreflightValidator
+    IDungeonDetachedCapturedSavePreflightValidator
 {
     public void Validate(
         DungeonGameSaveData saveData,

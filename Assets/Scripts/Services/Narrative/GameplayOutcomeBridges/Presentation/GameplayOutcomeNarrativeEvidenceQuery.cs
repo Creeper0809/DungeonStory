@@ -28,6 +28,15 @@ public sealed class GameplayOutcomeNarrativeEvidenceQuery :
         }
     }
 
+    internal object CaptureReadRevision(out long revision)
+    {
+        if (query is GameplayOutcomeLedger ledger)
+            return ledger.CaptureReadRevision(out revision);
+        // 소유 원장의 교체와 수정 번호를 확인할 수 없는 query는 기존 전체 검사를 유지한다.
+        revision = 0;
+        return null;
+    }
+
     public bool TryResolveExactBinding(
         GameplayOutcomeEvidenceBindingSnapshot binding,
         out GameplayOutcomeNarrativeEvidenceSource source)

@@ -5,7 +5,7 @@ using DungeonStory.Foundation;
 using DungeonStory.Narrative.Korean;
 using Newtonsoft.Json.Linq;
 
-public sealed class InvasionFactPreflight : IDungeonSavePreflightValidator, IDungeonCapturedSavePreflightValidator
+public sealed class InvasionFactPreflight : IDungeonSavePreflightValidator, IDungeonDetachedCapturedSavePreflightValidator
 {
     public void Validate(DungeonGameSaveData save, DungeonGameRestoreReport report)
     {

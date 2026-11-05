@@ -2,7 +2,7 @@ using System;
 using System.Linq;
 
 /// <summary>The observer, not reproduction state, joins its saved opaque death reference.</summary>
-public sealed class ReproductionDeathParentPreflight : IDungeonSavePreflightValidator, IDungeonCapturedSavePreflightValidator
+public sealed class ReproductionDeathParentPreflight : IDungeonSavePreflightValidator, IDungeonDetachedCapturedSavePreflightValidator
 {
     public void Validate(DungeonGameSaveData save, DungeonGameRestoreReport report) => Validate(
         DungeonSaveSectionPayload.ReadOrNew<ReproductionWorldSaveData>(save, ReproductionSaveSection.Id),

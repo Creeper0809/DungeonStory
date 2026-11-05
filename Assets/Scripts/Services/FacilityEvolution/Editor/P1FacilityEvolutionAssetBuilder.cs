@@ -301,6 +301,12 @@ public static class P1FacilityEvolutionAssetBuilder
             .ToArray();
         if (modules.Length == 0)
             throw new InvalidOperationException("Facility formula authoring requires modules.");
+        EvolutionModuleRegistry registry = new();
+        foreach (string moduleId in modules)
+            if (!registry.TryGet(moduleId, out EvolutionModuleDefinition module)
+                || !module.SupportsFacilityRecipeFormula)
+                throw new InvalidOperationException(
+                    $"Evolution module '{moduleId}' does not support facility recipe formulas.");
         recipe.formulaCapabilities = modules.Select(moduleId =>
         {
             string suffix = moduleId.Replace(':', '-');
@@ -378,6 +384,17 @@ public static class P1FacilityEvolutionAssetBuilder
         IEnumerable<FacilityEvolutionFormulaCapabilityDefinition> capabilities,
         FacilityEvolutionFormulaPolicyDefinition policy)
     {
+        EvolutionModuleDefinition[] formulaModules = new EvolutionModuleRegistry().All
+            .Where(value => value.ModuleId.StartsWith("facility:", StringComparison.Ordinal)
+                && value.SupportsFacilityRecipeFormula)
+            .OrderBy(value => value.ModuleId, StringComparer.Ordinal).ToArray();
+        HashSet<string> formulaModuleIds = formulaModules.Select(value => value.ModuleId)
+            .ToHashSet(StringComparer.Ordinal);
+        FacilityEvolutionFormulaCapabilityDefinition[] authored = capabilities.ToArray();
+        foreach (FacilityEvolutionFormulaCapabilityDefinition capability in authored)
+            if (!formulaModuleIds.Contains(capability.evolutionModuleId))
+                throw new InvalidOperationException(
+                    $"Evolution module '{capability.evolutionModuleId}' does not support facility recipe formulas.");
         StringBuilder material = new();
         material.Append(recipe.EffectiveId).Append('\n')
             .Append(policy.formulaVersion).Append(':').Append(policy.baseBudget).Append(':')
@@ -387,7 +404,7 @@ public static class P1FacilityEvolutionAssetBuilder
             .Append(policy.maximumImportance.ToString("R", CultureInfo.InvariantCulture)).Append(':')
             .Append(policy.triggerFrequencyUnits).Append(':').Append(policy.guaranteedProc).Append(':')
             .Append(policy.targetCount).Append('\n');
-        foreach (FacilityEvolutionFormulaCapabilityDefinition capability in capabilities
+        foreach (FacilityEvolutionFormulaCapabilityDefinition capability in authored
                      .OrderBy(value => value.evolutionModuleId, StringComparer.Ordinal))
         {
             material.Append(capability.capabilityId).Append('\n')
@@ -426,9 +443,7 @@ public static class P1FacilityEvolutionAssetBuilder
             .Append(drawback.requireNegativeEvidenceForAutomatic).Append('\n');
         foreach (float value in policy.milestoneWeights ?? new List<float>())
             material.Append("milestone:").Append(value.ToString("R", CultureInfo.InvariantCulture)).Append('\n');
-        foreach (EvolutionModuleDefinition module in new EvolutionModuleRegistry().All
-                     .Where(value => value.ModuleId.StartsWith("facility:", StringComparison.Ordinal))
-                     .OrderBy(value => value.ModuleId, StringComparer.Ordinal))
+        foreach (EvolutionModuleDefinition module in formulaModules)
         {
             material.Append("module:").Append(module.ModuleId).Append(':')
                 .Append((int)module.BurdenKind).Append(':')
@@ -437,7 +452,8 @@ public static class P1FacilityEvolutionAssetBuilder
                 .Append(FormatModifiers(module.Benefits)).Append(':')
                 .Append(FormatModifiers(module.Burdens)).Append(':')
                 .Append(string.Join(",", module.NegativeEvidenceMarkers)).Append(':')
-                .Append(string.Join(",", module.ForbiddenSynergyModuleIds)).Append('\n');
+                .Append(string.Join(",", module.ForbiddenSynergyModuleIds
+                    .Where(formulaModuleIds.Contains))).Append('\n');
         }
         return NarrativeInferenceHash.ComputeSha256Utf8(material.ToString())
             .Substring("sha256:".Length);

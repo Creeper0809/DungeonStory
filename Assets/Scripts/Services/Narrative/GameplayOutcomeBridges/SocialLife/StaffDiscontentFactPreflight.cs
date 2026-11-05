@@ -5,7 +5,7 @@ using DungeonStory.Foundation;
 using DungeonStory.Narrative.Korean;
 
 /// <summary>Only the two latest retained staff facts join canonical history; prior completed rows may outlive their terminal.</summary>
-public sealed class StaffDiscontentFactPreflight : IDungeonSavePreflightValidator, IDungeonCapturedSavePreflightValidator
+public sealed class StaffDiscontentFactPreflight : IDungeonSavePreflightValidator, IDungeonDetachedCapturedSavePreflightValidator
 {
     public void Validate(DungeonGameSaveData save, DungeonGameRestoreReport report) => Validate(
         DungeonSaveSectionPayload.ReadOrNew<DungeonStaffDiscontentSaveData>(save, StaffDiscontentSaveSection.Id),

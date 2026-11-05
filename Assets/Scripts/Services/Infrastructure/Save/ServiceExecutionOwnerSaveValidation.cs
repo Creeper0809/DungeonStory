@@ -9,7 +9,7 @@ using System.Linq;
 /// </summary>
 public sealed class ServiceExecutionOwnerSaveValidation :
     IDungeonSavePreflightValidator,
-    IDungeonCapturedSavePreflightValidator,
+    IDungeonDetachedCapturedSavePreflightValidator,
     IDungeonSaveRegistryPreflightValidator
 {
     public void Validate(DungeonGameSaveData save, DungeonGameRestoreReport report)

@@ -188,7 +188,7 @@ public sealed class CharacterSkillModuleSelectionBatchResponseDto : ILlmJsonPayl
 // "세나 1" is an identity, whereas "세나 1의 회복 20%" still contains a forbidden effect number.
 internal static class CharacterSkillPresentationText
 {
-    internal static bool ContainsMechanicalNumber(string text, string authoritativeName)
+    internal static bool ContainsMechanicalNumber(string text, string authoritativeName, bool asciiFullwidthOnly = false)
     {
         text ??= string.Empty;
         if (text.IndexOf('%') >= 0 || text.IndexOf('％') >= 0) return true;
@@ -208,7 +208,9 @@ internal static class CharacterSkillPresentationText
             }
             // Unicode Number includes ideographic/letter numbers, superscripts,
             // fractions and supplementary-plane digits, not only decimal Nd.
-            if (char.IsNumber(text, index)) return true;
+            if (asciiFullwidthOnly
+                    ? text[index] is >= '0' and <= '9' or >= '０' and <= '９'
+                    : char.IsNumber(text, index)) return true;
         }
         return false;
     }
@@ -517,6 +519,7 @@ public sealed class CharacterSkillGenerationService :
         public bool moduleSelectionBatch;
         public bool cancelled;
         public string preparedPrompt = string.Empty;
+        public string lastRejectedPrompt = string.Empty;
         public NarrativePublicContextMaterial publicMaterial;
         public string transportRequestKey = string.Empty;
     }
@@ -1559,6 +1562,12 @@ public sealed class CharacterSkillGenerationService :
         }
 
         string prompt = request.preparedPrompt;
+        if (string.Equals(prompt, request.lastRejectedPrompt, StringComparison.Ordinal))
+        {
+            LastDiagnostic = $"awaiting-narrative-retry={request.draft.requestKey}; unchanged rejected input; reason={NormalizeDiagnostic(request.draft.presentationCorrection)}";
+            AwaitNarrativeRetry(request);
+            return;
+        }
         LastDiagnostic = $"submitted={request.draft.requestKey}; attempt={request.attempts + 1}; prompt={prompt.Length}";
         bool accepted;
         if (moduleSelection)
@@ -1698,6 +1707,8 @@ public sealed class CharacterSkillGenerationService :
             return;
         }
 
+        if (result.IsSuccess || result.RequiresInputChange)
+            request.lastRejectedPrompt = request.preparedPrompt;
         if (result.IsSuccess)
         {
             request.draft.presentationCorrection = validationError;
@@ -1717,7 +1728,8 @@ public sealed class CharacterSkillGenerationService :
             skills);
         RegisterPresentationFailure(
             request,
-            result.IsSuccess ? validationError : "provider-result-" + result.Status,
+            result.IsSuccess ? validationError : result.RequiresInputChange
+                ? result.Error : "provider-result-" + result.Status,
             removeExisting: false);
     }
 
@@ -1776,11 +1788,7 @@ public sealed class CharacterSkillGenerationService :
         LastDiagnostic = $"presentation-failed={request.draft.requestKey}; count={request.draft.presentationFailureCount}; reason={NormalizeDiagnostic(reason)}";
         if (request.draft.presentationFailureCount >= 5)
         {
-            request.cancelled = true;
-            request.draft.presentationState = CharacterSkillPresentationState.AwaitingNarrativeRetry;
-            request.draft.requestSubmitted = false;
-            request.progression.MarkGenerationRequestCompleted(request.draft.requestKey);
-            RemoveRequest(request.draft.requestKey);
+            AwaitNarrativeRetry(request);
             return;
         }
         request.draft.presentationState = CharacterSkillPresentationState.PresentationPending;
@@ -1798,6 +1806,18 @@ public sealed class CharacterSkillGenerationService :
         request.nextAttemptAt = uiClock.Time + Mathf.Min(
             settings.maximumRetrySeconds,
             settings.initialRetrySeconds * Mathf.Pow(2f, Mathf.Min(8, request.attempts - 1)));
+    }
+
+    private void AwaitNarrativeRetry(PendingRequest request)
+    {
+        request.inFlight = false;
+        request.submittedAt = 0f;
+        request.completionOwnedByRuntime = false;
+        request.cancelled = true;
+        request.draft.presentationState = CharacterSkillPresentationState.AwaitingNarrativeRetry;
+        request.draft.requestSubmitted = false;
+        request.progression.MarkGenerationRequestCompleted(request.draft.requestKey);
+        RemoveRequest(request.draft.requestKey);
     }
 
     private static string BuildTransportRequestKey(PendingRequest request)

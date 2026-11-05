@@ -621,6 +621,26 @@ public sealed class OperatingDaySettlementDomain<TReport, TSupplyResult>
         ResetLedger(state);
     }
 
+    public void RebindFacilityDisplayName(
+        string facilityId,
+        string expectedCurrentName,
+        string newName)
+    {
+        if (string.IsNullOrWhiteSpace(facilityId)
+            || string.IsNullOrWhiteSpace(expectedCurrentName)
+            || string.IsNullOrWhiteSpace(newName))
+            throw new ArgumentException("A facility display transition requires an identity and both names.");
+        OperatingDaySettlementAggregateState<TReport, TSupplyResult> state = WritableForEvent();
+        if (!state.FacilityDetails.TryGetValue(facilityId.Trim(), out var detail)) return;
+        string next = newName.Trim();
+        if (string.Equals(detail.FacilityName, next, StringComparison.Ordinal)) return;
+        if (!string.Equals(detail.FacilityName, expectedCurrentName.Trim(), StringComparison.Ordinal))
+            throw new InvalidOperationException("The facility display transition has a stale source name.");
+        // A completed world evolution changes the label, not the day's owner or
+        // its accumulated numbers. Settled reports remain immutable snapshots.
+        detail.FacilityName = next;
+    }
+
     public void RecordVisit(
         string facilityId,
         string facilityName,

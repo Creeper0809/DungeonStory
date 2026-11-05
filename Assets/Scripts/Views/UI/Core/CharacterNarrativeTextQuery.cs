@@ -10,6 +10,7 @@ public interface ICharacterNarrativeTextQuery
     IReadOnlyList<string> GetVariants(string key);
     string ApplySubjectParticle(string value);
     string ApplyObjectParticle(string value);
+    string ApplyDirectionalParticle(string value);
 }
 
 public sealed class CharacterNarrativeTextQuery : ICharacterNarrativeTextQuery
@@ -51,10 +52,14 @@ public sealed class CharacterNarrativeTextQuery : ICharacterNarrativeTextQuery
     public string ApplyObjectParticle(string value) =>
         ApplyKoreanParticle(value, "을", "를");
 
+    public string ApplyDirectionalParticle(string value) =>
+        ApplyKoreanParticle(value, "으로", "로", rieulUsesShortParticle: true);
+
     private static string ApplyKoreanParticle(
         string value,
         string withFinalConsonant,
-        string withoutFinalConsonant)
+        string withoutFinalConsonant,
+        bool rieulUsesShortParticle = false)
     {
         if (string.IsNullOrWhiteSpace(value))
         {
@@ -75,6 +80,9 @@ public sealed class CharacterNarrativeTextQuery : ICharacterNarrativeTextQuery
         bool hasFinalConsonant = last >= '\uAC00'
             && last <= '\uD7A3'
             && (last - '\uAC00') % 28 != 0;
+        // 방향 조사만 받침 ㄹ 뒤에 짧은 형태를 쓴다.
+        if (rieulUsesShortParticle && hasFinalConsonant && (last - '\uAC00') % 28 == 8)
+            hasFinalConsonant = false;
         return trimmed + (hasFinalConsonant
             ? withFinalConsonant
             : withoutFinalConsonant);

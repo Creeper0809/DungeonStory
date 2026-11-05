@@ -224,9 +224,12 @@ public sealed class EvolutionModuleDefinition
         EvolutionModuleBurdenKind burdenKind = EvolutionModuleBurdenKind.None,
         int maximumDrawbackSeverity = 0,
         IEnumerable<string> negativeEvidenceMarkers = null,
-        IEnumerable<string> forbiddenSynergyModuleIds = null)
+        IEnumerable<string> forbiddenSynergyModuleIds = null,
+        bool supportsFacilityRecipeFormula = true)
     {
         ModuleId = NormalizeRequired(moduleId, nameof(moduleId));
+        SupportsFacilityRecipeFormula = ModuleId.StartsWith("facility:", StringComparison.Ordinal)
+            && supportsFacilityRecipeFormula;
         DisplayName = string.IsNullOrWhiteSpace(displayName)
             ? ModuleId
             : displayName.Trim();
@@ -273,6 +276,7 @@ public sealed class EvolutionModuleDefinition
     }
 
     public string ModuleId { get; }
+    public bool SupportsFacilityRecipeFormula { get; }
     public string DisplayName { get; }
     public string RoleTag { get; }
     public IReadOnlyList<EvolutionEffectModifier> Benefits { get; }

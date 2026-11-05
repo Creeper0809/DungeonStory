@@ -345,7 +345,7 @@ public sealed class InstanceEvolutionPanelPresenter :
 
         AddText(
             parent,
-            "다음 세대 후보 3개",
+            $"다음 세대 후보 {candidates.Length}개",
             font,
             17f,
             DungeonUiTheme.Accent,

@@ -940,7 +940,7 @@ internal sealed class CharacterBreakdownActionRunner
                 actor.AddActivity(CharacterActivityEvent.Facility(
                     CharacterActivityKinds.Combat,
                     CharacterActivityOutcomes.Damaged,
-                    $"{GetBuildingLabel(building)}을 파손함",
+                    CharacterActivityFormatter.FacilityDamage(GetBuildingLabel(building)),
                     building,
                     actionId: "survival:violent-vandalism",
                     reasonCode: "mental-instability",

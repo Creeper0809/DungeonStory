@@ -31,6 +31,12 @@ public sealed class CharacterDialogueRuntime : MonoBehaviour
     private NarrativeRequestContextBuilder requestContexts;
     private bool runtimeInjected;
     private bool logSubscribed;
+    private bool bubbleRequestPending;
+    private long bubbleRequestRevision;
+    public int SuppressedPendingBubbleCount { get; private set; }
+    public int SuppressedOffscreenBubbleCount { get; private set; }
+    public int SuppressedCapacityBubbleCount { get; private set; }
+    public int IssuedBubbleCount { get; private set; }
 
     public string LastBubbleLine => lastBubbleLine;
     public string LastGeneratedBubbleLine => lastGeneratedBubbleLine;
@@ -75,6 +81,7 @@ public sealed class CharacterDialogueRuntime : MonoBehaviour
 
     private void OnDisable()
     {
+        InvalidatePendingBubble();
         UnsubscribeFromLog();
 
         if (text != null)
@@ -85,6 +92,7 @@ public sealed class CharacterDialogueRuntime : MonoBehaviour
 
     internal void PrepareForScopeTeardown()
     {
+        InvalidatePendingBubble();
         UnsubscribeFromLog();
         HideLine();
     }
@@ -205,6 +213,16 @@ public sealed class CharacterDialogueRuntime : MonoBehaviour
             return;
         }
 
+        if (!RequireAiSchedulingService().ShouldShowCharacterFeedback(actor))
+        {
+            SuppressedOffscreenBubbleCount++;
+            return;
+        }
+        if (bubbleRequestPending)
+        {
+            SuppressedPendingBubbleCount++;
+            return;
+        }
         nextRequestTime = gameClock.Time + Mathf.Max(0.1f, minSecondsBetweenRequests);
         string original = !string.IsNullOrWhiteSpace(entry.DisplayLine)
             ? entry.DisplayLine
@@ -216,11 +234,42 @@ public sealed class CharacterDialogueRuntime : MonoBehaviour
             return;
         }
 
-        if (!queue.GenerateBubbleLineAsync(BuildPrompt(entry), original, OnBubbleResult))
+        if (queue is ILocalLlmTransientRequestRuntime transient && !transient.CanAdmitRealtime)
         {
+            SuppressedCapacityBubbleCount++;
+            return;
+        }
+        string prompt = BuildPrompt(entry);
+        long revision = ++bubbleRequestRevision;
+        bubbleRequestPending = true;
+        IssuedBubbleCount++;
+        bool accepted;
+        try
+        {
+            accepted = CharacterSceneLlmRequests.Generate(queue, "BubbleLine", prompt, original, this, result =>
+            {
+                if (this == null || revision != bubbleRequestRevision) return;
+                bubbleRequestPending = false;
+                OnBubbleResult(result);
+            }, () => revision == bubbleRequestRevision && isActiveAndEnabled);
+        }
+        catch
+        {
+            if (revision == bubbleRequestRevision) bubbleRequestPending = false;
+            throw;
+        }
+        if (!accepted)
+        {
+            if (revision == bubbleRequestRevision) bubbleRequestPending = false;
             lastError = "Bubble request was not accepted by LocalLlmRequestQueue.";
             HideLine();
         }
+    }
+
+    private void InvalidatePendingBubble()
+    {
+        bubbleRequestRevision++;
+        bubbleRequestPending = false;
     }
 
     private void OnBubbleResult(LocalLlmResult result)
@@ -243,6 +292,7 @@ public sealed class CharacterDialogueRuntime : MonoBehaviour
             lastError = string.Empty;
             lastGeneratedBubbleLine = dto.line.Trim();
             ShowLine(lastGeneratedBubbleLine);
+            nextRequestTime = gameClock.Time + Mathf.Max(minSecondsBetweenRequests, visibleDuration);
             return;
         }
 
@@ -303,19 +353,29 @@ public sealed class CharacterDialogueRuntime : MonoBehaviour
                 ? runtime.Persona.traitName
                 : "unknown";
         string prompt = "Write one short in-character speech bubble as JSON {\"line\":\"...\"}.\n"
-            + "The line must be 80 characters or fewer. Use 4 to 10 words. No narration, no markdown, no extra keys.\n"
+            + "Write a complete, brief Korean reaction in 1 to 4 words. Aim for 8 to 16 characters, at most 24 including spaces. Stop after one finished sentence. No narration, no markdown, no extra keys.\n"
             + "Do not copy the original event text verbatim; rewrite it as a natural speech bubble.\n"
             + $"persona: {persona}\n"
             + $"eventKind: {entry.Activity?.KindId}\n"
             + $"outcome: {entry.Activity?.OutcomeId}\n"
             + $"reasonCode: {entry.Activity?.ReasonCode}\n"
             + $"event: {entry.OriginalMessage}";
-        return requestContexts.ForActor(
-                LocalLlmRequestProfiles.BubbleLine.Id,
-                actor,
-                requireCharacterFact: false,
-                requireMotif: false)
-            .AppendToPrompt(prompt);
+        string packet = Newtonsoft.Json.JsonConvert.SerializeObject(new {
+            profile = LocalLlmRequestProfiles.BubbleLine.Id,
+            publicFacts = new {
+                persona,
+                sourceEvent = new {
+                    message = entry.OriginalMessage,
+                    eventKind = entry.Activity?.KindId,
+                    outcome = entry.Activity?.OutcomeId,
+                    reasonCode = entry.Activity?.ReasonCode,
+                    amount = entry.Activity?.Value
+                }
+            },
+            originalCallerPrompt = prompt
+        });
+        return requestContexts.ForActor(LocalLlmRequestProfiles.BubbleLine.Id, actor,
+            requireCharacterFact: false, requireMotif: false).AppendToPrompt(packet);
     }
 
     private static bool ShouldRequestBubble(CharacterLogEntry entry)

@@ -438,7 +438,7 @@ public sealed class CharacterAmbitionTransitionOutcomeDescriptor :
             || outcome.SubjectCount != 1
             || outcome.MetricCount != 8
             || outcome.TagCount != 1
-            || outcome.AnchorCount != 2
+            || outcome.ProductionAnchorCount != 2
             || outcome.ProvenanceCount != 2
             || outcome.FactCount != 6
             || outcome.OwnerRevision != 1L)
@@ -531,12 +531,12 @@ public sealed class CharacterAmbitionTransitionOutcomeDescriptor :
                 out int revision)
             || revision <= 0
             || !HasHash(
-                outcome.GetAnchor(0),
+                outcome.GetProductionAnchor(0),
                 CharacterAmbitionTransitionOutcomeIds
                     .AmbitionDefinitionAnchor,
                 outcome.GetFact(0).Value + ":" + outcome.GetFact(5).Value)
             || !HasHash(
-                outcome.GetAnchor(1),
+                outcome.GetProductionAnchor(1),
                 CharacterAmbitionTransitionOutcomeIds
                     .TransitionReasonAnchor,
                 reason))

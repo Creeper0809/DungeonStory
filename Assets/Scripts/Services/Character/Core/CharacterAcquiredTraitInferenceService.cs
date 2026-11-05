@@ -162,7 +162,26 @@ public static class CharacterAcquiredTraitFormulaGeneration
                 value.RequireFormulaDescriptor().CalculateContextCost(
                     generationContext, 1))));
         if (offers.All(value => value.Polarity != NarrativeFormulaModulePolarity.Positive))
-            throw new InvalidOperationException("No authored acquired-trait benefit is individually legal.");
+        {
+            // 원래 필터와 실패 경계는 유지한다. 후보가 모두 빠진 경우만
+            // 같은 순서로 원인을 세어 모델 응답 거절과 구분한다.
+            int occupiedCount = 0, conflictCount = 0, bindingCount = 0;
+            int domainCount = 0, affinityCount = 0, budgetCount = 0, unclassifiedCount = 0;
+            foreach (CharacterAcquiredTraitModuleSO module in modules)
+            {
+                if (occupied.Contains(module.ModuleId)) occupiedCount++;
+                else if (module.ConflictGroups.Any(activeConflicts.Contains)) conflictCount++;
+                else if (module.Effects.Any(effect => effect != null && activeBindings.Contains(effect.bindingId))) bindingCount++;
+                else if (!module.DomainAffinities.Any(domain =>
+                    facts.Any(fact => fact.domain == domain) || exactDomains.Contains(domain))) domainCount++;
+                else if (!(CalculateAffinity(module.RequireFormulaDescriptor(), evidence) > 0d)) affinityCount++;
+                else if (!(module.RequireFormulaDescriptor().CalculateContextCost(
+                    generationContext, 1) <= strength.Budget)) budgetCount++;
+                else unclassifiedCount++;
+            }
+            throw new InvalidOperationException(FormattableString.Invariant(
+                $"No authored acquired-trait benefit is individually legal. total={modules.Length}; occupied={occupiedCount}; conflict={conflictCount}; binding={bindingCount}; domain={domainCount}; affinity={affinityCount}; budget={budgetCount}; unclassified={unclassifiedCount}; availableBudget={strength.Budget}."));
+        }
         string catalog = settings.FormulaPolicy.RequireCatalogSha256();
         string selectionId = "selection:trait:"
             + NarrativeInferenceHash.ComputeSha256Utf8(string.Join("\n",
@@ -1094,7 +1113,9 @@ public sealed class CharacterAcquiredTraitModuleSelectionResponseDto : ILlmJsonP
     public string displayName = string.Empty;
     public string narrativeFlavor = string.Empty;
 
-    public bool Validate(out string error)
+    public bool Validate(out string error) => Validate(null, out error);
+
+    public bool Validate(string authoritativeName, out string error)
     {
         error = string.Empty;
         if (string.IsNullOrWhiteSpace(selectionId)
@@ -1109,8 +1130,8 @@ public sealed class CharacterAcquiredTraitModuleSelectionResponseDto : ILlmJsonP
             || displayName.Length > 32
             || !string.Equals(narrativeFlavor, narrativeFlavor.Trim(), StringComparison.Ordinal)
             || narrativeFlavor.Length > 180
-            || (displayName + narrativeFlavor).Any(value => value is >= '0' and <= '9'
-                or >= '０' and <= '９' or '%' or '％'))
+            || CharacterSkillPresentationText.ContainsMechanicalNumber(displayName, authoritativeName, asciiFullwidthOnly: true)
+            || CharacterSkillPresentationText.ContainsMechanicalNumber(narrativeFlavor, authoritativeName, asciiFullwidthOnly: true))
         {
             error = "Acquired-trait presentation text is non-canonical, too long, or contains mechanical numbers.";
             return false;
@@ -1127,7 +1148,8 @@ public static class CharacterAcquiredTraitModuleSelectionResponse
         string responseJson,
         out CharacterAcquiredTraitModuleSelectionResponseDto response,
         out NarrativeFormulaValidatedModuleSelection selection,
-        out string error)
+        out string error,
+        string authoritativeName = null)
     {
         response = null;
         selection = null;
@@ -1140,10 +1162,24 @@ public static class CharacterAcquiredTraitModuleSelectionResponse
         }
         if (!NarrativeExactKeyContract.TryValidateProfileResponse(
                 LocalLlmRequestProfiles.AcquiredTraitModuleSelection.Id,
-                responseJson, out _, out error)
-            || !LlmJsonResponseParser.TryParse(responseJson,
-                out CharacterAcquiredTraitModuleSelectionResponseDto parsed, out error))
+                responseJson, out string json, out error))
             return false;
+        CharacterAcquiredTraitModuleSelectionResponseDto parsed;
+        try
+        {
+            parsed = UnityEngine.JsonUtility.FromJson<CharacterAcquiredTraitModuleSelectionResponseDto>(json);
+        }
+        catch (Exception exception)
+        {
+            error = "JSON parse failed: " + exception.Message;
+            return false;
+        }
+        if (parsed == null)
+        {
+            error = "JSON parse produced a null payload.";
+            return false;
+        }
+        if (!parsed.Validate(authoritativeName, out error)) return false;
         NarrativeFormulaModuleSelectionChoice choice = new(
             parsed.selectionId, parsed.positiveModuleIds,
             parsed.drawbackModuleIds, parsed.evidenceFactIds);
@@ -2843,6 +2879,24 @@ public sealed class CharacterAcquiredTraitInferenceService
         }
         if (pending.formulaVersion > 0)
         {
+            CharacterAcquiredTraitPresentationOriginState presentationOrigin;
+            string authoritativeName;
+            try
+            {
+                presentationOrigin = CharacterAcquiredTraitPresentationOriginState.Capture(pending);
+                NarrativePublicContextMaterial originalContext = pending.RestorePublicContext();
+                authoritativeName = originalContext == null ? progression.Actor?.Identity?.DisplayName
+                    : originalContext.Entities.Single(value => value.EntityId == originalContext.SubjectId).DisplayName;
+            }
+            catch (Exception exception) when (exception is ArgumentException or InvalidOperationException)
+            {
+                return Failure(CharacterAcquiredTraitInferenceCommandKind.Completion,
+                    CharacterAcquiredTraitInferenceIssueCode.InvalidNarrative,
+                    command.RequestKey, command.CandidatePacketHash,
+                    command.TargetPersistentId, command.ExpectedRevision,
+                    command.RegisteredRevision, current.revision,
+                    command.Timestamp, exception.Message, originalPacket);
+            }
             string displayName;
             string narrativeFlavor;
             if (pending.presentationState == CharacterAcquiredTraitPresentationState.ModuleSelectionPending)
@@ -2885,7 +2939,7 @@ public sealed class CharacterAcquiredTraitInferenceService
                 if (!CharacterAcquiredTraitModuleSelectionResponse.TryValidate(
                         pending, selectionRequest, command.ResponseJson,
                         out CharacterAcquiredTraitModuleSelectionResponseDto moduleResponse,
-                        out _, out string selectionError))
+                        out _, out string selectionError, authoritativeName))
                 {
                     return Failure(
                         CharacterAcquiredTraitInferenceCommandKind.Completion,
@@ -3002,6 +3056,7 @@ public sealed class CharacterAcquiredTraitInferenceService
                 description = pending.mechanicalDescription,
                 narrativeReason = narrativeFlavor,
                 narrativeFlavor = narrativeFlavor,
+                presentationOrigin = presentationOrigin,
                 evidenceFactIds = pending.evidenceFactIds.OrderBy(value => value,
                     StringComparer.Ordinal).ToList(),
                 evidenceBindings = (pending.evidenceBindings
@@ -3209,10 +3264,43 @@ public sealed class CharacterAcquiredTraitInferenceService
             return false;
         }
         reason = "STALE_OWNER: discarded request without consuming milestone, evidence or effects.";
+        return TryCommitPendingInvalidation(progression, current, pending, expectedRevision, ref reason);
+    }
+
+    public bool TryInvalidateStaleEvidencePending(CharacterProgression progression, string requestId,
+        int expectedRevision, IGameplayOutcomeNarrativeEvidenceQuery evidenceQuery, out string reason)
+    {
+        var current = progression?.CaptureAcquiredTraitState();
+        if (current == null || evidenceQuery == null || current.revision != expectedRevision
+            || current.revision == int.MaxValue || !current.TryGetPendingRequest(requestId, out var pending)
+            || pending.ownerBinding?.Matches(progression, out _) != true
+            || pending.evidenceFactIds == null
+            || pending.evidenceBindings == null || pending.evidenceBindings.Count == 0
+            || pending.evidenceBindings.Any(binding =>
+                !GameplayOutcomeEvidenceBindingAuthority.TryValidate(binding, out _)
+                || binding.subjectKindId != "character" || binding.subjectId != pending.targetPersistentId
+                || !pending.evidenceFactIds.Contains(binding.publicFactId, StringComparer.Ordinal)))
+        {
+            reason = "STALE_EVIDENCE_INVALIDATION_REJECTED: request, owner, revision or original binding is invalid.";
+            return false;
+        }
+        if (pending.evidenceBindings.All(binding => evidenceQuery.TryResolveExactBinding(binding, out _)))
+        {
+            reason = "STALE_EVIDENCE_INVALIDATION_REJECTED: original exact bindings are still current.";
+            return false;
+        }
+        reason = "STALE_EVIDENCE: discarded outdated request without consuming milestone, evidence or effects.";
+        return TryCommitPendingInvalidation(progression, current, pending, expectedRevision, ref reason);
+    }
+
+    private bool TryCommitPendingInvalidation(CharacterProgression progression,
+        CharacterAcquiredTraitAggregateState current, CharacterAcquiredTraitPendingRequestState pending,
+        int expectedRevision, ref string reason)
+    {
         CharacterAcquiredTraitAggregateState candidate = current.Clone();
         candidate.revision = checked(current.revision + 1);
         candidate.pendingRequests.RemoveAll(value => value != null
-            && string.Equals(value.requestId, requestId, StringComparison.Ordinal));
+            && string.Equals(value.requestId, pending.requestId, StringComparison.Ordinal));
         candidate.lastRequestInvalidation = new CharacterAcquiredTraitRequestInvalidationState
         {
             requestId = pending.requestId, requestKey = pending.requestKey, reason = reason,
@@ -3220,7 +3308,7 @@ public sealed class CharacterAcquiredTraitInferenceService
         };
         if (progression.TryCommitAcquiredTraitState(candidate, expectedRevision, settings, modules, out var issues))
             return true;
-        reason = "STALE_OWNER_INVALIDATION_REJECTED: " + string.Join(" | ", issues);
+        reason = "PENDING_INVALIDATION_REJECTED: " + string.Join(" | ", issues);
         return false;
     }
 

@@ -5,7 +5,7 @@ using DungeonStory.Foundation;
 using DungeonStory.Narrative.Korean;
 
 /// <summary>Retained interaction results join canonical output by their complete frozen domain facts.</summary>
-public sealed class CaptivityInteractionFactPreflight : IDungeonSavePreflightValidator, IDungeonCapturedSavePreflightValidator
+public sealed class CaptivityInteractionFactPreflight : IDungeonSavePreflightValidator, IDungeonDetachedCapturedSavePreflightValidator
 {
     public void Validate(DungeonGameSaveData save, DungeonGameRestoreReport report) => Validate(
         DungeonSaveSectionPayload.ReadOrNew<CaptivitySaveData>(save, CaptivitySaveSection.Id),

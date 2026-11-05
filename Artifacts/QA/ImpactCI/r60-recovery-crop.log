@@ -1,0 +1,538 @@
+VBCSCompilerServerWatchdog: watching VBCSCompiler (PID 20692)
+[Licensing::Module] Trying to connect to existing licensing client channel...
+Built from '6000.3/respin/6000.3.28f1-21f78c3e21d1' branch; Version is '6000.3.28f1 (8f082d2fe476) revision 9373741'; Using compiler version '194234433'; Build Type 'Release'
+[Licensing::IpcConnector] Successfully connected to: "LicenseClient-vulpo" at "2026-11-05T17:22:47.2933615Z"
+OS: 'Windows 11  (10.0.26300) Professional' Language: 'ko' Physical Memory: 32559 MB
+BatchMode: 1, IsHumanControllingUs: 0, StartBugReporterOnCrash: 0, Is64bit: 1
+System  architecture: x64
+Process architecture: x64
+Date: 2026-11-05T17:22:47Z
+[Licensing::Client] Code 10 while verifying Licensing Client signature (process Id: 29480, path: "C:/Program Files/Unity/Hub/Editor/6000.3.28f1/Editor/Data/Resources/Licensing/Client/Unity.Licensing.Client.exe")
+[Licensing::Module] LicensingClient has failed validation; ignoring
+[Licensing::Client] Handshaking with LicensingClient:
+  Version:                 1.19.0+4cc3dda
+  Session Id:              b6f65c0d16744f92b1991689039313f4
+  Correlation Id:          79aa7d9f4b33fdf984b16fd6aa5f70ef
+  External correlation Id: 3267950457235735284
+  Machine Id:              1IaXls9km9+PjJD0NAKlu7lO7Kc=
+[Licensing::Module] Successfully connected to LicensingClient on channel: "LicenseClient-vulpo" (connect: 0.00s, validation: 0.00s, handshake: 0.06s)
+[Licensing::IpcConnector] Successfully connected to: "LicenseClient-vulpo-notifications" at "2026-11-05T17:22:47.3513682Z"
+[Licensing::Module] Error: Access token is unavailable; failed to update
+[Licensing::Client] Successfully resolved entitlement details
+[Licensing::Module] License group:
+  Id: 14568616876292-UnityPersXXXX
+  Product: Unity Personal
+  Type: Assigned
+  Expiration: Unlimited
+[Licensing::Client] Successfully updated license, isAsync: True, time: 0.00
+[Licensing::Client] Successfully resolved entitlement details
+[Licensing::Module] Licensing Background thread has ended after 0.07s
+
+COMMAND LINE ARGUMENTS:
+C:\Program Files\Unity\Hub\Editor\6000.3.28f1\Editor\Unity.exe
+-batchmode
+-nographics
+-projectPath
+Z:\01_Project\03_DungeonStory\Unity
+-executeMethod
+V27CiEvidenceBatch.RunImpactCrops
+-logFile
+Z:\01_Project\03_DungeonStory\Unity\Artifacts\QA\CIRecovery-20261106\crop-r1\unity.log
+-refreshImportMode
+InProcess
+-job-worker-count
+1
+-desiredWorkerCount
+1
+-standbyWorkerCount
+0
+Successfully changed project path to: Z:\01_Project\03_DungeonStory\Unity
+Z:/01_Project/03_DungeonStory/Unity
+[UnityMemory] Configuration Parameters - Can be set up in boot.config
+    "memorysetup-temp-allocator-size-nav-mesh-worker=65536"
+    "memorysetup-temp-allocator-size-audio-worker=65536"
+    "memorysetup-temp-allocator-size-gfx=262144"
+    "memorysetup-allocator-temp-initial-block-size-main=262144"
+    "memorysetup-allocator-temp-initial-block-size-worker=262144"
+    "memorysetup-temp-allocator-size-background-worker=32768"
+    "memorysetup-temp-allocator-size-job-worker=262144"
+    "memorysetup-temp-allocator-size-preload-manager=33554432"
+    "memorysetup-remapper-allocator-initial-capacity=32768"
+    "memorysetup-temp-allocator-size-gi-baking-worker=262144"
+    "memorysetup-temp-allocator-size-gi-baking-worker=262144"
+    "memorysetup-temp-allocator-size-gi-baking-worker=262144"
+    "memorysetup-temp-allocator-size-gi-baking-worker=262144"
+    "memorysetup-temp-allocator-size-gi-baking-worker=262144"
+    "memorysetup-bucket-allocator-granularity=16"
+    "memorysetup-bucket-allocator-bucket-count=8"
+    "memorysetup-bucket-allocator-block-size=33554432"
+    "memorysetup-bucket-allocator-block-count=8"
+    "memorysetup-main-allocator-block-size=16777216"
+    "memorysetup-thread-allocator-block-size=16777216"
+    "memorysetup-gfx-main-allocator-block-size=16777216"
+    "memorysetup-gfx-thread-allocator-block-size=16777216"
+    "memorysetup-cache-allocator-block-size=4194304"
+    "memorysetup-typetree-allocator-block-size=2097152"
+    "memorysetup-profiler-bucket-allocator-granularity=16"
+    "memorysetup-profiler-bucket-allocator-bucket-count=8"
+    "memorysetup-profiler-bucket-allocator-block-size=33554432"
+    "memorysetup-profiler-bucket-allocator-block-count=8"
+    "memorysetup-profiler-allocator-block-size=16777216"
+    "memorysetup-profiler-editor-allocator-block-size=1048576"
+    "memorysetup-temp-allocator-size-main=16777216"
+    "memorysetup-job-temp-allocator-block-size=2097152"
+    "memorysetup-job-temp-allocator-block-size-background=1048576"
+    "memorysetup-job-temp-allocator-reduction-small-platforms=262144"
+    "memorysetup-temp-allocator-size-cloud-worker=32768"
+Player connection [28700]  Target information:
+
+Player connection [28700]  * "[IP] 192.168.45.139 [Port] 55504 [Flags] 2 [Guid] 3729505661 [EditorId] 3729505661 [Version] 1048832 [Id] WindowsEditor(7,DESKTOP-51P7BOH) [Debug] 1 [PackageName] WindowsEditor [ProjectName] Editor" 
+
+Player connection [28700] Host joined multi-casting on [225.0.0.222:54997]...
+Player connection [28700] Host joined alternative multi-casting on [225.0.0.222:34997]...
+JobSystem: Creating JobQueue using job-worker-count value 1
+Input System module state changed to: Initialized.
+[Physics::Module] Initialized fallback backend.
+[Physics::Module] Id: 0xdecafbad
+[Package Manager] Connected to IPC stream "Upm-32232" after 0.2 seconds.
+[Licensing::Client] Successfully resolved entitlement details
+Library Redirect Path: Library/
+[Physics::Module] Selected backend.
+[Physics::Module] Name: PhysX
+[Physics::Module] Id: 0xf2b8ea05
+[Physics::Module] SDK Version: 4.1.2
+[Physics::Module] Integration Version: 1.0.0
+[Physics::Module] Threading Mode: Multi-Threaded
+Refreshing native plugins compatible for Editor in 0.11 ms, found 0 plugins.
+Preloading 0 native plugins for Editor in 0.00 ms.
+Initialize engine version: 6000.3.28f1 (8f082d2fe476)
+[Subsystems] Discovering subsystems at path C:/Program Files/Unity/Hub/Editor/6000.3.28f1/Editor/Data/Resources/UnitySubsystems
+[Subsystems] Discovering subsystems at path Z:/01_Project/03_DungeonStory/Unity/Assets
+Forcing GfxDevice: Null
+GfxDevice: creating device client; kGfxThreadingModeNonThreaded
+NullGfxDevice:
+    Version:  NULL 1.0 [1.0]
+    Renderer: Null Device
+    Vendor:   Unity Technologies
+Initialize mono
+Mono path[0] = 'C:/Program Files/Unity/Hub/Editor/6000.3.28f1/Editor/Data/Managed'
+Mono path[1] = 'C:/Program Files/Unity/Hub/Editor/6000.3.28f1/Editor/Data/MonoBleedingEdge/lib/mono/unityjit-win32'
+Mono config path = 'C:/Program Files/Unity/Hub/Editor/6000.3.28f1/Editor/Data/MonoBleedingEdge/etc'
+Using monoOptions --debugger-agent=transport=dt_socket,embedding=1,server=y,suspend=n,address=127.0.0.1:56232
+Using cacheserver namespaces - metadata:defaultmetadata, artifacts:defaultartifacts
+Using cacheserver namespaces - metadata:defaultmetadata, artifacts:defaultartifacts
+ImportWorker Server TCP listen port: 0
+AcceleratorClientConnectionCallback - disconnected - :0
+Begin MonoManager ReloadAssembly
+Registering precompiled unity dll's ...
+Register platform support module: C:/Program Files/Unity/Hub/Editor/6000.3.28f1/Editor/Data/PlaybackEngines/WindowsStandaloneSupport/UnityEditor.WindowsStandalone.Extensions.dll
+[Licensing::Client] Successfully resolved entitlement details
+Register platform support module: C:/Program Files/Unity/Hub/Editor/6000.3.28f1/Editor/Data/PlaybackEngines/AndroidPlayer/UnityEditor.Android.Extensions.dll
+Registered in 0.006480 seconds.
+- Loaded All Assemblies, in  0.309 seconds
+Native extension for Android target not found
+Native extension for WindowsStandalone target not found
+Package Manager log level set to [2]
+ScheduleIndexationOnStartup MainProcess:False IndexOnStartup:True
+Mono: successfully reloaded assembly
+- Finished resetting the current domain, in  0.285 seconds
+Domain Reload Profiling: 592ms
+	BeginReloadAssembly (107ms)
+		ExecutionOrderSort (0ms)
+		DisableScriptedObjects (0ms)
+		BackupInstance (0ms)
+		ReleaseScriptingObjects (0ms)
+		CreateAndSetChildDomain (13ms)
+	RebuildCommonClasses (26ms)
+	RebuildNativeTypeToScriptingClass (9ms)
+	initialDomainReloadingComplete (39ms)
+	LoadAllAssembliesAndSetupDomain (126ms)
+		LoadAssemblies (93ms)
+		RebuildTransferFunctionScriptingTraits (0ms)
+		AnalyzeDomain (123ms)
+			TypeCache.Refresh (122ms)
+				TypeCache.ScanAssembly (111ms)
+			BuildScriptInfoCaches (0ms)
+			ResolveRequiredComponents (0ms)
+	FinalizeReload (286ms)
+		ReleaseScriptCaches (0ms)
+		RebuildScriptCaches (0ms)
+		SetupLoadedEditorAssemblies (259ms)
+			LogAssemblyErrors (0ms)
+			InitializePlatformSupportModulesInManaged (42ms)
+			SetLoadedEditorAssemblies (3ms)
+			BeforeProcessingInitializeOnLoad (57ms)
+			ProcessInitializeOnLoadAttributes (97ms)
+			ProcessInitializeOnLoadMethodAttributes (60ms)
+			AfterProcessingInitializeOnLoad (0ms)
+			EditorAssembliesLoaded (0ms)
+		ExecutionOrderSort2 (0ms)
+		AwakeInstancesAfterBackupRestoration (0ms)
+[Licensing::Client] Successfully resolved entitlement details
+Application.AssetDatabase Initial Refresh Start
+[Package Manager] Restoring resolved packages state from cache
+[Licensing::Client] Successfully resolved entitlement details
+[Package Manager] Registered 78 packages:
+  Packages from [https://packages.unity.com]:
+    com.unity.ai.assistant@2.13.0-pre.2 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.ai.assistant@6fee27370e6a)
+    com.unity.cinemachine@2.10.7 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.cinemachine@631385387c5a)
+    com.unity.ide.rider@3.1.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.ide.rider@570989d4a882)
+    com.unity.ide.visualstudio@2.0.26 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.ide.visualstudio@a99d56dec63f)
+    com.unity.inputsystem@1.20.1 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.inputsystem@2436e68c60c4)
+    com.unity.localization@1.5.9 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.localization@62db12c43c5c)
+    com.unity.pipeline@0.6.0-exp.1 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.pipeline@9bb4172c603c)
+    com.unity.sdk.linux-x86_64@1.1.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.sdk.linux-x86_64@6d12be270055)
+    com.unity.timeline@1.8.13 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.timeline@3a22918286f5)
+    com.unity.toolchain.linux-x86_64-linux@1.1.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.toolchain.linux-x86_64-linux@d0308bf9d559)
+    com.unity.visualscripting@1.9.12 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.visualscripting@4edfcc09512f)
+    com.unity.sysroot.base@1.1.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.sysroot.base@3559fe1aa613)
+    com.unity.nuget.mono-cecil@1.11.6 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.nuget.mono-cecil@ecb9724e46ff)
+    com.unity.nuget.newtonsoft-json@3.2.2 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.nuget.newtonsoft-json@4dfd81071c64)
+    com.unity.addressables@2.10.3 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.addressables@c0978d16db5d)
+    com.unity.2d.animation@13.0.6 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.2d.animation@cd6c3841e39a)
+    com.unity.2d.pixel-perfect@5.1.1 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.2d.pixel-perfect@09d99455b901)
+    com.unity.2d.psdimporter@12.0.2 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.2d.psdimporter@f207d91d598d)
+    com.unity.2d.spriteshape@13.0.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.2d.spriteshape@0738bab11647)
+    com.unity.2d.tilemap.extras@6.0.3 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.2d.tilemap.extras@58739e072909)
+    com.unity.2d.aseprite@3.0.2 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.2d.aseprite@20edb5643ab5)
+    com.unity.2d.tooling@1.0.4 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.2d.tooling@04422e023209)
+    com.unity.mathematics@1.3.3 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.mathematics@19a9377c4ffa)
+    com.unity.searcher@4.9.5 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.searcher@a463122f2c00)
+    com.unity.burst@1.8.31 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.burst@bfa84123c21a)
+    com.unity.collections@2.7.1 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.collections@88d5bf65ce66)
+    com.unity.profiling.core@1.0.3 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.profiling.core@8a49f7027d06)
+    com.unity.scriptablebuildpipeline@2.6.2 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.scriptablebuildpipeline@97537e3e823b)
+    com.unity.2d.common@12.0.4 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.2d.common@3e42aeccb30d)
+    com.unity.test-framework.performance@3.5.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.test-framework.performance@8b56083ec0f0)
+  Built-in packages:
+    com.unity.feature.2d@2.0.2 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.feature.2d@0309d34ea7f2)
+    com.unity.multiplayer.center@1.0.1 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.multiplayer.center@f01f4ba8d00a)
+    com.unity.render-pipelines.universal@17.3.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.render-pipelines.universal@029be7ffa662)
+    com.unity.test-framework@1.6.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.test-framework@bd7f943e9647)
+    com.unity.ugui@2.0.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.ugui@44a561608371)
+    com.unity.modules.accessibility@1.0.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.modules.accessibility)
+    com.unity.modules.adaptiveperformance@1.0.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.modules.adaptiveperformance)
+    com.unity.modules.ai@1.0.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.modules.ai)
+    com.unity.modules.androidjni@1.0.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.modules.androidjni)
+    com.unity.modules.animation@1.0.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.modules.animation)
+    com.unity.modules.assetbundle@1.0.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.modules.assetbundle)
+    com.unity.modules.audio@1.0.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.modules.audio)
+    com.unity.modules.cloth@1.0.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.modules.cloth)
+    com.unity.modules.director@1.0.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.modules.director)
+    com.unity.modules.imageconversion@1.0.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.modules.imageconversion)
+    com.unity.modules.imgui@1.0.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.modules.imgui)
+    com.unity.modules.jsonserialize@1.0.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.modules.jsonserialize)
+    com.unity.modules.particlesystem@1.0.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.modules.particlesystem)
+    com.unity.modules.physics@1.0.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.modules.physics)
+    com.unity.modules.physics2d@1.0.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.modules.physics2d)
+    com.unity.modules.screencapture@1.0.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.modules.screencapture)
+    com.unity.modules.terrain@1.0.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.modules.terrain)
+    com.unity.modules.terrainphysics@1.0.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.modules.terrainphysics)
+    com.unity.modules.tilemap@1.0.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.modules.tilemap)
+    com.unity.modules.ui@1.0.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.modules.ui)
+    com.unity.modules.uielements@1.0.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.modules.uielements)
+    com.unity.modules.umbra@1.0.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.modules.umbra)
+    com.unity.modules.unityanalytics@1.0.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.modules.unityanalytics)
+    com.unity.modules.unitywebrequest@1.0.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.modules.unitywebrequest)
+    com.unity.modules.unitywebrequestassetbundle@1.0.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.modules.unitywebrequestassetbundle)
+    com.unity.modules.unitywebrequestaudio@1.0.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.modules.unitywebrequestaudio)
+    com.unity.modules.unitywebrequesttexture@1.0.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.modules.unitywebrequesttexture)
+    com.unity.modules.unitywebrequestwww@1.0.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.modules.unitywebrequestwww)
+    com.unity.modules.vectorgraphics@1.0.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.modules.vectorgraphics)
+    com.unity.modules.vehicles@1.0.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.modules.vehicles)
+    com.unity.modules.video@1.0.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.modules.video)
+    com.unity.modules.vr@1.0.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.modules.vr)
+    com.unity.modules.wind@1.0.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.modules.wind)
+    com.unity.modules.xr@1.0.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.modules.xr)
+    com.unity.modules.subsystems@1.0.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.modules.subsystems)
+    com.unity.modules.hierarchycore@1.0.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.modules.hierarchycore)
+    com.unity.ext.nunit@2.0.5 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.ext.nunit@d8c07649098d)
+    com.unity.render-pipelines.core@17.3.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.render-pipelines.core@3424017a4ec3)
+    com.unity.shadergraph@17.3.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.shadergraph@d526115bb944)
+    com.unity.render-pipelines.universal-config@17.0.3 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.render-pipelines.universal-config@8dc1aab4af1d)
+    com.unity.2d.sprite@1.0.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.2d.sprite@5b922524bd83)
+    com.unity.2d.tilemap@1.0.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.2d.tilemap@4d671073d7ba)
+  Embedded packages:
+    jp.hadashikick.vcontainer@file:Z:\01_Project\03_DungeonStory\Unity\Packages\jp.hadashikick.vcontainer (location: Z:\01_Project\03_DungeonStory\Unity\Packages\jp.hadashikick.vcontainer)
+[Subsystems] No new subsystems found in resolved package list.
+[Package Manager] Done registering packages in 0.05 seconds
+Refreshing native plugins compatible for Editor in 0.77 ms, found 2 plugins.
+Starting: C:\Program Files\Unity\Hub\Editor\6000.3.28f1\Editor\Data\Tools\BuildPipeline\bee_backend.exe --ipc --defer-dag-verification --dagfile="Library/Bee/1900b0aE.dag" --continue-on-failure --profile="Library/Bee/backend1.traceevents" ScriptAssemblies
+WorkingDir: Z:/01_Project/03_DungeonStory/Unity
+DisplayProgressbar: Compiling Scripts
+ExitCode: 0 Duration: 0s559ms
+[ 457/2218  0s] ILPP-Configuration Library/ilpp-configuration.nevergeneratedoutput
+*** Tundra build success (0.54 seconds), 1 items updated, 2218 evaluated
+AssetDatabase: script compilation time: 0.949929s
+Begin MonoManager ReloadAssembly
+Total cache size 55247728
+Total cache size after purge 55247728, took 00:00:00.0406376
+- Loaded All Assemblies, in  1.150 seconds
+Refreshing native plugins compatible for Editor in 0.74 ms, found 2 plugins.
+Native extension for Android target not found
+Native extension for WindowsStandalone target not found
+V27_HEADLESS_EDITOR_RELAY_AUTOSTART=SUPPRESSED; package bootstrap API; actual Assistant use retains lazy initialization
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+V27CiEvidenceBatch:SuppressUnusedHeadlessEditorRelay () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:52)
+V27CiEvidenceBatch:.cctor () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:27)
+System.Runtime.CompilerServices.RuntimeHelpers:RunClassConstructor (System.RuntimeTypeHandle)
+UnityEditor.EditorAssemblies:ProcessInitializeOnLoadAttributes (System.Type[])
+
+(Filename: Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs Line: 52)
+
+Start HTTP server: port:7800
+[Licensing::Client] Error: Code 404 while processing request (status: Found 0 entitlement groups and 0 free entitlements matching requested entitlement ids)
+[Licensing::Client] Error: Code 404 while processing request (status: Found 0 entitlement groups and 0 free entitlements matching requested entitlement ids)
+[Licensing::Client] Error: Code 404 while processing request (status: Found 0 entitlement groups and 0 free entitlements matching requested entitlement ids)
+ScheduleIndexationOnStartup MainProcess:True IndexOnStartup:True
+Mono: successfully reloaded assembly
+- Finished resetting the current domain, in  5.097 seconds
+Domain Reload Profiling: 6244ms
+	BeginReloadAssembly (139ms)
+		ExecutionOrderSort (0ms)
+		DisableScriptedObjects (17ms)
+		BackupInstance (0ms)
+		ReleaseScriptingObjects (0ms)
+		CreateAndSetChildDomain (30ms)
+	RebuildCommonClasses (26ms)
+	RebuildNativeTypeToScriptingClass (9ms)
+	initialDomainReloadingComplete (44ms)
+	LoadAllAssembliesAndSetupDomain (928ms)
+		LoadAssemblies (394ms)
+		RebuildTransferFunctionScriptingTraits (0ms)
+		AnalyzeDomain (603ms)
+			TypeCache.Refresh (486ms)
+				TypeCache.ScanAssembly (464ms)
+			BuildScriptInfoCaches (97ms)
+			ResolveRequiredComponents (14ms)
+	FinalizeReload (5098ms)
+		ReleaseScriptCaches (0ms)
+		RebuildScriptCaches (0ms)
+		SetupLoadedEditorAssemblies (4880ms)
+			LogAssemblyErrors (0ms)
+			InitializePlatformSupportModulesInManaged (22ms)
+			SetLoadedEditorAssemblies (7ms)
+			BeforeProcessingInitializeOnLoad (172ms)
+			ProcessInitializeOnLoadAttributes (4421ms)
+			ProcessInitializeOnLoadMethodAttributes (250ms)
+			AfterProcessingInitializeOnLoad (7ms)
+			EditorAssembliesLoaded (1ms)
+		ExecutionOrderSort2 (0ms)
+		AwakeInstancesAfterBackupRestoration (15ms)
+Asset Pipeline Refresh (id=6c5c5a4f311946a4f945d872d749f3b3): Total: 8.063 seconds - Initiated by InitialRefreshV2(ForceSynchronousImport)
+	Summary:
+		Imports: total=0 (actual=0, local cache=0, cache server=0)
+		Asset DB Process Time: managed=0 ms, native=5811 ms
+		Asset DB Callback time: managed=25 ms, native=51 ms
+		Scripting: domain reloads=1, domain reload time=1150 ms, compile time=951 ms, other=74 ms
+		Project Asset Count: scripts=3073, non-scripts=9744
+		Asset File Changes: new=0, changed=0, moved=0, deleted=0
+		Scan Filter Count: 0
+	InvokeCustomDependenciesCallbacks: 0.001ms
+	InvokePackagesCallback: 52.421ms
+	ApplyChangesToAssetFolders: 0.587ms
+	Scan: 214.806ms
+	OnSourceAssetsModified: 0.002ms
+	CategorizeAssetsWithTransientArtifact: 69.610ms
+	ProcessAssetsWithTransientArtifactChanges: 134.995ms
+	CategorizeAssets: 97.707ms
+	ImportOutOfDateAssets: 5111.662ms (4155.295ms without children)
+		CompileScripts: 951.018ms
+		ReloadNativeAssets: 0.050ms
+		UnloadImportedAssets: 2.551ms
+		EnsureUptoDateAssetsAreRegisteredWithGuidPM: 1.508ms
+		InitializingProgressBar: 0.000ms
+		PostProcessAllAssetNotificationsAddChangedAssets: 0.001ms
+		OnDemandSchedulerStart: 1.238ms
+	PostProcessAllAssets: 25.153ms
+	GatherAllCurrentPrimaryArtifactRevisions: 0.002ms
+	UnloadStreamsBegin: 0.954ms
+	PersistCurrentRevisions: 0.357ms
+	UnloadStreamsEnd: 0.001ms
+	GenerateScriptTypeHashes: 4.290ms
+	Untracked: 2354.458ms
+
+Application.AssetDatabase Initial Refresh End
+Scanning for USB devices : 5.301ms
+Initializing Unity extensions:
+[MODES] ModeService[none].Initialize
+[MODES] ModeService[none].LoadModes
+[MODES] Loading mode Default (0) for mode-current-id-DungeonStory
+Unloading 90 Unused Serialized files (Serialized files now loaded: 0)
+Unloading 14937 unused Assets / (15.3 MB). Loaded Objects now: 15731.
+Memory consumption went from 313.1 MB to 297.8 MB.
+Total: 20.125900 ms (FindLiveObjects: 0.814600 ms CreateObjectMapping: 0.609400 ms MarkObjects: 12.810400 ms  DeleteObjects: 5.890700 ms)
+
+Asset Pipeline Refresh (id=ce013362ee8205344b6f4bcb669cb374): Total: 0.066 seconds - Initiated by RefreshV2(NoUpdateAssetOptions)
+Opening scene 'Assets/Scenes/GameplayScene.unity'
+Unloading 118 Unused Serialized files (Serialized files now loaded: 0)
+Loaded scene 'Assets/Scenes/GameplayScene.unity'
+	Deserialize:            338.103 ms
+	Integration:            384.023 ms
+	Integration of assets:  7.831 ms
+	Thread Wait Time:       11.574 ms
+	Total Operation Time:   741.530 ms
+Unloading 4 unused Assets / (5.5 KB). Loaded Objects now: 16653.
+Memory consumption went from 281.9 MB to 281.9 MB.
+Total: 14.898700 ms (FindLiveObjects: 0.574900 ms CreateObjectMapping: 0.579000 ms MarkObjects: 13.688800 ms  DeleteObjects: 0.055200 ms)
+
+[Licensing::Client] Successfully resolved entitlement details
+Microsoft Media Foundation video decoding to texture disabled: graphics device is Null, only Direct3D 11 and Direct3D 12 (only on desktop) are supported for hardware-accelerated video decoding.
+[Project] Loading completed in 70.532 seconds
+	Project init time: 				9.925 seconds
+		Template init time: 		0.000 seconds
+		Package Manager init time: 		0.192 seconds
+		Asset Database init time: 		0.154 seconds
+		Global illumination init time: 	0.002 seconds
+		Assemblies load time: 			0.608 seconds
+		Unity extensions init time: 	0.014 seconds
+		Asset Database refresh time: 	8.063 seconds
+	Scene opening time: 			60.247 seconds
+##utp:{"type":"ProjectInfo","version":2,"phase":"Immediate","time":1793899437781,"processId":32232,"projectLoad":70.5315606,"projectInit":9.9248895,"templateInit":0.0,"packageManagerInit":0.1921223,"assetDatabaseInit":0.1536095,"globalIlluminationInit":0.0017576,"assembliesLoad":0.608282,"unityExtensionsInit":0.0140194,"assetDatabaseRefresh":8.062849,"sceneOpening":60.2474058}
+##utp:{"type":"EditorInfo","version":2,"phase":"Immediate","time":1793899437781,"processId":32232,"editorVersion":"6000.3.28f1 (8f082d2fe476)","branch":"6000.3/respin/6000.3.28f1-21f78c3e21d1","buildType":"Release","platform":"Windows"}
+[Licensing::Client] Successfully resolved entitlement details
+SpriteAtlasPacking completed in 0.016996 sec
+Entering Playmode with Reload Domain disabled.
+If you experience any issues, please disable "Enter Play Mode Options" in Editor Settings
+Loaded scene 'Temp/__Backupscenes/0.backup'
+	Deserialize:            7.321 ms
+	Integration:            3842.010 ms
+	Integration of assets:  0.005 ms
+	Thread Wait Time:       0.004 ms
+	Total Operation Time:   3849.339 ms
+Legacy persistence import excluded for isolated batch verification.
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+DungeonLegacyPersistenceMigration:Start () (at Assets/Scripts/Services/Infrastructure/Core/DungeonLegacyPersistenceMigration.cs:16)
+VContainer.Unity.StartableLoopItem:MoveNext () (at ./Packages/jp.hadashikick.vcontainer/Runtime/Unity/PlayerLoopItem.cs:31)
+VContainer.Unity.PlayerLoopRunner:Run () (at ./Packages/jp.hadashikick.vcontainer/Runtime/Unity/PlayerLoopRunner.cs:34)
+
+(Filename: Assets/Scripts/Services/Infrastructure/Core/DungeonLegacyPersistenceMigration.cs Line: 16)
+
+[Licensing::Client] Error: Code 404 while processing request (status: Found 0 entitlement groups and 0 free entitlements matching requested entitlement ids)
+[Licensing::Client] Error: Code 404 while processing request (status: Found 0 entitlement groups and 0 free entitlements matching requested entitlement ids)
+[Licensing::Client] Successfully resolved entitlement details
+[Licensing::Client] Successfully resolved entitlement details
+Start Indexing on Editor startup
+[Indexing] Starting Initial Indexing for Assets
+Created GICache directory at C:/Users/vulpo/AppData/LocalLow/Unity/Caches/GiCache. Took: 0.006s, timestamps: [76.633 - 76.639]
+# Crop Plot Runtime Verification
+utc=2026-11-05T17:24:06.5836369Z
+playMode=True
+PASS CROP_ACTUAL_CELL_TEMPERATURE_GATE range=2..33;unobserved=waiting;outdoorFactorsOnce=true;indoorFactorsOnce=true
+PASS CROP_OUTPUT_FACILITY_BUFFER_WAIT_RESTORE_RETRY_EXACT_ONCE plot=building:738163a61b594a3fbc091880399bafc1;harvest=0->3;capacityWait=true;frozenRestore=true;replayDelta=0;executionReceipt=true;physicalBatchJoin=true;terminalRestore=true;ackRetention=true;workerlessRejected=true
+plot=building:738163a61b594a3fbc091880399bafc1
+crop=crop:twilight-grain
+materials=resource:clean-waterx1,seed-lot:twilight-grainx1,supply:nitrate-fertilizerx1
+harvest=0->3
+outdoorCycleWater=supplied:1;tickDelta=0
+indoorPlot=building:0d78d252af094b2d864721a883700c36
+indoorMaterials=craft:candlex1,material:compostx1,resource:clean-waterx1,seed-lot:cave-mushroomx1,supply:mushroom-substratex1,supply:nitrate-fertilizerx1
+indoorPhase=Growing
+indoorCycleWater=supplied:1;tickDelta=0
+fungalPlot=building:d422016bf2dd4b468d7e2329152e45f8
+fungalMaterials=material:compostx1,resource:clean-waterx1,seed-lot:cave-mushroomx1,supply:inoculated-logx1
+inoculatedLog=700g;consumed=1
+fungalPhase=Growing
+currentSourceDigest=e56583698fd91716b5d28e317a6d249a3d31cc19d236e71b04ff43747112c24d
+gameplaySceneSha256=a0fc27f149e57bbf6deba481e170c75f707b9c187baf4bf535a11d43df47c73e
+valid=true
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+CropPlotDebugScenarios:VerifyRuntimeFromMenu () (at Assets/Scripts/Services/Economy/Editor/CropPlotDebugScenarios.cs:1256)
+V27CiEvidenceBatch:Update () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:626)
+UnityEditor.EditorApplication:Internal_CallUpdateFunctions ()
+
+(Filename: Assets/Scripts/Services/Economy/Editor/CropPlotDebugScenarios.cs Line: 1256)
+
+Exit autosave failed: Captured save failed aggregate preflight: research-completion-parent-reference-missing
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:LogWarning (object)
+DungeonAutosaveService:HandleApplicationQuitting () (at Assets/Scripts/Services/Infrastructure/DungeonAutosaveService.cs:175)
+UnityEngine.Application:Internal_ApplicationQuit ()
+
+(Filename: Assets/Scripts/Services/Infrastructure/DungeonAutosaveService.cs Line: 175)
+
+Unloading 3748 Unused Serialized files (Serialized files now loaded: 0)
+Loaded scene 'Temp/__Backupscenes/0.backup'
+	Deserialize:            5.359 ms
+	Integration:            344.907 ms
+	Integration of assets:  0.006 ms
+	Thread Wait Time:       0.096 ms
+	Total Operation Time:   350.368 ms
+Unloading 22 unused Assets / (39.6 KB). Loaded Objects now: 20385.
+Memory consumption went from 363.6 MB to 363.5 MB.
+Total: 235.037700 ms (FindLiveObjects: 0.637100 ms CreateObjectMapping: 0.368700 ms MarkObjects: 233.950800 ms  DeleteObjects: 0.080000 ms)
+
+[Licensing::Client] Successfully resolved entitlement details
+[UnityConnectServicesConfig] config is NOT valid, switching to default
+IMPACT_CI_MEMORY group=crop;managedBefore=1876455424;managedAfter=1589514240
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+V27CiEvidenceBatch:CompleteImpact (string,string,string,bool) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:241)
+V27CiEvidenceBatch:Complete () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:663)
+UnityEditor.EditorApplication:Internal_CallDelayFunctions ()
+
+(Filename: Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs Line: 241)
+
+IMPACT_CI_PASS group=crop;source=e56583698fd91716b5d28e317a6d249a3d31cc19d236e71b04ff43747112c24d;config=c890e6d41e4828bf653d4ff594786748cd8c4dd62fcab033d0a437f7604eee93;consoleErrors=0
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+V27CiEvidenceBatch:CompleteImpact (string,string,string,bool) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:246)
+V27CiEvidenceBatch:Complete () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:663)
+UnityEditor.EditorApplication:Internal_CallDelayFunctions ()
+
+(Filename: Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs Line: 246)
+
+V27_CI_EVIDENCE_BATCH=PASS; producer=crop; cleanup=complete; sourceDrift=0; sceneDrift=0
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+V27CiEvidenceBatch:Complete () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:666)
+UnityEditor.EditorApplication:Internal_CallDelayFunctions ()
+
+(Filename: Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs Line: 666)
+
+Pipeline Server stopped
+Killing ADB server in 2.0684679 seconds.
+[Physics::Module] Cleanup current backend.
+[Physics::Module] Id: 0xf2b8ea05
+Input System module state changed to: ShutdownInProgress.
+Input System polling thread exited.
+Input System module state changed to: Shutdown.
+[Licensing::IpcConnector] LicenseClient-vulpo-notifications channel disconnected successfully.
+[Licensing::IpcConnector] LicenseClient-vulpo channel disconnected successfully.
+AcceleratorClientConnectionCallback - disconnected - :0
+Cleanup mono
+Checking for leaked weakptr:
+  Found no leaked weakptrs.
+[Package Manager] Server process was shutdown
+##utp:{"type":"MemoryLeaks","version":2,"phase":"Immediate","time":1793899520469,"processId":32232,"allocatedMemory":27705529,"memoryLabels":[{"Default":29313},{"Permanent":15236},{"NewDelete":69205},{"Thread":4230344},{"Manager":39517},{"VertexData":8},{"Geometry":816},{"Texture":296},{"Shader":79381},{"Material":24},{"GfxDevice":55880},{"Animation":392},{"Audio":3040},{"FreeType":8},{"FontEngine":736},{"Physics":1970},{"Physics2D":16},{"Input":14984},{"JobScheduler":33024},{"TextLib":280},{"Mono":32},{"MonoCode":123840},{"ScriptingNativeRuntime":155060},{"BaseObject":1626304},{"Resource":1336},{"Renderer":3000},{"Transform":4685},{"File":3945},{"WebCam":616},{"Culling":32},{"Terrain":11394},{"Wind":24},{"STL":40},{"String":17817},{"DynamicArray":147413},{"HashMap":83115},{"Utility":2662998},{"Curl":4238},{"PoolAlloc":2152},{"AI":80},{"TypeTree":5341},{"ScriptManager":512},{"RuntimeInitializeOnLoadManager":64},{"SpriteAtlas":112},{"GI":7792},{"Director":8240},{"CloudService":6760},{"WebRequest":9267},{"VR":48034},{"SceneManager":504},{"Video":64},{"LazyScriptCache":32},{"Camera":17},{"Secure":2377},{"SerializationCache":1576},{"APIUpdating":10320},{"Subsystems":336},{"VirtualTexturing":57888},{"StaticSafetyDebugInfo":278528},{"Analytics":640},{"Hierarchy":608},{"CoreStats":13112},{"Identifiers":6480},{"Gui":96},{"EditorUtility":178287},{"VersionControl":4},{"Undo":947},{"AssetDatabase":17710351},{"EditorGi":328},{"UnityConnect":29232},{"Upm":1896},{"AssetCompliance":64},{"DrivenProperties":72},{"LocalIPC":260},{"ProfilerEditor":9746},{"CoreBusinessMetrics":3518},{"Licensing":12757},{"AssetReference":32},{"IPCStream":32}]}

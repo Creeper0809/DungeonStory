@@ -1,14 +1,14 @@
 {
   "artifact_kind": "dungeonstory-system-knowledge-base",
   "generator": "tools/Documentation/generate_knowledge_base.py",
-  "output_digest": "ef6bf2dded0c6bb4c57eee4235473dbe17733d03f75c5e5d7a5f9fdb045db999",
+  "output_digest": "26d2b773709c8c8ebf05c8eecee4a27a6cd1d4e95450685e1682029a2d48061b",
   "output_file_count": 90,
-  "output_files_manifest_sha256": "475e4faae50e8a5c0eb0779bd8dc899ef42e3da078e91c670993f72f59ed6dff",
+  "output_files_manifest_sha256": "51ab7c57ee39b6bfc0df65b169a62cc4d351a02af0475246bb51d1e207171d91",
   "output_root": "docs_final/knowledge-base",
   "schema_version": 1,
-  "source_digest": "7046afbf33b9d8d2c371e346e9beb433a8829bb475a8fa920442ee827ea6506d",
-  "source_file_count": 4177,
-  "source_files_manifest_sha256": "179b43e7a9ed3ba270a795676107a0b3ab151f9b1e5cf227967e300e7d2bccc8",
+  "source_digest": "4cde54f76a67b65642f94f969eabf84a0e0c990cda55e93b29a519a71fc10b79",
+  "source_file_count": 4209,
+  "source_files_manifest_sha256": "9e8505178fe3efeca71a8d1d0ded28dc4f3acc90d120e7e5df73cb7d83319e93",
   "source_specs": [
     {
       "name": "csharp-implementation",
@@ -71,17 +71,17 @@
     "architecture_mapped_code_file_count": 168,
     "architecture_source_link_count": 179,
     "architecture_system_count": 19,
-    "code_source_file_count": 4021,
+    "code_source_file_count": 4053,
     "code_system_count": 76,
     "content_impact_type_count": 75,
-    "content_source_digest": "aaaf2922100eb94e6982337221fab80cba8936742e1d7503b1467db6fc41bc75",
+    "content_source_digest": "a9414c81410f6300a2d01111a0c04ec51ab990295bc5a8ef5d41fba7410db6f2",
     "document_broken_link_count": 0,
     "document_count": 74,
     "implementation_status_count": 37,
-    "observation_code_file_count": 1500,
-    "persistence_code_file_count": 566,
+    "observation_code_file_count": 1522,
+    "persistence_code_file_count": 578,
     "research_unlock_relation_count": 938,
     "state_authority_count": 36,
-    "system_content_relation_count": 348
+    "system_content_relation_count": 347
   }
 }

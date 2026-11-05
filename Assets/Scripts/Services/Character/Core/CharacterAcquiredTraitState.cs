@@ -42,6 +42,9 @@ public sealed class CharacterAcquiredTraitPendingRequestState
     public string mechanicalDescription = string.Empty;
     public CharacterAcquiredTraitPresentationState presentationState;
     public int presentationFailureCount;
+    internal bool HasUnresolvedModuleSelection => presentationState is
+        CharacterAcquiredTraitPresentationState.ModuleSelectionPending
+        or CharacterAcquiredTraitPresentationState.ModuleSelectionAwaitingNarrativeRetry;
 
     public CharacterAcquiredTraitPendingRequestState Clone()
     {
@@ -112,7 +115,9 @@ public enum CharacterAcquiredTraitPresentationState
     PresentationPending = 1,
     Ready = 2,
     AwaitingNarrativeRetry = 3,
-    ModuleSelectionPending = 4
+    ModuleSelectionPending = 4,
+    // Same unresolved offers, paused after rejection. No effects are selected.
+    ModuleSelectionAwaitingNarrativeRetry = 5
 }
 
 [Serializable]
@@ -163,6 +168,106 @@ public sealed class CharacterAcquiredTraitReactionState
 }
 
 [Serializable]
+public sealed class CharacterAcquiredTraitPresentationOriginState
+{
+    public int version;
+    public int registeredRevision;
+    public CharacterNarrativeRequestOwnerBinding ownerBinding;
+    public NarrativePublicContextMaterialSnapshot publicContext;
+    public List<string> evidenceFactIds = new();
+
+    // Unity can materialize an absent inline object. An empty v0 is legacy absence.
+    public bool HasData => version != 0 || registeredRevision != 0
+        || !string.IsNullOrEmpty(ownerBinding?.persistentId)
+        || (ownerBinding?.version ?? 0) != 0
+        || (ownerBinding?.lifecycleRevision ?? -1) != -1
+        || (ownerBinding?.generationRevision ?? -1) != -1
+        || !string.IsNullOrEmpty(publicContext?.semanticHash)
+        || !string.IsNullOrEmpty(publicContext?.subjectId)
+        || !string.IsNullOrEmpty(publicContext?.profileId)
+        || !string.IsNullOrEmpty(publicContext?.cultureStyleId)
+        || !string.IsNullOrEmpty(publicContext?.selectionPolicyId)
+        || (publicContext?.schemaVersion ?? NarrativePublicContextFactory.SchemaVersion) != NarrativePublicContextFactory.SchemaVersion
+        || (publicContext?.subjectKind ?? default) != default
+        || publicContext?.requireCharacterFact == true || publicContext?.requireMotif == true
+        || (publicContext?.availableFactCount ?? 0) != 0 || (publicContext?.omittedFactCount ?? 0) != 0
+        || (publicContext?.entities?.Count ?? 0) != 0
+        || (publicContext?.events?.Count ?? 0) != 0
+        || (publicContext?.publicFacts?.Count ?? 0) != 0
+        || (publicContext?.backgroundFactIds?.Count ?? 0) != 0
+        || (publicContext?.relationshipFactIds?.Count ?? 0) != 0
+        || (publicContext?.memoryFactIds?.Count ?? 0) != 0
+        || (publicContext?.priorHistoryFactIds?.Count ?? 0) != 0
+        || (publicContext?.motifs?.Count ?? 0) != 0
+        || (evidenceFactIds?.Count ?? 0) != 0;
+
+    public CharacterAcquiredTraitPresentationOriginState Clone() => new()
+    {
+        version = version,
+        registeredRevision = registeredRevision,
+        ownerBinding = ownerBinding?.Clone(),
+        publicContext = publicContext?.Clone(),
+        evidenceFactIds = evidenceFactIds?.ToList()
+    };
+
+    public static CharacterAcquiredTraitPresentationOriginState Capture(
+        CharacterAcquiredTraitPendingRequestState pending)
+    {
+        if (pending.publicContextVersion == 0) return null;
+        pending.RestorePublicContext();
+        if (pending.ownerBinding?.IsWellFormed != true || pending.registeredRevision <= 0)
+            throw new InvalidOperationException("Trait presentation origin lacks its request owner or revision.");
+        return new CharacterAcquiredTraitPresentationOriginState
+        {
+            version = 1,
+            registeredRevision = pending.registeredRevision,
+            ownerBinding = pending.ownerBinding.Clone(),
+            publicContext = pending.publicContext.Clone(),
+            evidenceFactIds = pending.evidenceFactIds.ToList()
+        };
+    }
+
+    public NarrativePublicContextMaterial RestorePublicContext(
+        CharacterAcquiredTraitInstanceState instance)
+    {
+        if (version != 1 || ownerBinding?.IsWellFormed != true || publicContext == null
+            || registeredRevision <= 0 || registeredRevision >= instance.acceptedRevision
+            || evidenceFactIds == null || evidenceFactIds.Count == 0
+            || evidenceFactIds.Any(string.IsNullOrWhiteSpace)
+            || !evidenceFactIds.SequenceEqual(evidenceFactIds.Distinct(StringComparer.Ordinal)
+                .OrderBy(value => value, StringComparer.Ordinal), StringComparer.Ordinal))
+            throw new InvalidOperationException("Trait presentation origin has invalid version, owner, revision or evidence.");
+        NarrativePublicContextMaterial material = NarrativePublicContextFactory.Restore(publicContext);
+        if (material.ProfileId != LocalLlmRequestProfiles.AcquiredTrait.Id
+            || material.SubjectKind != NarrativePublicSubjectKind.Character
+            || material.SubjectId != ownerBinding.persistentId
+            || evidenceFactIds.Any(id => !material.Events.Any(value => value.FactId == id))
+            || instance.evidenceFactIds == null
+            || instance.evidenceFactIds.Any(id => !evidenceFactIds.Contains(id, StringComparer.Ordinal)))
+            throw new InvalidOperationException("Trait presentation origin does not own its subject and original evidence.");
+        NarrativePublicEntity subject = material.Entities.Single(value => value.EntityId == material.SubjectId);
+        if (subject.Kind != NarrativePublicEntityKind.Character
+            || string.IsNullOrWhiteSpace(subject.DisplayName)
+            || subject.DisplayName != subject.DisplayName.Trim()
+            || subject.DisplayName.IndexOfAny(new[] { '\r', '\n' }) >= 0)
+            throw new InvalidOperationException("Trait presentation origin requires its exact original character name.");
+        return material;
+    }
+
+    public void RequireRequestIdentity(CharacterAcquiredTraitInstanceState instance,
+        CharacterAcquiredTraitSettingsSO settings)
+    {
+        var material = RestorePublicContext(instance);
+        CharacterAcquiredTraitManifestationRuntime.BuildProductionRequestIdentity(settings,
+            material.SubjectId, instance.manifestationMilestone, evidenceFactIds,
+            material.SemanticHash, ownerBinding, registeredRevision - 1,
+            out string requestId, out string requestKey);
+        if (requestId != instance.originatingRequestId || requestKey != instance.originatingRequestKey)
+            throw new InvalidOperationException("Trait presentation origin does not match its original request identity.");
+    }
+}
+
+[Serializable]
 public sealed class CharacterAcquiredTraitInstanceState
 {
     public const long NotErasedAtAbsoluteHour = -1L;
@@ -206,6 +311,7 @@ public sealed class CharacterAcquiredTraitInstanceState
     public string presentationId = string.Empty;
     [TextArea] public string mechanicalDescription = string.Empty;
     [TextArea] public string narrativeFlavor = string.Empty;
+    public CharacterAcquiredTraitPresentationOriginState presentationOrigin;
 
     public string EffectSourceId => instanceId?.Trim() ?? string.Empty;
     public bool IsActive => !erased;
@@ -214,6 +320,7 @@ public sealed class CharacterAcquiredTraitInstanceState
     {
         CharacterAcquiredTraitInstanceState clone =
             (CharacterAcquiredTraitInstanceState)MemberwiseClone();
+        clone.presentationOrigin = presentationOrigin?.Clone();
         clone.moduleIds = (moduleIds ?? new List<string>()).ToList();
         clone.evidenceFactIds = (evidenceFactIds ?? new List<string>()).ToList();
         clone.evidenceBindings = (evidenceBindings
@@ -249,6 +356,9 @@ public sealed class CharacterAcquiredTraitRequestInvalidationState
 [Serializable]
 public sealed class CharacterAcquiredTraitAggregateState
 {
+    [NonSerialized, Newtonsoft.Json.JsonIgnore]
+    internal readonly object ReadIdentity = new();
+
     public const int LegacyFormatVersion = 1;
     public const int FormulaFormatVersion = 2;
     public const int CurrentFormatVersion = 4;

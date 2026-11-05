@@ -5,7 +5,7 @@ using DungeonStory.Foundation;
 using DungeonStory.Narrative.Korean;
 
 /// <summary>Only observation code joins opaque daily/child facts to ledger identities.</summary>
-public sealed class CharacterLifeFactPreflight : IDungeonSavePreflightValidator, IDungeonCapturedSavePreflightValidator
+public sealed class CharacterLifeFactPreflight : IDungeonSavePreflightValidator, IDungeonDetachedCapturedSavePreflightValidator
 {
     public void Validate(DungeonGameSaveData save, DungeonGameRestoreReport report) => Validate(
         DungeonSaveSectionPayload.ReadOrNew<CharacterLifeWorldSaveData>(save, CharacterLifeSaveSection.Id),

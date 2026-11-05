@@ -4,7 +4,7 @@ using DungeonStory.Foundation;
 using DungeonStory.Narrative.Korean;
 
 /// <summary>The observer alone joins command-owned cell-shot facts to the canonical log.</summary>
-public sealed class CombatCellShotFactPreflight : IDungeonSavePreflightValidator, IDungeonCapturedSavePreflightValidator
+public sealed class CombatCellShotFactPreflight : IDungeonSavePreflightValidator, IDungeonDetachedCapturedSavePreflightValidator
 {
     public void Validate(DungeonGameSaveData save, DungeonGameRestoreReport report) => Validate(
         DungeonSaveSectionPayload.ReadOrNew<CharacterCombatCommandSaveData>(save, CharacterCombatCommandSaveSection.Id),

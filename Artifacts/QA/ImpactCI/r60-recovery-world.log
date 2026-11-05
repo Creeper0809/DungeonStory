@@ -1,0 +1,1434 @@
+VBCSCompilerServerWatchdog: watching VBCSCompiler (PID 10696)
+[Licensing::Module] Trying to connect to existing licensing client channel...
+[Licensing::IpcConnector] Successfully connected to: "LicenseClient-vulpo" at "2026-11-05T17:09:10.6145473Z"
+Built from '6000.3/respin/6000.3.28f1-21f78c3e21d1' branch; Version is '6000.3.28f1 (8f082d2fe476) revision 9373741'; Using compiler version '194234433'; Build Type 'Release'
+OS: 'Windows 11  (10.0.26300) Professional' Language: 'ko' Physical Memory: 32559 MB
+BatchMode: 1, IsHumanControllingUs: 0, StartBugReporterOnCrash: 0, Is64bit: 1
+System  architecture: x64
+Process architecture: x64
+Date: 2026-11-05T17:09:10Z
+[Licensing::Client] Code 10 while verifying Licensing Client signature (process Id: 29480, path: "C:/Program Files/Unity/Hub/Editor/6000.3.28f1/Editor/Data/Resources/Licensing/Client/Unity.Licensing.Client.exe")
+[Licensing::Module] LicensingClient has failed validation; ignoring
+[Licensing::Client] Handshaking with LicensingClient:
+  Version:                 1.19.0+4cc3dda
+  Session Id:              93c38e2f524a4af9b411deccdeb9dd23
+  Correlation Id:          79aa7d9f4b33fdf984b16fd6aa5f70ef
+  External correlation Id: 655266305673379171
+  Machine Id:              1IaXls9km9+PjJD0NAKlu7lO7Kc=
+[Licensing::Module] Successfully connected to LicensingClient on channel: "LicenseClient-vulpo" (connect: 0.00s, validation: 0.00s, handshake: 0.05s)
+[Licensing::IpcConnector] Successfully connected to: "LicenseClient-vulpo-notifications" at "2026-11-05T17:09:10.6709549Z"
+[Licensing::Module] Error: Access token is unavailable; failed to update
+[Licensing::Client] Successfully resolved entitlement details
+[Licensing::Module] License group:
+  Id: 14568616876292-UnityPersXXXX
+  Product: Unity Personal
+  Type: Assigned
+  Expiration: Unlimited
+[Licensing::Client] Successfully updated license, isAsync: True, time: 0.00
+[Licensing::Client] Successfully resolved entitlement details
+[Licensing::Module] Licensing Background thread has ended after 0.07s
+
+COMMAND LINE ARGUMENTS:
+C:\Program Files\Unity\Hub\Editor\6000.3.28f1\Editor\Unity.exe
+-batchmode
+-nographics
+-projectPath
+Z:\01_Project\03_DungeonStory\Unity
+-executeMethod
+V27CiEvidenceBatch.RunImpactWorldRestore
+-logFile
+Z:\01_Project\03_DungeonStory\Unity\Artifacts\QA\CIRecovery-20261106\world-r3\unity.log
+-refreshImportMode
+InProcess
+-job-worker-count
+1
+-desiredWorkerCount
+1
+-standbyWorkerCount
+0
+Successfully changed project path to: Z:\01_Project\03_DungeonStory\Unity
+Z:/01_Project/03_DungeonStory/Unity
+[UnityMemory] Configuration Parameters - Can be set up in boot.config
+    "memorysetup-temp-allocator-size-nav-mesh-worker=65536"
+    "memorysetup-temp-allocator-size-audio-worker=65536"
+    "memorysetup-temp-allocator-size-gfx=262144"
+    "memorysetup-allocator-temp-initial-block-size-main=262144"
+    "memorysetup-allocator-temp-initial-block-size-worker=262144"
+    "memorysetup-temp-allocator-size-background-worker=32768"
+    "memorysetup-temp-allocator-size-job-worker=262144"
+    "memorysetup-temp-allocator-size-preload-manager=33554432"
+    "memorysetup-remapper-allocator-initial-capacity=32768"
+    "memorysetup-temp-allocator-size-gi-baking-worker=262144"
+    "memorysetup-temp-allocator-size-gi-baking-worker=262144"
+    "memorysetup-temp-allocator-size-gi-baking-worker=262144"
+    "memorysetup-temp-allocator-size-gi-baking-worker=262144"
+    "memorysetup-temp-allocator-size-gi-baking-worker=262144"
+    "memorysetup-bucket-allocator-granularity=16"
+    "memorysetup-bucket-allocator-bucket-count=8"
+    "memorysetup-bucket-allocator-block-size=33554432"
+    "memorysetup-bucket-allocator-block-count=8"
+    "memorysetup-main-allocator-block-size=16777216"
+    "memorysetup-thread-allocator-block-size=16777216"
+    "memorysetup-gfx-main-allocator-block-size=16777216"
+    "memorysetup-gfx-thread-allocator-block-size=16777216"
+    "memorysetup-cache-allocator-block-size=4194304"
+    "memorysetup-typetree-allocator-block-size=2097152"
+    "memorysetup-profiler-bucket-allocator-granularity=16"
+    "memorysetup-profiler-bucket-allocator-bucket-count=8"
+    "memorysetup-profiler-bucket-allocator-block-size=33554432"
+    "memorysetup-profiler-bucket-allocator-block-count=8"
+    "memorysetup-profiler-allocator-block-size=16777216"
+    "memorysetup-profiler-editor-allocator-block-size=1048576"
+    "memorysetup-temp-allocator-size-main=16777216"
+    "memorysetup-job-temp-allocator-block-size=2097152"
+    "memorysetup-job-temp-allocator-block-size-background=1048576"
+    "memorysetup-job-temp-allocator-reduction-small-platforms=262144"
+    "memorysetup-temp-allocator-size-cloud-worker=32768"
+Player connection [34340]  Target information:
+
+Player connection [34340]  * "[IP] 192.168.45.139 [Port] 55504 [Flags] 2 [Guid] 3078090622 [EditorId] 3078090622 [Version] 1048832 [Id] WindowsEditor(7,DESKTOP-51P7BOH) [Debug] 1 [PackageName] WindowsEditor [ProjectName] Editor" 
+
+Player connection [34340] Host joined multi-casting on [225.0.0.222:54997]...
+Player connection [34340] Host joined alternative multi-casting on [225.0.0.222:34997]...
+JobSystem: Creating JobQueue using job-worker-count value 1
+Input System module state changed to: Initialized.
+[Physics::Module] Initialized fallback backend.
+[Physics::Module] Id: 0xdecafbad
+[Package Manager] Connected to IPC stream "Upm-35176" after 0.2 seconds.
+[Licensing::Client] Successfully resolved entitlement details
+Library Redirect Path: Library/
+[Physics::Module] Selected backend.
+[Physics::Module] Name: PhysX
+[Physics::Module] Id: 0xf2b8ea05
+[Physics::Module] SDK Version: 4.1.2
+[Physics::Module] Integration Version: 1.0.0
+[Physics::Module] Threading Mode: Multi-Threaded
+Refreshing native plugins compatible for Editor in 0.10 ms, found 0 plugins.
+Preloading 0 native plugins for Editor in 0.00 ms.
+Initialize engine version: 6000.3.28f1 (8f082d2fe476)
+[Subsystems] Discovering subsystems at path C:/Program Files/Unity/Hub/Editor/6000.3.28f1/Editor/Data/Resources/UnitySubsystems
+[Subsystems] Discovering subsystems at path Z:/01_Project/03_DungeonStory/Unity/Assets
+Forcing GfxDevice: Null
+GfxDevice: creating device client; kGfxThreadingModeNonThreaded
+NullGfxDevice:
+    Version:  NULL 1.0 [1.0]
+    Renderer: Null Device
+    Vendor:   Unity Technologies
+Initialize mono
+Mono path[0] = 'C:/Program Files/Unity/Hub/Editor/6000.3.28f1/Editor/Data/Managed'
+Mono path[1] = 'C:/Program Files/Unity/Hub/Editor/6000.3.28f1/Editor/Data/MonoBleedingEdge/lib/mono/unityjit-win32'
+Mono config path = 'C:/Program Files/Unity/Hub/Editor/6000.3.28f1/Editor/Data/MonoBleedingEdge/etc'
+Using monoOptions --debugger-agent=transport=dt_socket,embedding=1,server=y,suspend=n,address=127.0.0.1:56176
+Using cacheserver namespaces - metadata:defaultmetadata, artifacts:defaultartifacts
+Using cacheserver namespaces - metadata:defaultmetadata, artifacts:defaultartifacts
+ImportWorker Server TCP listen port: 0
+AcceleratorClientConnectionCallback - disconnected - :0
+Begin MonoManager ReloadAssembly
+Registering precompiled unity dll's ...
+Register platform support module: C:/Program Files/Unity/Hub/Editor/6000.3.28f1/Editor/Data/PlaybackEngines/WindowsStandaloneSupport/UnityEditor.WindowsStandalone.Extensions.dll
+[Licensing::Client] Successfully resolved entitlement details
+Register platform support module: C:/Program Files/Unity/Hub/Editor/6000.3.28f1/Editor/Data/PlaybackEngines/AndroidPlayer/UnityEditor.Android.Extensions.dll
+Registered in 0.003493 seconds.
+- Loaded All Assemblies, in  0.302 seconds
+Native extension for Android target not found
+Native extension for WindowsStandalone target not found
+Package Manager log level set to [2]
+ScheduleIndexationOnStartup MainProcess:False IndexOnStartup:True
+Mono: successfully reloaded assembly
+- Finished resetting the current domain, in  0.275 seconds
+Domain Reload Profiling: 575ms
+	BeginReloadAssembly (109ms)
+		ExecutionOrderSort (0ms)
+		DisableScriptedObjects (0ms)
+		BackupInstance (0ms)
+		ReleaseScriptingObjects (0ms)
+		CreateAndSetChildDomain (21ms)
+	RebuildCommonClasses (27ms)
+	RebuildNativeTypeToScriptingClass (9ms)
+	initialDomainReloadingComplete (37ms)
+	LoadAllAssembliesAndSetupDomain (118ms)
+		LoadAssemblies (87ms)
+		RebuildTransferFunctionScriptingTraits (0ms)
+		AnalyzeDomain (116ms)
+			TypeCache.Refresh (114ms)
+				TypeCache.ScanAssembly (105ms)
+			BuildScriptInfoCaches (0ms)
+			ResolveRequiredComponents (0ms)
+	FinalizeReload (276ms)
+		ReleaseScriptCaches (0ms)
+		RebuildScriptCaches (0ms)
+		SetupLoadedEditorAssemblies (251ms)
+			LogAssemblyErrors (0ms)
+			InitializePlatformSupportModulesInManaged (38ms)
+			SetLoadedEditorAssemblies (3ms)
+			BeforeProcessingInitializeOnLoad (56ms)
+			ProcessInitializeOnLoadAttributes (93ms)
+			ProcessInitializeOnLoadMethodAttributes (61ms)
+			AfterProcessingInitializeOnLoad (0ms)
+			EditorAssembliesLoaded (0ms)
+		ExecutionOrderSort2 (0ms)
+		AwakeInstancesAfterBackupRestoration (0ms)
+[Licensing::Client] Successfully resolved entitlement details
+Application.AssetDatabase Initial Refresh Start
+[Package Manager] Restoring resolved packages state from cache
+[Licensing::Client] Successfully resolved entitlement details
+[Package Manager] Registered 78 packages:
+  Packages from [https://packages.unity.com]:
+    com.unity.ai.assistant@2.13.0-pre.2 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.ai.assistant@6fee27370e6a)
+    com.unity.cinemachine@2.10.7 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.cinemachine@631385387c5a)
+    com.unity.ide.rider@3.1.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.ide.rider@570989d4a882)
+    com.unity.ide.visualstudio@2.0.26 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.ide.visualstudio@a99d56dec63f)
+    com.unity.inputsystem@1.20.1 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.inputsystem@2436e68c60c4)
+    com.unity.localization@1.5.9 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.localization@62db12c43c5c)
+    com.unity.pipeline@0.6.0-exp.1 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.pipeline@9bb4172c603c)
+    com.unity.sdk.linux-x86_64@1.1.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.sdk.linux-x86_64@6d12be270055)
+    com.unity.timeline@1.8.13 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.timeline@3a22918286f5)
+    com.unity.toolchain.linux-x86_64-linux@1.1.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.toolchain.linux-x86_64-linux@d0308bf9d559)
+    com.unity.visualscripting@1.9.12 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.visualscripting@4edfcc09512f)
+    com.unity.sysroot.base@1.1.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.sysroot.base@3559fe1aa613)
+    com.unity.nuget.mono-cecil@1.11.6 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.nuget.mono-cecil@ecb9724e46ff)
+    com.unity.nuget.newtonsoft-json@3.2.2 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.nuget.newtonsoft-json@4dfd81071c64)
+    com.unity.addressables@2.10.3 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.addressables@c0978d16db5d)
+    com.unity.2d.animation@13.0.6 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.2d.animation@cd6c3841e39a)
+    com.unity.2d.pixel-perfect@5.1.1 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.2d.pixel-perfect@09d99455b901)
+    com.unity.2d.psdimporter@12.0.2 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.2d.psdimporter@f207d91d598d)
+    com.unity.2d.spriteshape@13.0.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.2d.spriteshape@0738bab11647)
+    com.unity.2d.tilemap.extras@6.0.3 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.2d.tilemap.extras@58739e072909)
+    com.unity.2d.aseprite@3.0.2 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.2d.aseprite@20edb5643ab5)
+    com.unity.2d.tooling@1.0.4 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.2d.tooling@04422e023209)
+    com.unity.mathematics@1.3.3 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.mathematics@19a9377c4ffa)
+    com.unity.searcher@4.9.5 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.searcher@a463122f2c00)
+    com.unity.burst@1.8.31 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.burst@bfa84123c21a)
+    com.unity.collections@2.7.1 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.collections@88d5bf65ce66)
+    com.unity.profiling.core@1.0.3 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.profiling.core@8a49f7027d06)
+    com.unity.scriptablebuildpipeline@2.6.2 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.scriptablebuildpipeline@97537e3e823b)
+    com.unity.2d.common@12.0.4 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.2d.common@3e42aeccb30d)
+    com.unity.test-framework.performance@3.5.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.test-framework.performance@8b56083ec0f0)
+  Built-in packages:
+    com.unity.feature.2d@2.0.2 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.feature.2d@0309d34ea7f2)
+    com.unity.multiplayer.center@1.0.1 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.multiplayer.center@f01f4ba8d00a)
+    com.unity.render-pipelines.universal@17.3.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.render-pipelines.universal@029be7ffa662)
+    com.unity.test-framework@1.6.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.test-framework@bd7f943e9647)
+    com.unity.ugui@2.0.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.ugui@44a561608371)
+    com.unity.modules.accessibility@1.0.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.modules.accessibility)
+    com.unity.modules.adaptiveperformance@1.0.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.modules.adaptiveperformance)
+    com.unity.modules.ai@1.0.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.modules.ai)
+    com.unity.modules.androidjni@1.0.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.modules.androidjni)
+    com.unity.modules.animation@1.0.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.modules.animation)
+    com.unity.modules.assetbundle@1.0.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.modules.assetbundle)
+    com.unity.modules.audio@1.0.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.modules.audio)
+    com.unity.modules.cloth@1.0.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.modules.cloth)
+    com.unity.modules.director@1.0.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.modules.director)
+    com.unity.modules.imageconversion@1.0.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.modules.imageconversion)
+    com.unity.modules.imgui@1.0.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.modules.imgui)
+    com.unity.modules.jsonserialize@1.0.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.modules.jsonserialize)
+    com.unity.modules.particlesystem@1.0.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.modules.particlesystem)
+    com.unity.modules.physics@1.0.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.modules.physics)
+    com.unity.modules.physics2d@1.0.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.modules.physics2d)
+    com.unity.modules.screencapture@1.0.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.modules.screencapture)
+    com.unity.modules.terrain@1.0.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.modules.terrain)
+    com.unity.modules.terrainphysics@1.0.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.modules.terrainphysics)
+    com.unity.modules.tilemap@1.0.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.modules.tilemap)
+    com.unity.modules.ui@1.0.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.modules.ui)
+    com.unity.modules.uielements@1.0.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.modules.uielements)
+    com.unity.modules.umbra@1.0.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.modules.umbra)
+    com.unity.modules.unityanalytics@1.0.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.modules.unityanalytics)
+    com.unity.modules.unitywebrequest@1.0.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.modules.unitywebrequest)
+    com.unity.modules.unitywebrequestassetbundle@1.0.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.modules.unitywebrequestassetbundle)
+    com.unity.modules.unitywebrequestaudio@1.0.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.modules.unitywebrequestaudio)
+    com.unity.modules.unitywebrequesttexture@1.0.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.modules.unitywebrequesttexture)
+    com.unity.modules.unitywebrequestwww@1.0.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.modules.unitywebrequestwww)
+    com.unity.modules.vectorgraphics@1.0.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.modules.vectorgraphics)
+    com.unity.modules.vehicles@1.0.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.modules.vehicles)
+    com.unity.modules.video@1.0.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.modules.video)
+    com.unity.modules.vr@1.0.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.modules.vr)
+    com.unity.modules.wind@1.0.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.modules.wind)
+    com.unity.modules.xr@1.0.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.modules.xr)
+    com.unity.modules.subsystems@1.0.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.modules.subsystems)
+    com.unity.modules.hierarchycore@1.0.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.modules.hierarchycore)
+    com.unity.ext.nunit@2.0.5 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.ext.nunit@d8c07649098d)
+    com.unity.render-pipelines.core@17.3.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.render-pipelines.core@3424017a4ec3)
+    com.unity.shadergraph@17.3.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.shadergraph@d526115bb944)
+    com.unity.render-pipelines.universal-config@17.0.3 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.render-pipelines.universal-config@8dc1aab4af1d)
+    com.unity.2d.sprite@1.0.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.2d.sprite@5b922524bd83)
+    com.unity.2d.tilemap@1.0.0 (location: Z:\01_Project\03_DungeonStory\Unity\Library\PackageCache\com.unity.2d.tilemap@4d671073d7ba)
+  Embedded packages:
+    jp.hadashikick.vcontainer@file:Z:\01_Project\03_DungeonStory\Unity\Packages\jp.hadashikick.vcontainer (location: Z:\01_Project\03_DungeonStory\Unity\Packages\jp.hadashikick.vcontainer)
+[Subsystems] No new subsystems found in resolved package list.
+[Package Manager] Done registering packages in 0.05 seconds
+Refreshing native plugins compatible for Editor in 0.65 ms, found 2 plugins.
+Starting: C:\Program Files\Unity\Hub\Editor\6000.3.28f1\Editor\Data\Tools\BuildPipeline\bee_backend.exe --ipc --defer-dag-verification --dagfile="Library/Bee/1900b0aE.dag" --continue-on-failure --profile="Library/Bee/backend1.traceevents" ScriptAssemblies
+WorkingDir: Z:/01_Project/03_DungeonStory/Unity
+DisplayProgressbar: Compiling Scripts
+ExitCode: 0 Duration: 0s571ms
+[ 457/2218  0s] ILPP-Configuration Library/ilpp-configuration.nevergeneratedoutput
+*** Tundra build success (0.55 seconds), 1 items updated, 2218 evaluated
+AssetDatabase: script compilation time: 0.944507s
+Begin MonoManager ReloadAssembly
+Total cache size 55247728
+Total cache size after purge 55247728, took 00:00:00.0397925
+- Loaded All Assemblies, in  1.136 seconds
+Refreshing native plugins compatible for Editor in 0.82 ms, found 2 plugins.
+Native extension for Android target not found
+Native extension for WindowsStandalone target not found
+V27_HEADLESS_EDITOR_RELAY_AUTOSTART=SUPPRESSED; package bootstrap API; actual Assistant use retains lazy initialization
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+V27CiEvidenceBatch:SuppressUnusedHeadlessEditorRelay () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:52)
+V27CiEvidenceBatch:.cctor () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:27)
+System.Runtime.CompilerServices.RuntimeHelpers:RunClassConstructor (System.RuntimeTypeHandle)
+UnityEditor.EditorAssemblies:ProcessInitializeOnLoadAttributes (System.Type[])
+
+(Filename: Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs Line: 52)
+
+Start HTTP server: port:7800
+[Licensing::Client] Error: Code 404 while processing request (status: Found 0 entitlement groups and 0 free entitlements matching requested entitlement ids)
+[Licensing::Client] Error: Code 404 while processing request (status: Found 0 entitlement groups and 0 free entitlements matching requested entitlement ids)
+[Licensing::Client] Error: Code 404 while processing request (status: Found 0 entitlement groups and 0 free entitlements matching requested entitlement ids)
+ScheduleIndexationOnStartup MainProcess:True IndexOnStartup:True
+Mono: successfully reloaded assembly
+- Finished resetting the current domain, in  5.104 seconds
+Domain Reload Profiling: 6237ms
+	BeginReloadAssembly (128ms)
+		ExecutionOrderSort (0ms)
+		DisableScriptedObjects (16ms)
+		BackupInstance (0ms)
+		ReleaseScriptingObjects (0ms)
+		CreateAndSetChildDomain (23ms)
+	RebuildCommonClasses (24ms)
+	RebuildNativeTypeToScriptingClass (9ms)
+	initialDomainReloadingComplete (40ms)
+	LoadAllAssembliesAndSetupDomain (931ms)
+		LoadAssemblies (395ms)
+		RebuildTransferFunctionScriptingTraits (0ms)
+		AnalyzeDomain (604ms)
+			TypeCache.Refresh (487ms)
+				TypeCache.ScanAssembly (466ms)
+			BuildScriptInfoCaches (98ms)
+			ResolveRequiredComponents (12ms)
+	FinalizeReload (5104ms)
+		ReleaseScriptCaches (0ms)
+		RebuildScriptCaches (0ms)
+		SetupLoadedEditorAssemblies (4905ms)
+			LogAssemblyErrors (0ms)
+			InitializePlatformSupportModulesInManaged (21ms)
+			SetLoadedEditorAssemblies (7ms)
+			BeforeProcessingInitializeOnLoad (158ms)
+			ProcessInitializeOnLoadAttributes (4462ms)
+			ProcessInitializeOnLoadMethodAttributes (249ms)
+			AfterProcessingInitializeOnLoad (7ms)
+			EditorAssembliesLoaded (1ms)
+		ExecutionOrderSort2 (0ms)
+		AwakeInstancesAfterBackupRestoration (14ms)
+Asset Pipeline Refresh (id=b94e7a6a8a0e3a744a2ff689c234a861): Total: 8.036 seconds - Initiated by InitialRefreshV2(ForceSynchronousImport)
+	Summary:
+		Imports: total=0 (actual=0, local cache=0, cache server=0)
+		Asset DB Process Time: managed=0 ms, native=5800 ms
+		Asset DB Callback time: managed=24 ms, native=54 ms
+		Scripting: domain reloads=1, domain reload time=1136 ms, compile time=946 ms, other=73 ms
+		Project Asset Count: scripts=3073, non-scripts=9744
+		Asset File Changes: new=0, changed=0, moved=0, deleted=0
+		Scan Filter Count: 0
+	InvokeCustomDependenciesCallbacks: 0.001ms
+	InvokePackagesCallback: 55.440ms
+	ApplyChangesToAssetFolders: 0.536ms
+	Scan: 206.155ms
+	OnSourceAssetsModified: 0.002ms
+	CategorizeAssetsWithTransientArtifact: 68.459ms
+	ProcessAssetsWithTransientArtifactChanges: 123.548ms
+	CategorizeAssets: 112.464ms
+	ImportOutOfDateAssets: 5119.014ms (4167.807ms without children)
+		CompileScripts: 945.686ms
+		ReloadNativeAssets: 0.068ms
+		UnloadImportedAssets: 2.612ms
+		EnsureUptoDateAssetsAreRegisteredWithGuidPM: 1.600ms
+		InitializingProgressBar: 0.000ms
+		PostProcessAllAssetNotificationsAddChangedAssets: 0.000ms
+		OnDemandSchedulerStart: 1.242ms
+	PostProcessAllAssets: 24.943ms
+	GatherAllCurrentPrimaryArtifactRevisions: 0.002ms
+	UnloadStreamsBegin: 1.023ms
+	PersistCurrentRevisions: 0.383ms
+	UnloadStreamsEnd: 0.002ms
+	GenerateScriptTypeHashes: 8.366ms
+	Untracked: 2323.870ms
+
+Application.AssetDatabase Initial Refresh End
+Scanning for USB devices : 4.611ms
+Initializing Unity extensions:
+[MODES] ModeService[none].Initialize
+[MODES] ModeService[none].LoadModes
+[MODES] Loading mode Default (0) for mode-current-id-DungeonStory
+Unloading 90 Unused Serialized files (Serialized files now loaded: 0)
+Unloading 14937 unused Assets / (12.3 MB). Loaded Objects now: 15731.
+Memory consumption went from 313.1 MB to 300.7 MB.
+Total: 21.563900 ms (FindLiveObjects: 1.307600 ms CreateObjectMapping: 0.830600 ms MarkObjects: 13.774000 ms  DeleteObjects: 5.650900 ms)
+
+Asset Pipeline Refresh (id=75f66a1b6b95c034f9301f9432087238): Total: 0.077 seconds - Initiated by RefreshV2(NoUpdateAssetOptions)
+Isolated full-world verification queued; player persistence is excluded.
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+DungeonFullWorldRoundTripPlayModeFacade:RequestIsolatedBatch () (at Assets/Scripts/Services/Infrastructure/Editor/DungeonFullWorldRoundTripPlayModeFacade.cs:83)
+V27CiEvidenceBatch:RunImpactWorldRestore () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:190)
+
+(Filename: Assets/Scripts/Services/Infrastructure/Editor/DungeonFullWorldRoundTripPlayModeFacade.cs Line: 83)
+
+Microsoft Media Foundation video decoding to texture disabled: graphics device is Null, only Direct3D 11 and Direct3D 12 (only on desktop) are supported for hardware-accelerated video decoding.
+[Project] Loading completed in 70.468 seconds
+	Project init time: 				9.909 seconds
+		Template init time: 		0.000 seconds
+		Package Manager init time: 		0.192 seconds
+		Asset Database init time: 		0.151 seconds
+		Global illumination init time: 	0.002 seconds
+		Assemblies load time: 			0.591 seconds
+		Unity extensions init time: 	0.014 seconds
+		Asset Database refresh time: 	8.036 seconds
+	Scene opening time: 			60.199 seconds
+##utp:{"type":"ProjectInfo","version":2,"phase":"Immediate","time":1793898621035,"processId":35176,"projectLoad":70.4680072,"projectInit":9.9092158,"templateInit":0.0,"packageManagerInit":0.192234,"assetDatabaseInit":0.150883,"globalIlluminationInit":0.0016448,"assembliesLoad":0.5909291,"unityExtensionsInit":0.0137626,"assetDatabaseRefresh":8.0359443,"sceneOpening":60.1989303}
+##utp:{"type":"EditorInfo","version":2,"phase":"Immediate","time":1793898621035,"processId":35176,"editorVersion":"6000.3.28f1 (8f082d2fe476)","branch":"6000.3/respin/6000.3.28f1-21f78c3e21d1","buildType":"Release","platform":"Windows"}
+[Licensing::Client] Successfully resolved entitlement details
+[Licensing::Client] Error: Code 404 while processing request (status: Found 0 entitlement groups and 0 free entitlements matching requested entitlement ids)
+[Licensing::Client] Error: Code 404 while processing request (status: Found 0 entitlement groups and 0 free entitlements matching requested entitlement ids)
+[Licensing::Client] Successfully resolved entitlement details
+[Licensing::Client] Successfully resolved entitlement details
+Opening scene 'Assets/Scenes/GameplayScene.unity'
+Unloading 118 Unused Serialized files (Serialized files now loaded: 0)
+Loaded scene 'Assets/Scenes/GameplayScene.unity'
+	Deserialize:            244.474 ms
+	Integration:            358.003 ms
+	Integration of assets:  6.178 ms
+	Thread Wait Time:       0.083 ms
+	Total Operation Time:   608.738 ms
+Unloading 4 unused Assets / (21.0 KB). Loaded Objects now: 16659.
+Memory consumption went from 282.3 MB to 282.3 MB.
+Total: 14.683600 ms (FindLiveObjects: 0.577300 ms CreateObjectMapping: 0.434300 ms MarkObjects: 13.617500 ms  DeleteObjects: 0.053800 ms)
+
+[Licensing::Client] Successfully resolved entitlement details
+Start Indexing on Editor startup
+[Indexing] Starting Initial Indexing for Assets
+[UnityConnectServicesConfig] config is NOT valid, switching to default
+Created GICache directory at C:/Users/vulpo/AppData/LocalLow/Unity/Caches/GiCache. Took: 0.005s, timestamps: [70.480 - 70.485]
+SpriteAtlasPacking completed in 0.022159 sec
+Entering Playmode with Reload Domain disabled.
+If you experience any issues, please disable "Enter Play Mode Options" in Editor Settings
+Loaded scene 'Temp/__Backupscenes/0.backup'
+	Deserialize:            7.250 ms
+	Integration:            4030.908 ms
+	Integration of assets:  0.004 ms
+	Thread Wait Time:       0.012 ms
+	Total Operation Time:   4038.174 ms
+Legacy persistence import excluded for isolated batch verification.
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+DungeonLegacyPersistenceMigration:Start () (at Assets/Scripts/Services/Infrastructure/Core/DungeonLegacyPersistenceMigration.cs:16)
+VContainer.Unity.StartableLoopItem:MoveNext () (at ./Packages/jp.hadashikick.vcontainer/Runtime/Unity/PlayerLoopItem.cs:31)
+VContainer.Unity.PlayerLoopRunner:Run () (at ./Packages/jp.hadashikick.vcontainer/Runtime/Unity/PlayerLoopRunner.cs:34)
+
+(Filename: Assets/Scripts/Services/Infrastructure/Core/DungeonLegacyPersistenceMigration.cs Line: 16)
+
+Starting new worker id: 0 with log in Z:/01_Project/03_DungeonStory/Unity/Logs/AssetImportWorker0.log
+Worker ready: AssetImportWorker0 0
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/DungeonAudioController.cs using Guid(acb5f97cf9215414c80614ab299fc10f) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'f003897bac3f5c99deccc09f7d80a24b') in 0.0632845 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/KnowledgeResidueDestinationRuntime.cs using Guid(fe8535b76072cfe4b99d0de00e755ae0) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'adb8f8f92d0c265847650ad508648bed') in 0.0149833 seconds
+[Worker0] Start importing Assets/Scripts/Services/Factions/FactionRouteCargoRuntime.cs using Guid(86ad0b24dfc14875ae63fdc884cd4c89) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '9d3eb5bd751d4f58577811a2a457c781') in 0.0150629 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/ResearchArcaneIndexEquipmentPolicySource.cs using Guid(181170ef03284769ac76245f3567f5bf) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '4180b5fb1310ee1b6836e6d2b641d853') in 0.0178574 seconds
+[Worker0] Start importing Assets/Scripts/Services/Foundation/CharacterContentIds.cs using Guid(7df89c4d005b8ca4d9dc566fd2bdb775) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'ffb9141381c4c493e1f1da0e10752bdd') in 0.0122908 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/BlueprintResearchApplicationAdapter.cs using Guid(1b2bb02a3bed4de09ed3cc190511e444) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '3e4f9a581d41ed672fd57e89d6b13b2c') in 0.0178805 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/StaffDiscontentRuntimeProvider.cs using Guid(4d737f4970736f844b2ab6b6b73de6bc) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '0f79899cf454e57fb77181c616b57428') in 0.012362 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/SceneBuildableLeakValidator.cs using Guid(c0e52ae7f2db64a4983f632fba51d8f9) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '16592c8e691ad4f3d96d51a92e6930a2') in 0.0137051 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/ResearchBlueprintArchiveAdapter.cs using Guid(b4100000000000000000000000000018) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'a65732c6087deff138b9bdac74a65aff') in 0.0297923 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/ResearchQueueRuntimeAdapter.cs using Guid(b4100000000000000000000000000012) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '80308013fa28b782f02731896e26f076') in 0.0209002 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/BuildingWorkOrderSummaryAdapter.cs using Guid(3ad8d29f994d4ecf83d540021b72c563) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '2a36fee228db3f617162869135378bb4') in 0.0124405 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/ShopStockCatalogService.cs using Guid(fafdad637888258499b0850efae20f79) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'a522bce185b4f15847ebdabf87c373db') in 0.0127053 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/IWorldPointerPositionProvider.cs using Guid(181651ef00dc4f318b99db57ebfab09a) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '6e3832fb45ad028d4e1a7c6bf4ff5c42') in 0.0175273 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/FacilityCapabilityKind.cs using Guid(b4140000000000000000000000000002) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '19c75a9621e8a0d89b0cfde265dff8c4') in 0.0167629 seconds
+[Worker0] Start importing Assets/Scripts/Services/Foundation/ItemDefinitionId.cs using Guid(b7e0c5329f1a4ad0a53c8f9d113b2e01) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '9834c1d065adde2fd848f777e408d6c7') in 0.0177584 seconds
+[Worker0] Start importing Assets/Scripts/Services/Foundation/WildlifeGameplayFacts.cs using Guid(2eef55c9c8e645b19ee40f1b13b71306) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '41ffb1eb237aed78c36c13bb893caa1c') in 0.0116813 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/DungeonSceneRuntimeReferences.cs using Guid(12fddc8fba07e8f4ca582ebe135c77c0) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'e26e75c23098b4b46181e65dcf41640b') in 0.0156433 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/DungeonGameSaveService.cs using Guid(b01bda9e53c530e48984a174717386c7) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '884fcda4c8a501a95d513a217132a153') in 0.0169815 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/ResearchWorkExecutionAdapter.cs using Guid(b4100000000000000000000000000016) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'bdf699400291a5d5f74b7088f2f58e96') in 0.014734 seconds
+[Worker0] Start importing Assets/Scripts/Services/FacilityShop/FacilityShopPurchaseFact.cs using Guid(e250ec93b4614a28b912e48da9de9f6e) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'e7a8bee8623be4dafda5c147a2268cb2') in 0.0142361 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/BlueprintResearchRuntimeProvider.cs using Guid(66476c9bb0a692948a12f87e6bf74a36) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'a741b474774814e841dccd526c892fae') in 0.0143452 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/DungeonTitleLifetimeScope.cs using Guid(e8bd70a6815d499a9f37ff0e1c543ee4) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'c5c36670f9504449f3869c50c301f251') in 0.0273901 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/CoreBuildingAbilityHandlerAdapters.cs using Guid(8c081ff2b3bd48f69d9b61eaf974f3bd) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '3fa2288a888b6e60be7eccc38bfc87c8') in 0.0205475 seconds
+[Worker0] Start importing Assets/Scripts/Services/FacilityShop/FacilityShopPurchaseJournal.cs using Guid(b4fa5f0460c342a4840f2caa60290bc1) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '1d5f10db9aec5cc74843f040d0a94905') in 0.0187088 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/ModularFacilityWorldSaveCodec.cs using Guid(061bf22a21a5ec441a8627b31001f0a8) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '631c5a8895b374b0eeb1c3efe807ebf4') in 0.0147491 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/CharacterSceneRuntimeReferences.cs using Guid(669f763bd6d7446898efe4703b6a0207) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '153e9f1b5be73e8b498fd52d3b705e77') in 0.0201321 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/TmpKoreanFontProvider.cs using Guid(1bbcf8f4f2b34254a9f779f76f238c0d) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '398345d4e71811c10ff267a2d6b0e61c') in 0.0157527 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/BlueprintResearchContracts.cs using Guid(b4100000000000000000000000000021) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '9bb58488a631308a6ea567289fbc7173') in 0.0178866 seconds
+[Worker0] Start importing Assets/Scripts/Services/Factions/FactionRelationshipObservationFacts.cs using Guid(f8c17625789b4eb1a9cac7481254ef0e) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'bb22d7d8d90ef5a9cf082bf2ddcee2c5') in 0.016982 seconds
+[Worker0] Start importing Assets/Scripts/Services/Factions/FactionCargoDeliveredFact.cs using Guid(b119e21097e14ca2a8c8f0a67e2ae901) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'd8356fbd7bdec6020f02e1c290671066') in 0.0189193 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/DungeonPreparationLifetimeScope.cs using Guid(7bc9aee5b37541ab889f3fa33cde2f03) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'f4d42dd4b008f8758b0a39459b03633f') in 0.0164216 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/CharacterV18RestoreIdentityResolver.cs using Guid(d959240560ca4c58bb714f2d69a0e076) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'df03f3dc9ac3cc6243d629fe6056b8fe') in 0.0162679 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/CharacterStatMaintenanceRuntimeAdapter.cs using Guid(d1939600c64a49e987055fbba070ee45) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '177491b12ee0ac7d76e4e6dfdad7c58f') in 0.0266128 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/PlayerInputServices.cs using Guid(dd5354d802e22da4fbb39ab5df3c455e) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '8c59087c77878069150e69c743904ecc') in 0.0149505 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/CharacterSpawnerProvider.cs using Guid(7f182245f245988469df3ba6552b1589) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'f36fe75ba53e72a471e6aefd1b56ad20') in 0.0137513 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/DungeonRestoreSafetyRuntime.cs using Guid(ceacc78a1ba44611870a315fff230b47) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'cb366a03c5a0d3a164015937887489a3') in 0.0179757 seconds
+[Worker0] Start importing Assets/Scripts/Services/Foundation/CharacterPerformanceFormulaDefinitionSO.cs using Guid(3492011b3dafa9042a1ad22895608b38) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '5322078ce3a166beb60f2b22cdc04a52') in 0.0143949 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/MetaProgressionRuntimeProvider.cs using Guid(1f6b4edb6a86c54439414497d3a2f248) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '2dbfbd4c2ce1fdb56425342d88d9f9df') in 0.0168347 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/ResearchRewardCatalogAdapter.cs using Guid(b4100000000000000000000000000013) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'de042467ecb1e5ad7425568ed753e79c') in 0.0185312 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/ResearchDurableEquipmentLifecycleRuntime.cs using Guid(658bac4a7dff44548020ff8d0809b2b1) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '103ae05c0cf21a8e3dd1b558b6eaa1d5') in 0.0151599 seconds
+[Worker0] Start importing Assets/Scripts/Services/Foundation/WildlifeFoodRaidFact.cs using Guid(d076810fc7a04ea1a30661ee4d741d61) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '4f1d28de266f270854589d7904877e3e') in 0.0173325 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/BuildingCraftWorkAdapters.cs using Guid(7f0f3408fadd4260ad7584ac1be20e2e) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'c1fa09cfe186a7a4b900cb2eec49636d') in 0.0120197 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/FacilityCapabilityQuery.cs using Guid(b4140000000000000000000000000004) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'cdecd504317a3f586dcdd532a0d1e55f') in 0.0151085 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/RunVariableRuntimeProvider.cs using Guid(ec1146a5587ef6a4993ce336644499b1) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '27d779677e6d5105c21cb2784a20c808') in 0.0109732 seconds
+[Worker0] Start importing Assets/Scripts/Services/Foundation/WildlifeGameplayOutcomeModels.cs using Guid(b1d72fe4aacf2244c930c0c79bc0c445) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '7e359f55fc23fe4abf6e537f317f122f') in 0.0123763 seconds
+[Worker0] Start importing Assets/Scripts/Services/FacilityShop/FacilityShopOffersRebuiltEvent.cs using Guid(a97619532695453d996e056bff9287dd) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'f487063e861ec3d9a2728c783d32f95c') in 0.0121795 seconds
+[Worker0] Start importing Assets/Scripts/Services/Factions/FactionRuntime.cs using Guid(a284d9b8af9b4334786fdef712291207) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '64e69e3b326ac5c390504f64b7027b3d') in 0.014762 seconds
+[Worker0] Start importing Assets/Scripts/Services/FacilityShop/FacilityAnnouncementObserver.cs using Guid(b3f080f6c1d44b49b10667bedc5aad52) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '12975dca3ad4db73abfb9bb5968d1d8f') in 0.0129325 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/BlueprintResearchSaveSection.cs using Guid(b4100000000000000000000000000020) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'ac965fbdf20dcbdb9545dfef33e51849') in 0.0137283 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/DungeonSceneNavigation.cs using Guid(f72ec83ab81a4bed94559cf69dd65041) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '9fa8b4ffb0bf2845e103e11137a5362e') in 0.0134023 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/GameSessionRuntimeServices.cs using Guid(4bdd4394638a4ed3a706054aebc22515) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '5a1dfef6f0e839c9e1b2c4619054f6e2') in 0.014957 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/OffenseSaveService.cs using Guid(4fd87bf006a419c40a72440ac4b55f61) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '20dd419340ad89efedf82852f4bd4942') in 0.0145778 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/DungeonRuntimeLifetimeScope.cs using Guid(84408efe412f7694da82f9f1871335fb) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'd3bf37aa4e80dc3eba8c4686dc0d2a64') in 0.0148995 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/DungeonGridBuildingRuntimeProviders.cs using Guid(d00ad753bb001a24a88de3c2485212c2) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'b0a5bd5ef083709bbdc753a3fd9927bd') in 0.0146941 seconds
+[Worker0] Start importing Assets/Scripts/Services/Foundation/CraftQualityAttemptEstimate.cs using Guid(e22dd69b90cc9464aa315ff95c6a58ff) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'cd43818a103fae0dcb9b6388815dfd5e') in 0.0126257 seconds
+[Worker0] Start importing Assets/Scripts/Services/Foundation/AnatomyApparelPrimitives.cs using Guid(7c8b476ad5ae459cb2b633255b0f5c1e) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '0d0fe27c8be8f550cdad6eb3d2abeb7d') in 0.0149345 seconds
+[Worker0] Start importing Assets/Scripts/Services/Foundation/ProductionOutputCapabilityContracts.cs using Guid(510f2dbf6dd746fda63a46f10c88f39a) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '3a404b33ec1992405c1f7c70ebb14cb5') in 0.0133377 seconds
+[Worker0] Start importing Assets/Scripts/Services/Foundation/GameplayEffectDefinitionSO.cs using Guid(cb023a38f7c844b4a9a1d995b88bc1ad) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '2b740a73fd6841fea15455e66053ab3b') in 0.011084 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/BuildingDoorCharacterWildlifeAdapter.cs using Guid(cf91d08c45f5427aa1430e340c8415b8) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '62287a7f876b672b1a038a14c7a4d095') in 0.016048 seconds
+[Worker0] Start importing Assets/Scripts/Services/Foundation/DomainFailure.cs using Guid(b03f4948f07934241a28ea97532d06f5) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'f475e2bc8d5218aeaf73afb4991c9646') in 0.0171429 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/CharacterAiActionAssetCatalog.cs using Guid(88081b4e9d1b4cf3bc4c0b6e9166da2f) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'd03aedbfcc94f862aef5ebaeb2a43d78') in 0.0139291 seconds
+[Worker0] Start importing Assets/Scripts/Services/Foundation/CraftsmanshipDefinitionMaximumQuery.cs using Guid(b4da27a242949c14c81a6c62ca466da4) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '2bd28dd03a3e7bc3426a5b140d5d5f32') in 0.0118373 seconds
+[Worker0] Start importing Assets/Scripts/Services/Foundation/PersistentIdGenerator.cs using Guid(ae7a666ee525b534e9160ebc166b71c0) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '11a284230141147645c603320d53f446') in 0.0173164 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/DungeonSpaceExpandedFact.cs using Guid(283511d25a8645ad96a391582e439d0f) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '39835822c1f6a2a370a1db6c98d2f021') in 0.0124698 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/SceneDomainRuntimeReferences.cs using Guid(f178281b99a54544935e49ba94b91168) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '5fdea6666cf580e35cf757596fd3d0e8') in 0.0251471 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/DungeonSpaceExpansionRuntime.cs using Guid(043f04b23b84485fa0662f4c0ff165d4) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '527d00f0ab02be9b8d285934266e3abf') in 0.0212696 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/ResearchProjectCatalogAdapter.cs using Guid(b4100000000000000000000000000010) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'b3c86a0d43caced8215a0fc36e721c83') in 0.0115565 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/ExperiencePacingApplicationAdapter.cs using Guid(361842c7d09f4d1ab17dc1e6657b03d2) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'f2c9a6d08fd43afda51d76079d1f1b4b') in 0.017511 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/ResearchFacilityCapacityAdapter.cs using Guid(b4100000000000000000000000000011) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '9665b965938df09a3301ff7d77e2efe7') in 0.015684 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/FacilityCapabilityQueryContracts.cs using Guid(b4140000000000000000000000000003) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'af7ddc9b2f32f90f4e350c0dc48a4440') in 0.0130599 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/CombatFallbackWeaponRuntimeAdapter.cs using Guid(d6d799a4ea675f04f81fb5be566eb130) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'cfbdf856ae64cff0b0c944575297e624') in 0.0174827 seconds
+[Worker0] Start importing Assets/Scripts/Services/Foundation/CanonicalSemanticDigestBuilder.cs using Guid(6e338066930f4995bd6917caf8f5d6b7) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '7ed8cbbc411e55dfe63dfc918fd3172a') in 0.0122894 seconds
+[Worker0] Start importing Assets/Scripts/Services/FacilityShop/FacilityShopPurchaseFactSaveSection.cs using Guid(d67527310b124e0bba707faabf30ad89) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'f632f9a32ce532ce41edf7b2b4482132') in 0.0129803 seconds
+[Worker0] Start importing Assets/Scripts/Services/Foundation/DungeonUserSettingsContracts.cs using Guid(4bf5e451ef5341e48d7db6f1478519ae) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '0832373fec78da7b66d9af0a7db77233') in 0.0113287 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/AiDecisionSceneSnapshotFactory.cs using Guid(e826a0704fa941e58736f37c8bbfa09a) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '0bd80ec26231930e3bc0b9024b9fa896') in 0.0123257 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/InvasionSaveRuntimeAdapter.cs using Guid(4ea2938761e93b547b267bbdf8ce0ce6) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '5e7531523b82b695e74c548b02b0f040') in 0.0130785 seconds
+[Worker0] Start importing Assets/Scripts/Services/Foundation/GameplayEffectContracts.cs using Guid(b0f35aeabfa4dba4bb156c93160f857a) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '7b877eaa6ff3b3c65e3de4d71a77fa01') in 0.013788 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/KnowledgeResidueProcessingRuntime.cs using Guid(b4100000000000000000000000000015) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '47fc773100c7a5da27c12076449cd918') in 0.0128286 seconds
+[Worker0] Start importing Assets/Scripts/Services/Foundation/CharacterPerformanceContracts.cs using Guid(86b38599deedccc4c98d75c7c2c694fb) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '685c1083891ff0d5486c1fb6595f93ad') in 0.0134133 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/DungeonPlayerAutomationBridge.cs using Guid(38a45c40b79c2b449ae5d539c5f25458) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'd76b8bb2a7878b98f5880beb5324e280') in 0.011734 seconds
+[Worker0] Start importing Assets/Scripts/Services/Factions/FactionRestitutionOutbox.cs using Guid(87b43855f48e44b3b57bc035439fe44b) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '299fa28a0c8bb652260301767c7a1b2a') in 0.0148037 seconds
+[Worker0] Start importing Assets/Scripts/Services/Foundation/OffenseHexCoord.cs using Guid(6a1a80cb70f9472687bbdbdd861efe12) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '1d72682ee7079da796289768ceddbb0c') in 0.011471 seconds
+[Worker0] Start importing Assets/Scripts/Services/Factions/FactionApplicationDependencies.cs using Guid(67c7ab59a216471da152d20f784fd129) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '81e60a17a67982219299c3dce49704bb') in 0.0140603 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/OffenseSceneRuntimeReferences.cs using Guid(4f179249a6cc426189140d8f955ffe8d) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '0d6cbc4ab0e69bb21542f8ac98b5a275') in 0.0140859 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/ContentResolutionContracts.cs using Guid(b4140000000000000000000000000001) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '13fdfe1b5bf4e1c5002a3f88e2921292') in 0.0167284 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/InvasionIntruderDataProvider.cs using Guid(83db26b0fd034d248b9d14392887c34e) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '3ceda17785697394786415532e9b3948') in 0.0145497 seconds
+[Worker0] Start importing Assets/Scripts/Services/Foundation/CharacterPerformanceExecutionTrace.cs using Guid(fa7294d5bd419344cb6bb10a041552bb) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '686554158b572c147bdc239ead6cb85b') in 0.0128857 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/FacilityRecipeCatalogServices.cs using Guid(a0a5b56a7ace4f0f8f4874c078e8b08b) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '22e2c95d195ba7dfcc6d24395d91fc23') in 0.01301 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/StaffWorkforceQueryServiceAdapter.cs using Guid(d4a5dfdcb7e6457485297a609ae9cb80) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '5d0c726a9ca8035e58e684174d84eecb') in 0.0135172 seconds
+[Worker0] Start importing Assets/Scripts/Services/Factions/FactionRouteEconomicPolicy.cs using Guid(d7d000e1a0f56b94aa4635522966abac) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '42d057db1a4881180a91b4a5979e75fd') in 0.0147559 seconds
+[Worker0] Start importing Assets/Scripts/Services/Foundation/IWorldUiHierarchy.cs using Guid(9856d30e5e83445c8e1c708a4a95d191) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '3fe151d8b99c70330b676845852c3c14') in 0.0132025 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/FacilityShopRuntimeProvider.cs using Guid(3b7ca8bf6a6366d4881664347d2e76f9) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'be27c74c99932630eeba5159e6c2848a') in 0.015185 seconds
+[Worker0] Start importing Assets/Scripts/Services/Foundation/CharacterProficiencyPrimitives.cs using Guid(d225812c4b3045e4a4c8cc13f3cfda9a) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'e5d7b11d30bdadb6a8280053c963e1f5') in 0.0151232 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/OperatingDaySaveSections.cs using Guid(3dc98e09fc42a1245a5bf3340da99f91) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '9f74c91d7b02b0317bdbb8ce34a1e18f') in 0.0190087 seconds
+[Worker0] Start importing Assets/Scripts/Services/Factions/FactionDomainFacts.cs using Guid(ff408df028c14b4c855c6a8ab302a1e8) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'e104dd6bad1016192ba3e1241c6dc139') in 0.0147507 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/KnowledgeResidueCompletionTransaction.cs using Guid(65f9a777d68547ef9c9d8993f901d731) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'f7a8d8c6a786164b28b6a2cfdeb57341') in 0.0122864 seconds
+[Worker0] Start importing Assets/Scripts/Services/Foundation/CharacterFunctionalCapacityDefinitionSO.cs using Guid(c83e41a225cee9145bd7206b5861a543) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '2975f1a87917db20248921884c96c9d2') in 0.0201008 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/CodexReferenceCatalogServices.cs using Guid(12b287bd3e474ac3be615538a230f67b) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'b063f533c5acd6af71e217313c30a21b') in 0.0215821 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/ContentRequirementContracts.cs using Guid(b4140000000000000000000000000005) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '8515d2f6108ff5b951f0dd929355fb33') in 0.0136729 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/ContentRequirementEvaluator.cs using Guid(b4140000000000000000000000000006) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'ede3b6e95da37a9608eed579eb3ea102') in 0.0129293 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/DataCatalogService.cs using Guid(d997d44179d1f814ca485f891188fa41) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '987bccab8dd6c38a823df5b0a6164637') in 0.0117432 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/BlueprintResearchRuntime.cs using Guid(005c6480247fb65a0b7a585d5036a90a) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '0cbca1299ebea7864b860df874ac9c7a') in 0.0124528 seconds
+[Worker0] Start importing Assets/Scripts/Services/Foundation/ExactFacilityInputDestinationIdentity.cs using Guid(e3f04fc25bcb4873a33ea2b4b4585a38) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'd61f01eca1934ea713937671c35a9e00') in 0.0204415 seconds
+[Worker0] Start importing Assets/Scripts/Services/Foundation/PersistentEntityIds.cs using Guid(ea92f284240aa5349b0975b0ccde37ce) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '36200c25de5ac967208c47261fac8f77') in 0.0130732 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/OperatingDaySettlementSaveService.cs using Guid(03ba3e8d35826a145a05b9d0f4393752) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '61e0443edfdbd60b4329109f1d518424') in 0.0129408 seconds
+[Worker0] Start importing Assets/Scripts/Services/Grid/README.md using Guid(335d218d483e76e2fa74e81aa2b0af4c) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '96026a73dfa99ba05f15cbd65f0604eb') in 0.025435 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/BlueprintResearchProjectCoordinator.cs using Guid(b4100000000000000000000000000019) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '7afad5ae412e8b9a576cd6db866dbf76') in 0.011846 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/DungeonUserSettings.cs using Guid(4a18da5bf6f72a543b1df22cada7f1a6) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '62d4f93a7a10281a4afede686ab2cc2d') in 0.0152555 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/BuildingCharacterFacilityAdapters.cs using Guid(4bb1a6b286174bf49f7cca5ebf28fb27) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '71ab58a6401043aa6f3644566bdcf88c') in 0.013873 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/CharacterWorldSaveService.cs using Guid(95906af68b99f20498e8858c47c60aaf) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'e9481834e9fe41edd428386a59cd5d07') in 0.0148447 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/ModularFacilityWorldSaveService.cs using Guid(51303fffd7b10074e96aabdba4eb759f) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'dfaeef7605835fd57d732d3f8b2522a7') in 0.0166581 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/LocalLlmRuntimeProvider.cs using Guid(f2ad8526d0a38f34798739a2f208b0c7) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '4023442b475bf6e80bba63bbe6594d86') in 0.0122942 seconds
+[Worker0] Start importing Assets/Scripts/Services/Factions/FactionReinforcementMaterializer.cs using Guid(a490cf8601744261b3458357fb0a5131) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'c8eb4c3b056ed640c98cae226d055012') in 0.017791 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/EventAlertSaveService.cs using Guid(087a5f888ba2f90439c6bc5c623fc8d9) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'bee3be6286324232c5e87b14869328b5') in 0.0121231 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/ResearchGraphLayoutService.cs using Guid(b4100000000000000000000000000017) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '51d5dcda53f6aef646ee91d9cdfd3b51') in 0.0169756 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/ProgressionSceneRuntimeReferences.cs using Guid(d26405c49cd04a50a4a7a32303af5c95) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '2cf8c19353ed4a5b77737f999992c7c0') in 0.013054 seconds
+[Worker0] Start importing Assets/Scripts/Services/Factions/FactionCargoSaveValidation.cs using Guid(b119e270afa3480999fea25e591b140d) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'ba22a86918d68910e65706d712431c08') in 0.0115449 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/BlueprintResearchOutcomeTransaction.cs using Guid(70b884e5a52f49b9b40827a532410faa) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '0ab3f36670071bf4df0784a5a00f30c0') in 0.0123876 seconds
+[Worker0] Start importing Assets/Scripts/Services/Factions/FactionGoodwillTransferredFact.cs using Guid(b1204faa25b44206b81672e0d6c6dd1b) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '2c6a63d93d231febfc09aa875080b98d') in 0.0104991 seconds
+[Worker0] Start importing Assets/Scripts/Services/Foundation/DungeonStory.Foundation.asmdef using Guid(556371053b32a9545b01bcd39619f141) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'd2c58779b26b5cbd209f0faf759ef62c') in 0.0337932 seconds
+[Worker0] Start importing Assets/Scripts/Services/FacilityShop/FacilityShopSystem.cs using Guid(cdb01962c281b25e7adce9b4a69b2919) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'debdba38c1136186e2731b695f4ec57e') in 0.0147809 seconds
+[Worker0] Start importing Assets/Scripts/Services/Factions/FactionGoodwillOutbox.cs using Guid(b814fe0b0f61465bb09d6976b33d28b7) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '24b9a7c85f09d6d8bfbacfdad762265c') in 0.0156317 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/CharacterAiSchedulingService.cs using Guid(e3bb950ac0d84b279c328cf2a0b96aca) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'd87fe9349405bd3865ba6977971b4161') in 0.0152489 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/DungeonCharacterWorldSaveCodec.cs using Guid(8aa56ed8239945e289934c848f2d1a6a) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'e44eb83c14082863b15f2d7243156a50') in 0.0127023 seconds
+[Worker0] Start importing Assets/Scripts/Services/Foundation/ContentReferenceAttribute.cs using Guid(92f13a8f2aa64d82bb22e298ac96c58c) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'e1e79424a3553f40f3c7355d63c0b23c') in 0.0128682 seconds
+[Worker0] Start importing Assets/Scripts/Services/Foundation/DungeonPersistencePaths.cs using Guid(a392f512d4cbaaa4ebdae3117a7096e7) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'eb35e144c58aaac9ea7ae55bc25b4cfe') in 0.0189977 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/DefenseTacticalWorldQueryAdapter.cs using Guid(906cbd03a13a9cc41b7f72f3dcb9758e) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'f0c36bdfb33aee0cde3a64b28ed36814') in 0.0153219 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/DungeonAutosaveService.cs using Guid(e390a729046842746a307046436c3877) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'd6fc225935da2e8f39aaa8db6d99b3e2') in 0.0136526 seconds
+[Worker0] Start importing Assets/Scripts/Services/Foundation/CharacterIdentityRules.cs using Guid(50d028def1d6b954bbaf624800f1466a) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'd4c3b9b709c17b6381ec5d99e27d8900') in 0.0158701 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/BuildingManagementWorldQueryAdapter.cs using Guid(7126c920da2d44c1b20c7329910153d6) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '1f9e8d1d1e3460e5cb4812558b7fbe47') in 0.0118497 seconds
+[Worker0] Start importing Assets/Scripts/Services/Foundation/GameplayEffectConditionDefinitionSO.cs using Guid(47d1a58a43393b54b82b24e0c059e183) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '0923cc88d69ae4ce071c47b5b66705c7') in 0.0143278 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/DoorHeldOpenFact.cs using Guid(8bb5d57f5d114c37ac246674d6257668) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '52c38bd4c2fc9db61da3ffc3355f80c5') in 0.0174014 seconds
+[Worker0] Start importing Assets/Scripts/Services/Foundation/DungeonStringIntSaveEntry.cs using Guid(d9ca501c6ba34a28beb012dd326237be) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '02ba622d0e3167f933b9ca0dc319ed90') in 0.0165014 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/GameRuntimeServices.cs using Guid(3be890e51612e6a45afb40dd9c6ecfbe) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'd3f965e2fac0b834f5efedef0134b178') in 0.0181256 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/InvasionSceneRuntimeReferences.cs using Guid(1eb046eb081e4225a3ef8770f4b25b22) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'be24697e80fe1d276a60ca86dad656a1') in 0.0113109 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/RunVariableCatalogServices.cs using Guid(5bff2d5d623a4b90a0deed7c1f704e5f) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '0e36d178359b3466a6f3fa5ad131921d') in 0.0188443 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/SocialReputationRuntimeProvider.cs using Guid(5b85183a93705af44b39628f7dc53211) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'b62f29617caf5a88dd8b65426deca971') in 0.0133875 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/GridSystemProvider.cs using Guid(64b217b62a9bfa0489e45b17e02bf1c5) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '50ba78e734e9f723dcabe066c58793ee') in 0.0132031 seconds
+[Worker0] Start importing Assets/Scripts/Services/Foundation/GameContentDefinitionSource.cs using Guid(244c13828a8045579153cae8073b7356) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'c71e5714df2a5ff8238b8a1081d80d81') in 0.016485 seconds
+[Worker0] Start importing Assets/Scripts/Services/Foundation/RuntimeArchitectureAttributes.cs using Guid(a5032994dd2143429c406deffae14b07) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '2580d6c66a4914485e0706e12ca61f12') in 0.0144887 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/FacilityFeatureSceneRuntimeReferences.cs using Guid(4513bd28d5e5416ebc8d4dc23f8742c0) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'b8b9177fd189c4de97866cbf1961d7d9') in 0.0166092 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/ShopInventoryRuntimeAdapter.cs using Guid(1d7e58246e144244b40e143c935029d6) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '52b9efbdb5f335a4f7175c9b61aeba4b') in 0.0135001 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/DoorAccessUnityAdapter.cs using Guid(8d80c97371bd22343b55fca65cc06b6a) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'c3863e434c80bf45a53d7a3a7308adbb') in 0.0271586 seconds
+[Worker0] Start importing Assets/Scripts/Services/Factions/FactionSaveSection.cs using Guid(83754b2c9d429254083f03541364b8c4) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '8c6ed040046c157317cd31712edfd773') in 0.0157688 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/CharacterIdRegistryAdapter.cs using Guid(71921f6536d949cf8d626a54230a79e5) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '6bffbc6ef0e9af19c6cf3729a075149c') in 0.0118753 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/IMainCameraProvider.cs using Guid(ff2c6444da39411a895958cab1f8debf) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '7c439c7f297db47b429776ace14480a8') in 0.0141648 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/ResearchCraftingSummaryService.cs using Guid(b4100000000000000000000000000014) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '3231d0c6486ae354204855509e04c5b9') in 0.0131548 seconds
+[Worker0] Start importing Assets/Scripts/Services/Foundation/V23CraftingPrimitives.cs using Guid(1935725d2fbb4fff933f7abf695ae2a1) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '95afbcec16f2012b5cbfd54f467b7083') in 0.0139326 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/CharacterWorldSaveValidation.cs using Guid(7fd2160e4a63ab0409d640fca0bed7b3) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '1581d4bbb1365587bade50fb3d5b72a7') in 0.0114444 seconds
+SAVE_QA_MOVING_GUARD_READY guard=(18, 0);breach=(22, 0);owner=(18, 0);pathSteps=1;controlledFixture=true
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+DungeonGameSaveDebugScenarios:PrepareMovingGuardSaveFixture (DungeonRuntimeLifetimeScope,Grid,CharacterActor,InvasionIntruderRuntime,System.Collections.Generic.IEnumerable`1<BuildableObject>,System.Collections.Generic.ISet`1<string>) (at Assets/Scripts/Services/Infrastructure/Editor/DungeonGameSaveDebugScenarios.cs:1454)
+DungeonGameSaveDebugScenarios:RunFullGameRoundTrip () (at Assets/Scripts/Services/Infrastructure/Editor/DungeonGameSaveDebugScenarios.cs:632)
+DungeonFullWorldRoundTripPlayModeRunner/<Start>d__6:MoveNext () (at Assets/Scripts/Services/Infrastructure/Editor/DungeonFullWorldRoundTripPlayModeFacade.cs:720)
+UnityEngine.SetupCoroutine:InvokeMoveNext (System.Collections.IEnumerator,intptr)
+
+(Filename: Assets/Scripts/Services/Infrastructure/Editor/DungeonGameSaveDebugScenarios.cs Line: 1454)
+
+SAVE_ROUND_TRIP PASS jsonBytes=2116810 buildings=138 characters=4 expeditions=1 intruders=1 knowledgeContinuation=PASS defenseGuardActivation=PASS invasionRollbackRetry=PASS warnings=0
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+DungeonGameSaveDebugScenarios:RunFullGameRoundTrip () (at Assets/Scripts/Services/Infrastructure/Editor/DungeonGameSaveDebugScenarios.cs:1362)
+DungeonFullWorldRoundTripPlayModeRunner/<Start>d__6:MoveNext () (at Assets/Scripts/Services/Infrastructure/Editor/DungeonFullWorldRoundTripPlayModeFacade.cs:720)
+UnityEngine.SetupCoroutine:InvokeMoveNext (System.Collections.IEnumerator,intptr)
+
+(Filename: Assets/Scripts/Services/Infrastructure/Editor/DungeonGameSaveDebugScenarios.cs Line: 1362)
+
+RESULT=PASS; report=Z:\01_Project\03_DungeonStory\Unity\Artifacts\QA\CIRecovery-20261106\world-r3\unity-evidence\full-world-report.txt
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+DungeonFullWorldRoundTripPlayModeRunner:Finish (bool,string,int,int,int,bool,bool,bool,string) (at Assets/Scripts/Services/Infrastructure/Editor/DungeonFullWorldRoundTripPlayModeFacade.cs:862)
+DungeonFullWorldRoundTripPlayModeRunner/<Start>d__6:MoveNext () (at Assets/Scripts/Services/Infrastructure/Editor/DungeonFullWorldRoundTripPlayModeFacade.cs:795)
+UnityEngine.SetupCoroutine:InvokeMoveNext (System.Collections.IEnumerator,intptr)
+
+(Filename: Assets/Scripts/Services/Infrastructure/Editor/DungeonFullWorldRoundTripPlayModeFacade.cs Line: 862)
+
+Unloading 3748 Unused Serialized files (Serialized files now loaded: 0)
+Loaded scene 'Temp/__Backupscenes/0.backup'
+	Deserialize:            5.904 ms
+	Integration:            356.302 ms
+	Integration of assets:  0.008 ms
+	Thread Wait Time:       0.031 ms
+	Total Operation Time:   362.245 ms
+Unloading 20 unused Assets / (39.8 KB). Loaded Objects now: 20389.
+Memory consumption went from 381.2 MB to 381.1 MB.
+Total: 255.025400 ms (FindLiveObjects: 0.672400 ms CreateObjectMapping: 0.362300 ms MarkObjects: 253.904300 ms  DeleteObjects: 0.085200 ms)
+
+[Licensing::Client] Successfully resolved entitlement details
+[Licensing::Client] Error: Code 404 while processing request (status: Found 0 entitlement groups and 0 free entitlements matching requested entitlement ids)
+[Licensing::Client] Error: Code 404 while processing request (status: Found 0 entitlement groups and 0 free entitlements matching requested entitlement ids)
+[Licensing::Client] Error: Code 404 while processing request (status: Found 0 entitlement groups and 0 free entitlements matching requested entitlement ids)
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/V18TypedCharacterReferenceRestoreNormalizer.cs using Guid(8e3ac99414464dc283e1cdcb6086be28) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '2b137d9849bf6067f4b17df0af935f52') in 0.0160107 seconds
+[Worker0] Start importing Assets/Scripts/Services/Invasion/InvasionLifecycleFacts.cs using Guid(14afc63d6939498093a39db1f37dafd5) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '8394fadae7c18bb4dc6027ab32663d73') in 0.0134087 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/EquipmentPhysicalItemGatewayContracts.cs using Guid(09984995a6ef45bd9fd0db5167c4b3f2) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'aaffd3af10ea6fdc584ab9c52bf7d0ef') in 0.0241506 seconds
+[Worker0] Start importing Assets/Scripts/Services/Invasion/DefenseInterceptPlannerRuntimeAdapter.cs using Guid(678b785c1bd248ac81bfd33a0919ec70) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '0632444c83e87003f5cc1020b06b25d9') in 0.0155604 seconds
+[Worker0] Start importing Assets/Scripts/Services/Invasion/DefenseRangedSupportRuntime.cs using Guid(570f0b038bfeb674d852be5a0c93f37e) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'b031630d6f223349ca91201ffa19dbb0') in 0.0102122 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/DurableFacilityEquipmentCrossAggregateJoin.cs using Guid(f6ea8204abe4423ea41505a051f1286d) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '6e625061f741a3ac568cd3e22d963613') in 0.0175918 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/V21ContentEffectCommitPreflight.cs using Guid(b4140000000000000000000000000008) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '3de6149161696abaacccf95509aa8065') in 0.0148792 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/FacilityBufferMassAdmissionRules.cs using Guid(cb2642a7db60442eac3b021c613616ce) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'bb59e58a0d045d0b0c7532cc5d898d0d') in 0.0171237 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/PhysicalItemDisposedFact.cs using Guid(9766d4f8a7ba45d79971709863c1bbac) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'ba5d85120cee3736be3fbefa7303f2b6') in 0.018028 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/ApparelPhysicalMassProjector.cs using Guid(b3d69b082ca7438e8218a6d077973b71) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '2f12895e2aadf6333f752f0d62af1867') in 0.0132074 seconds
+[Worker0] Start importing Assets/Scripts/Services/Invasion/InvasionIntruderPathPlanning.cs using Guid(7f26926adb7fdb14c8336a47b40eb02d) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'c7c5e98db83aad37e4dcf7e7f9d41967') in 0.0115795 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/PhysicalItemGameplayOutcomeTransaction.cs using Guid(78a2d090932c4710ac7db7d9433e0e8b) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'e2a9ed5b238e64daa7ec7ec6ed7a1b98') in 0.0153318 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/FacilityOutputClearanceTelemetryRuntime.cs using Guid(e19c5a94e6cba914ea2a12c44c57a1dd) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'bee8f5b7e8706883e875e26eda468041') in 0.0138843 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/BufferStackAggregationService.cs using Guid(0f5263fbb28ad6c4d959a63cbee3f92a) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '5f8f10a2f882e87480c4aa56764ad960') in 0.0149034 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/DurableFacilityEquipmentCapacityProjection.cs using Guid(2cfb6085721f47cfbe1bbf41c728888c) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '2075de533b6b9fde8813d518dc7c66ee') in 0.0170182 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/ItemReservationService.cs using Guid(fed51c15edb6d634f9c0d19de6f3ae77) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '596cab0b967107cf478d8c6ffad849c0') in 0.0119216 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/PhysicalItemRelocationService.cs using Guid(b9d132db751d4f0893c36c41951e2f38) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '7c3341e4fbe7199c555d16fc0571a0fc') in 0.0156975 seconds
+[Worker0] Start importing Assets/Scripts/Services/Invasion/InvasionFactPublicationSaveSection.cs using Guid(8e31869246a94783aa9b4fba532032c1) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '701fbedc38f2e4a79c405b3add957e0e') in 0.0194981 seconds
+[Worker0] Start importing Assets/Scripts/Services/Invasion/InvasionIntruderContext.cs using Guid(bdc186e2ce3d664409d726d36940073f) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '966efb843df53ab971eda5c382397a85') in 0.0165054 seconds
+[Worker0] Start importing Assets/Scripts/Services/Invasion/InvasionIntruderRuntime.Restore.cs using Guid(f67793bada2369f4a877d32c0353bf62) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '2e75a5942238f4d6c0fc6b847af14d0d') in 0.0142668 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/FacilityBufferMassAdmissionService.cs using Guid(a87029e2d5664b54a9508a4907961010) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'a5e580bdb100404f24ff0f4e2ef06054') in 0.0124125 seconds
+[Worker0] Start importing Assets/Scripts/Services/Invasion/InvasionDefenseKitSupplyRuntime.cs using Guid(f9007f2639294cf9b913ffde3bd99bc0) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+IMPACT_CI_MEMORY group=world;managedBefore=1611726848;managedAfter=1610342400
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+V27CiEvidenceBatch:CompleteImpact (string,string,string,bool) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:241)
+V27CiEvidenceBatch:CompleteImpactWorldRestoreForBatch (bool) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:202)
+DungeonFullWorldRoundTripPlayModeRunner/<>c__DisplayClass7_0:<Finish>b__3 () (at Assets/Scripts/Services/Infrastructure/Editor/DungeonFullWorldRoundTripPlayModeFacade.cs:883)
+UnityEditor.EditorApplication:Internal_CallDelayFunctions ()
+
+(Filename: Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs Line: 241)
+
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'ec3e080fe815825cfdd4a8cd53353ca1') in 0.0183193 seconds
+[Worker0] Start importing Assets/Scripts/Services/Invasion/DefenseRangedPositionPlannerRuntimeAdapter.cs using Guid(e0f635f27b5d40749a806d99d9b495ac) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'da755066058e4c044da3efd64d87b000') in 0.0149738 seconds
+[Worker0] Start importing Assets/Scripts/Services/Invasion/InvasionSignalHornDurableEquipmentRuntime.cs using Guid(8719b289d6bea304ba065659a39448ba) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '1838f150760f1af7655abd4191ae3c99') in 0.0203275 seconds
+[Worker0] Start importing Assets/Scripts/Services/Invasion/InvasionIntruderSystem.cs using Guid(2e989e12e22d7e193b84c5b18f9dbef6) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '3f9939a8a8b4709098d535f827cf68bb') in 0.0138964 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/EquippedApparelPhysicalMassQuery.cs using Guid(695cb8fb63514ad6a8a9f9f5e8e052c4) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '63d295a06f1ea8c645423441a573d17d') in 0.0171299 seconds
+[Worker0] Start importing Assets/Scripts/Services/Invasion/InvasionIntruderFactory.cs using Guid(6135d25138e5ebc45b67315b2d566073) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'db5b245e9b77e26a7c018a370e8ac2ec') in 0.0144469 seconds
+[Worker0] Start importing Assets/Scripts/Services/Invasion/InvasionDirectorRuntime.Restore.cs using Guid(49d8a98ab8624cb48667c9cf5a8e014c) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '8dd18cc77d34ace8a795205b13a7152d') in 0.0162386 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/DurableFacilityEquipmentCrossAggregateSaveValidation.cs using Guid(61f81a889fa849b58f27757ee067d4d4) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '319e4d42bfa7bf29b4333f81761d663d') in 0.0180366 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/AtomicItemConsumptionService.cs using Guid(eefbf5a3f44c48fd8602d7f9aa5f07f3) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '3d50e6ad259f05d44378e9968322e47e') in 0.0158896 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/FacilityBufferDestinationClaimRegistry.cs using Guid(7e12f4d60a10444c9841a99c75640427) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '500ef0010372922742897b05fe0cebc5') in 0.0271809 seconds
+[Worker0] Start importing Assets/Scripts/Services/Invasion/InvasionIntruderPlannerRuntimeAdapter.cs using Guid(38527137aa094eb082db6a2e850a112a) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '82235b75ae8e97769f474f78918c1d1c') in 0.0127661 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/FacilityBufferPlannedOutputPublicationService.cs using Guid(7ef4031b4fbf4b16b51ac90c7b29d4be) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '7f98a353374b21dbae5f494f99f4bd0d') in 0.0144679 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/FacilityBufferDestinationLifecycleService.cs using Guid(181b7f17f45a7844dbe2f32f03d396e3) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'e91b4a32db454e653ef5929d4850f67d') in 0.0139927 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/HaulRouteEligibilityRules.cs using Guid(ae0fc837fc444765ad462211e775b683) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'd4d63c56be43ce96f8399a6cdc2cecf8') in 0.0167538 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/PhysicalItemDisposition.cs using Guid(e43f0469327c4011a77eaeea080a14f2) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'fa7e8926b97cd8a76626a9b40ac0cdba') in 0.0145893 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/FacilityBufferMassAdmissionContracts.cs using Guid(f88cf21f052041a190061af558240793) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '6decbd7e8b126c53a921a2b503ff2ab7') in 0.0153377 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/DurableFacilityEquipmentAdmissionFenceRegistry.cs using Guid(1986dc0ade4440c5b430792b9ce23c4d) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '316de7624f4748531e04825d2d190ef1') in 0.0177823 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/LeasedItemReservationService.cs using Guid(e4dff101503c58143a835006b43933bc) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '8f9f7355dddbac06a325b508a3be1dcb') in 0.0152861 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/PhysicalItemCapacityRoutingSaveValidation.cs using Guid(f2d0b32a93dc4f5091fa2b79a9c2ee63) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'b4d2e4f1670c0b77efa339737776e7c4') in 0.0142392 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/PhysicalEffectReceiptAcknowledgement.cs using Guid(9d68769ceec84809add790dd5d52cbd1) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'a9d837e8ed5826fa9856b420b6c90b0f') in 0.0162774 seconds
+[Worker0] Start importing Assets/Scripts/Services/Invasion/DefenseRaidAwarenessRuntime.cs using Guid(4fa87a255190eff488a382e338661f8a) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '8ad640f027e58bbe0305c7125fbc8f61') in 0.0151827 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/ItemTransferContracts.cs using Guid(a4a85488d3344fa6886c280aeb6f63af) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '48ca950973baad29edf8fa9b305ad1e2') in 0.0131914 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/PhysicalItemExactSourcePublicationService.cs using Guid(6ec066e0fb4bec24b866634ca78a5907) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '4e851edf0eae95eb6666b62c055f3969') in 0.0292708 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/ItemPileInfoPanel.cs using Guid(59636abaee220a3449a47eb3e86b8a08) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '197f87461f29d3cd1161f7c48ea78b66') in 0.0150605 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/PlannedOutputProvenanceValidation.cs using Guid(7f280ad0c0a743ca8ab3c47a7efcb3c9) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '3e8137bd271c5c3da1f9a2b7437fd3dc') in 0.016512 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/DungeonItemCatalogContracts.cs using Guid(466ec956624e4521b7363f7446ee4ea1) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '75470b642772a3fc2ac3dc4086a6e251') in 0.0105545 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/ItemTransferService.cs using Guid(6cc8d996cae743838d0345fc48018970) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'b6c40c89fcc27a562df8379024bb540d') in 0.0129231 seconds
+[Worker0] Start importing Assets/Scripts/Services/Invasion/InvasionActivityFacts.cs using Guid(114743d060174c3585ee019073be0b3f) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '82c2b321bd2df1496ed2482d637fd28d') in 0.0178488 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/V21ContentEffectExecutionRegistry.cs using Guid(b4140000000000000000000000000007) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '1b530ef8b44a03ee4a2ea15ae7f9ed95') in 0.013865 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/ItemMarkerPresenter.cs using Guid(03e64ef1bebb9f343ad4792616e5e860) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '91fd4ebe72c72a8dcf8e236e9a7a24ae') in 0.0121659 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/PhysicalItemSaveValidationRules.cs using Guid(c598ee742b044c4c90c2c2160ed43658) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'ee53d80f7703ea524cbbd8246f1c1dc9') in 0.0174179 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/WildlifeHabitatMarkerRegistry.cs using Guid(248e58c9bafd489192bd5005bd500683) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'f636b349032e6337a2c60453b267c8e6') in 0.0240975 seconds
+[Worker0] Start importing Assets/Scripts/Services/Invasion/InvasionFacilityDamageRuntimeAdapter.cs using Guid(75973d7283ff4d4cb37e93661a3fd128) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'c0fe007b773a7fa1e600750860dca9bf') in 0.0154374 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/PhysicalItemStateSaveValidation.cs using Guid(7c43d5a34b364f08a6d1c0f2781b5f99) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'e643d24d88f0002ebcc4d531fa14b260') in 0.0173865 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/DurableFacilityEquipmentRestoreProjection.cs using Guid(0f2c02985b0a441496cf9dbbd1564111) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'd67580fff101aa454062f195306141cf') in 0.0188175 seconds
+[Worker0] Start importing Assets/Scripts/Services/Invasion/InvasionCombatReportSystem.cs using Guid(18412dea3908c2712ba8a96765612596) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '8b671c75bef26b0043dbcb17724c639c') in 0.0187209 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/PhysicalItemSourcePublicationService.cs using Guid(2f2d98eb43eb8f9c81215975b2c98cd7) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '8fc692df626d3401451c7deb690a8a8f') in 0.0182977 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/PhysicalItemIds.cs using Guid(29f484b956704db0af2a11266960d01e) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '1c16418fe0906f73855e79b98e6e9e08') in 0.0118075 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/DurableFacilityEquipmentUseRuntime.cs using Guid(b8a77e71f80e4e799de1796502428c59) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '9fcac868f721063db6e54a671194ebd1') in 0.0124543 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/PhysicalItemTransformService.cs using Guid(e1f78cbf5be8499991303dc80b5b0805) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'cacdf7cb5340bbaa3a88ec9e64ce26c5') in 0.0134546 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/PhysicalItemJournalSaveValidation.cs using Guid(a10c5fd99e4e4d8d8ce3955033187c1b) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'c1e2527de585aab6f97d7f72d2ed31c5') in 0.014454 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/PhysicalItemDispositionEffectContracts.cs using Guid(a1fb3193e5e44c0780f228548415f3bf) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '6467092bd797cb617fd101a79b9794a4') in 0.0157474 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/ItemDefinitionCatalog.cs using Guid(c8e6fcae9a1eac547bc0c2d4446e1bfb) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '83e508f35ae0e90a8c2b027d7ced7bd8') in 0.0136419 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/ProductionCapacityRoutingActorQuiescence.cs using Guid(8e9f1d87d7714369a374045416904e55) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '9af4807976626105a1ebe3f5e381ac44') in 0.0156987 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/PhysicalItemBatchDispositionService.cs using Guid(2744dd2cbd424eea9bc68d76eaf45588) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'cb5ca924d8695c80e45f13177e8e26d8') in 0.0154229 seconds
+[Worker0] Start importing Assets/Scripts/Services/Invasion/InvasionIntruderSceneAdapters.cs using Guid(f47dfb412a4d41c2b56fd91d5bed29ae) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '4fbc14213dd97575b07ce3d937c3f6d0') in 0.0124821 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/GameContentCatalogContracts.cs using Guid(233893fcaddc43a58aea0626e429dd25) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '0aac8f738b2f16e7c3c607f4a474fbdc') in 0.0182467 seconds
+[Worker0] Start importing Assets/Scripts/Services/Invasion/DefenseEngagementServices.cs using Guid(dfb00cc645116044583457e26f40d503) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'dc216f3d332f340bb87b7a7e4411b98c') in 0.0146279 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/PreparedOutputExactDestinationAdmission.cs using Guid(f8b59d46df234df0b77015e1649fd5d3) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '55dda131908b3a6392004661dec43475') in 0.0128483 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/ItemStackViewToggleRuntime.cs using Guid(a4a9b90c8b8d4fd5a78c98c929992fac) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '96613e80ff7c7b85edf6d078ce6e2b05') in 0.0159131 seconds
+[Worker0] Start importing Assets/Scripts/Services/Invasion/ResidentEvacuationFacts.cs using Guid(49f938f942474e8db98ac73e35751673) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '4c65c47793746aea1e051dbb4c57e8c7') in 0.015848 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/ProductionCapacityRoutingDrainOutbox.cs using Guid(b28d7d0a5cc34553ae4a4a32f0a8f18f) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '496cdb3314fbc32f71ec6d85ee945f2e') in 0.0157343 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/ItemHaulingSettingsSO.cs using Guid(9ff84090f126f5840a573b368ddff07e) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'bc7b08087cac36e07190002d9a561ee2') in 0.0224312 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/DurableFacilityEquipmentSlotRuntime.cs using Guid(8bb2a48a7ff84dd6a74cc10ab5ee5cac) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '7911e45cc3958d6e848fcd490ba15c06') in 0.0149827 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/FacilityOutputExactRouteService.cs using Guid(d99763b2cf734f2ab2092c2ba120e44f) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '4c8ba94be74740b297961c2dbe6674da') in 0.014824 seconds
+[Worker0] Start importing Assets/Scripts/Services/Invasion/InvasionThreatWorldSampler.cs using Guid(6a5af7b31456e484a8e3122634767ecf) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '911fa5cb70b6430d32c3073f130d34fd') in 0.016361 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/DurableFacilityEquipmentSlotCheckpointGcCoordinator.cs using Guid(6a51c221e52843c1bc931715716ae7d1) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '02101faa18d7f310e1d5d326a1794aac') in 0.0185147 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/PhysicalItemTransformContracts.cs using Guid(c27f6a2ab6dc4ac9a153e8d0f4927b61) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '07936ea2a3e01f97a8a69fb9a92c0e5f') in 0.0144043 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/PackagedLotPhysicalMassProjector.cs using Guid(91ee48170b704be4da3227df294c1f3a) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'e46b545845149dae979d3c5e5cb8a178') in 0.0191763 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/FacilityBufferDestinationCustodyDrainService.cs using Guid(f3794da6907145f3bc43c4477205659f) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '17196356cacb9ba8da15a5dfcc536a83') in 0.0109989 seconds
+[Worker0] Start importing Assets/Scripts/Services/Invasion/DefenseEngagementChangedEvent.cs using Guid(a303309e2ccd4657b448ba50cd96bda4) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '37949ad22e76b7477d3ebe606b610ea1') in 0.0169168 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/ProductionCapacityRoutingActorPhysicalFingerprint.cs using Guid(0e90c14d3c784fb3a93d298d91cf7c68) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '32f9a9bef0ca73064c8d52e97927e061') in 0.0111846 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/DurableEquipmentUseFactData.cs using Guid(0e152f50ebd0443e9ec303a916f44f81) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '2622ffcd70aa519b25d47b6b34b0da85') in 0.0158581 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/PreparedOutputPickupBoundaryContracts.cs using Guid(e753f000689c466097416a8af45bb686) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '4e26a10075e43ecc44fb594ffd280cc3') in 0.0162516 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/ApparelLeaseAuthorityPort.cs using Guid(63d19db0240c42bcbf803d53d12fdd60) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '150446a6237cb851082e26e29c8f8a7e') in 0.017094 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/PhysicalItemRoutingSaveValidation.cs using Guid(832ed5298c6a4d6dab1bf4b3852c175e) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'dc560aebde623d8d47f4a206eb54f031') in 0.0172625 seconds
+[Worker0] Start importing Assets/Scripts/Services/Invasion/DefenseBreachRuntimeAdapter.cs using Guid(21332efddc7a4bdd831a609d8065c994) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '407d950ebc289c232dbd2ca1170027db') in 0.0153356 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/ItemReservationSignature.cs using Guid(b9fcb945df2f4593bc88b348f6d8e3f1) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '6aef7768b9b3d03385f214cdcd325b97') in 0.015333 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/ProductionCapacityRoutingActorQuiescenceService.cs using Guid(72bdeb93f2eb4e87ae3995afcae31c46) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '736bcfd7601b2ef1874bf69fee6a27f2') in 0.0148105 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/BuildingItemStackPortAdapter.cs using Guid(baed13cb4b694874896590c65b34bd42) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '08aba6ba5ee56e91893fd8db0651ae18') in 0.0178363 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/ExactOwnedItemReleaseRequest.cs using Guid(2c2c5d4ebf9445b081917827869cd100) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '03053d4f113401b3588279d6f334a527') in 0.0140592 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/PhysicalItemRelocatedFact.cs using Guid(5bf4eea57e5c49c89374554ee5977ac7) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '5267999d651b02498db248eafd2ed205') in 0.0168139 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/PackagedLotTareDispositionService.cs using Guid(61c4e7a5d9f35314aa5721023a47eefc) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '01e44b32ebd6605ab8b116a7199c28e0') in 0.0161279 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/FacilityBufferDestinationReleaseService.cs using Guid(b7c942d5f8324a9ca58c4c217e8a3d61) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'bbf7823b06d0ce69db38f2fea814bf6d') in 0.0138072 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/PhysicalItemRestoreCandidateSession.cs using Guid(64be0e1335ce4c36a6b2b2076de211f9) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '8de537afb0274b181d140380daee5754') in 0.015571 seconds
+[Worker0] Start importing Assets/Scripts/Services/Invasion/InvasionIntruderExecutionCoordinator.cs using Guid(e2e3fb04f4e49be4d8d35dc06596fb34) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '0d6f04ab35fa5e1a8310a7a28c046aa7') in 0.0153005 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/CharacterCarryInventory.cs using Guid(f78347aa9b97b7842b4b376c90f09da9) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'de0122baac8b426066aadfdea3b370d0') in 0.015871 seconds
+[Worker0] Start importing Assets/Scripts/Services/Invasion/InvasionIntruderEvents.cs using Guid(15ad0409cabd9604b9ab5e059b12c900) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '6c6c1e514650fa7377742e92f0c93efb') in 0.0144679 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/DurableFacilityEquipmentSlotRecoveryRuntime.cs using Guid(68d27cb94b9847f889aa0baa3025aa90) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'ad9d1af579193bb1c8283b3f71df0ce0') in 0.0141718 seconds
+[Worker0] Start importing Assets/Scripts/Services/Invasion/InvasionIntruderCombatRules.cs using Guid(9c02c288ec232d641a5912aca2acc9de) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'ef65c0ab85cb648eddad5d4ed9c950fa') in 0.0184354 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/PhysicalItemMassQuery.cs using Guid(5e2c679346b24fd691b8be84285e4a19) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '9ac62d2656ac36d70e23b947d25a272f') in 0.0157201 seconds
+[Worker0] Start importing Assets/Scripts/Services/Invasion/InvasionIntruderContentBinding.cs using Guid(05f10cdbdac7ec24e8db9de35f783ff4) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '20404e8930ef043f0a6f4c86432573ff') in 0.0132843 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/PhysicalItemSourceFactSaveCodec.cs using Guid(3664ee36d5c04f7999a5e2e3b08f5952) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '4e88f308be8e922f2e53025bf0f78dbd') in 0.014482 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/PhysicalItemsSaveSection.cs using Guid(11b086dab804ef94bb16b3b980a9ff5e) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '5a3f6ea12e07b7c5eae51f001b2be992') in 0.0177419 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/ItemDefinitionCatalogContracts.cs using Guid(4909cf8f74e54ed78fd27d0131499f60) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'dca6f53462e681d31987e5459300d9aa') in 0.0130627 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/FacilityOutputExactRouteCustodyCodec.cs using Guid(d7252e5dc23941cda3e2f663b77f1f54) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '2f902e1dd0186d963195889ba0078ca7') in 0.0111528 seconds
+[Worker0] Start importing Assets/Scripts/Services/Invasion/DefenseEngagementRuntimeModels.cs using Guid(9d28e8cfc1c840d8bfdeb71bdc60a369) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '7faaaf03e32b33910bd4e655d3284f2a') in 0.0148801 seconds
+[Worker0] Start importing Assets/Scripts/Services/Invasion/InvasionOwnerEvacuationService.cs using Guid(15bcdca67c97cca4dab390685e577782) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'a944c9205535d896f792a508ea05dbe2') in 0.0194401 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/ContentReferenceCatalog.cs using Guid(a85abd4edd534ae083479342352e3c7c) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '29dbaf02fc156c01eb9fa8f730d7daa2') in 0.0189105 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/GameContentCatalog.cs using Guid(d84e4481985122e46b31d37fb669af4c) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '6d695ad299e4a6aa8a20ab752750bf40') in 0.01404 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/PhysicalItemSaveValidation.cs using Guid(04ab1b2180787ce41a2f31cece660f47) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'd22e342148cc3a7a92597ea1ff5c0049') in 0.0124118 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/CombatEquipmentPhysicalMassProjector.cs using Guid(88afd9d22ac04f7b9d0ba54f8aad2846) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '3e7c8a49f9b7ed1c63aecbec9003a4b4') in 0.0127073 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/FacilityBufferDestinationAdmissionFenceQuery.cs using Guid(336ff42334c4424cbde5e45002050a4c) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'f3ee657083a8629499ef5f6879c1fb84') in 0.010743 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/ItemFacilityBufferTransaction.cs using Guid(12b10009e7d9ea64589b1df2755cca0c) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '4fca734b5d3e7554bd60beb91b2dd4b0') in 0.0136881 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/PhysicalItemBatchDispositionContracts.cs using Guid(8f7c1df37d4f4bf89b7e90b462d3c1a6) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '26d118dbbfc5407985405097bcfe7f4c') in 0.0171144 seconds
+[Worker0] Start importing Assets/Scripts/Services/Invasion/InvasionThreatRuntime.cs using Guid(37a99df531ab4ae4c8ac24e8ae72675f) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '8956df4500740b6b062f5e4380fbeeb4') in 0.0177123 seconds
+[Worker0] Start importing Assets/Scripts/Services/Invasion/InvasionFacilityTargetRuntimeProjection.cs using Guid(788a98e8ca78491b8c0d6c3858018c13) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '2b58cb065041755c21858b21732de081') in 0.0146567 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/AtomicItemConsumptionContracts.cs using Guid(150b89191028469fbe7747563975961d) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '990cf40923e0706c2983f55e54c28d3c') in 0.0162652 seconds
+[Worker0] Start importing Assets/Scripts/Services/Invasion/DefenseEngagementCombatRuntime.cs using Guid(c940841b00c695349915454a67979aa4) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '78fac50233d34ea2cdb0ee9f6ffa70e5') in 0.0158515 seconds
+[Worker0] Start importing Assets/Scripts/Services/Invasion/DungeonDefenseTimeResponseRuntime.cs using Guid(83c186f4b640fcb4b9b1b5df910968ce) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '7f5577d16cd55610b7bbab08988efe36') in 0.0171318 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/ExactWarehouseHaulAdmissionJoin.cs using Guid(30dd8dfa4242456493039bf94c08280d) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '99f23d4cd841fcc3be7f134e0f8adb0d') in 0.0141052 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/PreparedPhysicalItemRelocationTransaction.cs using Guid(507c68aa34734d1488cac5a05b988cd3) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '045b9be734260b3818278697bff9c70a') in 0.0148485 seconds
+[Worker0] Start importing Assets/Scripts/Services/Invasion/DefenseGuardControlRuntime.cs using Guid(76728ac3c4a79af49b85acaf226edd0f) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'e7c546919231d6bf36d23dab404bafe0') in 0.0145042 seconds
+[Worker0] Start importing Assets/Scripts/Services/Invasion/DefenseCombatExecutor.cs using Guid(c395baf084814b944b804c2c011a4d8c) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '0103ecbe5c8a03035b0ee531e93bb884') in 0.0148287 seconds
+[Worker0] Start importing Assets/Scripts/Services/Invasion/InvasionEvacuationLocationPlanner.cs using Guid(ae6ea3113235430fb460c87838858071) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'f837e64283f06a4cebf45f1f146820e6') in 0.0140591 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/DungeonItemCatalog.cs using Guid(5f7bd0814bf799e40b486a7ec4c14f83) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '3f8050b9e197dde800d34d157827c7d7') in 0.0173522 seconds
+[Worker0] Start importing Assets/Scripts/Services/Invasion/InvasionFactPublicationRuntime.cs using Guid(488640be74154ff3a50b8cab8089649b) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '01ee29a169ad255911b25a7f825c19bf') in 0.0103992 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/ExactOwnedItemReleaseService.cs using Guid(c26171838d4b42a0b017cf18337223f9) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'cb0ea1a877c43d7c09a5e194d1eeed1c') in 0.0151918 seconds
+[Worker0] Start importing Assets/Scripts/Services/Invasion/InvasionCampaignRuntime.cs using Guid(c9830ca4a5d43674796ffe1e0c3f3a1d) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '0223730a95372169eb19ac861138fd29') in 0.0157954 seconds
+[Worker0] Start importing Assets/Scripts/Services/Invasion/DefenseEngagementPersistence.cs using Guid(7a49b105faff33647bebfbe92e67efce) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'c662abcd55622822e088d3ad03e767d7') in 0.0157102 seconds
+[Worker0] Start importing Assets/Scripts/Services/Invasion/InvasionSaveSection.cs using Guid(b2afa16515da7d04f9e5a3fa56d3af5b) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'e20da158ac09081d94676f6563eac865') in 0.0166114 seconds
+[Worker0] Start importing Assets/Scripts/Services/Invasion/InvasionDefenseSummaryQuery.cs using Guid(4c4bcacdacb7c97408447496a960b891) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '410edb5d304f0e86453ecb290ecdf5db') in 0.0145198 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/CapacityRoutingAuthorityReleaseContracts.cs using Guid(9c4f53e431364f498f417390801a6c17) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '25b5dac362147c9e9be847bf01471ddc') in 0.0127259 seconds
+[Worker0] Start importing Assets/Scripts/Services/Invasion/InvasionDirectorRuntime.cs using Guid(261391cb74bf366458abac716aa73a38) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '73410fff57894f834cfa2e52ea4c2479') in 0.0187014 seconds
+[Worker0] Start importing Assets/Scripts/Services/Infrastructure/V21ContentAlertChoiceActionDispatcher.cs using Guid(b4140000000000000000000000000009) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '8d0a1b08ecf43073b4e7344c52577541') in 0.015548 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/DurableFacilityEquipmentPolicyRegistry.cs using Guid(9ef55cfcb5ea44a1bc45e444223e5f5b) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'c2af0a9b831b768dd04f621505553bce') in 0.0161806 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/PhysicalStockQuery.cs using Guid(0020ad573cdfe88479241d5b5961a4ad) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '93a11d9603c3d512e7a3a3e8ddef13b4') in 0.0123451 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/FacilityOutputExactRouteEditorTestFactory.cs using Guid(c699d11abea74f7cb525af670b696695) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '41eec12eb9a738fcaf64b29f1c2db198') in 0.0166034 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/ItemQuantityReservationService.cs using Guid(d86712d8a5c1884449c81b53d54df5f7) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'db7a34a9f93689eb1c844dc075bb4875') in 0.016756 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/DurableFacilityEquipmentSaveSection.cs using Guid(03e13638361d46d4afc27712565e84b3) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'a89875f7ca05e218abe7dc55e61d44bd') in 0.0172059 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/ItemTransitContracts.cs using Guid(47d7d31b8a5a4309808ac75fc99df0a5) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'c161087a3a80731f9913d2e52f5a9d14') in 0.015033 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/HaulDeliveryIntentRuntime.cs using Guid(5d82b0eb40784dd78f8471b233b55e4a) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'aeaf6fc0943abcf54240fb202c243b47') in 0.0131803 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/PhysicalFacilityItemSinkGateway.cs using Guid(7f10bc75b8d14f2194c6ff7f95012d51) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '0eb143f014d8d32aa48beb491ab7eaea') in 0.0145086 seconds
+[Worker0] Start importing Assets/Scripts/Services/Invasion/DefenseEngagementStore.cs using Guid(142c98fd7f014df0a6cbd7ae4acd2166) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '69f6faf5d5b5ab632e48a57b450e0cea') in 0.0129121 seconds
+[Worker0] Start importing Assets/Scripts/Services/Invasion/InvasionCombatReportRuntime.cs using Guid(567e3373e4d68b74f897d3642ad12f41) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '999d897c21afdf1fdb06490be69f7d32') in 0.0185427 seconds
+[Worker0] Start importing Assets/Scripts/Services/Invasion/DefenseEngagementRuntime.cs using Guid(99854f4eed6d90d4c978754ae12675ca) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'c3626768724e0bad3e23c7d4fa10d092') in 0.0176175 seconds
+[Worker0] Start importing Assets/Scripts/Services/Items/AbilityHaul.cs using Guid(73d6bb6e98c788347b1f939aa79b2116) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '72255a6f7d1adde5329d90103b5bfa41') in 0.0216497 seconds
+[Worker0] Start importing Assets/Scripts/Services/Invasion/DefenseCombatPresentation.cs using Guid(d0ca90e6324c026468ce63b87ea9b2ed) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d) 
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '580bafa04ad27692a9f188954e8f3af1') in 0.0172024 seconds
+IMPACT_CI_PASS group=world;source=e56583698fd91716b5d28e317a6d249a3d31cc19d236e71b04ff43747112c24d;config=c890e6d41e4828bf653d4ff594786748cd8c4dd62fcab033d0a437f7604eee93;consoleErrors=0
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+V27CiEvidenceBatch:CompleteImpact (string,string,string,bool) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:246)
+V27CiEvidenceBatch:CompleteImpactWorldRestoreForBatch (bool) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:202)
+DungeonFullWorldRoundTripPlayModeRunner/<>c__DisplayClass7_0:<Finish>b__3 () (at Assets/Scripts/Services/Infrastructure/Editor/DungeonFullWorldRoundTripPlayModeFacade.cs:883)
+UnityEditor.EditorApplication:Internal_CallDelayFunctions ()
+
+(Filename: Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs Line: 246)
+
+Pipeline Server stopped
+Killing ADB server in 2.1005731 seconds.
+[Physics::Module] Cleanup current backend.
+[Physics::Module] Id: 0xf2b8ea05
+Input System module state changed to: ShutdownInProgress.
+Input System polling thread exited.
+Input System module state changed to: Shutdown.
+[Licensing::IpcConnector] LicenseClient-vulpo-notifications channel disconnected successfully.
+[Licensing::IpcConnector] LicenseClient-vulpo channel disconnected successfully.
+AcceleratorClientConnectionCallback - disconnected - :0
+Cleanup mono
+Checking for leaked weakptr:
+  Found no leaked weakptrs.
+[Package Manager] Server process was shutdown
+##utp:{"type":"MemoryLeaks","version":2,"phase":"Immediate","time":1793898721976,"processId":35176,"allocatedMemory":27696781,"memoryLabels":[{"Default":29313},{"Permanent":15236},{"NewDelete":69163},{"Thread":4230344},{"Manager":39517},{"VertexData":8},{"Geometry":816},{"Texture":296},{"Shader":79381},{"Material":24},{"GfxDevice":55880},{"Animation":392},{"Audio":3040},{"FreeType":8},{"FontEngine":736},{"Physics":1970},{"Physics2D":16},{"Input":14984},{"JobScheduler":33024},{"TextLib":280},{"Mono":32},{"MonoCode":123840},{"ScriptingNativeRuntime":155060},{"BaseObject":1625840},{"Resource":1336},{"Renderer":3000},{"Transform":4685},{"File":3945},{"WebCam":616},{"Culling":32},{"Terrain":11394},{"Wind":24},{"STL":40},{"String":13900},{"DynamicArray":147413},{"HashMap":83115},{"Utility":2662998},{"Curl":2559},{"PoolAlloc":2152},{"AI":80},{"TypeTree":5341},{"ScriptManager":512},{"RuntimeInitializeOnLoadManager":64},{"SpriteAtlas":112},{"GI":7792},{"Director":8240},{"CloudService":6760},{"WebRequest":6397},{"VR":48034},{"SceneManager":504},{"Video":64},{"LazyScriptCache":32},{"Camera":17},{"Secure":2377},{"SerializationCache":1576},{"APIUpdating":10320},{"Subsystems":336},{"VirtualTexturing":57888},{"StaticSafetyDebugInfo":278528},{"Analytics":640},{"Hierarchy":608},{"CoreStats":13112},{"Identifiers":6480},{"Gui":96},{"EditorUtility":178511},{"VersionControl":4},{"Undo":947},{"AssetDatabase":17710351},{"EditorGi":328},{"UnityConnect":29232},{"Upm":1896},{"AssetCompliance":64},{"DrivenProperties":72},{"LocalIPC":260},{"ProfilerEditor":9746},{"CoreBusinessMetrics":3518},{"Licensing":12757},{"AssetReference":32},{"IPCStream":32}]}

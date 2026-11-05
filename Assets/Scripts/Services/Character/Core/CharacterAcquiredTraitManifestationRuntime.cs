@@ -6,6 +6,7 @@ using System.Text;
 using DungeonStory.Foundation;
 using VContainer;
 using VContainer.Unity;
+using Unity.Profiling;
 
 public enum CharacterAcquiredTraitManifestationStatus
 {
@@ -111,6 +112,17 @@ public static class CharacterAcquiredTraitEvidenceWindow
     public const int MaximumExactEvidenceFacts =
         NarrativeRequestContext.MaximumFacts - 1;
 
+    public static int GetExactEvidenceCapacity(CharacterNarrativeLedger ledger)
+    {
+        if (ledger == null) throw new ArgumentNullException(nameof(ledger));
+        CharacterAcquiredTraitMeaningfulLedgerValidator.RequireMeaningfulFactIds(ledger);
+        int domains = LegacyCandidates(ledger, Array.Empty<GameplayOutcomeEvidenceBindingSnapshot>())
+            .Select(value => value.domain).Distinct().Count();
+        // 분야별 대표 이력을 먼저 예약한다. 게임 기록은 기존 query가 이 수 안에서 인과 묶음으로 고른다.
+        int legacySlots = Math.Min(NarrativeRequestContext.MaximumFacts - 1, Math.Max(1, domains));
+        return NarrativeRequestContext.MaximumFacts - legacySlots;
+    }
+
     public static IReadOnlyList<string> SelectLegacyFactIds(
         CharacterNarrativeLedger ledger,
         IEnumerable<GameplayOutcomeEvidenceBindingSnapshot> exactBindings)
@@ -134,16 +146,7 @@ public static class CharacterAcquiredTraitEvidenceWindow
         if (capacity <= 0)
             return Array.Empty<string>();
 
-        CharacterNarrativeFact[] candidates = GameplayOutcomeEvidenceFormulaProjection
-            .GetRemainingLegacyMilestoneCounts(ledger.Facts, exact).Keys
-            .Where(value => value != null
-                && value.milestoneCount > 0)
-            .GroupBy(
-                value => value.factId?.Trim() ?? string.Empty,
-                StringComparer.Ordinal)
-            .Where(group => group.Key.Length > 0)
-            .Select(group => OrderCandidates(group).First())
-            .ToArray();
+        CharacterNarrativeFact[] candidates = LegacyCandidates(ledger, exact);
 
         List<CharacterNarrativeFact> selected = new(capacity);
         HashSet<string> selectedIds = new(StringComparer.Ordinal);
@@ -174,6 +177,14 @@ public static class CharacterAcquiredTraitEvidenceWindow
             .OrderBy(value => value, StringComparer.Ordinal)
             .ToArray());
     }
+
+    private static CharacterNarrativeFact[] LegacyCandidates(CharacterNarrativeLedger ledger,
+        IEnumerable<GameplayOutcomeEvidenceBindingSnapshot> exact) =>
+        GameplayOutcomeEvidenceFormulaProjection.GetRemainingLegacyMilestoneCounts(ledger.Facts, exact).Keys
+            .Where(value => value != null && value.milestoneCount > 0)
+            .GroupBy(value => value.factId?.Trim() ?? string.Empty, StringComparer.Ordinal)
+            .Where(group => group.Key.Length > 0)
+            .Select(group => OrderCandidates(group).First()).ToArray();
 
     private static IOrderedEnumerable<CharacterNarrativeFact> OrderCandidates(
         IEnumerable<CharacterNarrativeFact> source) =>
@@ -574,6 +585,13 @@ public static class CharacterAcquiredTraitPromptBuilder
             selectionBuilder.AppendLine("Select an acquired trait from the C# offers.");
             selectionBuilder.Append("profile=").AppendLine(LocalLlmRequestProfiles.AcquiredTraitModuleSelection.Id);
             selectionBuilder.Append("selectionId=").AppendLine(frozen.moduleSelectionId);
+            NarrativePublicEntity subject = publicMaterial.Entities.Single(value =>
+                string.Equals(value.EntityId, publicMaterial.SubjectId, StringComparison.Ordinal));
+            if (subject.Kind != NarrativePublicEntityKind.Character
+                || string.IsNullOrWhiteSpace(subject.DisplayName)
+                || subject.DisplayName.IndexOfAny(new[] { '\r', '\n' }) >= 0)
+                throw new InvalidOperationException("Trait authoring requires its exact single-line public character name.");
+            selectionBuilder.Append("character=").AppendLine(subject.DisplayName);
             selectionBuilder.AppendLine("moduleOffers:");
             foreach (PromptModuleOffer offer in revalidatedSelection
                          .OrderBy(value => value.Polarity)
@@ -773,6 +791,11 @@ public sealed class CharacterAcquiredTraitManifestationRuntime :
     ITickable,
     IDisposable
 {
+    private static readonly ProfilerMarker TickMarker = new("AcquiredTrait.Tick");
+    private static readonly ProfilerMarker EvaluationMarker = new("AcquiredTrait.Evaluate");
+    private static readonly ProfilerMarker StaleOwnerMarker = new("AcquiredTrait.StaleOwner");
+    private static readonly ProfilerMarker StaleEvidenceMarker = new("AcquiredTrait.StaleEvidence");
+
     private const int MaximumConcurrentRequests = 2;
     private const int MaximumSubmissionsPerTick = 1;
     private const float InitialRetrySeconds = 2f;
@@ -820,7 +843,17 @@ public sealed class CharacterAcquiredTraitManifestationRuntime :
         public Action ChangedHandler;
         public PendingDispatch Pending;
         public bool Dirty = true;
+        public object EvidenceTraitIdentity;
+        public object EvidenceLedgerIdentity;
+        public int EvidenceTraitRevision;
+        public long EvidenceLedgerRevision;
+        public string EvidenceRequestId;
     }
+
+#if UNITY_EDITOR
+    public int EvidenceResolutionPassesForDebug { get; private set; }
+    public int EvidenceResolutionMemoHitsForDebug { get; private set; }
+#endif
 
     private readonly ICharacterWorldQuery world;
     private readonly NarrativeRequestContextBuilder requestContexts;
@@ -956,6 +989,7 @@ public sealed class CharacterAcquiredTraitManifestationRuntime :
         "ITickable|DungeonCharacterRegistration")]
     public void Tick()
     {
+        using var sample = TickMarker.Auto();
         if (disposed)
             return;
         ReconcileWorld(force: false);
@@ -966,6 +1000,7 @@ public sealed class CharacterAcquiredTraitManifestationRuntime :
         {
             Observation observation = pair.Value;
             InvalidateStaleOwner(observation);
+            InvalidateStaleEvidence(observation);
             if (!IsPublishedLiving(observation.Actor))
             {
                 RemoveObservation(
@@ -1090,6 +1125,7 @@ public sealed class CharacterAcquiredTraitManifestationRuntime :
 
     private void Evaluate(Observation observation)
     {
+        using var sample = EvaluationMarker.Auto();
         observation.Dirty = false;
         CharacterAcquiredTraitAggregateState state = observation.Progression
             .CaptureAcquiredTraitState();
@@ -1158,8 +1194,8 @@ public sealed class CharacterAcquiredTraitManifestationRuntime :
                 outcomeEvidenceQuery.GetForCharacter(
                     observation.Actor.Identity.PersistentId,
                     maximumCount:
-                        CharacterAcquiredTraitEvidenceWindow
-                            .MaximumExactEvidenceFacts,
+                        CharacterAcquiredTraitEvidenceWindow.GetExactEvidenceCapacity(
+                            observation.Progression.NarrativeLedger),
                     minimumSalience: 0f,
                     includeCompacted: true));
         string[] evidence = CharacterAcquiredTraitEvidenceWindow
@@ -1239,7 +1275,8 @@ public sealed class CharacterAcquiredTraitManifestationRuntime :
         CharacterAcquiredTraitPendingRequestState persisted)
     {
         if (persisted.formulaVersion > 0
-            && persisted.presentationState == CharacterAcquiredTraitPresentationState.AwaitingNarrativeRetry)
+            && persisted.presentationState is CharacterAcquiredTraitPresentationState.AwaitingNarrativeRetry
+                or CharacterAcquiredTraitPresentationState.ModuleSelectionAwaitingNarrativeRetry)
         {
             Publish(
                 CharacterAcquiredTraitManifestationStatus.CompletionRejected,
@@ -1249,7 +1286,7 @@ public sealed class CharacterAcquiredTraitManifestationRuntime :
                 0f,
                 CharacterAcquiredTraitInferenceIssueCode.InvalidNarrative,
                 null,
-                "Acquired-trait presentation awaits an explicit narrative retry after five failures.");
+                "Acquired-trait generation is paused after rejection; no incomplete effects were applied.");
             return;
         }
         string legacyEvidence = (persisted.evidenceFactIds ?? new List<string>())
@@ -1551,11 +1588,14 @@ public sealed class CharacterAcquiredTraitManifestationRuntime :
 
         pending.InFlight = false;
         pending.SubmittedAt = 0f;
-        if (InvalidateStaleOwner(observation))
+        if (InvalidateStaleOwner(observation) || InvalidateStaleEvidence(observation))
             return;
         if (!result.IsSuccess)
         {
-            ScheduleRetry(observation, pending, uiClock.Time);
+            if (result.RequiresInputChange && TryMarkAwaitingNarrativeRetry(observation, pending))
+                pending.NextAttemptAt = float.PositiveInfinity;
+            else
+                ScheduleRetry(observation, pending, uiClock.Time);
             Publish(
                 result.Status switch
                 {
@@ -1697,6 +1737,7 @@ public sealed class CharacterAcquiredTraitManifestationRuntime :
 
     private bool InvalidateStaleOwner(Observation observation)
     {
+        using var sample = StaleOwnerMarker.Auto();
         CharacterAcquiredTraitAggregateState state = observation.Progression.CaptureAcquiredTraitState();
         if (state.pendingRequests == null || state.pendingRequests.Count != 1)
             return false;
@@ -1709,6 +1750,68 @@ public sealed class CharacterAcquiredTraitManifestationRuntime :
         observation.Pending = null;
         bool invalidated = inference.TryInvalidateStalePending(observation.Progression,
             persisted.requestId, state.revision, out string reason);
+        observation.Dirty = true;
+        Publish(invalidated ? CharacterAcquiredTraitManifestationStatus.StaleCallbackRejected
+                : CharacterAcquiredTraitManifestationStatus.PendingInvalid,
+            persisted.targetPersistentId, dispatch?.Packet, 0, 0f,
+            CharacterAcquiredTraitInferenceIssueCode.StaleCallback, null, reason);
+        return true;
+    }
+
+    private bool InvalidateStaleEvidence(Observation observation)
+    {
+        using var sample = StaleEvidenceMarker.Auto();
+        var state = observation.Progression.CaptureAcquiredTraitState();
+        if (state.pendingRequests == null || state.pendingRequests.Count != 1) return false;
+        var persisted = state.pendingRequests[0];
+        if (persisted?.ownerBinding?.Matches(observation.Progression, out _) != true
+            || persisted.evidenceBindings == null || persisted.evidenceBindings.Count == 0
+            || persisted.evidenceBindings.Any(binding =>
+                !GameplayOutcomeEvidenceBindingAuthority.TryValidate(binding, out _)))
+            return false;
+
+        object traitIdentity = observation.Progression.AcquiredTraitReadIdentity;
+        long ledgerRevision = 0;
+        var revisionQuery = outcomeEvidenceQuery as GameplayOutcomeNarrativeEvidenceQuery;
+        object ledgerIdentity = revisionQuery?.CaptureReadRevision(out ledgerRevision);
+        if (traitIdentity != null && ledgerIdentity != null
+            && observation.Progression.AcquiredTraitReadRevision == state.revision
+            && ReferenceEquals(observation.EvidenceTraitIdentity, traitIdentity)
+            && ReferenceEquals(observation.EvidenceLedgerIdentity, ledgerIdentity)
+            && observation.EvidenceTraitRevision == state.revision
+            && observation.EvidenceLedgerRevision == ledgerRevision
+            && string.Equals(observation.EvidenceRequestId, persisted.requestId, StringComparison.Ordinal))
+        {
+#if UNITY_EDITOR
+            EvidenceResolutionMemoHitsForDebug++;
+#endif
+            return false;
+        }
+#if UNITY_EDITOR
+        EvidenceResolutionPassesForDebug++;
+#endif
+        if (persisted.evidenceBindings.All(binding => outcomeEvidenceQuery.TryResolveExactBinding(binding, out _)))
+        {
+            // 성공한 읽기만 재사용한다. 값이 같아도 복원된 다른 상태면 다시 검사한다.
+            if (ledgerIdentity != null
+                && ReferenceEquals(ledgerIdentity, revisionQuery.CaptureReadRevision(out long afterRevision))
+                && ledgerRevision == afterRevision
+                && ReferenceEquals(traitIdentity, observation.Progression.AcquiredTraitReadIdentity)
+                && observation.Progression.AcquiredTraitReadRevision == state.revision)
+            {
+                observation.EvidenceTraitIdentity = traitIdentity;
+                observation.EvidenceLedgerIdentity = ledgerIdentity;
+                observation.EvidenceTraitRevision = state.revision;
+                observation.EvidenceLedgerRevision = ledgerRevision;
+                observation.EvidenceRequestId = persisted.requestId;
+            }
+            return false;
+        }
+        PendingDispatch dispatch = observation.Pending;
+        CancelTransport(dispatch);
+        observation.Pending = null;
+        bool invalidated = inference.TryInvalidateStaleEvidencePending(observation.Progression,
+            persisted.requestId, state.revision, outcomeEvidenceQuery, out string reason);
         observation.Dirty = true;
         Publish(invalidated ? CharacterAcquiredTraitManifestationStatus.StaleCallbackRejected
                 : CharacterAcquiredTraitManifestationStatus.PendingInvalid,
@@ -1800,8 +1903,11 @@ public sealed class CharacterAcquiredTraitManifestationRuntime :
         CharacterAcquiredTraitPendingRequestState candidatePending = candidate.pendingRequests
             .Single(value => value != null && string.Equals(value.requestId,
                 dispatch.Packet.requestId, StringComparison.Ordinal));
-        candidatePending.presentationFailureCount = 5;
-        candidatePending.presentationState = CharacterAcquiredTraitPresentationState.AwaitingNarrativeRetry;
+        candidatePending.presentationFailureCount = Math.Max(1, dispatch.Attempts);
+        candidatePending.presentationState = pending.presentationState
+            == CharacterAcquiredTraitPresentationState.ModuleSelectionPending
+                ? CharacterAcquiredTraitPresentationState.ModuleSelectionAwaitingNarrativeRetry
+                : CharacterAcquiredTraitPresentationState.AwaitingNarrativeRetry;
         if (!observation.Progression.TryCommitAcquiredTraitState(
                 candidate,
                 current.revision,

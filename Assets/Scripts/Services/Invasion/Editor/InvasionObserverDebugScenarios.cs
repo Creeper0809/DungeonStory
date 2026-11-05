@@ -10,6 +10,81 @@ using UnityEngine;
 
 public static partial class MigratedProducerCombatDefenseEntryE2EDebugScenarios
 {
+    public static void VerifyRepeatedInvasionFrontCollapseForBatch()
+    {
+        using var harness = new OutcomeHarness(MigratedProducerOutcomeKind.DefenseFrontCollapsedEvent,
+            "repeated-invasion-front", false, MigratedProducerOutcomeFaultMode.None, false);
+        var events = new GameEventBus();
+        var grid = new Grid(6, 1);
+        grid.SetAreaType(new Vector2Int(1, 0), GridCellAreaType.DungeonInterior);
+        var actorObject = CreatePreparedIntruderObject(harness.InvasionFacts, grid, events, out var runtime);
+        try
+        {
+            actorObject.SetActive(false);
+            var store = new DefenseEngagementStore();
+            var combat = new DefenseEngagementCombatRuntime(store, events, new UnityGameClock());
+            string previous = harness.InvasionFacts.Capture().observations.Last().publicationKey;
+            for (int index = 0; index < 2; index++)
+            {
+                var engagement = new DefenseEngagement { Id = store.AllocateId(), Intruder = runtime,
+                    State = DefenseEngagementState.Engaged, StatusText = "engaged" };
+                store.Add(engagement);
+                combat.CollapseFront(engagement, "blocked-guard-route");
+                var journal = harness.InvasionFacts.Capture();
+                var latest = journal.observations.Last();
+                Require(engagement.State == DefenseEngagementState.Completed && store.Engagements.Count == 0
+                    && runtime.State == InvasionIntruderState.FrontBroken,
+                    "Repeated front collapse did not complete through the production owner.");
+                Require(journal.observations.Count(row => row.fact.stage == InvasionLifecycleStage.FrontCollapsed) == index + 1
+                    && latest.fact.parentPublicationKey == previous && latest.publicationKey != previous && !latest.pending,
+                    "Repeated front collapse duplicated or detached its committed predecessor.");
+                string json = DungeonCharacterWorldSaveCodec.SerializeFields(journal);
+                InvasionFactPublicationSaveSection.ValidateJson(json);
+                var restored = DungeonSaveJson.Deserialize<InvasionFactPublicationSaveData>(json);
+                InvasionFactPreflight.ValidateJournal(restored, harness.Ledger.CaptureGameplayOutcomes(), harness.Transaction.Capture());
+                Require(restored.observations.Last().fact.parentPublicationKey == previous,
+                    "Repeated front collapse parent changed across journal persistence.");
+                previous = latest.publicationKey;
+            }
+            runtime.transform.position = grid.GetWorldPos(new Vector2Int(1, 0));
+            new InvasionIntruderExecutionCoordinator(runtime).MarkDungeonBreached(grid, new Vector2Int(1, 0));
+            var breached = harness.InvasionFacts.Capture().observations.Last();
+            Require(runtime.HasBreachedDungeonInterior && breached.fact.stage == InvasionLifecycleStage.Breached
+                && breached.fact.parentPublicationKey == previous, "Breach after front collapse lost its predecessor.");
+            var laterEngagement = new DefenseEngagement { Id = store.AllocateId(), Intruder = runtime,
+                State = DefenseEngagementState.Engaged, StatusText = "engaged" };
+            store.Add(laterEngagement);
+            combat.CollapseFront(laterEngagement, "inside-guard-route-blocked");
+            string collapseParent = harness.InvasionFacts.Capture().observations.Last().publicationKey;
+            using var damageTarget = new BuildingFixture(grid, "Assets/Resources/SO/Building/P1/P1_SpikeTrap.asset",
+                new Vector2Int(2, 0), "building:repeated-front:damage");
+            Require(runtime.TryDamageNearbyFacility(grid, damageTarget.Building), "Facility damage after front collapse rejected.");
+            var final = harness.InvasionFacts.Capture().observations.Last();
+            Require(damageTarget.Building.IsDamaged && runtime.FacilityDamageCount == 1
+                && final.fact.stage == InvasionLifecycleStage.FacilityDamaged
+                && final.fact.parentPublicationKey == collapseParent && final.fact.damageIndexAfter == 1,
+                "Facility damage did not keep the same invasion's committed collapse parent.");
+            string finalJson = DungeonCharacterWorldSaveCodec.SerializeFields(harness.InvasionFacts.Capture());
+            InvasionFactPublicationSaveSection.ValidateJson(finalJson);
+            InvasionFactPreflight.ValidateJournal(DungeonSaveJson.Deserialize<InvasionFactPublicationSaveData>(finalJson),
+                harness.Ledger.CaptureGameplayOutcomes(), harness.Transaction.Capture());
+            Require(GameplayDomainFactDeliveryQuery.TryReadKey(final.fact.parentPublicationKey, out var parentKey),
+                "Committed collapse parent key missing.");
+            Require(harness.Ledger.TryGetResultIdentity(parentKey, out var parent), "Committed collapse parent missing.");
+            foreach (var invalidKey in new[] {
+                MigratedProducerOutcomeCatalog.ResultKey(MigratedProducerOutcomeKind.DefenseFrontCollapsedEvent,
+                    final.fact.runtimeId + "-other:front-collapse", 1).ToString(),
+                MigratedProducerOutcomeCatalog.ResultKey(MigratedProducerOutcomeKind.InvasionResolvedEvent,
+                    final.fact.runtimeId, 1).ToString() })
+            {
+                var invalid = final.fact.Clone(); invalid.parentPublicationKey = invalidKey;
+                ExpectB95Invalid(() => InvasionLifecycleFactObservation.CaptureWithParent(new InvasionLifecycleFact(invalid), parent.OutcomeId));
+            }
+        }
+        finally { UnityEngine.Object.DestroyImmediate(actorObject); }
+        Debug.Log("INVASION_REPEATED_FRONT_COLLAPSE_LINEAGE=PASS");
+    }
+
     public static void RunInvasionObserversForBatchMode()
     {
         string output = Environment.GetEnvironmentVariable("DUNGEONSTORY_AUDIT_REMEDIATION_OUTPUT");

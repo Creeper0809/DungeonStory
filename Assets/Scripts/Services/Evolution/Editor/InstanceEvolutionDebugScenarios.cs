@@ -4,7 +4,7 @@ using System.Linq;
 using UnityEditor;
 using UnityEngine;
 
-public static class InstanceEvolutionDebugScenarios
+public static partial class InstanceEvolutionDebugScenarios
 {
     public static void RunR30GenerationCommandFocused()
     {

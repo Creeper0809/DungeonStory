@@ -7,7 +7,7 @@ public sealed class
     CharacterMedicalSupplyDestinationDrainCrossAggregateSaveValidation :
     IDungeonSavePreflightValidator,
     IDungeonSaveRegistryPreflightValidator,
-    IDungeonCapturedSavePreflightValidator
+    IDungeonDetachedCapturedSavePreflightValidator
 {
     public void Validate(
         DungeonGameSaveData saveData,

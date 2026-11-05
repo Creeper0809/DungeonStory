@@ -34,6 +34,7 @@ public sealed class SocialReputationRuntime : SerializedMonoBehaviour
         new Dictionary<CharacterActor, Action<CharacterLogEntry>>();
     private readonly Dictionary<CharacterActor, float> nextRequestTimeByActor =
         new Dictionary<CharacterActor, float>();
+    private readonly HashSet<CharacterActor> pendingRumorActors = new HashSet<CharacterActor>();
     private IBuildingWorldQuery buildingWorldQuery;
     private ICharacterWorldQuery characterWorldQuery;
     private IGameClock gameClock;
@@ -212,6 +213,13 @@ public sealed class SocialReputationRuntime : SerializedMonoBehaviour
             return ruleApplied;
         }
 
+        if (pendingRumorActors.Contains(speaker))
+        {
+            lastRequestSkipDebug = "speaker rumor already pending";
+            nextRequestTimeByActor[speaker] = RequireGameClock().Time + Mathf.Max(0.1f, minSecondsBetweenActorRequests);
+            return ruleApplied;
+        }
+
         string prompt = RequirePromptComposer().BuildEventPrompt(
             speaker,
             entry,
@@ -221,7 +229,7 @@ public sealed class SocialReputationRuntime : SerializedMonoBehaviour
             maxPromptCharacters);
         lastRequestDebug = prompt;
         lastRequestSkipDebug = string.Empty;
-        if (!queue.GenerateSocialRumorAsync(
+        if (!TryGenerateSingleRumor(queue, speaker,
                 prompt,
                 (result) => OnSocialRumorResult(
                     speaker,
@@ -275,6 +283,13 @@ public sealed class SocialReputationRuntime : SerializedMonoBehaviour
             return ruleApplied;
         }
 
+        if (pendingRumorActors.Contains(speaker))
+        {
+            lastRequestSkipDebug = "speaker rumor already pending";
+            nextRequestTimeByActor[speaker] = RequireGameClock().Time + Mathf.Max(0.1f, minSecondsBetweenActorRequests);
+            return ruleApplied;
+        }
+
         string prompt = RequirePromptComposer().BuildFacilityExperiencePrompt(
             speaker,
             facility,
@@ -283,7 +298,7 @@ public sealed class SocialReputationRuntime : SerializedMonoBehaviour
             summary,
             maxPromptCharacters);
         lastRequestDebug = prompt;
-        if (!queue.GenerateSocialRumorAsync(
+        if (!TryGenerateSingleRumor(queue, speaker,
                 prompt,
                 (result) => OnSocialRumorResult(speaker, result, facility, true, expectedSentiment, true)))
         {
@@ -298,6 +313,28 @@ public sealed class SocialReputationRuntime : SerializedMonoBehaviour
             RequireGameClock().Time + Mathf.Max(0.1f, minSecondsBetweenActorRequests);
         lastRequestSkipDebug = string.Empty;
         return true;
+    }
+
+    private bool TryGenerateSingleRumor(ILocalLlmRuntime queue, CharacterActor speaker,
+        string prompt, Action<LocalLlmResult> completed)
+    {
+        if (!pendingRumorActors.Add(speaker)) return false;
+        try
+        {
+            bool accepted = CharacterSceneLlmRequests.Generate(queue, "SocialRumor",
+                prompt, string.Empty, speaker, result =>
+            {
+                pendingRumorActors.Remove(speaker);
+                completed(result);
+            });
+            if (!accepted) pendingRumorActors.Remove(speaker);
+            return accepted;
+        }
+        catch
+        {
+            pendingRumorActors.Remove(speaker);
+            throw;
+        }
     }
 
     public bool ApplyRumor(SocialRumor rumor, CharacterActor speaker)

@@ -88,7 +88,9 @@ public sealed class DungeonSceneNavigator : IDungeonSceneNavigator
 
     private readonly IGameTimeScaleController timeScaleController;
     private readonly IUiClock uiClock;
+    private readonly IDungeonGameSaveSlotService saveSlots;
 
+    [VContainer.Inject]
     public DungeonSceneNavigator(
         IGameTimeScaleController timeScaleController,
         IUiClock uiClock)
@@ -98,7 +100,15 @@ public sealed class DungeonSceneNavigator : IDungeonSceneNavigator
         this.uiClock = uiClock ?? throw new ArgumentNullException(nameof(uiClock));
     }
 
-    public bool IsTransitioning => GetMailbox().IsTransitioning;
+    // 게임 scope만 현재 저장 소유자를 연결한다. 타이틀/준비 scope에는 저장 작업이 없다.
+    public DungeonSceneNavigator(IGameTimeScaleController timeScaleController,
+        IUiClock uiClock, IDungeonGameSaveSlotService saveSlots)
+        : this(timeScaleController, uiClock)
+    {
+        this.saveSlots = saveSlots ?? throw new ArgumentNullException(nameof(saveSlots));
+    }
+
+    public bool IsTransitioning => saveSlots?.IsSaving == true || GetMailbox().IsTransitioning;
 
     public bool StartNewGame()
     {
@@ -267,6 +277,7 @@ public sealed class DungeonSceneNavigator : IDungeonSceneNavigator
 
     private bool BeginTransition(string targetScene, Action<string> onFailure, bool resumeTime = true)
     {
+        if (saveSlots?.IsSaving == true) return false;
         DungeonSceneTransitionMailbox mailbox = GetMailbox();
         if (mailbox.IsTransitioning || string.IsNullOrWhiteSpace(targetScene))
         {

@@ -513,7 +513,7 @@ public static class CharacterAcquiredTraitStateValidator
                     + $"{request.manifestationMilestone} exceeds validated meaningful "
                     + $"acquired-trait experience score {experienceScore}.");
             }
-            if (request.presentationState == CharacterAcquiredTraitPresentationState.ModuleSelectionPending)
+            if (request.HasUnresolvedModuleSelection)
             {
                 ValidatePendingModuleOffers(request, settings, modulesById, issues);
             }
@@ -636,6 +636,19 @@ public static class CharacterAcquiredTraitStateValidator
             instance.drawbackCredit,
             issues,
             $"Acquired-trait instance '{instance.instanceId}'");
+        string authoritativeName = null;
+        if (instance.presentationOrigin?.HasData == true)
+        {
+            try
+            {
+                var material = instance.presentationOrigin.RestorePublicContext(instance);
+                authoritativeName = material.Entities.Single(value => value.EntityId == material.SubjectId).DisplayName;
+            }
+            catch (Exception exception) when (exception is ArgumentException or InvalidOperationException)
+            {
+                Add(issues, CharacterAcquiredTraitValidationIssueCode.InvalidInstance, exception.Message);
+            }
+        }
         ValidateFormulaEnvelope(
             instance.formulaVersion,
             instance.formulaCatalogSha256,
@@ -653,6 +666,7 @@ public static class CharacterAcquiredTraitStateValidator
             instance.formulaVersion == 0
                 ? CharacterAcquiredTraitPresentationState.None
                 : CharacterAcquiredTraitPresentationState.Ready,
+            authoritativeName,
             issues,
             $"Acquired-trait instance '{instance.instanceId}'");
         if (instance.acceptedRevision <= 0
@@ -733,7 +747,7 @@ public static class CharacterAcquiredTraitStateValidator
             Add(issues, CharacterAcquiredTraitValidationIssueCode.InvalidRevision,
                 $"Pending acquired-trait request '{request.requestId}' has invalid revision.");
         }
-        if (request.presentationState == CharacterAcquiredTraitPresentationState.ModuleSelectionPending)
+        if (request.HasUnresolvedModuleSelection)
         {
             bool validSelection = request.formulaVersion
                     >= CharacterAcquiredTraitFormulaGeneration.ModuleSelectionFormulaVersion
@@ -799,6 +813,7 @@ public static class CharacterAcquiredTraitStateValidator
             string.Empty,
             string.Empty,
             request.presentationState,
+            null,
             issues,
             $"Pending acquired-trait request '{request.requestId}'");
     }
@@ -893,6 +908,17 @@ public static class CharacterAcquiredTraitStateValidator
         IReadOnlyDictionary<string, CharacterAcquiredTraitModuleSO> modulesById,
         ICollection<CharacterAcquiredTraitValidationIssue> issues)
     {
+        if (instance.presentationOrigin?.HasData == true)
+        {
+            try
+            {
+                instance.presentationOrigin.RequireRequestIdentity(instance, settings);
+            }
+            catch (Exception exception) when (exception is ArgumentException or InvalidOperationException)
+            {
+                Add(issues, CharacterAcquiredTraitValidationIssueCode.InvalidInstance, exception.Message);
+            }
+        }
         if (!settings.TryGetGate(
                 instance.manifestationMilestone,
                 out CharacterAcquiredTraitManifestationGateDefinition gate))
@@ -1484,6 +1510,7 @@ public static class CharacterAcquiredTraitStateValidator
         string displayName,
         string narrativeFlavor,
         CharacterAcquiredTraitPresentationState presentationState,
+        string authoritativeName,
         ICollection<CharacterAcquiredTraitValidationIssue> issues,
         string label)
     {
@@ -1540,8 +1567,11 @@ public static class CharacterAcquiredTraitStateValidator
             || (presentationState == CharacterAcquiredTraitPresentationState.Ready
                 && (!IsCanonicalRequired(displayName)
                     || !IsCanonicalRequired(narrativeFlavor)
-                    || ContainsMechanicalNumber(displayName)
-                    || ContainsMechanicalNumber(narrativeFlavor))))
+                    || displayName.Length > 32 || narrativeFlavor.Length > 180
+                    || CharacterSkillPresentationText.ContainsMechanicalNumber(
+                        displayName, authoritativeName, asciiFullwidthOnly: true)
+                    || CharacterSkillPresentationText.ContainsMechanicalNumber(
+                        narrativeFlavor, authoritativeName, asciiFullwidthOnly: true))))
             Add(issues, CharacterAcquiredTraitValidationIssueCode.InvalidInstance,
                 label + " has an invalid formula envelope or presentation state.");
     }

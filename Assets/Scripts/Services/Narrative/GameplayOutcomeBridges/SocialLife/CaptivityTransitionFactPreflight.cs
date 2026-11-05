@@ -4,7 +4,7 @@ using System.Linq;
 using DungeonStory.Foundation;
 
 /// <summary>Joins the retained transition fact to canonical history without deriving it from current actor state.</summary>
-public sealed class CaptivityTransitionFactPreflight : IDungeonSavePreflightValidator, IDungeonCapturedSavePreflightValidator
+public sealed class CaptivityTransitionFactPreflight : IDungeonSavePreflightValidator, IDungeonDetachedCapturedSavePreflightValidator
 {
     public void Validate(DungeonGameSaveData save, DungeonGameRestoreReport report) => Validate(
         DungeonSaveSectionPayload.ReadOrNew<CaptivitySaveData>(save, CaptivitySaveSection.Id),

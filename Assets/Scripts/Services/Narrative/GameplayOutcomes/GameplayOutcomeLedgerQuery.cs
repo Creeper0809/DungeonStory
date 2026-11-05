@@ -268,6 +268,16 @@ public sealed partial class GameplayOutcomeLedger
         return new GameplayOutcomeQueryPage(items, next);
     }
 
+    internal object CaptureReadRevision(out long revision)
+    {
+        lock (gate)
+        {
+            RequireQueryCalendarNoLock();
+            revision = state.Revision;
+            return state.ReadIdentity;
+        }
+    }
+
     private void RequireQueryCalendarNoLock()
     {
         if (deliveryCalendar == null) return; // Explicit untimed historical/test ledger.

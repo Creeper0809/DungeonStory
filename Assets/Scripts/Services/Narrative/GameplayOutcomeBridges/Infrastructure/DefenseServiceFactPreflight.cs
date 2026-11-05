@@ -4,7 +4,7 @@ using System.Linq;
 using DungeonStory.Foundation;
 using Newtonsoft.Json.Linq;
 
-public sealed class DefenseServiceFactPreflight : IDungeonSavePreflightValidator, IDungeonCapturedSavePreflightValidator
+public sealed class DefenseServiceFactPreflight : IDungeonSavePreflightValidator, IDungeonDetachedCapturedSavePreflightValidator
 {
     public void Validate(DungeonGameSaveData save, DungeonGameRestoreReport report)
     {

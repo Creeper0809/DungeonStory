@@ -500,7 +500,7 @@ public sealed class StaffDiscontentTransitionOutcomeDescriptor :
         && outcome.MetricCount == 11
         && outcome.SubjectCount == 1
         && outcome.TagCount == 3
-        && outcome.AnchorCount == 0
+        && outcome.ProductionAnchorCount == 0
         && outcome.ProvenanceCount == 2
             ? OutcomeValidationResult.Accepted
             : OutcomeValidationResult.Reject(

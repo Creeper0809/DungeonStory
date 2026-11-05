@@ -3,7 +3,7 @@ using System.Linq;
 using DungeonStory.Foundation;
 using DungeonStory.Narrative.Korean;
 
-public sealed class ProductionCommandFactPreflight : IDungeonSavePreflightValidator, IDungeonCapturedSavePreflightValidator
+public sealed class ProductionCommandFactPreflight : IDungeonSavePreflightValidator, IDungeonDetachedCapturedSavePreflightValidator
 {
     public void Validate(DungeonGameSaveData save, DungeonGameRestoreReport report)
     {

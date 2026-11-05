@@ -250,6 +250,36 @@ class ConfigurationTests(unittest.TestCase):
                 path.write_bytes(b"text\r\n")
                 self.assertEqual(expected, gate.configuration_snapshot(root))
 
+    def test_binary_inputs_stream_complete_bytes_without_whole_file_allocation(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            for folder in ("Assets", "Packages", "ProjectSettings"):
+                (root / folder).mkdir()
+            for name, payload in (("model.gguf", b"x" * (70 * 1024) + b"\0\xff" + b"tail"),
+                                  ("runtime.bytes", b"plain text\r\n")):
+                with self.subTest(name=name):
+                    path = root / "Assets" / name
+                    path.write_bytes(payload)
+                    expected = hashlib.sha256(
+                        f"Assets/{name}\n{hashlib.sha256(payload).hexdigest()}\n".encode()).hexdigest()
+                    with patch.object(Path, "read_bytes", side_effect=AssertionError("Whole binary allocation")):
+                        self.assertEqual(expected, gate.configuration_snapshot(root))
+                    path.write_bytes(payload[:-1] + b"!")
+                    with patch.object(Path, "read_bytes", side_effect=AssertionError("Whole binary allocation")):
+                        self.assertNotEqual(expected, gate.configuration_snapshot(root))
+                    path.unlink()
+
+    def test_invalid_utf8_without_nul_retains_original_newline_bytes(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            for folder in ("Assets", "Packages", "ProjectSettings"):
+                (root / folder).mkdir()
+            payload = b"\xff\r\n"
+            (root / "Assets/opaque.bin").write_bytes(payload)
+            expected = hashlib.sha256(
+                f"Assets/opaque.bin\n{hashlib.sha256(payload).hexdigest()}\n".encode()).hexdigest()
+            self.assertEqual(expected, gate.configuration_snapshot(root))
+
     def test_runtime_json_and_binary_asset_changes_invalidate_execution(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

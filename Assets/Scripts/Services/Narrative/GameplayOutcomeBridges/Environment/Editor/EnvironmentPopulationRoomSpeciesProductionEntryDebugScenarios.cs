@@ -262,6 +262,87 @@ public static partial class EnvironmentPopulationRoomSpeciesProductionEntryDebug
         }
     }
 
+    public static void VerifySpeciesPreflightForBatch()
+    {
+        using Fixture fixture = new();
+        IWorldFilthQuery filth = Proxy<IWorldFilthQuery>();
+        SpeciesIncidentHandlerRegistry handlers = new(
+            Proxy<IWorldItemStackRuntime>(), Proxy<IPhysicalItemRelocationService>(), filth,
+            Proxy<IWorldWaterContaminationCommand>(), fixture.World);
+        CharacterSpeciesRuntime runtime = new(
+            fixture.World,
+            CharacterAiEditorTestDependencies.CharacterSpeciesCatalog,
+            handlers, fixture.Clock, fixture.Events, new DungeonRuntimeAggregateRootStore(),
+            CharacterAiEditorTestDependencies.BodyHealthRuntime,
+            Proxy<IAnatomyProfileCatalog>(),
+            new CharacterPerformanceFormulaCatalog(CharacterAiEditorTestDependencies.ContentDefinitions),
+            new FixedRunSeedProvider(61317), Proxy<IStockQuery>(), Proxy<IItemReservationService>(),
+            Proxy<IAtomicItemConsumptionService>(), filth, Proxy<IWorldWaterQuery>(),
+            CharacterAiEditorTestDependencies.BodyHealthRuntime,
+            fixture.Facts, fixture.Facts, fixture.Calendar,
+            Proxy<IPreparedPhysicalItemRelocationService>());
+        runtime.Restore(runtime.BuildRestore(new CharacterSpeciesRuntimeSaveData
+        {
+            characters = new List<CharacterSpeciesRuntimeRecordSaveData>
+            {
+                new() { characterInstanceId = fixture.CharacterId.Value, speciesDefinitionId = "Golem" }
+            }
+        }));
+        string liveBefore = JsonUtility.ToJson(runtime.Capture());
+        Require(CharacterAiEditorTestDependencies.CharacterSpeciesCatalog.TryGet(
+                    new CharacterSpeciesId("Slime"), out CharacterSpeciesSO slime)
+                && slime.IncidentId == CharacterSpeciesIncidentIds.SlimeContamination,
+            "Authored Slime incident definition is missing or changed.");
+        CharacterSpeciesRuntimeSaveData valid = new()
+        {
+            characters = new List<CharacterSpeciesRuntimeRecordSaveData>
+            {
+                new() { characterInstanceId = "character:qa:species-preflight:01", speciesDefinitionId = "Slime" },
+                new() { characterInstanceId = "character:qa:species-preflight:02", speciesDefinitionId = "Slime",
+                    lastIncidentId = slime.IncidentId, incidentCount = 1 }
+            }
+        };
+        Require(runtime.BuildRestore(valid) != null, "The real owner rejected valid Slime incident history.");
+        SpeciesActionFactPreflight preflight = new(runtime);
+        DungeonGameRestoreReport accepted = ValidateSpeciesPreflight(preflight, valid);
+        Require(accepted.Success, "Preflight rejected distinct valid same-species incident histories: "
+            + string.Join(";", accepted.Errors));
+        Require(JsonUtility.ToJson(runtime.Capture()) == liveBefore,
+            "Valid preflight changed live species state.");
+
+        VerifyInvalid(source => source.characters[1].lastIncidentId = "incident:invalid", "incident");
+        VerifyInvalid(source => source.characters[1].speciesDefinitionId = "UnknownSpecies", "species");
+        VerifyInvalid(source => source.characters[1].wearWorkRemainder = -1f, "negative wear");
+
+        void VerifyInvalid(Action<CharacterSpeciesRuntimeSaveData> tamper, string label)
+        {
+            CharacterSpeciesRuntimeSaveData invalid =
+                JsonUtility.FromJson<CharacterSpeciesRuntimeSaveData>(JsonUtility.ToJson(valid));
+            tamper(invalid);
+            bool ownerRejected = false;
+            try { runtime.BuildRestore(invalid); }
+            catch (InvalidOperationException) { ownerRejected = true; }
+            DungeonGameRestoreReport rejected = ValidateSpeciesPreflight(preflight, invalid);
+            Require(ownerRejected && !rejected.Success
+                    && rejected.Errors.Any(error => error.StartsWith(
+                        "species-observation-save-join:", StringComparison.Ordinal)),
+                "Owner and preflight did not reject invalid " + label + ".");
+            Require(JsonUtility.ToJson(runtime.Capture()) == liveBefore,
+                "Rejected " + label + " changed live species state.");
+        }
+    }
+
+    private static DungeonGameRestoreReport ValidateSpeciesPreflight(
+        SpeciesActionFactPreflight preflight, CharacterSpeciesRuntimeSaveData payload)
+    {
+        DungeonGameSaveData save = new();
+        DungeonSaveSectionPayload.Write(save, SpeciesRuntimeSaveSection.Id,
+            CharacterSpeciesRuntimeSaveData.CurrentVersion, DungeonSaveRestorePhase.RuntimeState, payload);
+        DungeonGameRestoreReport report = new();
+        preflight.Validate(save, report);
+        return report;
+    }
+
     private static void VerifySpeciesIncident(Fixture fixture)
     {
         IWorldFilthQuery filth = Proxy<IWorldFilthQuery>();

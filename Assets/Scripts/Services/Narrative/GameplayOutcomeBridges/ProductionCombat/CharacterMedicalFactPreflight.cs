@@ -4,7 +4,7 @@ using DungeonStory.Foundation;
 using DungeonStory.Narrative.Korean;
 
 /// <summary>Observer-owned canonical join, without a dependency from medical state to its record.</summary>
-public sealed class CharacterMedicalFactPreflight : IDungeonSavePreflightValidator, IDungeonCapturedSavePreflightValidator
+public sealed class CharacterMedicalFactPreflight : IDungeonSavePreflightValidator, IDungeonDetachedCapturedSavePreflightValidator
 {
     public void Validate(DungeonGameSaveData save, DungeonGameRestoreReport report) => Validate(
         DungeonSaveSectionPayload.ReadOrNew<DungeonCharacterMedicalSaveData>(save, CharacterMedicalSaveSection.Id),

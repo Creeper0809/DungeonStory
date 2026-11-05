@@ -7,7 +7,7 @@ using DungeonStory.Narrative.Korean;
 
 /// <summary>Observer-owned canonical join; physical and wildlife owners keep only opaque keys.</summary>
 public sealed class PhysicalTransformationFactPreflight :
-    IDungeonSavePreflightValidator, IDungeonCapturedSavePreflightValidator
+    IDungeonSavePreflightValidator, IDungeonDetachedCapturedSavePreflightValidator
 {
     public void Validate(DungeonGameSaveData save, DungeonGameRestoreReport report)
     {

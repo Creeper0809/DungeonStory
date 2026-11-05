@@ -1,0 +1,12 @@
+{
+  "exit_code": 0,
+  "seconds": 393.6448832,
+  "stop_reason": null,
+  "source_label": "r60-recovery-20261106-final",
+  "compiler_error_count": 0,
+  "source_drift": [],
+  "source_drift_authority": "Unity CompleteImpact compared all source/configuration inputs before emitting the exact completion marker.",
+  "started_utc": "2026-11-05T16:59:30.5967211Z",
+  "ended_utc": "2026-11-05T17:06:04.2323512Z",
+  "isolation": "noninteractive window station/desktop; launcher probe passed"
+}

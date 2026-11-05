@@ -12,6 +12,7 @@ public interface IDungeonSaveCommandService
 
 public sealed class DungeonAutosaveService :
     IStartable,
+    ITickable,
     IDisposable,
     IDungeonSaveCommandService
 {
@@ -21,6 +22,8 @@ public sealed class DungeonAutosaveService :
     private IDisposable operatingDayReportSubscription;
     private bool started;
     private bool isSaving;
+    private bool automaticSavePending;
+    private IDungeonSaveOperation automaticSave;
 
     public DungeonAutosaveService(
         IDungeonGameSaveSlotService slotService,
@@ -53,6 +56,14 @@ public sealed class DungeonAutosaveService :
             return;
         }
 
+        try
+        {
+            slotService.CompletePendingSave();
+            if (automaticSavePending && HasActiveRun())
+                slotService.Save(DungeonGameSaveSlotService.AutoSaveSlot);
+        }
+        catch (Exception exception) { Debug.LogError("Pending autosave failed during shutdown: " + exception.Message); }
+        automaticSavePending = false;
         operatingDayReportSubscription?.Dispose();
         operatingDayReportSubscription = null;
         Application.quitting -= HandleApplicationQuitting;
@@ -61,11 +72,33 @@ public sealed class DungeonAutosaveService :
 
     public void OnTriggerEvent(OperatingDayReportEvent eventType)
     {
-        if (!TryAutoSave(out string message))
+        automaticSavePending = true;
+        StartPendingAutosave();
+    }
+
+    public void Tick()
+    {
+        slotService.AdvanceSave();
+        if (automaticSave != null && automaticSave.IsCompleted)
         {
-            int day = eventType.report != null ? eventType.report.day : 0;
-            Debug.LogWarning($"Autosave failed after operating day {day}: {message}");
+            if (!automaticSave.Succeeded)
+                Debug.LogWarning("Operating day autosave failed: " + automaticSave.Error);
+            automaticSave = null;
         }
+        StartPendingAutosave();
+    }
+
+    private void StartPendingAutosave()
+    {
+        if (!automaticSavePending || slotService.IsSaving) return;
+        automaticSavePending = false;
+        if (!HasActiveRun())
+        {
+            Debug.LogWarning("Autosave requires an active owner run.");
+            return;
+        }
+        try { automaticSave = slotService.BeginSave(DungeonGameSaveSlotService.AutoSaveSlot); }
+        catch (Exception exception) { Debug.LogWarning("Autosave failed: " + exception.Message); }
     }
 
     public bool TryQuickSave(out string message)
@@ -114,7 +147,9 @@ public sealed class DungeonAutosaveService :
         try
         {
             isSaving = true;
+            slotService.CompletePendingSave();
             message = slotService.Save(slotId);
+            if (slotId == DungeonGameSaveSlotService.AutoSaveSlot) automaticSavePending = false;
             return true;
         }
         catch (Exception exception)

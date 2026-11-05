@@ -6,7 +6,7 @@ using DungeonStory.Foundation.Facts;
 using DungeonStory.Narrative.Korean;
 
 /// <summary>Cross-section validation of a joint command/skill publication; no gameplay effects.</summary>
-public sealed class OffenseBattleCommandFactPreflight : IDungeonSavePreflightValidator, IDungeonCapturedSavePreflightValidator
+public sealed class OffenseBattleCommandFactPreflight : IDungeonSavePreflightValidator, IDungeonDetachedCapturedSavePreflightValidator
 {
     public void Validate(DungeonGameSaveData save, DungeonGameRestoreReport report)
     {

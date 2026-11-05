@@ -379,7 +379,7 @@ public sealed class CharacterSkillAcquiredOutcomeDescriptor : IGameplayOutcomeDe
         if (outcome.OutcomeTypeId != OutcomeTypeId
             || outcome.ParticipantCount != 1 || outcome.SubjectCount != 1
             || outcome.MetricCount != 2 || outcome.TagCount != 1
-            || outcome.AnchorCount != 4 || outcome.FactCount != 8)
+            || outcome.ProductionAnchorCount != 4 || outcome.FactCount != 8)
             return OutcomeValidationResult.Reject("character-skill-acquired-shape-invalid");
         GameplayOutcomeParticipant participant = outcome.GetParticipant(0);
         if (!participant.RoleId.Equals(CharacterSkillAcquiredOutcomeIds.OwnerRole)
@@ -413,11 +413,16 @@ public sealed class CharacterSkillAcquiredOutcomeDescriptor : IGameplayOutcomeDe
             || !outcome.GetFact(7).Value.StartsWith(
                 "evidence-v1;", StringComparison.Ordinal))
             return OutcomeValidationResult.Reject("character-skill-acquired-canonical-facts-invalid");
-        if (!HasHash(outcome.GetAnchor(0), CharacterSkillAcquiredOutcomeIds.SkillAnchor, outcome.GetFact(0).Value)
-            || !HasHash(outcome.GetAnchor(1), CharacterSkillAcquiredOutcomeIds.PresentationAnchor, outcome.GetFact(5).Value)
-            || !HasHash(outcome.GetAnchor(2), CharacterSkillAcquiredOutcomeIds.MechanicsAnchor, outcome.GetFact(6).Value)
-            || !HasHash(outcome.GetAnchor(3), CharacterSkillAcquiredOutcomeIds.EvidenceAnchor, outcome.GetFact(7).Value))
+        if (!HasHash(outcome.GetProductionAnchor(0), CharacterSkillAcquiredOutcomeIds.SkillAnchor, outcome.GetFact(0).Value)
+            || !HasHash(outcome.GetProductionAnchor(1), CharacterSkillAcquiredOutcomeIds.PresentationAnchor, outcome.GetFact(5).Value)
+            || !HasHash(outcome.GetProductionAnchor(2), CharacterSkillAcquiredOutcomeIds.MechanicsAnchor, outcome.GetFact(6).Value)
+            || !HasHash(outcome.GetProductionAnchor(3), CharacterSkillAcquiredOutcomeIds.EvidenceAnchor, outcome.GetFact(7).Value))
             return OutcomeValidationResult.Reject("character-skill-acquired-anchors-invalid");
+        for (int index = 0; index < outcome.ProductionAnchorCount; index++)
+        {
+            if (outcome.GetProductionAnchorSubject(index) != participant.EntityId)
+                return OutcomeValidationResult.Reject("character-skill-acquired-production-anchor-owner-invalid");
+        }
         for (int index = 0; index < outcome.AnchorCount; index++)
         {
             if (outcome.GetAnchorSubject(index) != participant.EntityId)
